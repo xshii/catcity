@@ -1,0 +1,18 @@
+# Cat City engineering contract
+
+Read README.md and docs/architecture.md before changing architecture. This is a long-lived game and a small reusable AI Game Dev Harness.
+
+- Game Core is truth; Phaser renders; AI proposes. Never mutate the world through a view, provider, or debug snapshot.
+- Core/content are pure TypeScript: no DOM, Phaser, network, real clock, model SDK, global singleton or Math.random. Use persisted seeded RNG and integer simulation time.
+- All mutations go through validated commands. Rejected commands leave world state unchanged. Return structured errors and record command outcomes.
+- Definitions and instances are separate. Keep modules small; add abstractions only when used. No generic GameManager or Utils dumping ground.
+- AI must be optional. M0 uses rule-based/mock dialogue only; no actual LLM. Validate proposals before commands; validate commands again in Core.
+- Saves are versioned and runtime-validated. Preserve old fixtures; add migration tests before schema changes. Never silently replace corrupt or future-version saves.
+- Gameplay randomness is separate from narrative/generative randomness. Seed, RNG state, simulation counters and ID allocation must survive save/load.
+- Debug Bridge exists only in dev/test builds. Harness runner must remain game-agnostic; game semantics belong in the adapter.
+- Write behavior tests before Core changes. Unit/simulation tests carry most logic coverage; E2E checks actual inputs, bridge state, persistence and console errors.
+- Do not delete failing tests, suppress type errors or automatically accept visual baselines to pass checks.
+- Run npm run check before calling a feature complete. Run npm run harness for changes to the playable loop, bridge or evidence collection. Inspect the screenshot.
+- Definition of Done: acceptance assertions pass, full gate passes, docs match code, evidence paths and known limits reported. A missing browser/test is a failure, not a skip.
+- Keep commits small and reversible. Do not commit dependencies, generated build output, private data or artifacts. Do not publish or send messages without authorization.
+- New systems such as offline earnings, daily schedules, mini-games and actual LLM providers are outside M0 until requested.

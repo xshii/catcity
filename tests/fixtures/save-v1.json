@@ -1,0 +1,69 @@
+{
+  "saveVersion": 1,
+  "contentVersion": 1,
+  "world": {
+    "seed": 42,
+    "rngState": 1921058495,
+    "minute": 79,
+    "coins": 710,
+    "nextId": 3,
+    "map": {
+      "width": 10,
+      "height": 10
+    },
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_CAFE",
+        "position": {
+          "x": 4,
+          "y": 4
+        },
+        "builtAtMinute": 0,
+        "incomeProgress": 19
+      }
+    ],
+    "cats": [
+      {
+        "id": "mochi",
+        "definitionId": "MOCHI",
+        "name": "Mochi",
+        "appearance": {
+          "coat": "cream"
+        },
+        "personality": ["shy", "food-loving", "slow-to-warm"],
+        "traits": ["gentle"],
+        "preferences": {
+          "likes": ["fish", "quiet", "windows"],
+          "dislikes": ["noise", "crowds"]
+        },
+        "mood": 70,
+        "needs": {
+          "hunger": 30,
+          "energy": 80,
+          "social": 50
+        },
+        "relationships": [],
+        "memories": [
+          {
+            "id": "memory-2",
+            "kind": "conversation",
+            "minute": 79,
+            "message": "鱼",
+            "reply": "喜欢鱼。"
+          }
+        ],
+        "playerBond": 1,
+        "home": null,
+        "favoritePlaces": [],
+        "dailyRoutine": [],
+        "currentActivity": "chatting",
+        "position": {
+          "x": 4,
+          "y": 3
+        },
+        "lastBondMinute": 79
+      }
+    ]
+  }
+}
