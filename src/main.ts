@@ -1,28 +1,25 @@
-import Phaser from 'phaser';
-import { GameSession } from './application/session';
+import { GameSession } from './application';
+import { RuleBasedDialogueProvider } from './providers/rule-dialogue';
 import { BrowserSaveRepository } from './platform/storage';
-import { CityScene } from './view/scene';
-import { mountPanel } from './view/panel';
-import { MAP_VIEW } from './view/geometry';
-import './style.css';
+import { mountGameView } from './view';
 
-const session = new GameSession(new BrowserSaveRepository());
-const panel = mountPanel(session);
-new Phaser.Game({
-  type: Phaser.CANVAS,
-  parent: 'game',
-  width: MAP_VIEW.size,
-  height: MAP_VIEW.size,
-  transparent: true,
-  banner: false,
-  audio: { noAudio: true },
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: new CityScene(session, panel.notify),
+const initialSeed =
+  import.meta.env.MODE === 'test'
+    ? 42
+    : crypto.getRandomValues(new Uint32Array(1))[0]!;
+const dialogue = new RuleBasedDialogueProvider();
+const session = new GameSession({
+  repository: new BrowserSaveRepository(),
+  dialogue,
+  fallbackDialogue: dialogue,
+  seed: initialSeed,
 });
+session.select('mochi');
+const view = mountGameView(session);
 
 if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
   void import('./debug/bridge').then(({ installDebugBridge }) =>
-    installDebugBridge(session),
+    installDebugBridge(session, view),
   );
 }
 

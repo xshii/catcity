@@ -1,0 +1,212 @@
+{
+  "saveVersion": 3,
+  "contentVersion": 1,
+  "world": {
+    "seed": 42,
+    "rngState": 1193880016,
+    "minute": 480,
+    "coins": 1000,
+    "nextId": 18,
+    "map": {
+      "width": 10,
+      "height": 10
+    },
+    "buildings": [],
+    "cats": [
+      {
+        "id": "mochi",
+        "definitionId": "MOCHI",
+        "name": "Mochi",
+        "appearance": {
+          "coat": "cream"
+        },
+        "personality": ["shy", "food-loving", "slow-to-warm"],
+        "traits": ["gentle"],
+        "preferences": {
+          "likes": ["fish", "quiet", "windows"],
+          "dislikes": ["noise", "crowds"]
+        },
+        "mood": 91,
+        "needs": {
+          "hunger": 30,
+          "energy": 80,
+          "social": 50
+        },
+        "relationships": [],
+        "memories": [
+          {
+            "id": "memory-1",
+            "kind": "conversation",
+            "minute": 0,
+            "message": "你好",
+            "reply": "喵"
+          }
+        ],
+        "playerBond": 8,
+        "home": null,
+        "favoritePlaces": [],
+        "dailyRoutine": [],
+        "currentActivity": "wandering",
+        "position": {
+          "x": 5,
+          "y": 5
+        },
+        "lastBondMinute": 420,
+        "keepsakes": [],
+        "favoriteFish": ["SILVER", "CRUCIAN"],
+        "fishingMemory": {
+          "runId": "angling-2",
+          "speciesId": "SILVER",
+          "spotId": "POND",
+          "minute": 60
+        },
+        "fishGift": null
+      },
+      {
+        "id": "cat-16",
+        "definitionId": "PEPPER",
+        "name": "Pepper",
+        "appearance": {
+          "coat": "gray"
+        },
+        "personality": ["curious", "playful"],
+        "traits": ["adventurous"],
+        "preferences": {
+          "likes": ["fish", "exploring"],
+          "dislikes": ["waiting"]
+        },
+        "mood": 70,
+        "needs": {
+          "hunger": 30,
+          "energy": 80,
+          "social": 50
+        },
+        "relationships": [],
+        "memories": [],
+        "playerBond": 0,
+        "home": null,
+        "favoritePlaces": [],
+        "dailyRoutine": [],
+        "currentActivity": "wandering",
+        "position": {
+          "x": 3,
+          "y": 1
+        },
+        "lastBondMinute": null,
+        "keepsakes": [],
+        "favoriteFish": ["PERCH", "CATFISH"],
+        "fishingMemory": null,
+        "fishGift": null
+      }
+    ],
+    "outings": {
+      "active": null,
+      "completed": 0,
+      "lastResult": null
+    },
+    "fishing": {
+      "stamina": 92,
+      "xp": 125,
+      "baits": {
+        "WORM": 2,
+        "SHRIMP": 2
+      },
+      "active": {
+        "id": "angling-17",
+        "catId": "cat-16",
+        "seed": 3836244429,
+        "baitId": "WORM",
+        "spotId": "MOON",
+        "direction": -30,
+        "skillLevel": 4,
+        "phase": "waiting",
+        "tick": 24,
+        "phaseTick": 0,
+        "power": 72,
+        "cursor": 0,
+        "pressed": false,
+        "hasHeld": true,
+        "speciesId": "KOI",
+        "weight": 598,
+        "precision": true,
+        "tension": 50,
+        "progress": 0,
+        "lineHealth": 100,
+        "reason": "none"
+      },
+      "inventory": [
+        {
+          "id": "fish-3",
+          "speciesId": "SILVER",
+          "weight": 111
+        },
+        {
+          "id": "fish-5",
+          "speciesId": "CRUCIAN",
+          "weight": 331
+        },
+        {
+          "id": "fish-7",
+          "speciesId": "CRUCIAN",
+          "weight": 347
+        },
+        {
+          "id": "fish-9",
+          "speciesId": "PERCH",
+          "weight": 709
+        },
+        {
+          "id": "fish-11",
+          "speciesId": "CATFISH",
+          "weight": 1204
+        },
+        {
+          "id": "fish-13",
+          "speciesId": "PERCH",
+          "weight": 799
+        },
+        {
+          "id": "fish-15",
+          "speciesId": "PERCH",
+          "weight": 831
+        }
+      ],
+      "atlas": {
+        "SILVER": {
+          "count": 1,
+          "bestWeight": 111
+        },
+        "CRUCIAN": {
+          "count": 2,
+          "bestWeight": 347
+        },
+        "PERCH": {
+          "count": 3,
+          "bestWeight": 831
+        },
+        "CATFISH": {
+          "count": 1,
+          "bestWeight": 1204
+        },
+        "KOI": {
+          "count": 0,
+          "bestWeight": 0
+        },
+        "MOON_CARP": {
+          "count": 0,
+          "bestWeight": 0
+        }
+      },
+      "lastResult": {
+        "runId": "angling-14",
+        "catId": "mochi",
+        "spotId": "REEDS",
+        "minute": 420,
+        "caught": true,
+        "speciesId": "PERCH",
+        "weight": 831,
+        "reason": "none"
+      }
+    }
+  }
+}

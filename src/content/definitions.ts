@@ -1,13 +1,8 @@
 import type { CatEntity, Position } from '../core/schema';
 
-export const CAT_CAFE = {
-  type: 'CAT_CAFE',
-  cost: 300,
-  income: 10,
-  intervalMinutes: 60,
-} as const;
-export const MOCHI = {
+const MOCHI = {
   definitionId: 'MOCHI',
+  breedId: 'RAGDOLL',
   name: 'Mochi',
   appearance: { coat: 'cream' },
   personality: ['shy', 'food-loving', 'slow-to-warm'],
@@ -31,14 +26,34 @@ export function instantiateMochi(id: string, position: Position): CatEntity {
     id,
     position: { ...position },
     mood: 70,
-    needs: { hunger: 30, energy: 80, social: 50 },
+    needs: { hunger: 30, energy: 100, social: 50 },
+    rest: null,
+    fishingSpotId: null,
+    walk: null,
     relationships: [],
     memories: [],
+    favoriteFish: ['SILVER', 'CRUCIAN'],
+    fishingMemory: null,
+    fishGift: null,
     playerBond: 0,
     home: null,
     favoritePlaces: [],
     dailyRoutine: [],
     currentActivity: 'resting',
     lastBondMinute: null,
+  };
+}
+
+export function instantiatePepper(id: string, position: Position): CatEntity {
+  return {
+    ...instantiateMochi(id, position),
+    definitionId: 'PEPPER',
+    breedId: 'BRITISH_SHORTHAIR',
+    name: 'Pepper',
+    appearance: { coat: 'gray' },
+    personality: ['curious', 'playful'],
+    traits: ['adventurous'],
+    favoriteFish: ['PERCH', 'CATFISH'],
+    preferences: { likes: ['fish', 'exploring'], dislikes: ['waiting'] },
   };
 }

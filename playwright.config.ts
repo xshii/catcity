@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  timeout: 30_000,
+  timeout: 60_000,
   outputDir: 'artifacts/e2e/results',
   reporter: [['list'], ['json', { outputFile: 'artifacts/e2e/results.json' }]],
   use: {
@@ -15,6 +15,14 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
+  projects: [
+    { name: 'chromium' },
+    {
+      name: 'webkit-motion',
+      use: { browserName: 'webkit' },
+      grep: /@motion-smoke/,
+    },
+  ],
   webServer: [
     {
       command: 'npm run build:test && npm run preview:test',

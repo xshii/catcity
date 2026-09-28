@@ -34,13 +34,14 @@ export async function runProcess(
   args: string[],
   logPath: string,
   env: NodeJS.ProcessEnv,
+  timeoutMs = 300_000,
 ): Promise<void> {
   const child = startProcess(executable, args, logPath, env);
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       stopProcess(child);
       reject(new Error(`Command timed out: ${executable}`));
-    }, 300_000);
+    }, timeoutMs);
     child.once('error', (error) => {
       clearTimeout(timeout);
       reject(error);

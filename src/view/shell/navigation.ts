@@ -1,0 +1,171 @@
+const cityPanels = [
+  ['build', '建设', '⌂'],
+  ['cats', '猫咪', '♧'],
+  ['chat', '聊天', '♡'],
+] as const;
+const riverPanels = [
+  ['gear', '钓具', '⌁'],
+  ['bag', '鱼篓', '▱'],
+  ['atlas', '图鉴', '▤'],
+  ['chat', '聊天', '♡'],
+] as const;
+type Panel = (typeof cityPanels | typeof riverPanels)[number][0];
+type Place = 'city' | 'river';
+
+/** Scene-local menus share content without navigating or changing the world. */
+export function mountSceneNavigation(pause: () => void) {
+  const get = (id: string) => document.getElementById(id)!;
+  const shell = document.querySelector<HTMLElement>('.shell')!;
+  const root = get('angling');
+  const sheet = get('river-tools');
+  const mobile = window.matchMedia('(max-width: 760px)');
+  const panelId = (id: Panel) =>
+    `${id === 'build' || id === 'cats' ? 'city' : 'river'}-panel-${id}`;
+  for (const id of ['build', 'cats'] as const) {
+    const panel = document.createElement('section');
+    panel.id = panelId(id);
+    panel.hidden = true;
+    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('aria-labelledby', `city-tab-${id}`);
+    sheet.append(panel);
+  }
+  get('city-panel-build').append(get('city-guide'), get('city-clock-actions'));
+  const homes = ['river-roster'].map((id) => {
+    const element = get(id);
+    const home = document.createComment(id);
+    element.before(home);
+    return { element, home };
+  });
+  const shade = document.createElement('button');
+  shade.id = 'river-tools-shade';
+  shade.type = 'button';
+  shade.tabIndex = -1;
+  shade.setAttribute('aria-label', '收起面板，返回场景');
+  shade.hidden = true;
+  sheet.before(shade);
+  let place: Place = get('fishing-stage').classList.contains('is-river')
+    ? 'river'
+    : 'city';
+  let selected: Panel | null = null;
+  const navs = (['city', 'river'] as const).map((scene) => {
+    const entries = scene === 'city' ? cityPanels : riverPanels;
+    const nav = document.createElement('nav');
+    nav.id = `${scene}-tools-nav`;
+    nav.className = 'scene-tools-nav';
+    nav.setAttribute('role', 'tablist');
+    nav.setAttribute('aria-label', scene === 'city' ? '小城功能' : '钓点功能');
+    nav.innerHTML = entries
+      .map(
+        ([id, name, icon]) =>
+          `<button id="${scene}-tab-${id}" role="tab" aria-controls="${panelId(id)}" aria-expanded="false" aria-selected="false"><span aria-hidden="true">${icon}</span>${name}</button>`,
+      )
+      .join('');
+    if (scene === 'city')
+      nav.insertAdjacentHTML(
+        'beforeend',
+        '<button id="city-tab-outing"><span aria-hidden="true">↗</span>出游</button>',
+      );
+    root.prepend(nav);
+    entries.forEach(([id]) => {
+      get(`${scene}-tab-${id}`).addEventListener('click', () => {
+        if (place !== scene) return;
+        selected = selected === id ? null : id;
+        if (selected) {
+          get('river-tools-title').textContent = entries.find(
+            ([key]) => key === selected,
+          )![1];
+          if (selected === 'atlas')
+            (get('fish-atlas') as HTMLDetailsElement).open = true;
+          pause();
+        }
+        refresh();
+      });
+    });
+    const buttons = Array.from(nav.querySelectorAll('button'));
+    buttons.forEach((button, index) =>
+      button.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
+          return;
+        event.preventDefault();
+        const next =
+          event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? buttons.length - 1
+              : (index +
+                  (event.key === 'ArrowRight' ? 1 : -1) +
+                  buttons.length) %
+                buttons.length;
+        buttons[next]!.focus({ preventScroll: true });
+      }),
+    );
+    return { scene, nav, entries };
+  });
+  const refresh = () => {
+    const next: Place = get('fishing-stage').classList.contains('is-river')
+      ? 'river'
+      : 'city';
+    if (next !== place) {
+      selected = null;
+      place = next;
+      get(`visit-${place}`).focus({ preventScroll: true });
+    }
+    const river = place === 'river';
+    shell.classList.toggle('river-screen', river);
+    shell.dataset.riverPanel = selected ?? '';
+    root.hidden = false;
+    sheet.hidden = selected === null;
+    shade.hidden = sheet.hidden || !mobile.matches;
+    get('river-tools-close').textContent = river ? '返回钓鱼 ↓' : '返回小城 ↓';
+    get('river-tools-close').setAttribute(
+      'aria-label',
+      river ? '返回钓鱼' : '返回小城',
+    );
+    for (const { scene, nav, entries } of navs) {
+      nav.hidden = scene !== place;
+      for (const [id] of entries) {
+        const active = id === selected && scene === place;
+        get(`${scene}-tab-${id}`).setAttribute('aria-selected', String(active));
+        get(`${scene}-tab-${id}`).setAttribute('aria-expanded', String(active));
+      }
+    }
+    for (const id of new Set<Panel>(
+      [...cityPanels, ...riverPanels].map(([id]) => id),
+    ))
+      get(panelId(id)).hidden = id !== selected;
+    get('river-panel-chat').setAttribute(
+      'aria-labelledby',
+      `${place}-tab-chat`,
+    );
+    for (const { element, home } of homes) {
+      const roster = element.id === 'river-roster';
+      const destination =
+        selected === (roster ? 'cats' : 'build')
+          ? get(panelId(roster ? 'cats' : 'build'))
+          : null;
+      if (destination) {
+        if (element.parentElement !== destination) destination.append(element);
+      } else if (element.previousSibling !== home) home.after(element);
+      if (roster) element.hidden = !river && selected !== 'cats';
+    }
+  };
+  const close = () => {
+    selected = null;
+    refresh();
+  };
+  const dismiss = () => {
+    const previous = selected;
+    close();
+    if (previous)
+      get(`${place}-tab-${previous}`).focus({ preventScroll: true });
+  };
+  get('city-tab-outing').addEventListener('click', close);
+  get('river-tools-close').addEventListener('click', dismiss);
+  shade.addEventListener('click', dismiss);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && selected) dismiss();
+  });
+  mobile.addEventListener('change', refresh);
+  refresh();
+  return { refresh, close, isOpen: () => selected !== null };
+}

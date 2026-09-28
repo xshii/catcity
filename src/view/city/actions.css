@@ -1,0 +1,54 @@
+.city-map-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  flex: 0 0 30px;
+  padding: 2px 12px;
+  color: #66775b;
+  font-size: 10px;
+}
+.game-screen #city-overview {
+  min-height: 27px;
+  padding: 4px 9px;
+  font-size: 10px;
+}
+.river-screen .city-map-hint,
+.river-mode #city-action-card {
+  display: none;
+}
+#city-action-card {
+  flex: 0 0 auto;
+  margin: 0 8px 6px;
+  padding: 8px 10px;
+  background: #faf9ef;
+  border: 1px solid #cedabb;
+  border-radius: 12px;
+}
+.city-action-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+#city-action-detail {
+  margin: 4px 0 6px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+#city-action-buttons {
+  display: flex;
+  gap: 5px;
+}
+.game-screen #city-action-buttons button {
+  flex: 1;
+  min-height: 34px;
+  padding: 6px;
+  font-size: 10px;
+}
+.game-screen #cancel-city-action {
+  min-height: 25px;
+  padding: 4px 8px;
+  font-size: 9px;
+}

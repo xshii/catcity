@@ -1,3 +1,4 @@
+import { advance, buildCafe, interact } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 import { RandomService } from '../../src/core/random';
@@ -26,14 +27,14 @@ describe('headless world', () => {
 
   it('builds a cafe and charges exactly once', () => {
     const world = createWorld(42);
-    expect(world.build({ x: 3, y: 3 }).ok).toBe(true);
+    expect(buildCafe(world, { x: 3, y: 3 }).ok).toBe(true);
     expect(world.getSnapshot().coins).toBe(700);
     expect(world.getSnapshot().buildings[0]).toMatchObject({
       type: 'CAT_CAFE',
       position: { x: 3, y: 3 },
     });
     const before = world.save();
-    expect(world.build({ x: 3, y: 3 }).ok).toBe(false);
+    expect(buildCafe(world, { x: 3, y: 3 }).ok).toBe(false);
     expect(world.save()).toBe(before);
   });
 
@@ -46,7 +47,7 @@ describe('headless world', () => {
   ])('rejects invalid placement %j atomically', (position) => {
     const world = createWorld(42);
     const before = world.save();
-    expect(world.build(position).ok).toBe(false);
+    expect(buildCafe(world, position).ok).toBe(false);
     expect(world.save()).toBe(before);
   });
 
@@ -55,7 +56,7 @@ describe('headless world', () => {
     save.world.coins = 299;
     const world = loadWorld(JSON.stringify(save));
     const before = world.save();
-    expect(world.build({ x: 0, y: 0 })).toMatchObject({
+    expect(buildCafe(world, { x: 3, y: 3 })).toMatchObject({
       ok: false,
       error: 'INSUFFICIENT_COINS',
     });
@@ -64,13 +65,13 @@ describe('headless world', () => {
 
   it('counts income from construction, including partial hours', () => {
     const world = createWorld(42);
-    world.advanceTime(25);
-    world.build({ x: 0, y: 0 });
-    world.advanceTime(59);
+    advance(world, 25);
+    buildCafe(world, { x: 3, y: 3 });
+    advance(world, 59);
     expect(world.getSnapshot().coins).toBe(700);
-    world.advanceTime(1);
+    advance(world, 1);
     expect(world.getSnapshot().coins).toBe(710);
-    world.advanceTime(120);
+    advance(world, 120);
     expect(world.getSnapshot().coins).toBe(730);
   });
 
@@ -79,7 +80,7 @@ describe('headless world', () => {
     (minutes) => {
       const world = createWorld(1);
       const before = world.save();
-      expect(world.advanceTime(minutes).ok).toBe(false);
+      expect(advance(world, minutes).ok).toBe(false);
       expect(world.save()).toBe(before);
     },
   );
@@ -104,7 +105,7 @@ describe('headless world', () => {
   it('stores structured memories, caps history and rate-limits bond rewards', () => {
     const world = createWorld(42);
     for (let i = 0; i < 55; i++)
-      expect(world.interact('mochi', `hello ${i}`, '喵。').ok).toBe(true);
+      expect(interact(world, 'mochi', `hello ${i}`, '喵。').ok).toBe(true);
     const cat = world.getSnapshot().cats[0]!;
     expect(cat.memories).toHaveLength(50);
     expect(cat.memories.at(-1)).toMatchObject({
@@ -113,10 +114,10 @@ describe('headless world', () => {
       message: 'hello 54',
     });
     expect(cat.playerBond).toBe(1);
-    world.advanceTime(60);
-    world.interact('mochi', 'hello again', '喵。');
+    advance(world, 60);
+    interact(world, 'mochi', 'hello again', '喵。');
     expect(world.getSnapshot().cats[0]!.playerBond).toBe(2);
-    expect(world.interact('missing', 'hi', 'hi').ok).toBe(false);
+    expect(interact(world, 'missing', 'hi', 'hi').ok).toBe(false);
   });
 
   it('uses repeatable independent RNG streams and restores their state', () => {
@@ -133,11 +134,11 @@ describe('headless world', () => {
 
   it('emits causally useful events without putting diagnostics in save state', () => {
     const world = createWorld(1);
-    expect(world.build({ x: 0, y: 0 })).toMatchObject({
+    expect(buildCafe(world, { x: 3, y: 3 })).toMatchObject({
       ok: true,
       events: [{ type: 'BuildingBuilt', cost: 300 }],
     });
-    const result = world.advanceTime(60);
+    const result = advance(world, 60);
     expect(
       result.ok &&
         result.events.some((event) => event.type === 'IncomeGenerated'),

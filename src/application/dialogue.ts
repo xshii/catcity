@@ -1,19 +1,14 @@
 import { z } from 'zod';
-import type { CatEntity } from '../core/schema';
+import type {
+  DialogueContext,
+  DialogueProvider,
+  DialogueProposal,
+} from './ports';
 
-export interface DialogueContext {
-  cat: Pick<CatEntity, 'id' | 'name' | 'mood' | 'personality' | 'preferences'>;
-  message: string;
-  recentMemories: CatEntity['memories'];
-}
-export interface DialogueProvider {
-  generate(context: DialogueContext): Promise<unknown>;
-}
-export const proposalSchema = z.strictObject({
+const proposalSchema = z.strictObject({
   catId: z.string().min(1).max(100),
   text: z.string().trim().min(1).max(500),
 });
-export type DialogueProposal = z.infer<typeof proposalSchema>;
 
 export async function resolveDialogue(
   provider: DialogueProvider,

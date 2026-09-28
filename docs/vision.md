@@ -1,11 +1,15 @@
-# Vision
+# 产品愿景
 
-Cat City is a calming city-building, management and cat-life game. Players grow a small cafe into a city, but its emotional center is the cats who live there.
+Cat City 是全猫咪化的城市生活游戏。居民、店主、医生和园丁都可以是猫，保留晒太阳、钻纸箱、摆尾和安静共处的猫咪习惯。玩家从城市建设视角经营生活空间，与具体的猫建立长期关系；猫咖只是其中一种设施。
 
-- BUILD: construct, operate and expand.
-- LIVE: persistent cats have needs, preferences, activities, relationships and experiences.
-- BOND: players recognize, care for and remember individual cats.
+**AI 辅助情感交流是核心体验。** 建设、经营、收集与可重复小游戏，为相处提供地点、资源和真实经历。目标是让玩家感到“我建设了一座城，而这些猫生活在里面”。
 
-Game state, not a language model, owns identity and history. The game remains playable offline without an API key. HTML5 is the initial target; Capacitor/iOS is a future adapter concern.
+- **BUILD：** 建造、经营、规划、扩张。
+- **LIVE：** 猫有持续的身份、偏好、需求、活动和经历。
+- **BOND：** 交流、照顾、一起活动、记住彼此。
 
-The parallel engineering product is an AI Game Dev Harness: task → code → checks → launch → interaction → observation → diagnosis → fix → regression. Its first success is one small feature independently verified through state and visual evidence.
+游戏应可肝、治愈、易于上手。重复活动推进资源和收藏，关系围绕具体经历成长；不靠离线扣感情、内疚台词或长篇强制剧情推动回访。故事只承担短教程。
+
+世界事实由 Game Core 保存。AI 丰富表达，无网络、无 Key、服务失败或关闭 AI 时仍完整可玩。当前实现采用规则对话；真实 AI 接入见[AI 架构](ai-architecture.md)。首发目标 HTML5，Capacitor/iOS 是后续适配方向。
+
+工程产品是独立可复用的 AI Game Dev Harness。先证明一个小 Feature 能被自动构建、操作、观察和回归，再逐步扩展游戏。当前需求见[玩法总览](game-design.md)，未实现内容见[路线图](roadmap.md)。

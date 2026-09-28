@@ -1,0 +1,66 @@
+{
+  "saveVersion": 2,
+  "contentVersion": 1,
+  "world": {
+    "seed": 42,
+    "rngState": 42,
+    "minute": 0,
+    "coins": 700,
+    "nextId": 4,
+    "map": { "width": 10, "height": 10 },
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_CAFE",
+        "position": { "x": 4, "y": 4 },
+        "builtAtMinute": 0,
+        "incomeProgress": 0
+      }
+    ],
+    "cats": [
+      {
+        "id": "mochi",
+        "definitionId": "MOCHI",
+        "name": "Mochi",
+        "appearance": { "coat": "cream" },
+        "personality": ["shy", "food-loving", "slow-to-warm"],
+        "traits": ["gentle"],
+        "preferences": {
+          "likes": ["fish", "quiet", "windows"],
+          "dislikes": ["noise", "crowds"]
+        },
+        "mood": 70,
+        "needs": { "hunger": 30, "energy": 80, "social": 50 },
+        "relationships": [],
+        "memories": [
+          {
+            "id": "memory-2",
+            "kind": "conversation",
+            "minute": 0,
+            "message": "你好",
+            "reply": "喵"
+          }
+        ],
+        "playerBond": 1,
+        "home": null,
+        "favoritePlaces": [],
+        "dailyRoutine": [],
+        "currentActivity": "chatting",
+        "position": { "x": 5, "y": 5 },
+        "lastBondMinute": 0,
+        "keepsakes": []
+      }
+    ],
+    "outings": {
+      "active": {
+        "id": "outing-3",
+        "catId": "mochi",
+        "seed": 3668340025,
+        "startedAt": 0,
+        "choices": [0]
+      },
+      "completed": 0,
+      "lastResult": null
+    }
+  }
+}

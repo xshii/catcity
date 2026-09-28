@@ -1,0 +1,73 @@
+.motion-controls {
+  margin-top: 12px;
+  border-top: 1px solid #dce3ce;
+  padding-top: 12px;
+}
+.motion-controls > div {
+  display: flex;
+  gap: 7px;
+}
+.game-screen .motion-controls button {
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 11px;
+}
+.motion-controls #motion-toggle[aria-pressed='true'] {
+  background: #e0eacc;
+  border-color: #8fa674;
+}
+.motion-controls p {
+  margin: 8px 0 0;
+  color: #728064;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.game-screen #motion-cast-arm[aria-pressed='true'] {
+  background: #dfeaca;
+}
+
+.motion-scene-control {
+  position: absolute;
+  right: 12px;
+  top: 7px;
+  max-width: min(190px, 56%);
+  display: grid;
+  gap: 3px;
+  pointer-events: none;
+}
+.motion-scene-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.game-screen #motion-quick-toggle,
+.game-screen #motion-quick-calibrate {
+  pointer-events: auto;
+  min-height: 44px;
+  padding: 5px 8px;
+  font-size: 10px;
+  line-height: 14px;
+  background: #fffbeeef;
+  border: 1px solid #b9cba5;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px #4f65451a;
+}
+.game-screen #motion-quick-calibrate {
+  min-width: 44px;
+  flex-shrink: 0;
+}
+.game-screen #motion-quick-calibrate[hidden] {
+  display: none;
+}
+.game-screen #motion-quick-toggle[aria-pressed='true'] {
+  background: #dcefc9;
+}
+#motion-quick-status {
+  color: #4d6749;
+  background: #f5f8ecdf;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 9px;
+  line-height: 1.3;
+  pointer-events: none;
+}

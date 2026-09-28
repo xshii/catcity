@@ -1,0 +1,122 @@
+{
+  "saveVersion": 5,
+  "contentVersion": 3,
+  "world": {
+    "seed": 42,
+    "rngState": 42,
+    "minute": 10,
+    "coins": 700,
+    "nextId": 3,
+    "map": {
+      "width": 10,
+      "height": 10
+    },
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_CAFE",
+        "position": {
+          "x": 4,
+          "y": 4
+        },
+        "builtAtMinute": 0,
+        "incomeProgress": 10
+      }
+    ],
+    "cats": [
+      {
+        "id": "mochi",
+        "definitionId": "MOCHI",
+        "name": "Mochi",
+        "appearance": {
+          "coat": "cream"
+        },
+        "personality": ["shy", "food-loving", "slow-to-warm"],
+        "traits": ["gentle"],
+        "preferences": {
+          "likes": ["fish", "quiet", "windows"],
+          "dislikes": ["noise", "crowds"]
+        },
+        "mood": 70,
+        "needs": {
+          "hunger": 30,
+          "energy": 97,
+          "social": 50
+        },
+        "relationships": [],
+        "memories": [],
+        "playerBond": 0,
+        "home": null,
+        "favoritePlaces": [],
+        "dailyRoutine": [],
+        "currentActivity": "resting",
+        "position": {
+          "x": 5,
+          "y": 5
+        },
+        "lastBondMinute": null,
+        "keepsakes": [],
+        "rest": {
+          "startedAt": 0,
+          "until": 60
+        },
+        "breedId": "RAGDOLL",
+        "favoriteFish": ["SILVER", "CRUCIAN"],
+        "fishingMemory": null,
+        "fishGift": null
+      }
+    ],
+    "outings": {
+      "active": null,
+      "completed": 0,
+      "lastResult": null
+    },
+    "fishing": {
+      "supplies": {
+        "trash": 0,
+        "cans": 0,
+        "coinBags": 0
+      },
+      "xp": 0,
+      "baits": {
+        "WORM": 6,
+        "SHRIMP": 3
+      },
+      "active": null,
+      "inventory": [],
+      "atlas": {
+        "SILVER": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "CRUCIAN": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "PERCH": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "CATFISH": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "KOI": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "MOON_CARP": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        }
+      },
+      "lastResult": null
+    }
+  }
+}

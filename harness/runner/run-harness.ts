@@ -57,6 +57,7 @@ export async function runHarness(
           command.args,
           join(directory, 'checks.log'),
           environment,
+          command.timeoutMs,
         ),
       );
     }
