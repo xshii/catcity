@@ -1,5 +1,6 @@
 import {
   canCatchFish,
+  FISHING,
   fishById,
   skillLevel,
   spotUnlocked,
@@ -10,9 +11,10 @@ import { failureTrash } from './rewards';
 import {
   castAngling,
   initialAngling,
-  motionTarget,
+  type AnglingRun,
 } from '../../minigames/angling';
 import { runSeed } from '../random';
+import { motionBounds } from '../../minigames/angling-motion';
 
 const serialOf = (runId: string) => Number(runId.slice('angling-'.length));
 
@@ -105,15 +107,14 @@ export function assertFishing(
         if (expected[key] !== run[key])
           throw new Error('Invalid fishing encounter');
     }
-    if (
-      run.phase === 'hook'
-        ? run.phaseTick >= 128 ||
-          run.motionStableTicks >= motionTarget(run).holdTicks ||
-          run.motionStableTicks > run.phaseTick ||
-          (run.motionStableTicks > 0 && run.pressed)
-        : run.motionStableTicks !== 0
+    if (run.mode === 'motion') assertMotionRun(run);
+    else if (
+      run.strike !== 'none' ||
+      run.spooked ||
+      run.hold !== 0 ||
+      (run.phase === 'hook' && run.phaseTick >= FISHING.hook.deadlineTicks)
     )
-      throw new Error('Invalid motion hook state');
+      throw new Error('Invalid button fishing state');
   }
 
   const result = f.lastResult;
@@ -201,4 +202,19 @@ function assertCatch(catchState: {
       : catchState.lootAmount !== 1)
   )
     throw new Error('Invalid found item');
+}
+
+/** Motion runs (spec 030): no strike or hold before the fight; bounded phases. */
+function assertMotionRun(run: AnglingRun): void {
+  const bounds = motionBounds(run);
+  const fight = run.phase === 'fight';
+  if (
+    run.pressed ||
+    (fight ? run.strike === 'none' : run.strike !== 'none' || run.hold !== 0) ||
+    (run.phase === 'waiting' && run.phaseTick >= bounds.bite) ||
+    (run.phase === 'hook' && run.phaseTick >= bounds.strikeWindow) ||
+    (fight &&
+      (run.hold >= bounds.holdTarget || run.phaseTick >= bounds.fightLimit))
+  )
+    throw new Error('Invalid motion fishing state');
 }

@@ -25,7 +25,7 @@ import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
 import { restMinutesLeft } from '../shell/model';
 import { mountFishingCollections } from './collections';
-import { mountFishingMotion } from '../motion/motion';
+import { mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -100,7 +100,7 @@ export function mountAngling(
     get('invite-pepper'),
   );
   get('river-roster').append(restActions);
-  mountFishingFeedback(session, stage.stage);
+  const feedback = mountFishingFeedback(session, stage.stage);
   const location = get<HTMLSelectElement>('fish-location');
   const companion = get<HTMLSelectElement>('fish-companion');
   const bait = get<HTMLSelectElement>('fish-bait');
@@ -144,7 +144,12 @@ export function mountAngling(
         (cat) => cat.id === (run?.catId ?? session.selectedEntity),
       ) ?? world.cats[0]!;
     const energy = selectedCat.needs.energy;
-    get('scene-ready').hidden = active;
+    // Motion play needs no prepare button or button-mode meters, so the river grows.
+    const motionPlay = motion?.active() || run?.mode === 'motion';
+    document
+      .querySelector('.shell')
+      ?.classList.toggle('motion-play', !!motionPlay);
+    get('scene-ready').hidden = active || !!motion?.active();
     get<HTMLButtonElement>('cast-start').disabled =
       active || !!selectedCat.rest || energy < CAST_COST;
     get<HTMLButtonElement>('fish-rest').disabled =
@@ -161,6 +166,7 @@ export function mountAngling(
       ? '正在一起钓鱼…'
       : `邀请 ${world.cats.find((cat) => cat.id === session.selectedEntity)?.name ?? 'Mochi'} 去钓鱼 ↗`;
     get('angling-live').hidden = !run;
+    get('angling-live').dataset.mode = run?.mode ?? '';
     const key = JSON.stringify([
       f.xp,
       f.supplies,
@@ -326,23 +332,49 @@ export function mountAngling(
     render();
   });
   const collections = mountFishingCollections();
-  const motion = mountFishingMotion(get('gear-page-supplies'), {
+  const motion = mountMotionFishing({
+    stage: stage.stage,
+    plane: get('game'),
+    settings: get('gear-page-supplies'),
     getRun: () => session.getSnapshot().fishing.active,
-    isPaused: () => paused,
-    cast: (power) => {
+    canPlay: () =>
+      place.get() === 'river' && !layout.isOpen() && !document.hidden,
+    // One swing starts and casts a motion run: nothing is spent before it.
+    cast: (swingDirection, power) => {
+      if (session.getSnapshot().fishing.active) return false;
+      if (!atShore(location.value as SpotId, companion.value)) return false;
+      direction.value = String(swingDirection);
+      const begun = session.execute({
+        type: 'FISH_BEGIN',
+        catId: companion.value,
+        baitId: bait.value as BaitId,
+        direction: swingDirection,
+        aimDepth: Number(depth.value),
+        spotId: location.value as SpotId,
+        mode: 'motion',
+      });
       const run = session.getSnapshot().fishing.active;
-      if (!run || run.phase !== 'charge' || layout.isOpen()) return false;
-      pressed = false;
+      if (!begun.ok || !run) {
+        report(begun, '');
+        return false;
+      }
       const result = session.execute({
         type: 'FISH_CAST',
         runId: run.id,
         power,
       });
       paused = !result.ok;
-      report(result, `甩竿力度 ${power}% · 留意鱼漂，准备提竿。`);
+      report(result, `甩竿力度 ${power}% · 拿稳鱼竿，等"！"再上扬。`);
       render();
       return result.ok;
     },
+    strike: () => {
+      const run = session.getSnapshot().fishing.active;
+      if (run?.mode === 'motion')
+        session.execute({ type: 'FISH_STRIKE', runId: run.id });
+    },
+    vibrate: (pattern) => feedback.pulse(pattern),
+    onChange: () => render(),
   });
   function enterAtSpot(spotId: SpotId, catId: string) {
     const run = session.getSnapshot().fishing.active;
@@ -373,9 +405,7 @@ export function mountAngling(
       aimDepth: Number(depth.value),
       spotId: location.value as SpotId,
     });
-    report(result, '落点已锁定，按当前操作提示抛竿。');
-    // Only an explicit new cast arms motion; navigation and late readings do not.
-    if (result.ok) motion.prepareCast();
+    report(result, '落点已锁定，按住按钮蓄力，松开抛竿。');
   }
   get('fishing').addEventListener('click', () =>
     enterAtSpot(location.value as SpotId, companion.value),
@@ -493,12 +523,7 @@ export function mountAngling(
   });
   const down = () => {
     if (layout?.isOpen()) return;
-    if (motion.useManualControl()) {
-      pressed = false;
-      render();
-      return;
-    }
-    if (session.getSnapshot().fishing.active) {
+    if (session.getSnapshot().fishing.active?.mode === 'buttons') {
       paused = false;
       pressed = true;
       render();
@@ -557,14 +582,19 @@ export function mountAngling(
       layout?.isOpen()
     )
       return false;
-    const point = motion.controlPoint();
     // Only the bite wait is sped up; hook and fight need a timely player reaction.
     const ticks = run.phase === 'waiting' ? scale : 1;
-    session.execute(
-      run.phase === 'hook' && point
-        ? { type: 'FISH_MOTION_CONTROL', runId: run.id, ...point, ticks }
-        : { type: 'FISH_CONTROL', runId: run.id, pressed, ticks },
-    );
+    if (run.mode === 'motion') {
+      if (run.phase === 'charge') return false;
+      const point = motion.point() ?? { x: 50, y: 50 };
+      session.execute({
+        type: 'FISH_MOTION_CONTROL',
+        runId: run.id,
+        ...point,
+        ticks,
+      });
+    } else
+      session.execute({ type: 'FISH_CONTROL', runId: run.id, pressed, ticks });
     return true;
   };
   // Browser time drives ticks; tests may take over the clock like ADVANCE_TIME.

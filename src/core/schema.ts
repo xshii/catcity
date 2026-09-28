@@ -103,7 +103,7 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 export const CONTENT_VERSION = 5;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),

@@ -59,4 +59,10 @@ export function mountFishingFeedback(session: GameSession, stage: HTMLElement) {
       );
   });
   draw();
+  /** Extra cues (nibble, swing) that also respect the player's haptics setting. */
+  return {
+    pulse(pattern: number | number[]) {
+      if (enabled && !document.hidden) vibrate(pattern);
+    },
+  };
 }

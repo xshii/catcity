@@ -22,6 +22,7 @@
 | 验证中 | 代码完成，等待完整 Gate / Harness / 实机                         |
 | 完成   | `npm run check` 与 Harness 通过、截图已查看，证据写进 `tasks.md` |
 | 延后   | 明确不在当前范围                                                 |
+| 已取代 | 需求被后续 spec 取代，保留记录不再实施                           |
 
 AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新本表与对应 `tasks.md`。
 
@@ -47,7 +48,7 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 | 001 | [城市地图与建设](001-city-building/requirements.md)            | 完成   | 种子 10×10 地图、买地/道路/猫咖/公寓/搬移、收入；池塘边出生 |
 | 002 | [猫咪步行、体力与休息](002-cat-walking-rest/requirements.md)   | 完成   | 逐格步行扣体力、每猫独立休息、统一游戏时钟                  |
 | 003 | [钓鱼小游戏](003-fishing/requirements.md)                      | 完成   | 到岸开钓、8 鱼 4 水域、饵/落点/力度、收集与出售赠送         |
-| 004 | [体感瞄准、甩竿与提竿](004-motion-input/requirements.md)       | 验证中 | 可选倾斜与甩竿、二维提竿、全手动降级；未实机验证            |
+| 004 | [体感瞄准、甩竿与提竿](004-motion-input/requirements.md)       | 已取代 | 旧体感方案，由 030 取代                                     |
 | 005 | [伙伴关系与规则对话](005-companion-dialogue/requirements.md)   | 完成   | Mochi/Pepper、事实记忆、离线规则对话与回退                  |
 | 006 | [存档、回放与旧档拒绝](006-save-replay/requirements.md)        | 完成   | v12 精确往返、旧档拒绝与显式重置、确定性回放                |
 | 007 | [手机单屏界面与导航](007-mobile-ui/requirements.md)            | 验证中 | 单屏、按地点的四入口、触摸与键盘                            |
@@ -65,14 +66,14 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 
 ### 后续需求
 
-| ID  | 功能                                                          | 状态   | 摘要                                                       |
-| --- | ------------------------------------------------------------- | ------ | ---------------------------------------------------------- |
-| 020 | [实机打磨](020-device-polish/requirements.md)                 | 提出   | 路线图优先级 1：真实手机上的触控/体感/单屏反馈             |
-| 021 | [猫咪个体反应](021-cat-reactions/requirements.md)             | 提出   | 路线图优先级 2：同一结果不同猫不同反应                     |
-| 022 | [品种、居民与新照顾活动](022-breeds-and-care/requirements.md) | 提出   | 路线图优先级 3                                             |
-| 023 | [可关闭的真实 AI](023-optional-ai/requirements.md)            | 提出   | 路线图优先级 4                                             |
-| 024 | [有效存档"新开一城"](024-new-city/requirements.md)            | 提出   | 交接说明提出的 UX                                          |
-| 025 | [AGPL 源码链接](025-source-link/requirements.md)              | 提出   | 界面提供源码入口                                           |
-| 026 | [合并后发布 Pages](026-pages-deploy/requirements.md)          | 提出   | 仓库已公开，可免费开通                                     |
-| 030 | [钓鱼操作重设计](030-fishing-gestures/requirements.md)        | 已确认 | 甩竿手势抛竿、"！"上扬提竿、点追鱼圈遛鱼；排在代码整洁之后 |
-| 029 | [内容候选池](029-content-backlog/requirements.md)             | 延后   | 撸猫、猫草、收容、医院、设施、摄影、料理等                 |
+| ID  | 功能                                                          | 状态   | 摘要                                                             |
+| --- | ------------------------------------------------------------- | ------ | ---------------------------------------------------------------- |
+| 020 | [实机打磨](020-device-polish/requirements.md)                 | 提出   | 路线图优先级 1：真实手机上的触控/体感/单屏反馈                   |
+| 021 | [猫咪个体反应](021-cat-reactions/requirements.md)             | 提出   | 路线图优先级 2：同一结果不同猫不同反应                           |
+| 022 | [品种、居民与新照顾活动](022-breeds-and-care/requirements.md) | 提出   | 路线图优先级 3                                                   |
+| 023 | [可关闭的真实 AI](023-optional-ai/requirements.md)            | 提出   | 路线图优先级 4                                                   |
+| 024 | [有效存档"新开一城"](024-new-city/requirements.md)            | 提出   | 交接说明提出的 UX                                                |
+| 025 | [AGPL 源码链接](025-source-link/requirements.md)              | 提出   | 界面提供源码入口                                                 |
+| 026 | [合并后发布 Pages](026-pages-deploy/requirements.md)          | 提出   | 仓库已公开，可免费开通                                           |
+| 030 | [钓鱼操作重设计](030-fishing-gestures/requirements.md)        | 验证中 | 手机即鱼竿：甩竿、"！"上扬、竿尖追鱼圈；按钮版冻结；待实机调手感 |
+| 029 | [内容候选池](029-content-backlog/requirements.md)             | 延后   | 撸猫、猫草、收容、医院、设施、摄影、料理等                       |

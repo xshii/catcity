@@ -35,7 +35,6 @@ export interface AnglingRun {
   phase: 'charge' | 'waiting' | 'hook' | 'fight' | 'caught' | 'escaped';
   tick: number;
   phaseTick: number;
-  motionStableTicks: number;
   power: number;
   cursor: number;
   pressed: boolean;
@@ -47,6 +46,12 @@ export interface AnglingRun {
   progress: number;
   lineHealth: number;
   reason: 'none' | 'missed-hook' | 'line-break' | 'escaped';
+  /** Buttons keep the frozen tension fight; motion runs use angling-motion.ts. */
+  mode: 'buttons' | 'motion';
+  /** Motion runs: lift quality, a spooked nibble, and hold earned inside the ring. */
+  strike: 'none' | 'perfect' | 'good';
+  spooked: boolean;
+  hold: number;
 }
 export function initialAngling(
   input: Pick<
@@ -60,6 +65,7 @@ export function initialAngling(
     | 'spotId'
     | 'catBreed'
     | 'aimDepth'
+    | 'mode'
   >,
 ): AnglingRun {
   return {
@@ -70,7 +76,6 @@ export function initialAngling(
     phase: 'charge',
     tick: 0,
     phaseTick: 0,
-    motionStableTicks: 0,
     power: 0,
     cursor: 0,
     pressed: false,
@@ -82,6 +87,9 @@ export function initialAngling(
     progress: 0,
     lineHealth: 100,
     reason: 'none',
+    strike: 'none',
+    spooked: false,
+    hold: 0,
   };
 }
 const triangle = (tick: number, period: number) =>
@@ -115,57 +123,6 @@ export function greenZone(run: AnglingRun): { low: number; high: number } {
     low: Math.round(center - width / 2),
     high: Math.round(center + width / 2),
   };
-}
-
-/** The View draws this target; Core alone decides whether input holds inside it. */
-export function motionTarget(run: AnglingRun): {
-  x: 50;
-  y: 50;
-  radius: number;
-  holdTicks: number;
-} {
-  const zone = greenZone({ ...run, phase: 'hook' });
-  return {
-    x: HOOK.motionCenter,
-    y: HOOK.motionCenter,
-    radius: (zone.high - zone.low) / 2,
-    holdTicks: HOOK.holdBaseTicks + HOOK.holdTicksPerStar * starsOf(run),
-  };
-}
-
-/** One normalized point is held for bounded ticks; no sensor or wall-clock dependency. */
-export function stepMotionAngling(
-  input: AnglingRun,
-  x: number,
-  y: number,
-  ticks: number,
-): AnglingRun {
-  if (input.phase !== 'hook') throw new Error('Motion requires hook phase');
-  if (!percent(x) || !percent(y)) throw new Error('Invalid motion point');
-  if (!validTicks(ticks)) throw new Error('Invalid angling ticks');
-  const run = { ...input, pressed: false };
-  const target = motionTarget(run);
-  const inside =
-    (x - target.x) ** 2 + (y - target.y) ** 2 <= target.radius ** 2;
-  for (let i = 0; i < ticks && run.phase === 'hook'; i++) {
-    run.tick++;
-    run.phaseTick++;
-    run.cursor = 100 - triangle(run.phaseTick, PERIOD);
-    if (run.phaseTick >= HOOK.deadlineTicks) {
-      run.phase = 'escaped';
-      run.reason = 'missed-hook';
-      run.motionStableTicks = 0;
-      break;
-    }
-    run.motionStableTicks = inside ? run.motionStableTicks + 1 : 0;
-    if (run.motionStableTicks >= target.holdTicks) {
-      run.phase = run.catchKind === 'fish' ? 'fight' : 'caught';
-      run.phaseTick = 0;
-      run.tension = FIGHT.startTension;
-      run.motionStableTicks = 0;
-    }
-  }
-  return run;
 }
 
 function chooseFish(run: AnglingRun): void {
@@ -222,7 +179,7 @@ export function stepAngling(
   ticks: number,
 ): AnglingRun {
   if (!validTicks(ticks)) throw new Error('Invalid angling ticks');
-  const run = { ...input, motionStableTicks: 0 };
+  const run = { ...input };
   for (let i = 0; i < ticks; i++) {
     if (run.phase === 'caught' || run.phase === 'escaped') break;
     if (run.phase === 'charge' && !pressed && run.hasHeld) {
