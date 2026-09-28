@@ -24,7 +24,8 @@
     "replay": "tsx harness/adapters/catcity/replay.ts",
     "lint:code": "eslint .",
     "lint:unused": "knip",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "phaser": "^3.90.0",

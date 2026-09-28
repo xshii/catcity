@@ -15,5 +15,6 @@ Read README.md and docs/architecture.md before changing architecture. This is a 
 - Do not delete failing tests, suppress type errors or automatically accept visual baselines to pass checks.
 - Run npm run check before calling a feature complete. Run npm run harness for changes to the playable loop, bridge or evidence collection. Inspect the screenshot.
 - Definition of Done: acceptance assertions pass, full gate passes, docs match code, evidence paths and known limits reported. A missing browser/test is a failure, not a skip.
+- Never push to main. Push a branch and open a pull request; CI gates run only on pull requests.
 - Keep commits small and reversible. Do not commit dependencies, generated build output, private data or artifacts. Do not publish or send messages without authorization.
 - New systems such as offline earnings, daily schedules, additional mini-games and actual LLM providers are outside the current scope until requested.
