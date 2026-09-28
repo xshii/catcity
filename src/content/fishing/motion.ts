@@ -87,37 +87,42 @@ export const MOTION = {
     },
   },
   /**
-   * Swing gestures from the gyroscope rate about `axis` (°/s). Holding the phone upright,
-   * tipping the top away (the forward whip) lowers beta, so forward reads negative. One-tap
-   * calibration replaces the axis, sign and thresholds with the player's own swing.
+   * Rod gestures from the gyroscope rate about `axis` (°/s). Holding the phone upright
+   * and facing the water, tipping the top away (down) lowers beta, so down reads negative.
+   * Slow pitch sets the power; a quick flick down casts; a quick flick up strikes.
+   * One-tap calibration replaces the axis, sign and flick threshold with the player's own.
    */
   gesture: {
     axis: 'beta',
     pitchSign: -1,
-    backswingDegPerSec: 120,
-    forwardDegPerSec: 250,
-    fullPowerDegPerSec: 900,
-    minPower: 20,
-    swingWindowMs: 700,
+    /** A flick down faster than this casts. */
+    flickDegPerSec: 250,
+    /** Faster than this, a pitch may be a flick: the power is read from before it. */
+    onsetDegPerSec: 80,
+    /** How far back from the flick's start the power is read. */
+    powerLeadMs: 100,
     liftDegPerSec: 300,
     liftCooldownMs: 400,
     /** Tilting ±`tiltRangeDeg` from the calibrated pose spans the water plane. */
     tiltRangeDeg: 30,
-    /** Exponential smoothing of the rod tip; 1 means no smoothing. */
+    /** Exponential smoothing of the rod tip and power; 1 means no smoothing. */
     smoothing: 0.3,
     /** Roll that maps to the full ±`input.maxDirection` aim. */
     aimRangeDeg: 30,
+    /** Pitch back (+) or forward (−) from the resting pose spanning power 0–100; rest is 50. */
+    powerRangeDeg: 25,
     /**
-     * One-tap calibration: two swings within `windowMs`. Thresholds are a share of the
-     * measured peaks (the whip, or the backswing for the backswing and the lift), clamped.
+     * One-tap calibration: two flicks down within `windowMs`, each ending with `quietMs`
+     * below the onset speed. Both must agree on the sign; the flick threshold becomes a
+     * share of the weaker flick, clamped. Stored tunings outside these bounds are ignored.
      */
     calibration: {
-      windowMs: 2500,
-      minForwardDegPerSec: 150,
-      forward: { percent: 50, min: 120, max: 400 },
-      backswing: { percent: 50, min: 60, max: 200 },
-      fullPower: { percent: 120, min: 300, max: 1500 },
-      lift: { percent: 70, min: 120, max: 300 },
+      windowMs: 3000,
+      flicks: 2,
+      quietMs: 150,
+      minFlickDegPerSec: 150,
+      flick: { percent: 50, min: 120, max: 400 },
+      lift: { min: 150, max: 450 },
     },
   },
 } as const;

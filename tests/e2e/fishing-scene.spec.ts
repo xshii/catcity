@@ -1,5 +1,7 @@
 import { enterRiver } from '../../harness/adapters/catcity/city-input';
 import { expect, test } from '@playwright/test';
+import { FISHING } from '../../src/content/fishing';
+import { WATER_VIEW, waterPoint } from '../../src/view/art/water-view';
 import { catchFish } from '../../harness/adapters/catcity/angling-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import {
@@ -17,10 +19,17 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   const arrival = await readWorld(page);
   const canvas = page.locator('canvas');
   const bounds = (await canvas.boundingBox())!;
+  // Tapping the far left of the water aims hard left.
+  const left = waterPoint(-FISHING.input.maxDirection, 0.5);
   await canvas.click({
-    position: { x: (bounds.width * 330) / 640, y: (bounds.height * 250) / 640 },
+    position: {
+      x: (bounds.width * left.x) / WATER_VIEW.size,
+      y: (bounds.height * left.y) / WATER_VIEW.size,
+    },
   });
-  await expect(page.locator('#fish-direction')).toHaveValue('-45');
+  await expect(page.locator('#fish-direction')).toHaveValue(
+    String(-FISHING.input.maxDirection),
+  );
   await openGear(page);
   await page.locator('[data-bait="WORM"]').click();
   await expect(page.locator('#fish-bait')).toHaveValue('WORM');

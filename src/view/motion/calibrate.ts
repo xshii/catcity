@@ -1,7 +1,8 @@
 import { FISHING } from '../../content/fishing';
-import type { RodTuning } from './rod';
+import { DEFAULT_TUNING, type RodTuning } from './rod';
 
-const C = FISHING.motion.gesture.calibration;
+const G = FISHING.motion.gesture;
+const C = G.calibration;
 const AXES = ['alpha', 'beta', 'gamma'] as const;
 
 /** One gyroscope reading, °/s about each device axis (missing axes read 0). */
@@ -12,80 +13,101 @@ export interface SpinSample {
   gamma: number;
 }
 
-const share = (
-  peak: number,
-  rule: { percent: number; min: number; max: number },
-) =>
-  Math.min(
-    rule.max,
-    Math.max(rule.min, Math.round((peak * rule.percent) / 100)),
-  );
+/**
+ * The flicks on one axis: each starts at the first spin of at least `minFlickDegPerSec`,
+ * takes its sign from that spike (the rebound comes later) and ends after `quietMs`
+ * below the onset speed. `peak` is the fastest spin in the flick's own direction.
+ */
+function flicksOn(samples: SpinSample[], axis: RodTuning['axis']) {
+  const flicks: { sign: 1 | -1; peak: number }[] = [];
+  let current: {
+    sign: 1 | -1;
+    peak: number;
+    quietSince: number | null;
+  } | null = null;
+  for (const sample of samples) {
+    const rate = sample[axis];
+    if (!current) {
+      if (Math.abs(rate) >= C.minFlickDegPerSec)
+        current = { sign: rate > 0 ? 1 : -1, peak: 0, quietSince: null };
+      else continue;
+    }
+    current.peak = Math.max(current.peak, rate * current.sign);
+    if (Math.abs(rate) >= G.onsetDegPerSec) current.quietSince = null;
+    else current.quietSince ??= sample.t;
+    if (
+      current.quietSince !== null &&
+      sample.t - current.quietSince >= C.quietMs
+    ) {
+      flicks.push({ sign: current.sign, peak: current.peak });
+      current = null;
+    }
+  }
+  if (current) flicks.push({ sign: current.sign, peak: current.peak });
+  return flicks;
+}
 
 /**
- * One-tap swing calibration (spec 030). The whip is the fastest spin in the samples: its
- * axis and sign become the rod's, and the fastest opposite spin before it is the
- * backswing. Thresholds follow the player's own speeds. Null when no real swing was felt.
+ * One-tap flick calibration (spec 030): the player flicks the tip down twice. The axis
+ * with the fastest spin is the rod's; both flicks must agree on the sign, and the flick
+ * threshold follows the weaker one. Null when that did not happen: ask again.
  */
 export function calibrateSwing(
   samples: SpinSample[],
-): { tuning: RodTuning; peaks: { backswing: number; forward: number } } | null {
-  let found: { axis: RodTuning['axis']; index: number; rate: number } = {
-    axis: 'beta',
-    index: -1,
-    rate: 0,
-  };
-  for (const axis of AXES)
-    for (const [index, sample] of samples.entries())
-      if (Math.abs(sample[axis]) > Math.abs(found.rate))
-        found = { axis, index, rate: sample[axis] };
-  if (Math.abs(found.rate) < C.minForwardDegPerSec) return null;
-  const pitchSign = found.rate > 0 ? 1 : -1;
-  const forward = Math.abs(found.rate);
-  const backswing = Math.max(
-    0,
-    ...samples
-      .slice(0, found.index)
-      .map((sample) => -sample[found.axis] * pitchSign),
+): { tuning: RodTuning; peak: number } | null {
+  let axis: RodTuning['axis'] = G.axis;
+  let fastest = 0;
+  for (const candidate of AXES)
+    for (const sample of samples)
+      if (Math.abs(sample[candidate]) > fastest) {
+        fastest = Math.abs(sample[candidate]);
+        axis = candidate;
+      }
+  const flicks = flicksOn(samples, axis);
+  if (
+    flicks.length < C.flicks ||
+    flicks.some((flick) => flick.sign !== flicks[0]!.sign)
+  )
+    return null;
+  // A flick down reads `sign`, so down × pitchSign is positive.
+  const pitchSign = flicks[0]!.sign;
+  const peak = Math.round(Math.min(...flicks.map((flick) => flick.peak)));
+  const flickDegPerSec = Math.min(
+    C.flick.max,
+    Math.max(C.flick.min, Math.round((peak * C.flick.percent) / 100)),
   );
   return {
     tuning: {
-      axis: found.axis,
+      axis,
       pitchSign,
-      forwardDegPerSec: share(forward, C.forward),
-      backswingDegPerSec: share(backswing, C.backswing),
-      fullPowerDegPerSec: share(forward, C.fullPower),
-      liftDegPerSec: share(backswing, C.lift),
+      flickDegPerSec,
+      liftDegPerSec: DEFAULT_TUNING.liftDegPerSec,
     },
-    peaks: { backswing: Math.round(backswing), forward: Math.round(forward) },
+    peak,
   };
 }
+
+const within = (value: unknown, bounds: { min: number; max: number }) =>
+  typeof value === 'number' &&
+  Number.isFinite(value) &&
+  value >= bounds.min &&
+  value <= bounds.max;
 
 /** A stored tuning, or null if it is not one (per-device data, never trusted blindly). */
 export function parseTuning(value: unknown): RodTuning | null {
   if (typeof value !== 'object' || value === null) return null;
   const tuning = value as Record<string, unknown>;
-  const speeds = [
-    'backswingDegPerSec',
-    'forwardDegPerSec',
-    'fullPowerDegPerSec',
-    'liftDegPerSec',
-  ] as const;
-  const valid =
-    AXES.includes(tuning.axis as RodTuning['axis']) &&
-    (tuning.pitchSign === 1 || tuning.pitchSign === -1) &&
-    speeds.every(
-      (key) =>
-        typeof tuning[key] === 'number' &&
-        Number.isFinite(tuning[key]) &&
-        tuning[key] > 0,
-    );
-  if (!valid) return null;
+  if (
+    !AXES.includes(tuning.axis as RodTuning['axis']) ||
+    (tuning.pitchSign !== 1 && tuning.pitchSign !== -1) ||
+    !within(tuning.flickDegPerSec, C.flick) ||
+    !within(tuning.liftDegPerSec, C.lift)
+  )
+    return null;
   return {
     axis: tuning.axis as RodTuning['axis'],
-    pitchSign: tuning.pitchSign as RodTuning['pitchSign'],
-    backswingDegPerSec: tuning.backswingDegPerSec as number,
-    forwardDegPerSec: tuning.forwardDegPerSec as number,
-    fullPowerDegPerSec: tuning.fullPowerDegPerSec as number,
+    pitchSign: tuning.pitchSign,
+    flickDegPerSec: tuning.flickDegPerSec as number,
     liftDegPerSec: tuning.liftDegPerSec as number,
   };
 }

@@ -32,10 +32,12 @@ export interface Aim {
   spotId: SpotId;
   direction: number;
   depth: number;
+  /** Cast power the rod is set to (motion); the landing preview moves with it. */
+  power: number;
 }
 export interface AimControl {
   get: () => Aim;
   /** Aiming on the water or by tilt; callers keep values within `FISHING.input`. */
-  set: (next: Partial<Pick<Aim, 'direction' | 'depth'>>) => void;
+  set: (next: Partial<Omit<Aim, 'spotId'>>) => void;
   subscribe: (listener: () => void) => () => void;
 }

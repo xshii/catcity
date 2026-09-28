@@ -80,8 +80,8 @@ test(
     await inMotionRiver(page);
     const before = await readWorld(page);
     expect(before.fishing.active).toBeNull();
-    // Backswing, then a forward whip: one gesture starts and casts the run.
-    await spin(page, [-200, -150, 0, 700, 900, 100]);
+    // A quick flick down starts and casts the run.
+    await swing(page);
     const cast = await readWorld(page);
     expect(cast.fishing.active).toMatchObject({
       mode: 'motion',
@@ -164,7 +164,8 @@ test('players can switch back to the frozen button flow on this device', async (
   ).toBe('buttons');
 });
 
-const swing = (page: Page) => spin(page, [-200, -150, 0, 700, 900, 100]);
+/** A quick flick of the tip down: the cast gesture. */
+const swing = (page: Page) => spin(page, [0, 300, 700, 900, 100, 0]);
 async function toBite(page: Page) {
   for (let i = 0; i < 200; i++) {
     if ((await readWorld(page)).fishing.active!.phase === 'hook') return;
@@ -282,20 +283,26 @@ test('one-tap calibration lets a phone with a reversed pitch cast', async ({
   page,
 }) => {
   await inMotionRiver(page);
+  const flick = [0, 300, 700, 900, 100, 0];
+  const quiet = Array<number>(12).fill(0);
   const reversed = (rates: number[]) =>
     spin(
       page,
       rates.map((r) => -r),
     );
-  // Before calibrating, the reversed swing is not a cast.
-  await reversed([-200, -150, 0, 700, 900, 100]);
+  // Before calibrating, the reversed flick is not a cast.
+  await reversed(flick);
   expect((await readWorld(page)).fishing.active).toBeNull();
   await page.locator('#motion-calibrate').click();
   await expect(page.locator('#motion-fishing-hint')).toContainText('校准');
-  await reversed([-200, -150, 0, 700, 900, 100]);
+  for (const rates of [flick, quiet, flick, quiet]) {
+    await reversed(rates);
+    // A flick ends after a quiet spell measured in event time, so let time pass.
+    await page.waitForTimeout(FISHING.motion.gesture.calibration.quietMs + 50);
+  }
   await expect(page.locator('#motion-fishing-hint')).toContainText('校准完成');
-  await expect(page.locator('#motion-fishing-hint')).toContainText('前甩 900');
-  await reversed([-200, -150, 0, 700, 900, 100]);
+  await expect(page.locator('#motion-fishing-hint')).toContainText('下甩 900');
+  await reversed(flick);
   expect((await readWorld(page)).fishing.active).toMatchObject({
     mode: 'motion',
     phase: 'waiting',
@@ -304,4 +311,23 @@ test('one-tap calibration lets a phone with a reversed pitch cast', async ({
   expect(
     await page.evaluate(() => localStorage.getItem('cat-city.rod-tuning')),
   ).toContain('"pitchSign"');
+});
+
+test('slow pitch sets the power the flick casts with', async ({
+  page,
+}, testInfo) => {
+  await inMotionRiver(page);
+  const { powerRangeDeg } = FISHING.motion.gesture;
+  // Tilt the tip back slowly, as far as the power range goes.
+  for (let i = 0; i < 30; i++) await orient(page, 0, powerRangeDeg);
+  await expect(page.locator('#motion-power')).toHaveAttribute(
+    'aria-valuenow',
+    '100',
+  );
+  await page.screenshot({ path: testInfo.outputPath('motion-aim.png') });
+  await swing(page);
+  expect((await readWorld(page)).fishing.active).toMatchObject({
+    mode: 'motion',
+    power: 100,
+  });
 });
