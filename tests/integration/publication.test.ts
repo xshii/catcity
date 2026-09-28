@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { createServer } from 'node:net';
 import {
   publishLocal,
+  publishTest,
   publicationStatus,
   stopPublication,
   type LocalPublication,
@@ -190,6 +191,31 @@ it.each(['smoke', 'launch', 'readiness'] as const)(
   },
   15000,
 );
+
+it('test publishes skip the smoke, report unverified and are never restored', async () => {
+  const f = await fixture();
+  try {
+    const trial = await publishTest(f.config, 'try-out');
+    expect(await publicationStatus(f.config)).toMatchObject({
+      running: true,
+      verified: false,
+      state: { releaseId: trial.releaseId, buildVersion: 'try-out' },
+    });
+    await expect(
+      publishLocal(f.config, f.gate, async () => {
+        throw new Error('smoke failed');
+      }),
+    ).rejects.toThrow('smoke failed');
+    // The unverified trial was stopped for the candidate and is not revived.
+    expect((await publicationStatus(f.config)).running).toBe(false);
+    expect(await f.result(trial.releaseId)).toMatchObject({
+      ok: false,
+      rollback: { attempted: false },
+    });
+  } finally {
+    await f.close();
+  }
+}, 15000);
 
 it('does not revive an unsuccessful release when no verified server is live', async () => {
   const f = await fixture();

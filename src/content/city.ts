@@ -25,3 +25,11 @@ export const CITY_COSTS = {
 export const WALK_MINUTES = { GRASS: 10, DIRT: 5, STONE: 3 } as const;
 /** Player time shortcuts: wait on the action card, fast-forward the whole city. */
 export const CITY_TIME = { waitMinutes: 10, fastForwardMinutes: 60 } as const;
+
+/** The starting city: square map size, owned starter district, its crossroads and funds. */
+export const CITY_START = {
+  size: 10,
+  coins: 1000,
+  starterDistrict: { min: 3, max: 6 },
+  crossroads: { x: 5, y: 5 },
+} as const;

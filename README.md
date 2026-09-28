@@ -24,6 +24,7 @@ npm run harness
 
 ```sh
 npm run harness -- publish
+npm run harness -- publish-test
 npm run harness -- status
 npm run harness -- stop
 npm run replay -- artifacts/<run-id>/commands.json

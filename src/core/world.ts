@@ -1,7 +1,9 @@
+import { CITY_START } from '../content/city';
 import { WORLD_LIMIT } from './limits';
 import { generateCityMap, shoreTiles, tileAt } from './city/map';
 import { initialFishing } from './fishing/schema';
-import { instantiateMochi } from '../content/definitions';
+import { instantiateCat } from './cats';
+import { STARTER_CAT_ID } from '../content/cats';
 import { commandSchema, CommandError, type CommandResult } from './commands';
 import { applyCommand } from './reducer';
 import {
@@ -56,8 +58,9 @@ export class World {
 
 export function createWorld(seed: number): World {
   const map = generateCityMap(seed);
+  const { crossroads } = CITY_START;
   const distanceFromStarterRoad = (position: Position) =>
-    Math.abs(position.x - 5) + Math.abs(position.y - 5);
+    Math.abs(position.x - crossroads.x) + Math.abs(position.y - crossroads.y);
   const start = shoreTiles(map, 'POND')
     .filter((position) => !tileAt(map, position)?.owned)
     .sort(
@@ -67,12 +70,12 @@ export function createWorld(seed: number): World {
         a.x - b.x,
     )[0];
   if (!start) throw new Error('Missing unowned pond shore');
-  const mochi = instantiateMochi('mochi', start);
+  const mochi = instantiateCat('MOCHI', STARTER_CAT_ID, start);
   mochi.fishingSpotId = 'POND';
   return new World({
     seed,
     minute: 0,
-    coins: 1000,
+    coins: CITY_START.coins,
     nextId: 1,
     map,
     buildings: [],

@@ -1,3 +1,4 @@
+import { STARTER_CAT_ID } from '../../content/cats';
 import type { GameSession } from '../../application';
 import { BUILDINGS } from '../../content/city';
 import type { Position, WorldState } from '../../core';
@@ -39,7 +40,7 @@ export function mountCityGuide(
           (world.minute - cafe.builtAtMinute) / CAT_CAFE.intervalMinutes,
         ) * CAT_CAFE.income
       : 0;
-    const mochi = world.cats.find((cat) => cat.id === 'mochi');
+    const mochi = world.cats.find((cat) => cat.id === STARTER_CAT_ID);
     const remembered = !!mochi?.fishingMemory;
     return { world, cafe, earned, remembered };
   };
@@ -102,7 +103,7 @@ export function mountCityGuide(
     } else if (!remembered) {
       cityActions.focusWaterway('POND');
     } else {
-      session.select('mochi');
+      session.select(STARTER_CAT_ID);
       const chat = get('city-tab-chat');
       if (chat.getAttribute('aria-selected') !== 'true') chat.click();
       get('chat-tab-talk').click();

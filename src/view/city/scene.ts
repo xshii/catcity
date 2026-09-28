@@ -1,3 +1,5 @@
+import { CITY_START } from '../../content/city';
+import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
 import type { SpotId } from '../../content/fishing';
@@ -74,7 +76,8 @@ export class CityScene extends Phaser.Scene {
       const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const x = Math.floor((point.x - MAP_VIEW.origin) / MAP_VIEW.tile);
       const y = Math.floor((point.y - MAP_VIEW.origin) / MAP_VIEW.tile);
-      if (x < 0 || x >= 10 || y < 0 || y >= 10) return;
+      if (x < 0 || x >= CITY_START.size || y < 0 || y >= CITY_START.size)
+        return;
       const cat = this.session
         .getSnapshot()
         .cats.find((item) => item.position.x === x && item.position.y === y);
@@ -143,7 +146,7 @@ export class CityScene extends Phaser.Scene {
     const catId =
       selected?.kind === 'cat'
         ? selected.catId
-        : (this.session.selectedEntity ?? 'mochi');
+        : (this.session.selectedEntity ?? STARTER_CAT_ID);
     const nextMode = this.riverMode
       ? 'river'
       : this.overview
@@ -157,7 +160,7 @@ export class CityScene extends Phaser.Scene {
     if (this.riverMode || this.overview) camera.setZoom(1).centerOn(320, 320);
     else {
       camera.setZoom(1.5);
-      const cat = this.cats.get(catId) ?? this.cats.get('mochi');
+      const cat = this.cats.get(catId) ?? this.cats.get(STARTER_CAT_ID);
       if (cat) camera.startFollow(cat, true, 0.12, 0.12);
     }
     const button = document.getElementById('city-overview')!;
@@ -194,7 +197,7 @@ export class CityScene extends Phaser.Scene {
       .querySelector('.map-card')!
       .classList.toggle('river-mode', this.riverMode);
     this.river.render(world, {
-      catId: this.session.selectedEntity ?? 'mochi',
+      catId: this.session.selectedEntity ?? STARTER_CAT_ID,
       direction: Number(
         (document.getElementById('fish-direction') as HTMLInputElement).value,
       ),

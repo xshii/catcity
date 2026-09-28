@@ -1,14 +1,16 @@
-import { BUILDINGS } from '../../content/city';
+import { BUILDINGS, CITY_START, WALK_MINUTES } from '../../content/city';
+
+const SLOWEST_STEP = Math.max(...Object.values(WALK_MINUTES));
 import { SPOT_IDS, spotOpen } from '../../content/fishing';
 import { onShore, samePosition, shoreTiles, tileAt } from './map';
 import { connectedRoads, neighbors } from './path';
-import type { WorldState } from '../schema';
+import type { Position, WorldState } from '../schema';
 
 export function assertCity(world: WorldState): void {
   for (const [index, tile] of world.map.tiles.entries()) {
     if (
-      tile.position.x !== index % 10 ||
-      tile.position.y !== Math.floor(index / 10) ||
+      tile.position.x !== index % CITY_START.size ||
+      tile.position.y !== Math.floor(index / CITY_START.size) ||
       (tile.terrain !== 'GRASS' && (tile.owned || tile.road)) ||
       (tile.road && !tile.owned)
     )
@@ -18,13 +20,13 @@ export function assertCity(world: WorldState): void {
     if (!shoreTiles(world.map, spot).length)
       throw new Error('Missing water area');
   const grass = world.map.tiles.filter((tile) => tile.terrain === 'GRASS');
-  const pending = [{ x: 5, y: 5 }];
+  const pending: Position[] = [{ ...CITY_START.crossroads }];
   const reached = new Set<number>();
   while (pending.length) {
     const position = pending.shift()!;
     const tile = tileAt(world.map, position);
     if (!tile || tile.terrain !== 'GRASS') continue;
-    const index = position.y * 10 + position.x;
+    const index = position.y * CITY_START.size + position.x;
     if (reached.has(index)) continue;
     reached.add(index);
     pending.push(...neighbors(position));
@@ -84,7 +86,7 @@ export function assertCity(world: WorldState): void {
         ? walk.nextStepMinute !== null
         : walk.nextStepMinute === null ||
           walk.nextStepMinute <= world.minute ||
-          walk.nextStepMinute > world.minute + 10
+          walk.nextStepMinute > world.minute + SLOWEST_STEP
     )
       throw new Error('Invalid walk clock');
     if (

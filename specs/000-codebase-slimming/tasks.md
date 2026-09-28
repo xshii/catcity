@@ -10,7 +10,7 @@
 
 - [x] 钓鱼配置与逻辑分离：`content/fishing/{spec,catalog,rules}.ts`，`minigames/angling.ts` 与 `core/fishing/*` 数值改读规格 — `d5e300e`，typecheck/lint/187 测试通过
 - [x] View 文案（体力、罐头、垃圾、休息、鱼饵价格、等待/快进）与步行体力读取规格 — `0b012f2`
-- [~] 休息/关系/聊天上限 → `content/care.ts`；世界上限 → `core/limits.ts`（`d5e300e`）。剩余：地图尺寸与起始区域（`city/map.ts`、`path.ts`、`validation.ts`）、起始金币
+- [x] 休息/关系/聊天上限 → `content/care.ts`；世界上限 → `core/limits.ts`（`d5e300e`）；地图尺寸、起始区域、十字路口与起始金币 → `content/city.ts` 的 `CITY_START`（PR 2）
 - [x] 错误码类型化（`ErrorCode` 联合类型），钓鱼错误提示表按类型检查，`talk()` 单列前置错误 — `0b012f2`、`a790e67`
 - [x] 线索文案按真实遭遇规则重写并引用规格阈值；删除 `FISH[].bait` — `d5e300e`
 
@@ -20,6 +20,8 @@
 - [x] 删除未使用的 `DEBUG_ADD_COINS`。`DEBUG_SPAWN_CAT` 保留：单元测试用它摆放多猫，移出生产 schema 需要调试专用 dispatch 与回放路径，收益低
 - [x] 已合并已发现鱼种数（`discoveredSpecies`/`spotOpen`）、岸边判断（`onShore`）、单竿种子（`runSeed`）、RNG 流盐值（`streamSeed`），Core 与 View 共用 — `d5e300e`、`3a8fbb9`。校验器种子公式也已改用 `runSeed`。View 收入推算不改：单一消费者、一行公式，去重需新增 Core 公共 API
 - [x] 删除无引用 CSS（`.building-summary`、`.mini-house`、`.sun`）。`chat-page-*`、`city-panel-cats` 为动态拼接，保留。Session 构造器的运行时检查保留：`session-injection.test.ts` 验证它拒绝旧的位置参数调用
+
+- [x] 猫模板（配置）与实例化（逻辑）分离：`content/cats.ts` + `core/cats.ts`，消除 content→core 的类型依赖；初始猫 id、性格文案、路线颜色不再在 View 写死（PR 2）
 
 ## 3 目录归位
 
@@ -37,9 +39,13 @@
 - [x] 旧存档拒绝用例合并为 `tests/integration/legacy-saves.test.ts`（v1–v10 + 未来版本，11 例），删除 6 个分散用例
 - [ ] 体感模式映射下沉到单元测试，E2E 每条路径保留一例
 - [ ] `game.spec.ts` 解锁用例从预制存档起步
-- [ ] Playwright 并行：试过 4 workers（5.3 分钟），但两个依赖真实时间的用例（`fishing-hook-motion.spec.ts:222` 暂停竞态、`game.spec.ts:21` 遛鱼循环）在负载下失败，串行重跑通过 → 已撤回。前置条件：把这些用例改为确定性推进后再并行。重复构建仅 2.3 秒，不改
+- [ ] Playwright 并行：再试（PR 2）4 workers 5.1 分钟、1 例超时，串行 6.2 分钟——4 个浏览器同时软件渲染占满 CPU，收益太小，保持串行。更早一次试过 4 workers（5.3 分钟），但两个依赖真实时间的用例（`fishing-hook-motion.spec.ts:222` 暂停竞态、`game.spec.ts:21` 遛鱼循环）在负载下失败，串行重跑通过 → 已撤回。前置条件：把这些用例改为确定性推进后再并行。重复构建仅 2.3 秒，不改
+
+- [x] 仓库误提交的 `node_modules` 软链接移除，`.gitignore` 改为同时忽略目录与软链接（PR 2）
+- [x] `harness -- publish-test`：未验收的快速试玩发布，不作为回滚目标（PR 2）
+- [ ] 拆分在慢机器上超过 60 秒的长 E2E 用例（river-layout 手机布局等）
 
 ## 6 收尾
 
-- [ ] `npm run check`、`npm run harness`，查看截图
+- [x] `npm run harness` 全绿并查看截图（PR #1 推送前，`artifacts/2026-09-28T09-39-48-673Z-1724`）
 - [ ] 文档与代码一致（architecture、testing、fishing-design、src/README）

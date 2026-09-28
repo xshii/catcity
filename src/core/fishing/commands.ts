@@ -7,7 +7,7 @@ import {
   skillLevel,
   spotOpen,
 } from '../../content/fishing';
-import { instantiatePepper } from '../../content/definitions';
+import { instantiateCat } from '../cats';
 import {
   castAngling,
   initialAngling,
@@ -60,7 +60,7 @@ export function applyAngling(
       .map((tile) => tile.position)
       .find((p) => isWalkable(world, p));
     if (!position) throw new CommandError('INVALID_PLACEMENT');
-    const cat = instantiatePepper(`cat-${world.nextId++}`, position);
+    const cat = instantiateCat('PEPPER', `cat-${world.nextId++}`, position);
     world.cats.push(cat);
     emit('companion-invited', cat.id);
   } else if (command.type === 'BUY_BAIT') {

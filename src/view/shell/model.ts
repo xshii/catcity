@@ -1,5 +1,6 @@
 import { CAT_BREEDS } from '../../content/breeds';
 import { CARE } from '../../content/care';
+import { CAT_DEFINITIONS } from '../../content/cats';
 import type { CatEntity, WorldState } from '../../core';
 
 /** Minutes left in a cat's rest; saves store only the start minute. */
@@ -19,12 +20,7 @@ export function toViewModel(world: WorldState, selected: string | null) {
       ? {
           ...cat,
           moodLabel: cat.mood >= 60 ? '心情不错' : '想安静一会儿',
-          personalityLabel:
-            CAT_BREEDS[cat.breedId].name +
-            ' · ' +
-            (cat.definitionId === 'PEPPER'
-              ? '好奇 · 活泼 · 爱冒险'
-              : '胆小 · 贪吃 · 慢热'),
+          personalityLabel: `${CAT_BREEDS[cat.breedId].name} · ${CAT_DEFINITIONS[cat.definitionId].personalityLabel}`,
         }
       : null,
   };

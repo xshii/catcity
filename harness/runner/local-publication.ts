@@ -74,9 +74,29 @@ async function healthy(state: LocalPublication): Promise<boolean> {
     return false;
   }
 }
+/** A release is verified only when its gate and smoke passed; test publishes are not. */
+async function verified(state: LocalPublication): Promise<boolean> {
+  try {
+    const result = JSON.parse(
+      await readFile(join(state.evidence, 'result.json'), 'utf8'),
+    ) as { ok?: boolean; verified?: boolean; releaseId?: string };
+    return (
+      result.ok === true &&
+      result.verified !== false &&
+      result.releaseId === state.releaseId
+    );
+  } catch {
+    return false;
+  }
+}
 export async function publicationStatus(config: LocalPublicationConfig) {
   const state = await readState(config);
-  return { running: state ? await healthy(state) : false, state };
+  const running = state ? await healthy(state) : false;
+  return {
+    running,
+    verified: running && state ? await verified(state) : false,
+    state,
+  };
 }
 async function stopOwned(state: LocalPublication): Promise<boolean> {
   if (!ownsProcess(state)) return false;
@@ -102,17 +122,7 @@ async function verifiedPrevious(
   config: LocalPublicationConfig,
 ): Promise<LocalPublication | null> {
   const status = await publicationStatus(config);
-  if (!status.running || !status.state) return null;
-  try {
-    const result = JSON.parse(
-      await readFile(join(status.state.evidence, 'result.json'), 'utf8'),
-    ) as { ok?: boolean; releaseId?: string };
-    return result.ok === true && result.releaseId === status.state.releaseId
-      ? status.state
-      : null;
-  } catch {
-    return null;
-  }
+  return status.verified ? status.state : null;
 }
 async function launch(release: Omit<LocalPublication, 'pid'>) {
   const output = openSync(join(release.evidence, 'server.log'), 'a');
@@ -183,6 +193,26 @@ export async function publishLocal(
     .parse(
       JSON.parse(await readFile(join(gateEvidence, 'manifest.json'), 'utf8')),
     );
+  return release(config, gate.buildVersion, resolve(gateEvidence), smoke);
+}
+
+/**
+ * Quick try-out publish: the same immutable copy, managed server and health check, but
+ * no gate or smoke. It is recorded as unverified and is never restored by a rollback.
+ */
+export function publishTest(
+  config: LocalPublicationConfig,
+  buildVersion: string,
+): Promise<LocalPublication> {
+  return release(config, buildVersion, 'none (unverified test publish)', null);
+}
+
+async function release(
+  config: LocalPublicationConfig,
+  buildVersion: string,
+  gateEvidence: string,
+  smoke: ((publication: LocalPublication) => Promise<void>) | null,
+): Promise<LocalPublication> {
   const releaseId = randomUUID();
   const evidence = resolve(config.artifactDirectory, releaseId);
   const site = join(evidence, 'site');
@@ -190,22 +220,22 @@ export async function publishLocal(
   await cp(config.buildDirectory, site, { recursive: true });
   await writeFile(
     join(site, 'release.json'),
-    JSON.stringify({ releaseId, buildVersion: gate.buildVersion }),
+    JSON.stringify({ releaseId, buildVersion }),
   );
   const url = `http://127.0.0.1:${config.port}`;
   const addresses = Object.values(networkInterfaces())
     .flat()
     .filter((address) => address?.family === 'IPv4' && !address.internal)
     .map((address) => `http://${address!.address}:${config.port}`);
-  const release: Omit<LocalPublication, 'pid'> = {
+  const candidate: Omit<LocalPublication, 'pid'> = {
     id: config.id,
     releaseId,
     site,
     evidence,
     url,
     urls: [...new Set([url, ...addresses])],
-    buildVersion: gate.buildVersion,
-    gateEvidence: resolve(gateEvidence),
+    buildVersion,
+    gateEvidence,
     launch: {
       executable: config.launch.executable,
       args: [...config.launch.args],
@@ -215,14 +245,14 @@ export async function publishLocal(
   await stopPublication(config);
   let state: LocalPublication | undefined;
   try {
-    const launched = await launch(release);
+    const launched = await launch(candidate);
     state = launched.state;
     await writeState(config, state);
     await waitReady(state, launched.child);
-    await smoke(state);
+    await smoke?.(state);
     await writeFile(
       join(evidence, 'result.json'),
-      JSON.stringify({ ok: true, ...state }, null, 2),
+      JSON.stringify({ ok: true, verified: smoke !== null, ...state }, null, 2),
     );
     return state;
   } catch (error) {
@@ -238,7 +268,7 @@ export async function publishLocal(
       JSON.stringify(
         {
           ok: false,
-          ...(state ?? release),
+          ...(state ?? candidate),
           error: String(error),
           ...(cleanupError ? { cleanupError } : {}),
           rollback,
