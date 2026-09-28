@@ -63,7 +63,7 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 | 011 | [手机性能](011-mobile-performance/requirements.md)          | 提出   | 每秒约 200 次深拷贝、20 次存储写入、传感器整页重绘         |
 | 012 | [View 结构整理](012-view-structure/requirements.md)         | 验证中 | 瞄准状态替代 DOM 事件总线、钓鱼面板拆分、tween 泄漏        |
 | 013 | [规则与平台小缺陷](013-minor-defects/requirements.md)       | 完成   | Pepper 出生点、活动状态、iOS 安全区等 8 项                 |
-| 014 | [主页（小城）体验缺陷](014-main-page/requirements.md)       | 进行中 | 原始错误码、重复入口、选猫、首屏引导与地图居中、路价与拆路 |
+| 014 | [主页（小城）体验缺陷](014-main-page/requirements.md)       | 验证中 | 原始错误码、重复入口、选猫、首屏引导与地图居中、路价与拆路 |
 
 ### 后续需求
 
