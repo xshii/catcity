@@ -68,3 +68,18 @@ export const cityLoopTask: HarnessTask = {
     url: 'http://127.0.0.1:4175',
   },
 };
+
+/**
+ * CI runs static checks and sharded E2E as separate jobs; this variant only builds
+ * the test bundle it serves and runs the acceptance flow. Local runs use the full task.
+ */
+export const cityLoopAcceptance: HarnessTask = {
+  ...cityLoopTask,
+  commands: [
+    {
+      name: 'build-test',
+      executable: 'npm',
+      args: ['run', 'build:test'],
+    },
+  ],
+};

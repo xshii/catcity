@@ -5,9 +5,12 @@
 ## 执行流程
 
 - 只在 Pull Request 触发。main 只接受合并后的 PR，禁止直接推送。
-- `check` 使用 `ubuntu-24.04`：checkout → 按 `.nvmrc` 配置 Node/npm cache → `npm ci` → 安装 Chromium、WebKit 与系统依赖 → `npm run harness`。
-- Harness 内执行一次完整 `check`，覆盖类型、静态检查、带覆盖率的 Headless 测试、构建与 E2E，随后运行游戏验收和证据收集。
-- `check` 超时 20 分钟；同一分支/PR 新运行取消旧运行。缺失依赖、检查失败和超时均保持失败。
+- 与本地 `npm run harness` 相同的检查拆成并行任务（均为 `ubuntu-24.04`，`npm ci` 安装锁定依赖）：
+  - 类型、Lint/格式/Knip、带覆盖率的 Headless 测试与生产构建（10 分钟）；
+  - E2E 按 Playwright `--shard` 分到 3 台 runner（各 20 分钟），Chromium 全量、WebKit 体感用例；
+  - `npm run harness -- acceptance`：自行构建测试包后做游戏验收、回放与证据（15 分钟）；
+  - 汇总任务 `Core, build, browser and harness` 在全部任务成功时才通过，它是分支保护要求的检查名。
+- 同一分支/PR 新运行取消旧运行。缺失依赖、检查失败和超时均保持失败。
 - 检查任务只有 contents 读取权限，checkout 不持久化凭据；Actions 固定到提交 SHA。
 - 无论成功或失败，上传 `artifacts/` 和 `coverage/`，保留 3 天。云端成功必须检查实际运行和产物，不能从本地结果推断。
 
