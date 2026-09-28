@@ -30,16 +30,12 @@ export function instantiateCat(
     rest: null,
     fishingSpotId: null,
     walk: null,
-    relationships: [],
     memories: [],
     favoriteFish: [...definition.favoriteFish],
     fishingMemory: null,
     fishGift: null,
     playerBond: 0,
     home: null,
-    favoritePlaces: [],
-    dailyRoutine: [],
-    currentActivity: 'resting',
     lastBondMinute: null,
   };
 }

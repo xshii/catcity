@@ -1,3 +1,4 @@
+import { WORLD_LIMIT } from '../../src/core/limits';
 import { advance, buildCafe, interact } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
@@ -144,5 +145,18 @@ describe('headless world', () => {
         result.events.some((event) => event.type === 'IncomeGenerated'),
     ).toBe(true);
     expect(world.getSnapshot()).not.toHaveProperty('events');
+  });
+});
+
+it('keeps time running when cafe income reaches the coin limit', () => {
+  const world = createWorld(42);
+  buildCafe(world, { x: 4, y: 4 });
+  const save = JSON.parse(world.save());
+  save.world.coins = WORLD_LIMIT - 5;
+  const capped = loadWorld(JSON.stringify(save));
+  expect(capped.dispatch({ type: 'ADVANCE_TIME', minutes: 120 }).ok).toBe(true);
+  expect(capped.getSnapshot()).toMatchObject({
+    minute: save.world.minute + 120,
+    coins: WORLD_LIMIT,
   });
 });

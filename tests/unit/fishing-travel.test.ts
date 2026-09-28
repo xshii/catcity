@@ -193,15 +193,14 @@ it('rejects travel during rest or an active fishing run and rejects clock overfl
   ).toEqual({ ok: false, error: 'ALREADY_FISHING' });
   expect(world.save()).toBe(fishing);
   advance(world, 60);
-  const anotherCatFishing = world.save();
+  // Only the fishing cat is busy; like WALK_CAT, other cats may still head out.
   expect(
     world.dispatch({
       type: 'TRAVEL_TO_FISHING_SPOT',
       catId: pepper.id,
       spotId: 'COAST',
-    }),
-  ).toEqual({ ok: false, error: 'ALREADY_FISHING' });
-  expect(world.save()).toBe(anotherCatFishing);
+    }).ok,
+  ).toBe(true);
   const probe = unlocked();
   probe.dispatch({
     type: 'TRAVEL_TO_FISHING_SPOT',
@@ -249,10 +248,13 @@ it('rejects travel during rest or an active fishing run and rejects clock overfl
     }).ok,
   ).toBe(true);
   expect(rich.getSnapshot().coins).toBe(1_000_000_000);
-  const queuedRich = rich.save();
-  expect(advance(rich, 1)).toEqual({ ok: false, error: 'WORLD_LIMIT' });
-  expect(rich.save()).toBe(queuedRich);
-  expect(richBefore).not.toBe(queuedRich);
+  expect(rich.save()).not.toBe(richBefore);
+  // Income stops at the coin limit; the clock and the queued walk keep going.
+  expect(advance(rich, 1).ok).toBe(true);
+  expect(rich.getSnapshot()).toMatchObject({
+    minute: 60,
+    coins: 1_000_000_000,
+  });
 });
 
 it('validates destination unlocks and persisted location, including active-run agreement', () => {

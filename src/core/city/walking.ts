@@ -34,7 +34,6 @@ export function resumeWalk(world: WorldState, cat: CatEntity): void {
   const minute = world.minute + walkingMinutes(world, cat.walk.route[0]!);
   if (minute > WORLD_LIMIT) throw new CommandError('TIME_LIMIT');
   cat.walk.nextStepMinute = minute;
-  cat.currentActivity = 'wandering';
 }
 
 export function queueWalk(
@@ -76,7 +75,6 @@ export function replanWalk(
   const route = findWalkingPath(world, cat.id, cat.walk.destination);
   if (!route?.length) {
     cat.walk = null;
-    cat.currentActivity = 'resting';
     events.push({
       type: 'WalkBlocked',
       minute: world.minute,
@@ -114,7 +112,6 @@ export function advanceWalking(world: WorldState, events: GameEvent[]): void {
     });
     if (!walk.route.length) {
       cat.walk = null;
-      cat.currentActivity = 'resting';
       cat.fishingSpotId = walk.spotId ?? reachedSpot(world, cat);
       events.push({
         type: 'WalkFinished',

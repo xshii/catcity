@@ -44,20 +44,10 @@ const catSchema = z.strictObject({
     dislikes: z.array(text).max(10),
   }),
   mood: percent,
-  needs: z.strictObject({ hunger: percent, energy: percent, social: percent }),
-  relationships: z
-    .array(z.strictObject({ catId: text, bond: percent }))
-    .max(MAX_CATS),
+  needs: z.strictObject({ hunger: percent, energy: percent }),
   memories: z.array(memorySchema).max(CARE.memoryLimit),
   playerBond: percent,
   home: text.nullable(),
-  favoritePlaces: z.array(text).max(10),
-  dailyRoutine: z
-    .array(
-      z.strictObject({ hour: z.number().int().min(0).max(23), activity: text }),
-    )
-    .max(24),
-  currentActivity: z.enum(['resting', 'wandering', 'chatting']),
   position: positionSchema,
   lastBondMinute: integer.nullable(),
   rest: z.strictObject({ startedAt: integer }).nullable(),
@@ -109,7 +99,7 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 export const CONTENT_VERSION = 5;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
@@ -159,20 +149,6 @@ export function assertWorld(value: unknown): WorldState {
       !world.buildings.some((building) => building.id === cat.home)
     )
       throw new Error('Unknown home');
-    if (
-      cat.favoritePlaces.some(
-        (id) => !world.buildings.some((building) => building.id === id),
-      )
-    )
-      throw new Error('Unknown favorite place');
-    if (
-      cat.relationships.some(
-        (relation) =>
-          relation.catId === cat.id ||
-          !world.cats.some((other) => other.id === relation.catId),
-      )
-    )
-      throw new Error('Unknown relationship');
     let previousMinute = -1;
     for (const memory of cat.memories) {
       uniqueId(memory.id);

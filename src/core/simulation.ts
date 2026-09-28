@@ -1,4 +1,4 @@
-import { MAX_STAT } from './limits';
+import { MAX_STAT, WORLD_LIMIT } from './limits';
 import { CARE } from '../content/care';
 import { BUILDINGS } from '../content/city';
 import type { GameEvent } from './commands';
@@ -18,13 +18,15 @@ export function simulate(
       // Income derives from build time; moving a building keeps its clock.
       const elapsed = minute - building.builtAtMinute;
       if (elapsed % definition.intervalMinutes === 0) {
-        if (definition.income) {
-          world.coins += definition.income;
+        // Income stops at the coin limit instead of rejecting the clock.
+        const amount = Math.min(definition.income, WORLD_LIMIT - world.coins);
+        if (amount > 0) {
+          world.coins += amount;
           events.push({
             type: 'IncomeGenerated',
             minute,
             entityId: building.id,
-            amount: definition.income,
+            amount,
           });
         }
       }
@@ -41,12 +43,13 @@ export function simulate(
           Math.abs(cat.position.x - home.position.x) +
             Math.abs(cat.position.y - home.position.y) ===
             1;
+        const before = cat.needs.energy;
         cat.needs.energy = Math.min(
           MAX_STAT,
-          cat.needs.energy +
-            (nearHome ? CARE.rest.homeRecovery : CARE.rest.recovery),
+          before + (nearHome ? CARE.rest.homeRecovery : CARE.rest.recovery),
         );
-        events.push({ type: 'EnergyRecovered', minute, entityId: cat.id });
+        if (cat.needs.energy > before)
+          events.push({ type: 'EnergyRecovered', minute, entityId: cat.id });
       }
       if (minute === cat.rest.startedAt + CARE.rest.minutes) {
         cat.rest = null;

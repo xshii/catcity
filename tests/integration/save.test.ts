@@ -18,10 +18,20 @@ it('saves only facts: no RNG state, income remainder or rest end minute', () => 
   world.dispatch({ type: 'FISH_CANCEL', runId });
   expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
   const save = JSON.parse(world.save());
-  expect(save.saveVersion).toBe(11);
+  expect(save.saveVersion).toBe(12);
   expect(save.world).not.toHaveProperty('rngState');
   expect(save.world.buildings[0]).not.toHaveProperty('incomeProgress');
   expect(save.world.cats[0].rest).toEqual({ startedAt: 25 });
+  // Write-only placeholders are not saved: no activity label, social need,
+  // relationships, favourite places or daily routine.
+  for (const field of [
+    'currentActivity',
+    'relationships',
+    'favoritePlaces',
+    'dailyRoutine',
+  ])
+    expect(save.world.cats[0]).not.toHaveProperty(field);
+  expect(save.world.cats[0].needs).toEqual({ hunger: 30, energy: 92 });
 });
 
 it('round-trips all state and deterministically continues movement, income and memories', () => {

@@ -880,6 +880,8 @@ footer details p {
   margin-top: 6px;
 }
 .angling .fish-control {
+  /* A long hold reels in; never open the iOS callout. */
+  -webkit-touch-callout: none;
   width: 100%;
   min-height: 64px;
   touch-action: none;

@@ -38,7 +38,6 @@ export function applyCommand(
       if (world.minute + CARE.rest.minutes > WORLD_LIMIT)
         throw new CommandError('TIME_LIMIT');
       cat.rest = { startedAt: world.minute };
-      cat.currentActivity = 'resting';
       if (cat.walk) cat.walk.nextStepMinute = null;
       events.push({
         type: 'CatRestStarted',
@@ -76,7 +75,6 @@ export function applyCommand(
       });
       cat.memories = cat.memories.slice(-CARE.memoryLimit);
       rewardBond(cat, world.minute);
-      cat.currentActivity = 'chatting';
       events.push({
         type: 'ConversationRecorded',
         minute: world.minute,

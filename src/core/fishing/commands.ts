@@ -1,3 +1,4 @@
+import { CITY_START } from '../../content/city';
 import { atFishingShore, resumeWalk } from '../city/walking';
 import {
   BAITS,
@@ -16,7 +17,7 @@ import {
 } from '../../minigames/angling';
 import { rewardBond } from '../bond';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
-import type { WorldState } from '../schema';
+import type { Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
 import { failureTrash } from './rewards';
 import { runSeed } from '../random';
@@ -56,9 +57,14 @@ export function applyAngling(
     if (world.cats.some((cat) => cat.definitionId === 'PEPPER'))
       throw new CommandError('ALREADY_INVITED');
     if (world.cats.length >= MAX_CATS) throw new CommandError('CAT_LIMIT');
+    // Newcomers arrive at the free tile nearest the starter crossroads.
+    const { crossroads } = CITY_START;
+    const distance = (p: Position) =>
+      Math.abs(p.x - crossroads.x) + Math.abs(p.y - crossroads.y);
     const position = world.map.tiles
       .map((tile) => tile.position)
-      .find((p) => isWalkable(world, p));
+      .filter((p) => isWalkable(world, p))
+      .sort((a, b) => distance(a) - distance(b) || a.y - b.y || a.x - b.x)[0];
     if (!position) throw new CommandError('INVALID_PLACEMENT');
     const cat = instantiateCat('PEPPER', `cat-${world.nextId++}`, position);
     world.cats.push(cat);
