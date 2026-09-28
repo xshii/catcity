@@ -90,6 +90,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   const tip = createRodTip();
   let tilt: { x: number; y: number } | null = null;
   let rebase = true;
+  /** The pose held when the fish bit, before the lift that strikes it. */
+  let bitePose: { x: number; y: number } | null = null;
   let finger: { x: number; y: number; until: number } | null = null;
   let lastRun: string | null = null;
   let lastPhase = '';
@@ -355,8 +357,16 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       (motionRun?.id ?? null) !== lastRun ||
       (motionRun?.phase ?? '') !== lastPhase
     ) {
-      // A new run or phase re-centres the rod tip on the current pose.
-      if (motionRun?.phase === 'fight' || !motionRun) rebase = true;
+      // Aiming centres the rod tip on the current pose. The fight centres it on the pose
+      // held at the bite: the current one is mid-lift (recorded on an iPhone: 25° and
+      // rising to 58°, then back to the 15° held before), which skews the whole fight.
+      if (motionRun?.phase === 'hook') bitePose = tilt;
+      if (motionRun?.phase === 'fight' && bitePose) {
+        tip.calibrate(bitePose);
+        deps.trace('rebase', { pose: bitePose });
+      } else if (motionRun?.phase === 'fight' || !motionRun) rebase = true;
+      if (motionRun?.phase !== 'hook' && motionRun?.phase !== 'fight')
+        bitePose = null;
       lastRun = motionRun?.id ?? null;
       lastPhase = motionRun?.phase ?? '';
       cuedNibble = -1;
