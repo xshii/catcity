@@ -4,16 +4,32 @@ import { expect, type Page } from '@playwright/test';
 const POLL_MS = 25;
 const TICK_MS = 50;
 
-/**
- * Game-time control for fishing drivers. Test builds step ticks explicitly (like
- * ADVANCE_TIME for the city); production builds have no bridge and run in real time.
- */
-export async function fishingClock(page: Page) {
-  const manual = await page.evaluate(() => {
-    const bridge = window.CAT_CITY_DEBUG;
-    bridge?.useManualFishingClock(true);
-    return !!bridge;
+/** Ticks of the active run, read from the bridge or, in production, the saved world. */
+async function runTick(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const world = window.CAT_CITY_DEBUG
+      ? window.CAT_CITY_DEBUG.getWorldState()
+      : (
+          JSON.parse(localStorage.getItem('cat-city.save.v1') ?? 'null') as {
+            world: { fishing: { active: { tick: number } | null } };
+          } | null
+        )?.world;
+    return world?.fishing.active?.tick ?? 0;
   });
+}
+
+/**
+ * Game-time control for fishing drivers. `manual` steps ticks explicitly through the
+ * test-build bridge (like ADVANCE_TIME for the city) to remove races in short windows.
+ * Each manual tick costs page round trips plus a full render, so long fights use real
+ * time, where the driver reacts in parallel with the ticks. Production has no bridge.
+ */
+export async function fishingClock(page: Page, requestManual = true) {
+  const manual = await page.evaluate((wanted) => {
+    const bridge = window.CAT_CITY_DEBUG;
+    bridge?.useManualFishingClock(wanted);
+    return wanted && !!bridge;
+  }, requestManual);
   return {
     manual,
     /** Let `ticks` fishing ticks pass. */
@@ -25,17 +41,31 @@ export async function fishingClock(page: Page) {
         );
       else await page.waitForTimeout(ticks * TICK_MS);
     },
-    /** Advance one tick at a time until `done`, failing after `maxTicks`. */
-    until: async (done: () => Promise<boolean>, maxTicks: number) => {
+    /** Advance `stride` ticks at a time until `done`, failing after `maxTicks`. */
+    until: async (
+      done: () => Promise<boolean>,
+      maxTicks: number,
+      stride = 1,
+    ) => {
       if (!manual) {
-        await expect
-          .poll(done, { intervals: [POLL_MS], timeout: maxTicks * TICK_MS })
-          .toBe(true);
-        return;
+        // Budget in game ticks, not wall time: slow machines tick below 20 Hz.
+        const start = await runTick(page);
+        for (;;) {
+          if (await done()) return;
+          const elapsed = (await runTick(page)) - start;
+          if (elapsed > maxTicks)
+            throw new Error(
+              `Fishing condition not met within ${maxTicks} ticks`,
+            );
+          await page.waitForTimeout(POLL_MS);
+        }
       }
-      for (let tick = 0; tick <= maxTicks; tick++) {
+      for (let tick = 0; tick <= maxTicks; tick += stride) {
         if (await done()) return;
-        await page.evaluate(() => window.CAT_CITY_DEBUG!.stepFishing(1));
+        await page.evaluate(
+          (n) => window.CAT_CITY_DEBUG!.stepFishing(n),
+          stride,
+        );
       }
       throw new Error(`Fishing condition not met within ${maxTicks} ticks`);
     },
@@ -67,7 +97,9 @@ export async function reelIn(
       high: Number(element.dataset.high),
     }));
     await hold(state.value < (state.low + state.high) / 2);
-    await clock.advance(clock.manual ? 1 : 1.5);
+    // Decide every tick when stepping; in real time, poll faster than the View ticks.
+    if (clock.manual) await clock.advance(1);
+    else await page.waitForTimeout(POLL_MS);
   }
   await hold(false);
   await expect(page.locator('#angling-live')).toBeHidden();
@@ -84,7 +116,7 @@ export async function catchFish(
   const bar = page.locator('#angling-bar');
   await expect(button).toBeInViewport({ ratio: 1 });
   await button.focus();
-  const clock = await fishingClock(page);
+  const clock = await fishingClock(page, false);
   const touch =
     mode === 'touch' ? await page.context().newCDPSession(page) : null;
   let held = false;

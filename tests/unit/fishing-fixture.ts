@@ -4,7 +4,8 @@ import { shoreTiles, samePosition } from '../../src/core/city/map';
 import { createWorld, World } from '../../src/core/world';
 import type { WorldState } from '../../src/core/schema';
 import type { GameCommand } from '../../src/core/commands';
-import type { SpotId } from '../../src/content/fishing';
+import { FISHING, type SpotId } from '../../src/content/fishing';
+import type { AnglingRun } from '../../src/minigames/angling';
 
 /** Fishing unit tests isolate rod mechanics with a validated, already-at-shore fixture.
  * City/travel tests separately exercise real command-driven walking from the crossroads. */
@@ -97,8 +98,12 @@ export function finishFishing(game: {
         ? run.cursor >= zone.low && run.cursor <= zone.high
         : run.phase === 'fight' && run.tension < (zone.low + zone.high) / 2;
     if (
-      !game.dispatch({ type: 'FISH_CONTROL', runId: run.id, pressed, ticks: 1 })
-        .ok
+      !game.dispatch({
+        type: 'FISH_CONTROL',
+        runId: run.id,
+        pressed,
+        ticks: ticksFor(run),
+      }).ok
     )
       throw new Error('Test fishing input rejected');
   }
@@ -107,4 +112,37 @@ export function finishFishing(game: {
     !game.getSnapshot().fishing.lastResult?.caught
   )
     throw new Error('Test fishing did not catch');
+}
+
+/**
+ * Constant-input stretches batch up to `input.maxTicks` ticks per command; chunked and
+ * single ticks give identical state (tests/simulation/angling). Hook and fight need a
+ * decision every tick, so they stay at one.
+ */
+export function ticksFor(run: AnglingRun, chargeTicks?: number): number {
+  const max = FISHING.input.maxTicks;
+  if (run.phase === 'waiting') return max;
+  if (run.phase === 'charge' && chargeTicks !== undefined)
+    return run.tick < chargeTicks ? Math.min(max, chargeTicks - run.tick) : max;
+  return 1;
+}
+
+/** Holds or releases for `ticks` ticks (or until the run settles), batching commands. */
+export function holdTicks(
+  game: {
+    getSnapshot(): WorldState;
+    dispatch(command: GameCommand): { ok: boolean };
+  },
+  runId: string,
+  pressed: boolean,
+  ticks: number,
+): void {
+  for (let left = ticks; left > 0 && game.getSnapshot().fishing.active;) {
+    const step = Math.min(FISHING.input.maxTicks, left);
+    if (
+      !game.dispatch({ type: 'FISH_CONTROL', runId, pressed, ticks: step }).ok
+    )
+      throw new Error('Test fishing input rejected');
+    left -= step;
+  }
 }

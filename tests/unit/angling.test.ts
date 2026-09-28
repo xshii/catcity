@@ -1,5 +1,10 @@
 import { advance } from '../helpers/world';
-import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
+import {
+  fishingFixture as createWorld,
+  finishWalk,
+  holdTicks,
+  ticksFor,
+} from './fishing-fixture';
 import { describe, expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
 import { fishById } from '../../src/content/fishing';
@@ -23,8 +28,12 @@ function play(world: ReturnType<typeof createWorld>, chargeTicks = 23) {
             ? now.tension < (zone.low + zone.high) / 2
             : false;
     expect(
-      world.dispatch({ type: 'FISH_CONTROL', runId: run.id, pressed, ticks: 1 })
-        .ok,
+      world.dispatch({
+        type: 'FISH_CONTROL',
+        runId: run.id,
+        pressed,
+        ticks: ticksFor(now, chargeTicks),
+      }).ok,
     ).toBe(true);
   }
 }
@@ -372,6 +381,14 @@ it('hooks canned food and coin bags through real inputs without adding fish reco
       baitId: 'BREAD',
       direction: 0,
     });
+    // The catch kind is fixed at the cast; only supply catches need a full run.
+    const runId = world.getSnapshot().fishing.active!.id;
+    holdTicks(world, runId, true, 6);
+    holdTicks(world, runId, false, 1);
+    if (world.getSnapshot().fishing.active!.catchKind === 'fish') {
+      expect(world.dispatch({ type: 'FISH_CANCEL', runId }).ok).toBe(true);
+      continue;
+    }
     play(world, 6);
     const result = world.getSnapshot().fishing.lastResult!;
     expect(result.caught).toBe(true);

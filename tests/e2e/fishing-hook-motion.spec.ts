@@ -62,6 +62,7 @@ async function step(page: Page, phase: string, maxTicks: number) {
   await clock.until(
     async () => (await readWorld(page)).fishing.active?.phase === phase,
     maxTicks,
+    4,
   );
 }
 
@@ -106,7 +107,8 @@ async function finishFight(page: Page) {
     held = next;
   };
   try {
-    await reelIn(page, await fishingClock(page), hold);
+    // Fights run in real time; only the hook windows above are stepped.
+    await reelIn(page, await fishingClock(page, false), hold);
   } finally {
     await hold(false);
   }
@@ -246,8 +248,7 @@ test('the manual hook button takes over from the circle for the rest of the phas
   await page.locator('#fish-pause').click();
   await catchFish(page, 'keyboard', async (phase) => {
     if (phase === 'hook') {
-      // One manual-control tick clears the circle's stable count.
-      await ticks(page, 1);
+      // catchFish runs in real time; the next manual-control tick clears the count.
       await expect
         .poll(
           async () => (await readWorld(page)).fishing.active?.motionStableTicks,

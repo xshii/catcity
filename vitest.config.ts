@@ -4,10 +4,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/{unit,simulation,integration}/**/*.test.ts'],
-    // Tick-by-tick fishing simulations take ~1.8s locally with coverage and
-    // exceed the 5s default on CI runners. Each command deep-copies and fully
-    // validates the world (specs/011); restore the default once that is fixed.
-    testTimeout: 20_000,
     coverage: {
       provider: 'v8',
       include: [

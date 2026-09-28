@@ -1,3 +1,4 @@
+import { scaledMs } from '../time-scale';
 import './motion.css';
 import {
   modeMessages,
@@ -369,7 +370,7 @@ export function mountFishingMotion(
           if (active.orientation === 'waiting') active.orientation = 'delayed';
           if (active.motion === 'waiting') active.motion = 'delayed';
           refresh();
-        }, 2500);
+        }, scaledMs(2500));
         refresh();
       },
     );

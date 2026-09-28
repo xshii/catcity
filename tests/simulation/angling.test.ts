@@ -1,8 +1,11 @@
 import { advance } from '../helpers/world';
-import { fishingFixture as createWorld } from '../unit/fishing-fixture';
+import {
+  fishingFixture as createWorld,
+  ticksFor,
+} from '../unit/fishing-fixture';
 import { expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
-import { FISH_IDS } from '../../src/content/fishing';
+import { FISH_IDS, FISHING } from '../../src/content/fishing';
 import {
   greenZone,
   initialAngling,
@@ -42,7 +45,10 @@ it('simulates 30 days of catch/sell/rest cycles without impossible values or los
           type: 'FISH_CONTROL',
           runId: run.id,
           pressed,
-          ticks: 1,
+          // One decision per 4 fight ticks (±12 tension) stays inside the ≥50-wide
+          // 0–1★ zones; the final 15 + 15 catches prove every run still landed.
+          ticks:
+            run.phase === 'fight' ? FISHING.input.maxTicks : ticksFor(run, 23),
         }).ok,
       ).toBe(true);
     }

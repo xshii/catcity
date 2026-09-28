@@ -1,3 +1,4 @@
+import { TIME_SCALE } from '../time-scale';
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
 import {
@@ -541,8 +542,8 @@ export function mountAngling(
       up();
     }
   });
-  /** One fishing tick from the current real inputs; false when play is paused. */
-  const tick = (): boolean => {
+  /** Fishing ticks from the current real inputs; false when play is paused. */
+  const tick = (scale: number): boolean => {
     const run = session.getSnapshot().fishing.active;
     if (
       !run ||
@@ -553,17 +554,19 @@ export function mountAngling(
     )
       return false;
     const point = motion.controlPoint();
+    // Only the bite wait is sped up; hook and fight need a timely player reaction.
+    const ticks = run.phase === 'waiting' ? scale : 1;
     session.execute(
       run.phase === 'hook' && point
-        ? { type: 'FISH_MOTION_CONTROL', runId: run.id, ...point, ticks: 1 }
-        : { type: 'FISH_CONTROL', runId: run.id, pressed, ticks: 1 },
+        ? { type: 'FISH_MOTION_CONTROL', runId: run.id, ...point, ticks }
+        : { type: 'FISH_CONTROL', runId: run.id, pressed, ticks },
     );
     return true;
   };
   // Browser time drives ticks; tests may take over the clock like ADVANCE_TIME.
   let manualClock = false;
   window.setInterval(() => {
-    if (!manualClock) tick();
+    if (!manualClock) tick(TIME_SCALE);
   }, 1000 / FISHING.ticksPerSecond);
   session.subscribe(() => {
     render();
@@ -579,7 +582,7 @@ export function mountAngling(
       /** Runs the same tick as the interval; returns how many ticks applied. */
       step: (ticks: number) => {
         let applied = 0;
-        for (let i = 0; i < ticks; i++) if (tick()) applied++;
+        for (let i = 0; i < ticks; i++) if (tick(1)) applied++;
         return applied;
       },
     },

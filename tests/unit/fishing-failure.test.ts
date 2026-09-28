@@ -1,4 +1,8 @@
-import { fishingFixture as createWorld } from './fishing-fixture';
+import {
+  fishingFixture as createWorld,
+  holdTicks,
+  ticksFor,
+} from './fishing-fixture';
 import { expect, it } from 'vitest';
 import { BAIT_IDS, FISH_IDS } from '../../src/content/fishing';
 import { loadWorld } from '../../src/core/world';
@@ -26,23 +30,9 @@ it.each(
         direction,
       });
       const runId = world.getSnapshot().fishing.active!.id;
-      for (let n = 0; n < 23; n++)
-        world.dispatch({
-          type: 'FISH_CONTROL',
-          runId,
-          pressed: true,
-          ticks: 1,
-        });
+      holdTicks(world, runId, true, 23);
       const restored = loadWorld(world.save());
-      for (const game of [world, restored]) {
-        for (let n = 0; n < 180 && game.getSnapshot().fishing.active; n++)
-          game.dispatch({
-            type: 'FISH_CONTROL',
-            runId,
-            pressed: false,
-            ticks: 1,
-          });
-      }
+      for (const game of [world, restored]) holdTicks(game, runId, false, 180);
       expect(world.getSnapshot()).toEqual(restored.getSnapshot());
       const state = world.getSnapshot();
       expect(state.fishing.lastResult!.caught).toBe(false);
@@ -132,7 +122,7 @@ it('settles line-break trash once across weak and strong casts, save/load and re
                 : run.phase === 'hook' &&
                   run.cursor >= zone.low &&
                   run.cursor <= zone.high,
-            ticks: 1,
+            ticks: ticksFor(run, chargeTicks),
           }).ok,
         ).toBe(true);
       }
@@ -149,21 +139,7 @@ it('settles line-break trash once across weak and strong casts, save/load and re
       ).toEqual({ ok: false, error: 'INVALID_COMMAND' });
       expect(world.save()).toBe(before);
       const restored = loadWorld(before);
-      for (const game of [world, restored]) {
-        for (
-          let tick = 0;
-          tick < 100 && game.getSnapshot().fishing.active;
-          tick++
-        )
-          expect(
-            game.dispatch({
-              type: 'FISH_CONTROL',
-              runId,
-              pressed: true,
-              ticks: 1,
-            }).ok,
-          ).toBe(true);
-      }
+      for (const game of [world, restored]) holdTicks(game, runId, true, 100);
       expect(restored.save()).toBe(world.save());
       const state = world.getSnapshot();
       expect(state.fishing.lastResult).toMatchObject({

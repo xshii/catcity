@@ -12,44 +12,10 @@ import {
   showBagFish,
   showFish,
 } from '../../harness/adapters/catcity/navigation';
-import {
-  createCatCityAdapter,
-  ready,
-  readWorld,
-} from '../../harness/adapters/catcity/browser';
+import { ready, readWorld } from '../../harness/adapters/catcity/browser';
 
-test('build cafe → meet cat → dialogue → save → reload → replay', async ({
-  page,
-}, testInfo) => {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
-  });
-  const adapter = createCatCityAdapter();
-  await page.goto('/');
-  try {
-    await adapter.exercise(page, async (name, action) => {
-      await test.step(name, action);
-    });
-    const evidence = await adapter.collect(page);
-    adapter.verifyReplay(evidence);
-    expect(errors).toEqual([]);
-    await page.screenshot({
-      path: testInfo.outputPath('screenshot.png'),
-      fullPage: true,
-    });
-    await testInfo.attach('world.json', {
-      body: JSON.stringify(evidence['world.json'], null, 2),
-      contentType: 'application/json',
-    });
-  } finally {
-    await testInfo.attach('console.json', {
-      body: JSON.stringify(errors),
-      contentType: 'application/json',
-    });
-  }
-});
+// The full build → dialogue → reload → replay loop runs as the harness acceptance
+// (`npm run harness -- acceptance`), which also checks console errors and replay.
 
 test('production does not expose debug bridge, even with debug query parameters', async ({
   page,
