@@ -116,7 +116,9 @@ export function mountAngling(
     document
       .querySelector('.shell')
       ?.classList.toggle('motion-play', !!motionPlay);
-    get('scene-ready').hidden = active || !!motion?.active();
+    // Until a phone chooses motion or buttons, only the motion card is offered.
+    get('scene-ready').hidden =
+      active || !!motion?.active() || !!motion?.offersEnable();
     get<HTMLButtonElement>('cast-start').disabled =
       active || !!selectedCat.rest || energy < CAST_COST;
     get<HTMLButtonElement>('fish-rest').disabled =
@@ -322,6 +324,7 @@ export function mountAngling(
     stage: stage.stage,
     plane: get('game'),
     settings: get('gear-page-supplies'),
+    readySlot: ready,
     getRun: () => session.getSnapshot().fishing.active,
     canPlay: () =>
       place.get() === 'river' && !layout.isOpen() && !document.hidden,

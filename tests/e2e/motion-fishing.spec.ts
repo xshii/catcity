@@ -331,3 +331,41 @@ test('slow pitch sets the power the flick casts with', async ({
     power: 100,
   });
 });
+
+test('a phone in button mode can switch to motion right from the river', async ({
+  page,
+}) => {
+  await inMotionRiver(page);
+  await openGear(page, 'supplies');
+  await page.locator('#motion-mode-toggle').click();
+  await closeRiverPanel(page);
+  await expect(page.locator('#scene-ready')).toBeVisible();
+  // No digging in the gear panel: the ready area offers the way back.
+  const quick = page.locator('#motion-quick');
+  await expect(quick).toHaveText('改用体感钓鱼');
+  await quick.click();
+  await sensorsOn(page);
+  await expect(page.locator('#motion-fishing')).toBeVisible();
+  await expect(quick).toBeHidden();
+});
+
+test('a phone that has not chosen yet sees the motion card, not the manual cast', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:4173/');
+  await ready(page);
+  await enterRiver(page);
+  await closeRiverPanel(page);
+  await expect(page.locator('#motion-onboarding')).toBeVisible();
+  await expect(page.locator('#scene-ready')).toBeHidden();
+  // Choosing buttons brings the manual cast back.
+  await page.locator('#motion-use-buttons').click();
+  await expect(page.locator('#scene-ready')).toBeVisible();
+  await context.close();
+});
