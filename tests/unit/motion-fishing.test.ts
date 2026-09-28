@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
-import { FISHING } from '../../src/content/fishing';
+import { FISHING, fishById } from '../../src/content/fishing';
 import { fishPoint, motionSchedule } from '../../src/minigames/angling-motion';
 
 function begin(world = createWorld(42)) {
@@ -119,4 +119,38 @@ it('rejects saves whose motion state contradicts its phase', () => {
   const save = JSON.parse(waiting.world.save());
   save.world.fishing.active.hold = 5;
   expect(() => loadWorld(JSON.stringify(save))).toThrow();
+});
+
+it('rejects saved fight progress the rules could not have reached', () => {
+  const F = FISHING.motion.fight;
+  const { world, runId } = toFight();
+  const settling = world.getSnapshot().fishing.active!;
+  expect(settling.strike).toBe('perfect');
+  const tamper = (changes: object) => {
+    const save = JSON.parse(world.save());
+    Object.assign(save.world.fishing.active, changes);
+    return () => loadWorld(JSON.stringify(save));
+  };
+  // Settling in freezes the hold at the strike's bonus.
+  expect(tamper({ hold: settling.hold + 1 })).toThrow();
+  expect(tamper({ hold: settling.hold - 1 })).toThrow();
+  expect(tamper({ strike: 'good' })).toThrow();
+  const target = F.holdTicks[fishById(settling.speciesId!).stars];
+  expect(tamper({ strike: 'good', hold: 0 })).not.toThrow();
+  expect(tamper({ strike: 'good', hold: target - 1 })).toThrow();
+  // After settling in, at most one tick of hold per tick of fight.
+  for (let i = 0; i < F.graceTicks + 5; i++) {
+    const run = world.getSnapshot().fishing.active!;
+    const fish = fishPoint(run, run.phaseTick + 1);
+    tick(world, runId, fish.x, fish.y);
+  }
+  const run = world.getSnapshot().fishing.active!;
+  expect(run.hold).toBe(settling.hold + 5);
+  expect(tamper({})).not.toThrow();
+  expect(tamper({ hold: run.hold + 1 })).toThrow();
+});
+
+it('refuses a fish position before the fight starts', () => {
+  const { world } = toFight();
+  expect(() => fishPoint(world.getSnapshot().fishing.active!, -1)).toThrow();
 });

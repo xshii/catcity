@@ -204,7 +204,10 @@ function assertCatch(catchState: {
     throw new Error('Invalid found item');
 }
 
-/** Motion runs (spec 030): no strike or hold before the fight; bounded phases. */
+/**
+ * Motion runs (spec 030): no strike or hold before the fight; bounded phases; the hold
+ * holds the strike's start while settling in and gains at most one per tick after it.
+ */
 function assertMotionRun(run: AnglingRun): void {
   const bounds = motionBounds(run);
   const fight = run.phase === 'fight';
@@ -214,7 +217,11 @@ function assertMotionRun(run: AnglingRun): void {
     (run.phase === 'waiting' && run.phaseTick >= bounds.bite) ||
     (run.phase === 'hook' && run.phaseTick >= bounds.strikeWindow) ||
     (fight &&
-      (run.hold >= bounds.holdTarget || run.phaseTick >= bounds.fightLimit))
+      (run.hold >= bounds.holdTarget ||
+        run.hold > bounds.maxHold ||
+        (run.phaseTick <= FISHING.motion.fight.graceTicks &&
+          run.hold !== bounds.startHold) ||
+        run.phaseTick >= bounds.fightLimit))
   )
     throw new Error('Invalid motion fishing state');
 }

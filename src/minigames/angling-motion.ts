@@ -88,6 +88,8 @@ export function fishPoint(run: AnglingRun, tick: number): FishState {
 
 /** The fish at every tick from 0 to `ticks`, in one pass (see `fishPoint`). */
 export function fishPath(run: AnglingRun, ticks: number): FishState[] {
+  if (!Number.isInteger(ticks) || ticks < 0)
+    throw new Error('Invalid fish tick');
   const rng = new RandomService(streamSeed(run.seed, 'fish'));
   const speed = pick(W.speed, run);
   const margin = (pick(F.radius, run).start + F.breathe.amplitude) * SCALE;
@@ -167,6 +169,11 @@ export function fishPath(run: AnglingRun, ticks: number): FishState[] {
 
 const holdTarget = (run: AnglingRun) =>
   pick(F.holdTicks, run) * F.hold.insideGain;
+/** A perfect strike pre-fills part of the hold. */
+const strikeHold = (run: AnglingRun) =>
+  run.strike === 'perfect'
+    ? Math.round((holdTarget(run) * M.perfect.holdBonusPercent) / 100)
+    : 0;
 
 /** Ring radius: shrinks toward its minimum as the hold fills, breathing all the while. */
 export function ringRadius(run: AnglingRun): number {
@@ -189,6 +196,12 @@ export function motionBounds(run: AnglingRun) {
     strikeWindow: strikeWindow(run),
     holdTarget: holdTarget(run),
     fightLimit: F.graceTicks + F.limitTicks,
+    /** The hold a strike starts with; frozen while settling in. */
+    startHold: strikeHold(run),
+    /** At most one gain per tick after settling in. */
+    maxHold:
+      strikeHold(run) +
+      Math.max(0, run.phaseTick - F.graceTicks) * F.hold.insideGain,
   };
 }
 
@@ -253,11 +266,9 @@ export function strikeMotionRun(input: AnglingRun): AnglingRun {
   const run: AnglingRun = {
     ...input,
     strike: perfect ? 'perfect' : 'good',
-    hold: perfect
-      ? Math.round((holdTarget(input) * M.perfect.holdBonusPercent) / 100)
-      : 0,
     phaseTick: 0,
   };
+  run.hold = strikeHold(run);
   run.phase = run.catchKind === 'fish' ? 'fight' : 'caught';
   return run;
 }
