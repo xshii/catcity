@@ -1,5 +1,6 @@
 import { CAT_BREEDS } from '../../content/breeds';
 import {
+  discoveredSpecies,
   FISH,
   fishById,
   fishHabitats,
@@ -20,9 +21,7 @@ export function renderFishingCatalog(
   onAction: (command: FishAction, message: string) => void,
 ) {
   const f = world.fishing;
-  const discovered = Object.values(f.atlas).filter(
-    (entry) => entry.count > 0,
-  ).length;
+  const discovered = discoveredSpecies(f.atlas);
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T;
   get('fish-supplies').textContent =

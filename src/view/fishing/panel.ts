@@ -1,6 +1,7 @@
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
 import {
+  discoveredSpecies,
   BAITS,
   BAIT_IDS,
   fishById,
@@ -19,7 +20,7 @@ import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
 import { mountFishingMotion } from './motion';
-import { shoreTiles, samePosition } from '../../core/city';
+import { onShore } from '../../core/city';
 
 export function mountAngling(
   session: GameSession,
@@ -29,13 +30,7 @@ export function mountAngling(
   const atShore = (spotId: SpotId, catId: string) => {
     const world = session.getSnapshot();
     const cat = world.cats.find((item) => item.id === catId);
-    return (
-      !!cat &&
-      !cat.walk &&
-      shoreTiles(world.map, spotId).some((position) =>
-        samePosition(position, cat.position),
-      )
-    );
+    return !!cat && !cat.walk && onShore(world.map, spotId, cat.position);
   };
   const requestedSpot = () =>
     ((document.getElementById('fish-location') as HTMLSelectElement | null)
@@ -180,9 +175,7 @@ export function mountAngling(
     ]);
     if (detailsKey !== key) {
       detailsKey = key;
-      const discovered = Object.values(f.atlas).filter(
-        (entry) => entry.count,
-      ).length;
+      const discovered = discoveredSpecies(f.atlas);
       const level = skillLevel(f.xp);
       get('fishing-level').textContent = `钓技 Lv.${level}`;
       get('fishing-resources').textContent =

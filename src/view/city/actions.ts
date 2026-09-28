@@ -1,7 +1,7 @@
 import type { GameSession } from '../../application';
 import { BUILDINGS, CITY_COSTS, WALK_MINUTES } from '../../content/city';
-import { SPOTS, spotUnlocked, type SpotId } from '../../content/fishing';
-import { samePosition, shoreTiles, spotAt, tileAt } from '../../core/city';
+import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
+import { onShore, samePosition, spotAt, tileAt } from '../../core/city';
 import type { GameCommand } from '../../core';
 import type { CatEntity, Position } from '../../core';
 import './actions.css';
@@ -134,18 +134,9 @@ export function mountCityActions(
       const spotId = selection.spotId;
       const spot = SPOTS[spotId];
       const cat = currentCat();
-      const unlocked = spotUnlocked(
-        spotId,
-        world.fishing.xp,
-        Object.values(world.fishing.atlas).filter((entry) => entry.count > 0)
-          .length,
-      );
+      const unlocked = spotOpen(spotId, world.fishing);
       const arrived =
-        unlocked &&
-        !cat.walk &&
-        shoreTiles(world.map, spotId).some((position) =>
-          samePosition(position, cat.position),
-        );
+        unlocked && !cat.walk && onShore(world.map, spotId, cat.position);
       title.textContent = `${spot.name} · ${cat.name} ${cat.needs.energy}/100`;
       detail.textContent = !unlocked
         ? `需钓技 ${spot.level} 级与 ${spot.species} 种图鉴。猫只能在草地岸边钓鱼。`
