@@ -1,6 +1,7 @@
 name: Cat City CI
 
-# Gate runs only on pull requests; main changes only through merged PRs.
+# Pull requests only; main changes only through merged PRs. Browser E2E and the harness
+# acceptance run locally before every push (.githooks/pre-push runs `npm run harness`).
 on:
   pull_request:
 
@@ -11,10 +12,10 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# The same checks as `npm run harness`, split across runners so E2E runs in parallel.
 jobs:
   static:
-    name: Types, lint, headless tests and build
+    # Branch protection requires this check name.
+    name: Static checks and headless tests
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -38,74 +39,3 @@ jobs:
           path: coverage/
           retention-days: 3
           if-no-files-found: warn
-
-  e2e:
-    name: Browser E2E ${{ matrix.shard }}/3
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - name: Install Chromium, WebKit and system libraries
-        run: npx playwright install --with-deps chromium webkit
-      - run: npx playwright test --shard=${{ matrix.shard }}/3
-      - name: Upload browser evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: e2e-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/
-          retention-days: 3
-          if-no-files-found: warn
-
-  acceptance:
-    name: Harness acceptance and replay
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - name: Install Chromium and system libraries
-        run: npx playwright install --with-deps chromium
-      - run: npm run harness -- acceptance
-      - name: Upload harness evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: harness-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/
-          retention-days: 3
-          if-no-files-found: warn
-
-  # Branch protection requires this name; it passes only when every job passed.
-  gate:
-    name: Core, build, browser and harness
-    needs: [static, e2e, acceptance]
-    if: always()
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    steps:
-      - name: Require every gate job
-        env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          echo "job results: $RESULTS"
-          for result in $RESULTS; do
-            [ "$result" = success ] || exit 1
-          done

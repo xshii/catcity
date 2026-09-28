@@ -1,6 +1,6 @@
 import { createCatCityAdapter } from './adapters/catcity/browser';
 import { productionSmoke } from './adapters/catcity/production-smoke';
-import { cityLoopAcceptance, cityLoopTask } from './tasks/city-loop';
+import { cityLoopTask } from './tasks/city-loop';
 import { localPreview } from './tasks/local-preview';
 import {
   publishLocal,
@@ -21,8 +21,6 @@ if (command === 'verify' || command === 'publish') {
     console.log(`[harness] local preview: ${publication.urls.join(' , ')}`);
     console.log(`[harness] release evidence: ${publication.evidence}`);
   }
-} else if (command === 'acceptance') {
-  await runHarness(cityLoopAcceptance, createCatCityAdapter());
 } else if (command === 'status') {
   console.log(JSON.stringify(await publicationStatus(localPreview), null, 2));
 } else if (command === 'stop') {
@@ -30,7 +28,5 @@ if (command === 'verify' || command === 'publish') {
     `[harness] ${(await stopPublication(localPreview)) ? 'local preview stopped' : 'no owned local preview is running'}`,
   );
 } else {
-  throw new Error(
-    'Usage: npm run harness -- [verify|publish|acceptance|status|stop]',
-  );
+  throw new Error('Usage: npm run harness -- [verify|publish|status|stop]');
 }

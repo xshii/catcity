@@ -18,7 +18,7 @@ npm run harness
 
 `check` 包含类型、类型感知 ESLint/格式、Knip 无用代码检查、带覆盖率的单元/模拟/集成测试、构建和 E2E。Chromium 跑完整浏览器回归，WebKit 跑代表性体感输入用例。`harness` 执行完整 Gate，再运行验收并保存证据；缺失浏览器或失败步骤不会跳过。Linux 安装浏览器时使用 `npx playwright install --with-deps chromium webkit`。
 
-GitHub Actions 只在 Pull Request 上运行同一验收链；**禁止直接推送 main**，仓库内置的 pre-push hook 会拒绝。分支规则与 Pages 现状见 [CI](docs/ci.md)。
+推送前 pre-push hook 在本地运行完整门禁；GitHub Actions 只在 Pull Request 上跑静态检查与 Headless 测试。**禁止直接推送 main**。分支规则与 Pages 现状见 [CI](docs/ci.md)。
 
 ## 本地实机试玩
 

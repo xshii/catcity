@@ -4,15 +4,10 @@
 
 ## 执行流程
 
-- 只在 Pull Request 触发。main 只接受合并后的 PR，禁止直接推送。
-- 与本地 `npm run harness` 相同的检查拆成并行任务（均为 `ubuntu-24.04`，`npm ci` 安装锁定依赖）：
-  - 类型、Lint/格式/Knip、带覆盖率的 Headless 测试与生产构建（10 分钟）；
-  - E2E 按 Playwright `--shard` 分到 3 台 runner（各 20 分钟），Chromium 全量、WebKit 体感用例；
-  - `npm run harness -- acceptance`：自行构建测试包后做游戏验收、回放与证据（15 分钟）；
-  - 汇总任务 `Core, build, browser and harness` 在全部任务成功时才通过，它是分支保护要求的检查名。
-- 同一分支/PR 新运行取消旧运行。缺失依赖、检查失败和超时均保持失败。
-- 检查任务只有 contents 读取权限，checkout 不持久化凭据；Actions 固定到提交 SHA。
-- 无论成功或失败，上传 `artifacts/` 和 `coverage/`，保留 3 天。云端成功必须检查实际运行和产物，不能从本地结果推断。
+- **推送前本地跑完整门禁**：`.githooks/pre-push`（`npm ci`/`npm install` 经 `prepare` 启用）在每次推送分支前运行 `npm run harness`——类型、Lint/格式/Knip、带覆盖率的 Headless 测试、构建、全部 E2E（Chromium 全量、WebKit 体感用例）与游戏验收；失败即拒绝推送。
+- **远端 CI 只跑静态检查**：仅在 Pull Request 触发，`ubuntu-24.04` 上 `npm ci` 后运行类型、Lint/格式/Knip、带覆盖率的 Headless 测试与生产构建（10 分钟限时），任务名 `Static checks and headless tests` 是分支保护要求的检查。
+- 浏览器 E2E 与验收只在本地强制；`git push --no-verify` 能绕过钩子，服务端无法替代这层检查，因此不得使用。
+- 同一分支/PR 新运行取消旧运行；检查任务只有 contents 读取权限，checkout 不持久化凭据；Actions 固定到提交 SHA。上传覆盖率保留 3 天。
 
 ## 费用与发布边界
 
@@ -23,8 +18,8 @@ CI 不启动开发 Mac 上的长期预览。实机版本通过[本地发布流�
 ## 分支规则
 
 - **严禁直接推送 main**：新分支 → Pull Request → CI 通过 → 合并。
-- 服务端：main 已启用分支保护——必须经 PR 合并、`Core, build, browser and harness` 检查通过且分支基于最新 main；管理员同样受限，禁止 force push 与删除。PR 审批数为 0，因为个人仓库作者不能批准自己的 PR。
-- 本地：仓库内置 [`.githooks/pre-push`](../.githooks/pre-push)，`npm ci`/`npm install` 通过 `prepare` 启用，推送前即拒绝推向 `main`。
+- 服务端：main 已启用分支保护——必须经 PR 合并、`Static checks and headless tests` 检查通过且分支基于最新 main；管理员同样受限，禁止 force push 与删除。PR 审批数为 0，因为个人仓库作者不能批准自己的 PR。
+- 本地：仓库内置 [`.githooks/pre-push`](../.githooks/pre-push)，拒绝推向 `main`，并在推送其他分支前运行完整门禁。
 
 ## GitHub Pages
 

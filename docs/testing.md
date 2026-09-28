@@ -4,21 +4,20 @@
 
 ## 测试金字塔与命令
 
-| 命令                            | 覆盖边界                                                    |
-| ------------------------------- | ----------------------------------------------------------- |
-| `npm run typecheck`             | strict TypeScript 与纯 Core 编译边界                        |
-| `npm run lint:code`             | 类型感知 ESLint、异步处理、联合类型穷尽与架构依赖边界       |
-| `npm run lint:unused`           | Knip 检查无用文件、导出和依赖                               |
-| `npm run lint`                  | 上述静态检查与 Prettier 格式                                |
-| `npm test`                      | 经济、建设、地图、移动、猫咪、时间、RNG、钓鱼、原子拒绝     |
-| `npm run test:simulation`       | 30 游戏日不变量、有限状态、时间分块等价                     |
-| `npm run test:integration`      | 保存/续玩、Provider 回退、事实回忆、回放、进程与发布失败    |
-| `npm run test:coverage`         | 一次运行单元/模拟/集成测试并检查 V8 覆盖率门槛              |
-| `npm run test:e2e`              | 实际输入、持久化、单屏布局、生产隔离及 Pages 子路径资源加载 |
-| `npm run build`                 | HTML5 生产构建                                              |
-| `npm run check`                 | 类型 → 静态检查/格式 → Headless 测试与覆盖率 → 构建 → E2E   |
-| `npm run harness`               | 完整 Gate，再启动验收浏览器、采集证据并验证回放             |
-| `npm run harness -- acceptance` | 只构建测试包并验收（CI 用；Gate 由并行任务另行执行）        |
+| 命令                       | 覆盖边界                                                    |
+| -------------------------- | ----------------------------------------------------------- |
+| `npm run typecheck`        | strict TypeScript 与纯 Core 编译边界                        |
+| `npm run lint:code`        | 类型感知 ESLint、异步处理、联合类型穷尽与架构依赖边界       |
+| `npm run lint:unused`      | Knip 检查无用文件、导出和依赖                               |
+| `npm run lint`             | 上述静态检查与 Prettier 格式                                |
+| `npm test`                 | 经济、建设、地图、移动、猫咪、时间、RNG、钓鱼、原子拒绝     |
+| `npm run test:simulation`  | 30 游戏日不变量、有限状态、时间分块等价                     |
+| `npm run test:integration` | 保存/续玩、Provider 回退、事实回忆、回放、进程与发布失败    |
+| `npm run test:coverage`    | 一次运行单元/模拟/集成测试并检查 V8 覆盖率门槛              |
+| `npm run test:e2e`         | 实际输入、持久化、单屏布局、生产隔离及 Pages 子路径资源加载 |
+| `npm run build`            | HTML5 生产构建                                              |
+| `npm run check`            | 类型 → 静态检查/格式 → Headless 测试与覆盖率 → 构建 → E2E   |
+| `npm run harness`          | 完整 Gate，再启动验收浏览器、采集证据并验证回放             |
 
 Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真实格子点击、按钮、键盘和触摸，不能注入获胜结果。测试构建（`--mode test`）把纯等待（等咬钩、传感器启动期限）按 `src/view/time-scale.ts` 加速，提竿、遛鱼和甩竿窗口保持真实速度；Debug Bridge 的 `stepFishing` 可逐 tick 推进钓鱼以消除短窗口竞态，输入仍是真实按键。生产构建始终 1×。截图是观察证据，当前没有强制像素基线；不得自动接受新快照来通过测试。
 
@@ -68,4 +67,4 @@ npm run replay -- artifacts/<run-id>/commands.json
 
 发布集成覆盖固定构建副本、进程归属、健康 marker、失败 Gate、启动/就绪/烟测失败、已验证旧版本恢复以及恢复失败。恢复使用必填保存的 `launch`，只恢复替换前正在运行且已通过验收的版本；本次仍失败。生产烟测成功/失败都尝试采集该测试会话的 save、Console 与截图，见[发布契约](local-publication.md)。
 
-每任务默认命令超时 5 分钟；本地组合 `check` 允许 15 分钟；CI 各并行任务的限时见 [CI](ci.md)。超时仍是失败，不放宽验收。可玩循环、Bridge 或证据链改变必须通过 `check` 和 Harness，并检查截图、更新相关文档、报告证据路径与限制。某次通过只能由该次产物证明。
+每任务默认命令超时 5 分钟；组合 `check` 允许 15 分钟。超时仍是失败，不放宽验收。可玩循环、Bridge 或证据链改变必须通过 `check` 和 Harness，并检查截图、更新相关文档、报告证据路径与限制。某次通过只能由该次产物证明。
