@@ -1,7 +1,6 @@
 import { MAX_STAT } from './limits';
 import { CARE } from '../content/care';
 import { BUILDINGS } from '../content/city';
-import { GameClock } from './clock';
 import type { GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
@@ -11,9 +10,9 @@ export function simulate(
   minutes: number,
   events: GameEvent[],
 ): void {
-  const clock = new GameClock(world.minute);
-  clock.advance(minutes, (minute) => {
-    world.minute = minute;
+  // One minute at a time, so a single long advance equals many short ones.
+  for (let step = 0; step < minutes; step++) {
+    const minute = ++world.minute;
     for (const building of world.buildings) {
       const definition = BUILDINGS[building.type];
       building.incomeProgress++;
@@ -56,5 +55,5 @@ export function simulate(
       }
     }
     advanceWalking(world, events);
-  });
+  }
 }

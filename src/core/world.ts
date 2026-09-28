@@ -46,19 +46,6 @@ export class World {
     }
   }
 
-  build(position: Position): CommandResult {
-    return this.dispatch({
-      type: 'BUILD_BUILDING',
-      buildingType: 'CAT_CAFE',
-      position,
-    });
-  }
-  advanceTime(minutes: number): CommandResult {
-    return this.dispatch({ type: 'ADVANCE_TIME', minutes });
-  }
-  interact(catId: string, message: string, reply: string): CommandResult {
-    return this.dispatch({ type: 'INTERACT', catId, message, reply });
-  }
   save(): string {
     return JSON.stringify({
       saveVersion: SAVE_VERSION,

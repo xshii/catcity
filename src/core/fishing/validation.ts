@@ -8,6 +8,9 @@ import {
 import type { WorldState } from '../schema';
 import { failureTrash } from './rewards';
 import { motionTarget } from '../../minigames/angling';
+import { runSeed } from '../random';
+
+const serialOf = (runId: string) => Number(runId.slice('angling-'.length));
 
 export function assertFishing(
   world: WorldState,
@@ -62,8 +65,7 @@ export function assertFishing(
           cat.breedId === run.catBreed &&
           cat.fishingSpotId === run.spotId,
       ) ||
-      run.seed !==
-        (world.seed ^ Math.imul(Number(run.id.slice(8)), 2246822519)) >>> 0 ||
+      run.seed !== runSeed(world.seed, serialOf(run.id)) ||
       run.skillLevel !== skillLevel(f.xp) ||
       !spotUnlocked(run.spotId, f.xp, discovered) ||
       ['caught', 'escaped'].includes(run.phase) ||
@@ -108,8 +110,7 @@ export function assertFishing(
       result.caught !== (result.reason === 'none')
     )
       throw new Error('Invalid fishing result');
-    const resultSeed =
-      (world.seed ^ Math.imul(Number(result.runId.slice(8)), 2246822519)) >>> 0;
+    const resultSeed = runSeed(world.seed, serialOf(result.runId));
     if (
       result.trashAmount !==
       failureTrash(resultSeed, result.speciesId, !result.caught)

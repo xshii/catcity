@@ -1,3 +1,4 @@
+import { interact } from '../helpers/world';
 import { enterRiver } from '../../harness/adapters/catcity/city-input';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
@@ -346,7 +347,7 @@ test('saved long dialogue reloads as accessible pages without overflowing the ph
   await page.setViewportSize({ width: 360, height: 640 });
   const reply = '今天我们沿着小路走到池塘边，安静地看着水里的波纹。'.repeat(11);
   const world = createWorld(42);
-  expect(world.interact('mochi', '记住今天的散步。', reply).ok).toBe(true);
+  expect(interact(world, 'mochi', '记住今天的散步。', reply).ok).toBe(true);
   await page.addInitScript(
     (save) => localStorage.setItem('cat-city.save.v1', save),
     world.save(),

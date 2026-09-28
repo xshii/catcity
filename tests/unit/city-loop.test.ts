@@ -1,3 +1,4 @@
+import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 
@@ -40,7 +41,7 @@ it('buys land before building, connects a cafe to dirt roads and preserves incom
       .map.tiles.find((tile) => tile.position.x === 4 && tile.position.y === 3)!
       .road,
   ).toBe('DIRT');
-  world.advanceTime(55);
+  advance(world, 55);
   const building = world.getSnapshot().buildings[0]!;
   expect(
     world.dispatch({
@@ -56,7 +57,7 @@ it('buys land before building, connects a cafe to dirt roads and preserves incom
     position: { x: 6, y: 4 },
   });
   expect(world.getSnapshot().coins).toBe(650);
-  world.advanceTime(5);
+  advance(world, 5);
   expect(world.getSnapshot().coins).toBe(660);
   expect(loadWorld(world.save()).save()).toBe(world.save());
 });
@@ -88,7 +89,7 @@ it('rejects water ownership, occupied construction and unaffordable or disconnec
   fixture.world.coins = 299;
   const poor = loadWorld(JSON.stringify(fixture));
   const poorBefore = poor.save();
-  expect(poor.build({ x: 4, y: 4 })).toEqual({
+  expect(buildCafe(poor, { x: 4, y: 4 })).toEqual({
     ok: false,
     error: 'INSUFFICIENT_COINS',
   });
@@ -154,7 +155,7 @@ it('gives apartments two homes and recovery only to assigned cats resting beside
   const resting = loadWorld(JSON.stringify(fixture));
   for (const cat of resting.getSnapshot().cats)
     resting.dispatch({ type: 'REST_CAT', catId: cat.id });
-  resting.advanceTime(10);
+  advance(resting, 10);
   expect(resting.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     45, 50, 45,
   ]);
@@ -180,10 +181,10 @@ it('lays and upgrades owned roads once, with no world mutation on rejected repea
 
 it('pays cafe income per instance and moves only into valid owned connected land', () => {
   const world = createWorld(42);
-  world.build({ x: 4, y: 4 });
-  world.build({ x: 6, y: 4 });
+  buildCafe(world, { x: 4, y: 4 });
+  buildCafe(world, { x: 6, y: 4 });
   expect(world.getSnapshot().coins).toBe(400);
-  world.advanceTime(60);
+  advance(world, 60);
   expect(world.getSnapshot().coins).toBe(420);
   const first = world.getSnapshot().buildings[0]!;
   const before = world.save();

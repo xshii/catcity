@@ -1,3 +1,4 @@
+import { advance, buildCafe } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
 import { expect, it } from 'vitest';
@@ -16,7 +17,7 @@ import {
 
 function unlocked() {
   const world = createWorld(42);
-  world.build({ x: 4, y: 4 });
+  buildCafe(world, { x: 4, y: 4 });
   world.dispatch({ type: 'INVITE_PEPPER' });
   const fixture = JSON.parse(world.save());
   fixture.world.fishing.xp = 120;
@@ -52,7 +53,7 @@ function play(world: World) {
 
 it('queues real shore travel, advancing income and other cats rest only on the shared clock', () => {
   const world = unlocked();
-  world.advanceTime(20);
+  advance(world, 20);
   const pepper = world.getSnapshot().cats[1]!;
   expect(world.dispatch({ type: 'REST_CAT', catId: pepper.id }).ok).toBe(true);
   expect(
@@ -191,7 +192,7 @@ it('rejects travel during rest or an active fishing run and rejects clock overfl
     }),
   ).toEqual({ ok: false, error: 'ALREADY_FISHING' });
   expect(world.save()).toBe(fishing);
-  world.advanceTime(60);
+  advance(world, 60);
   const anotherCatFishing = world.save();
   expect(
     world.dispatch({
@@ -252,7 +253,7 @@ it('rejects travel during rest or an active fishing run and rejects clock overfl
   ).toBe(true);
   expect(rich.getSnapshot().coins).toBe(1_000_000_000);
   const queuedRich = rich.save();
-  expect(rich.advanceTime(1)).toEqual({ ok: false, error: 'WORLD_LIMIT' });
+  expect(advance(rich, 1)).toEqual({ ok: false, error: 'WORLD_LIMIT' });
   expect(rich.save()).toBe(queuedRich);
   expect(richBefore).not.toBe(queuedRich);
 });

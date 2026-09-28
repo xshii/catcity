@@ -1,3 +1,4 @@
+import { advance, buildCafe } from '../helpers/world';
 import { createTestSession } from '../helpers/session';
 import { expect, it } from 'vitest';
 import oldSave from '../fixtures/save-v7.json';
@@ -97,7 +98,7 @@ it('rejects malformed map, water occupancy, home capacity and impossible persist
     expect(() => loadWorld(JSON.stringify(save))).toThrow();
   }
   const home = createWorld(1);
-  home.build({ x: 4, y: 4 });
+  buildCafe(home, { x: 4, y: 4 });
   const badHome = JSON.parse(home.save());
   badHome.world.cats[0].home = 'building-1';
   expect(() => loadWorld(JSON.stringify(badHome))).toThrow();
@@ -110,7 +111,7 @@ it('rejects a forged active fishing away from a real shore and disconnected terr
     catId: 'mochi',
     spotId: 'POND',
   });
-  world.advanceTime(120);
+  advance(world, 120);
   world.dispatch({
     spotId: 'POND',
     aimDepth: 50,

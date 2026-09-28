@@ -1,3 +1,4 @@
+import { advance } from '../helpers/world';
 import { greenZone } from '../../src/minigames/angling';
 import { shoreTiles, samePosition } from '../../src/core/city/map';
 import { createWorld, World } from '../../src/core/world';
@@ -34,7 +35,8 @@ export function finishWalk(world: World): void {
     const cat = world.getSnapshot().cats.find((cat) => cat.walk)!;
     if (cat.walk!.nextStepMinute === null)
       throw new Error('Test walk cannot progress');
-    const result = world.advanceTime(
+    const result = advance(
+      world,
       cat.walk!.nextStepMinute - world.getSnapshot().minute,
     );
     if (!result.ok) throw new Error(result.error);

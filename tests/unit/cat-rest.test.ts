@@ -1,10 +1,11 @@
+import { advance, buildCafe } from '../helpers/world';
 import { fishingFixture as createWorld, catsAtPond } from './fishing-fixture';
 import { expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
 
 it('charges only the fishing cat and restores only a resting cat on the shared clock', () => {
   let world = createWorld(42);
-  world.build({ x: 4, y: 4 });
+  buildCafe(world, { x: 4, y: 4 });
   world.dispatch({ type: 'INVITE_PEPPER' });
   world = catsAtPond(world);
   const pepper = world.getSnapshot().cats[1]!;
@@ -26,7 +27,7 @@ it('charges only the fishing cat and restores only a resting cat on the shared c
   expect(world.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     92, 92,
   ]);
-  world.advanceTime(7);
+  advance(world, 7);
   expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
   expect(world.getSnapshot().minute).toBe(7);
   const before = world.save();
@@ -42,15 +43,15 @@ it('charges only the fishing cat and restores only a resting cat on the shared c
     }),
   ).toEqual({ ok: false, error: 'CAT_RESTING' });
   expect(world.save()).toBe(before);
-  world.advanceTime(9);
+  advance(world, 9);
   expect(world.getSnapshot().cats[0]!.needs.energy).toBe(92);
-  world.advanceTime(1);
+  advance(world, 1);
   expect(world.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     97, 92,
   ]);
   const restored = loadWorld(world.save());
-  world.advanceTime(50);
-  for (let n = 0; n < 50; n++) restored.advanceTime(1);
+  advance(world, 50);
+  for (let n = 0; n < 50; n++) advance(restored, 1);
   expect(restored.getSnapshot()).toEqual(world.getSnapshot());
   expect(world.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     100, 92,
@@ -90,7 +91,7 @@ it('allows another cat to fish while a companion rests; rejects invalid and dupl
   const fishing = game.save();
   expect(game.dispatch({ type: 'REST_CAT', catId: pepper.id }).ok).toBe(false);
   expect(game.save()).toBe(fishing);
-  game.advanceTime(60);
+  advance(game, 60);
   expect(game.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     70, 92,
   ]);
@@ -141,10 +142,10 @@ it('keeps fishing input ticks separate from the shared clock and stops recovery 
     world.dispatch({ type: 'FISH_CONTROL', runId, pressed: true, ticks: 4 });
   expect(world.getSnapshot().minute).toBe(0);
   expect(world.getSnapshot().cats[0]!.needs.energy).toBe(20);
-  world.advanceTime(59);
+  advance(world, 59);
   expect(world.getSnapshot().cats[0]!.needs.energy).toBe(45);
   expect(world.getSnapshot().cats[0]!.rest).not.toBeNull();
-  const result = world.advanceTime(1);
+  const result = advance(world, 1);
   expect(result).toMatchObject({
     ok: true,
     events: expect.arrayContaining([
@@ -152,7 +153,7 @@ it('keeps fishing input ticks separate from the shared clock and stops recovery 
     ]),
   });
   expect(world.getSnapshot().cats[0]!.rest).toBeNull();
-  world.advanceTime(60);
+  advance(world, 60);
   expect(world.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     50, 92,
   ]);
@@ -172,7 +173,7 @@ it('rejects an unfinishable rest at the clock limit without changing cat energy 
   fixture.world.minute--;
   const boundary = loadWorld(JSON.stringify(fixture));
   expect(boundary.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
-  expect(boundary.advanceTime(60).ok).toBe(true);
+  expect(advance(boundary, 60).ok).toBe(true);
   expect(boundary.getSnapshot().cats[0]!.needs.energy).toBe(80);
   expect(boundary.getSnapshot().cats[0]!.rest).toBeNull();
 });

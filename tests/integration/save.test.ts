@@ -1,3 +1,4 @@
+import { advance, buildCafe, interact } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core';
 import legacySave from '../fixtures/save-v1.json';
@@ -8,13 +9,13 @@ it('rejects old demo saves now that compatibility is explicitly out of scope', (
 
 it('round-trips all state and deterministically continues movement, income and memories', () => {
   const original = createWorld(42);
-  original.build({ x: 3, y: 3 });
-  original.advanceTime(79);
-  original.interact('mochi', '喜欢鱼吗？', '喜欢。');
+  buildCafe(original, { x: 3, y: 3 });
+  advance(original, 79);
+  interact(original, 'mochi', '喜欢鱼吗？', '喜欢。');
   const restored = loadWorld(original.save());
   expect(restored.getSnapshot()).toEqual(original.getSnapshot());
-  original.advanceTime(301);
-  restored.advanceTime(301);
+  advance(original, 301);
+  advance(restored, 301);
   expect(restored.getSnapshot()).toEqual(original.getSnapshot());
 });
 
@@ -33,8 +34,8 @@ it.each([
   'duplicate-cat',
 ])('rejects semantically impossible saves: %s', (kind) => {
   const world = createWorld(1);
-  world.build({ x: 3, y: 3 });
-  world.interact('mochi', 'hi', 'hi');
+  buildCafe(world, { x: 3, y: 3 });
+  interact(world, 'mochi', 'hi', 'hi');
   const save = JSON.parse(world.save());
   if (kind === 'negative-money') save.world.coins = -1;
   if (kind === 'overlap') save.world.cats[0].position = { x: 3, y: 3 };

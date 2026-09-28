@@ -1,3 +1,4 @@
+import { buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 
@@ -16,7 +17,7 @@ it('rejects removed choice-game and cafe-alias commands without changing the wor
     });
     expect(world.save()).toBe(before);
   }
-  expect(world.build({ x: 4, y: 4 }).ok).toBe(true);
+  expect(buildCafe(world, { x: 4, y: 4 }).ok).toBe(true);
   expect(world.getSnapshot().buildings[0]!.type).toBe('CAT_CAFE');
 });
 

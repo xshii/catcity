@@ -1,3 +1,4 @@
+import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 
@@ -24,15 +25,15 @@ it('moves one real tile per scheduled step, charges only that cat and persists t
   expect(start.cats[0]!.position).toEqual({ x: 5, y: 5 });
   expect(start.cats[0]!.walk!.route).toHaveLength(2);
   expect(start.cats[0]!.walk!.nextStepMinute).toBe(5);
-  world.advanceTime(4);
+  advance(world, 4);
   expect(world.getSnapshot().cats[0]!.position).toEqual(
     start.cats[0]!.position,
   );
-  world.advanceTime(1);
+  advance(world, 1);
   expect(world.getSnapshot().cats[0]!.needs.energy).toBe(99);
   const restored = loadWorld(world.save());
-  world.advanceTime(10);
-  for (let n = 0; n < 10; n++) restored.advanceTime(1);
+  advance(world, 10);
+  for (let n = 0; n < 10; n++) advance(restored, 1);
   expect(restored.save()).toBe(world.save());
   expect(world.getSnapshot().cats[0]).toMatchObject({
     position: { x: 6, y: 6 },
@@ -41,7 +42,7 @@ it('moves one real tile per scheduled step, charges only that cat and persists t
   });
   expect(world.getSnapshot().cats[1]!.needs.energy).toBe(100);
   const stopped = world.getSnapshot().cats[0]!.position;
-  world.advanceTime(200);
+  advance(world, 200);
   expect(world.getSnapshot().cats[0]!.position).toEqual(stopped);
 });
 
@@ -54,20 +55,20 @@ it('stops exhausted cats and resumes their saved destination only after rest fin
     catId: 'mochi',
     destination: { x: 6, y: 6 },
   });
-  world.advanceTime(5);
+  advance(world, 5);
   const tired = world.getSnapshot().cats[0]!;
   expect(tired.needs.energy).toBe(0);
   expect(tired.walk!.nextStepMinute).toBeNull();
-  world.advanceTime(20);
+  advance(world, 20);
   expect(world.getSnapshot().cats[0]!.position).toEqual(tired.position);
   world.dispatch({ type: 'REST_CAT', catId: 'mochi' });
-  world.advanceTime(60);
+  advance(world, 60);
   expect(world.getSnapshot().cats[0]!.needs.energy).toBe(30);
   expect(world.getSnapshot().cats[0]!.position).toEqual(tired.position);
   expect(world.getSnapshot().cats[0]!.walk!.nextStepMinute).toBeGreaterThan(
     world.getSnapshot().minute,
   );
-  world.advanceTime(10);
+  advance(world, 10);
   expect(world.getSnapshot().cats[0]).toMatchObject({
     position: { x: 6, y: 6 },
     needs: { energy: 29 },
@@ -83,7 +84,7 @@ it('uses stone road timing and rejects water, occupied destinations and invalid 
     world.dispatch({ type: 'WALK_CAT', catId: 'mochi', destination }).ok,
   ).toBe(true);
   expect(world.getSnapshot().cats[0]!.walk!.nextStepMinute).toBe(3);
-  world.advanceTime(3);
+  advance(world, 3);
   expect(world.getSnapshot().cats[0]!.position).toEqual(destination);
   const water = world
     .getSnapshot()
@@ -148,7 +149,7 @@ it('requires actually reaching a shore before fishing and keeps locked travel at
       spotId: 'POND',
     }).ok,
   ).toBe(false);
-  world.advanceTime(120);
+  advance(world, 120);
   expect(world.getSnapshot().cats[0]!.walk).toBeNull();
   expect(world.getSnapshot().cats[0]!.fishingSpotId).toBe('POND');
   expect(
@@ -173,7 +174,7 @@ it('stops blocked destinations after building and keeps competing walkers separa
       destination: { x: 4, y: 4 },
     }).ok,
   ).toBe(true);
-  const built = world.build({ x: 4, y: 4 });
+  const built = buildCafe(world, { x: 4, y: 4 });
   expect(built).toMatchObject({
     ok: true,
     events: expect.arrayContaining([
@@ -188,7 +189,7 @@ it('stops blocked destinations after building and keeps competing walkers separa
       world.dispatch({ type: 'WALK_CAT', catId, destination: { x: 6, y: 5 } })
         .ok,
     ).toBe(true);
-  world.advanceTime(5);
+  advance(world, 5);
   const cats = world.getSnapshot().cats;
   expect(cats[0]!.position).toEqual({ x: 6, y: 5 });
   expect(cats[1]!.position).toEqual({ x: 6, y: 6 });
@@ -211,7 +212,7 @@ it('replans routes around construction and resumes an exhausted route using cann
         null && !(position.x === 3 && position.y === 3),
   )!;
   expect(footprint).toBeDefined();
-  expect(world.build(footprint).ok).toBe(true);
+  expect(buildCafe(world, footprint).ok).toBe(true);
   expect(world.getSnapshot().cats[0]!.walk!.route).not.toContainEqual(
     footprint,
   );
@@ -224,7 +225,7 @@ it('replans routes around construction and resumes an exhausted route using cann
   expect(tired.getSnapshot().cats[0]!.walk!.nextStepMinute).toBeGreaterThan(
     tired.getSnapshot().minute,
   );
-  tired.advanceTime(120);
+  advance(tired, 120);
   expect(tired.getSnapshot().cats[0]!.position).toEqual({ x: 3, y: 3 });
   expect(tired.getSnapshot().cats[0]!.needs.energy).toBeLessThan(20);
 });

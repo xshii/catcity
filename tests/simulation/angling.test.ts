@@ -1,3 +1,4 @@
+import { advance } from '../helpers/world';
 import { fishingFixture as createWorld } from '../unit/fishing-fixture';
 import { expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
@@ -13,7 +14,7 @@ it('simulates 30 days of catch/sell/rest cycles without impossible values or los
   for (let day = 0; day < 30; day++) {
     if (world.getSnapshot().cats[0]!.needs.energy < 100)
       world.dispatch({ type: 'REST_CAT', catId: 'mochi' });
-    world.advanceTime(1440);
+    advance(world, 1440);
     world.dispatch({
       spotId: 'POND',
       aimDepth: 50,

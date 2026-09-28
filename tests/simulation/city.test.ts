@@ -1,3 +1,4 @@
+import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 import { assertWorld } from '../../src/core/schema';
@@ -8,7 +9,7 @@ it.each([0, 42])(
     let batch = createWorld(seed);
     let sliced = createWorld(seed);
     for (const game of [batch, sliced]) {
-      expect(game.build({ x: 4, y: 4 }).ok).toBe(true);
+      expect(buildCafe(game, { x: 4, y: 4 }).ok).toBe(true);
       expect(
         game.dispatch({
           type: 'BUILD_BUILDING',
@@ -30,7 +31,7 @@ it.each([0, 42])(
           expect(game.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(
             true,
           );
-          expect(game.advanceTime(60).ok).toBe(true);
+          expect(advance(game, 60).ok).toBe(true);
         }
         expect(
           game.dispatch({
@@ -40,9 +41,9 @@ it.each([0, 42])(
           }).ok,
         ).toBe(true);
       }
-      expect(batch.advanceTime(1440).ok).toBe(true);
-      expect(sliced.advanceTime(17).ok).toBe(true);
-      expect(sliced.advanceTime(1423).ok).toBe(true);
+      expect(advance(batch, 1440).ok).toBe(true);
+      expect(advance(sliced, 17).ok).toBe(true);
+      expect(advance(sliced, 1423).ok).toBe(true);
       expect(sliced.getSnapshot()).toEqual(batch.getSnapshot());
       expect(() => assertWorld(batch.getSnapshot())).not.toThrow();
       expect(batch.getSnapshot().cats[0]!.walk).toBeNull();

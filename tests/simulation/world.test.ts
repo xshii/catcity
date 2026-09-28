@@ -1,3 +1,4 @@
+import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld } from '../../src/core/world';
 import { assertWorld } from '../../src/core/schema';
@@ -7,12 +8,12 @@ it.each([0, 1, 42, 4294967295])(
   (seed) => {
     const batch = createWorld(seed);
     const incremental = createWorld(seed);
-    batch.build({ x: 4, y: 4 });
-    incremental.build({ x: 4, y: 4 });
-    expect(batch.advanceTime(30 * 24 * 60).ok).toBe(true);
+    buildCafe(batch, { x: 4, y: 4 });
+    buildCafe(incremental, { x: 4, y: 4 });
+    expect(advance(batch, 30 * 24 * 60).ok).toBe(true);
     for (let hour = 0; hour < 30 * 24; hour++) {
-      incremental.advanceTime(17);
-      incremental.advanceTime(43);
+      advance(incremental, 17);
+      advance(incremental, 43);
       expect(() => assertWorld(incremental.getSnapshot())).not.toThrow();
     }
     expect(incremental.getSnapshot()).toEqual(batch.getSnapshot());

@@ -39,8 +39,7 @@ input:focus-visible {
 .map-heading,
 .map-footer,
 .cat-heading,
-footer,
-.building-summary {
+footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -173,14 +172,6 @@ h1 {
   align-items: center;
   gap: 7px;
 }
-.sun {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #d7ba6e;
-  display: inline-block;
-  box-shadow: 0 0 0 3px #e8dfb7;
-}
 #clock {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -217,39 +208,6 @@ h2 {
   font-size: 12px;
   color: #87907e;
   margin: 13px 0;
-}
-.building-summary {
-  gap: 12px;
-  margin: 23px 0 16px;
-}
-.mini-house {
-  color: #a97852;
-  font-size: 35px;
-  width: 47px;
-  height: 47px;
-  background: #f0e8d4;
-  border-radius: 12px;
-  text-align: center;
-  line-height: 45px;
-}
-.building-summary div {
-  flex: 1;
-}
-.building-summary strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-}
-.building-summary small {
-  display: block;
-  font-size: 10px;
-  color: #929882;
-  margin-top: 7px;
-}
-.building-summary b {
-  font-size: 15px;
-  font-family: Georgia, serif;
-  color: #a48750;
 }
 .build-status {
   background: #e7eddc;

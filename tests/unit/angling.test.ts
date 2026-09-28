@@ -1,3 +1,4 @@
+import { advance } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { describe, expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
@@ -86,7 +87,7 @@ describe('skill-based angling', () => {
     ).toBe(false);
     expect(tired.save()).toBe(before);
     tired.dispatch({ type: 'REST_CAT', catId: 'mochi' });
-    tired.advanceTime(60);
+    advance(tired, 60);
     expect(tired.getSnapshot().cats[0]!.needs.energy).toBe(37);
     expect(
       tired.dispatch({
@@ -240,7 +241,7 @@ it('unlocks distinct waterways through skill and discoveries, with real bait/dir
     baitId: 'BREAD' | 'WORM' | 'SHRIMP',
     direction: number,
   ) => {
-    world.advanceTime(60);
+    advance(world, 60);
     if (world.getSnapshot().cats[0]!.fishingSpotId !== spotId)
       expect(
         world.dispatch({

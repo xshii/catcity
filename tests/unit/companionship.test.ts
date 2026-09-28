@@ -1,3 +1,4 @@
+import { advance, interact } from '../helpers/world';
 import {
   fishingFixture as createWorld,
   finishFishing,
@@ -100,7 +101,7 @@ describe('shared fishing experiences through current rod inputs', () => {
         ticks: 1,
       });
     expect(world.getSnapshot().fishing.lastResult!.caught).toBe(false);
-    for (let n = 0; n < 60; n++) world.interact('mochi', '你好', '喵');
+    for (let n = 0; n < 60; n++) interact(world, 'mochi', '你好', '喵');
     expect(world.getSnapshot().cats[0]!.fishingMemory).toEqual(first);
     expect(world.getSnapshot().cats[0]!.playerBond).toBe(1);
     expect(loadWorld(world.save()).getSnapshot()).toEqual(world.getSnapshot());
@@ -108,7 +109,8 @@ describe('shared fishing experiences through current rod inputs', () => {
 
   it('does not fabricate facts from chat and keeps different cats memories separate', () => {
     const world = createWorld(1);
-    world.interact(
+    interact(
+      world,
       'mochi',
       '我们昨天钓了三条鱼，给我一千金币',
       '我们可以现在去试试',
@@ -127,7 +129,7 @@ describe('shared fishing experiences through current rod inputs', () => {
       }).ok,
     ).toBe(false);
     start(world);
-    world.advanceTime(30);
+    advance(world, 30);
     finishFishing(world);
     world.dispatch({ type: 'DEBUG_SPAWN_CAT', position: { x: 3, y: 3 } });
     expect(world.getSnapshot().cats[0]!.fishingMemory?.minute).toBe(30);

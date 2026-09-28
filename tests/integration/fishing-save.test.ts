@@ -1,3 +1,4 @@
+import { advance } from '../helpers/world';
 import { createTestSession } from '../helpers/session';
 import { fishingFixture as createWorld } from '../unit/fishing-fixture';
 import { expect, it } from 'vitest';
@@ -88,7 +89,7 @@ it('rejects impossible cat rest schedules and resting active fishing participant
     type: 'FISH_CANCEL',
     runId: world.getSnapshot().fishing.active!.id,
   });
-  world.advanceTime(20);
+  advance(world, 20);
   const idle = world.save();
   for (const rest of [
     { startedAt: 21, until: 81 },
@@ -101,7 +102,7 @@ it('rejects impossible cat rest schedules and resting active fishing participant
       'Invalid cat rest',
     );
   }
-  world.advanceTime(40);
+  advance(world, 40);
   const finished = JSON.parse(world.save());
   finished.world.cats[0].rest = { startedAt: 0, until: 60 };
   expect(() => loadWorld(JSON.stringify(finished))).toThrow('Invalid cat rest');
