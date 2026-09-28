@@ -48,6 +48,33 @@
 .motion-ring.inside {
   border-color: #5f9c5a;
 }
+/* A dash is coming: the ring ripples, then flashes while the fish darts. */
+.motion-ring.warning::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 3px solid #fff4c0;
+  animation: motion-ripple 0.4s ease-out infinite;
+}
+.motion-ring.dashing {
+  box-shadow: 0 0 0 5px #fff4c0;
+}
+@keyframes motion-ripple {
+  from {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-ring.warning::after {
+    animation: none;
+  }
+}
 .motion-tip {
   position: absolute;
   width: 24px;

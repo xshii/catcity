@@ -280,7 +280,9 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
             : phase === 'hook'
               ? '快速上扬提竿！'
               : phase === 'fight'
-                ? '倾斜手机，让竿尖追住鱼圈'
+                ? (motionRun?.phaseTick ?? 0) <= FISHING.motion.fight.graceTicks
+                  ? '稳住，竿尖放进鱼圈'
+                  : '倾斜手机，让竿尖追住鱼圈'
                 : '';
     $('motion-bite').hidden = phase !== 'hook';
     if (motionRun?.phase === 'waiting') {
@@ -301,7 +303,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     $('motion-hold').hidden = !fighting;
     if (!fighting || !motionRun) return;
     const fish = fishPoint(motionRun, motionRun.phaseTick);
-    const radius = ringRadius(motionRun, motionRun.phaseTick);
+    const radius = ringRadius(motionRun);
     const rod = point() ?? { x: 50, y: 50 };
     const inside = (rod.x - fish.x) ** 2 + (rod.y - fish.y) ** 2 <= radius ** 2;
     // The overlay is the square 100×100 water plane; sizes are percentages of it.
@@ -309,6 +311,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     ring.style.top = `${fish.y}%`;
     ring.style.width = `${radius * 2}%`;
     ring.classList.toggle('inside', inside);
+    ring.classList.toggle('warning', fish.warning);
+    ring.classList.toggle('dashing', fish.dashing);
     const tipDot = $('motion-tip');
     tipDot.style.left = `${rod.x}%`;
     tipDot.style.top = `${rod.y}%`;

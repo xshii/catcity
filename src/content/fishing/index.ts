@@ -1,4 +1,4 @@
-/** Fishing content entry: spec (numbers), catalog (data), rules (derivations). */
+/** Fishing content entry: spec and motion (numbers), catalog (data), rules (derivations). */
 export { FISHING } from './spec';
 export {
   BAIT_IDS,
