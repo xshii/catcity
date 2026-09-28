@@ -1,6 +1,6 @@
 import type { GameSession } from '../../application';
 import { BUILDINGS, CITY_COSTS, WALK_MINUTES } from '../../content/city';
-import { SPOTS, spotUnlocked, type SpotId } from '../../content/fish';
+import { SPOTS, spotUnlocked, type SpotId } from '../../content/fishing';
 import { samePosition, shoreTiles, spotAt, tileAt } from '../../core/city';
 import type { GameCommand } from '../../core';
 import type { CatEntity, Position } from '../../core';

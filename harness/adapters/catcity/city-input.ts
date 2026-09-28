@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import type { SpotId } from '../../../src/content/fish';
+import type { SpotId } from '../../../src/content/fishing';
 import { shoreTiles, samePosition, spotAt } from '../../../src/core/city';
 import type { WorldState } from '../../../src/core';
 import { MAP_VIEW, tileCenter } from '../../../src/view/city/geometry';

@@ -1,5 +1,5 @@
 import type { GameSession } from '../../application';
-import { fishById, SPOTS } from '../../content/fish';
+import { fishById, SPOTS } from '../../content/fishing';
 
 /** Read relationship facts; only the current fishing commands create these memories. */
 export function mountCompanionship(session: GameSession) {

@@ -1,5 +1,5 @@
-import type { SpotId } from '../../content/fish';
-import { RandomService } from '../random';
+import type { SpotId } from '../../content/fishing';
+import { RandomService, streamSeed } from '../random';
 
 export interface Position {
   x: number;
@@ -43,6 +43,8 @@ export function spotAt(map: CityMap, position: Position): SpotId | null {
   const tile = tileAt(map, position);
   return tile ? (waterSpots[tile.terrain] ?? null) : null;
 }
+export const onShore = (map: CityMap, spot: SpotId, position: Position) =>
+  shoreTiles(map, spot).some((shore) => samePosition(shore, position));
 export function shoreTiles(map: CityMap, spot: SpotId): Position[] {
   return map.tiles
     .filter((tile) => {
@@ -60,7 +62,7 @@ export function shoreTiles(map: CityMap, spot: SpotId): Position[] {
 
 /** Bounded templates guarantee connected land; this stream never consumes gameplay RNG. */
 export function generateCityMap(seed: number): CityMap {
-  const rng = new RandomService((seed ^ 0xa17c9e33) >>> 0);
+  const rng = new RandomService(streamSeed(seed, 'map'));
   const map: CityMap = {
     width: 10,
     height: 10,

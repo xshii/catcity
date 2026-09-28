@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { SpotId } from '../../content/fish';
+import type { SpotId } from '../../content/fishing';
 import type { WorldState } from '../../core';
 import { catArt } from '../companion/art';
 

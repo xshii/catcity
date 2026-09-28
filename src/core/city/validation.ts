@@ -1,6 +1,6 @@
 import { BUILDINGS } from '../../content/city';
-import { SPOT_IDS, spotUnlocked } from '../../content/fish';
-import { samePosition, shoreTiles, tileAt } from './map';
+import { SPOT_IDS, spotOpen } from '../../content/fishing';
+import { onShore, samePosition, shoreTiles, tileAt } from './map';
 import { connectedRoads, neighbors } from './path';
 import type { WorldState } from '../schema';
 
@@ -30,9 +30,6 @@ export function assertCity(world: WorldState): void {
     pending.push(...neighbors(position));
   }
   if (reached.size !== grass.length) throw new Error('Disconnected city land');
-  const discovered = Object.values(world.fishing.atlas).filter(
-    (entry) => entry.count > 0,
-  ).length;
   const connected = connectedRoads(world);
   if (!connected.length) throw new Error('Missing starting road');
   for (const building of world.buildings) {
@@ -63,10 +60,7 @@ export function assertCity(world: WorldState): void {
       throw new Error('Invalid cat home');
     if (
       cat.fishingSpotId &&
-      (cat.walk ||
-        !shoreTiles(world.map, cat.fishingSpotId).some((position) =>
-          samePosition(position, cat.position),
-        ))
+      (cat.walk || !onShore(world.map, cat.fishingSpotId, cat.position))
     )
       throw new Error('Invalid cat fishing location');
     const activeSpot =
@@ -75,10 +69,7 @@ export function assertCity(world: WorldState): void {
         : null;
     if (
       activeSpot &&
-      (cat.walk ||
-        !shoreTiles(world.map, activeSpot).some((position) =>
-          samePosition(position, cat.position),
-        ))
+      (cat.walk || !onShore(world.map, activeSpot, cat.position))
     )
       throw new Error('Fishing away from shore');
     const walk = cat.walk;
@@ -98,10 +89,8 @@ export function assertCity(world: WorldState): void {
       throw new Error('Invalid walk clock');
     if (
       walk.spotId &&
-      (!spotUnlocked(walk.spotId, world.fishing.xp, discovered) ||
-        !shoreTiles(world.map, walk.spotId).some((position) =>
-          samePosition(position, walk.destination),
-        ))
+      (!spotOpen(walk.spotId, world.fishing) ||
+        !onShore(world.map, walk.spotId, walk.destination))
     )
       throw new Error('Invalid walk fishing destination');
     let previous = cat.position;

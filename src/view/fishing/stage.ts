@@ -1,6 +1,6 @@
 import type { GameSession } from '../../application';
 import { CAT_BREEDS } from '../../content/breeds';
-import { fishById, fishStars, SPOTS, type SpotId } from '../../content/fish';
+import { fishById, fishStars, SPOTS, type SpotId } from '../../content/fishing';
 import type { CatEntity, WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
 

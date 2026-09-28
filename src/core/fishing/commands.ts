@@ -1,11 +1,12 @@
 import { atFishingShore, resumeWalk } from '../city/walking';
 import {
   BAITS,
-  canCatchFish,
+  catchXp,
+  FISHING,
   fishById,
   skillLevel,
-  spotUnlocked,
-} from '../../content/fish';
+  spotOpen,
+} from '../../content/fishing';
 import { instantiatePepper } from '../../content/definitions';
 import {
   castAngling,
@@ -18,6 +19,10 @@ import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { WorldState } from '../schema';
 import { isWalkable } from '../city/path';
 import { failureTrash } from './rewards';
+import { runSeed } from '../random';
+import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from '../limits';
+
+const { cast: CAST, supplies: SUPPLIES, companion: COMPANION } = FISHING;
 
 export function applyAngling(
   world: WorldState,
@@ -38,20 +43,22 @@ export function applyAngling(
     if (command.type === 'USE_CAN') {
       const cat = world.cats.find((cat) => cat.id === command.catId);
       if (!cat) throw new CommandError('CAT_NOT_FOUND');
-      if (cat.needs.energy === 100) throw new CommandError('STAMINA_FULL');
-      cat.needs.energy = Math.min(100, cat.needs.energy + 20);
+      if (cat.needs.energy === MAX_STAT) throw new CommandError('STAMINA_FULL');
+      cat.needs.energy = Math.min(
+        MAX_STAT,
+        cat.needs.energy + SUPPLIES.canEnergy,
+      );
       resumeWalk(world, cat);
-    } else world.coins += 3;
+    } else world.coins += SUPPLIES.trashCoins;
     fishing.supplies[key]--;
     emit(command.type === 'USE_CAN' ? 'can-used' : 'trash-recycled');
   } else if (command.type === 'INVITE_PEPPER') {
     if (world.cats.some((cat) => cat.definitionId === 'PEPPER'))
       throw new CommandError('ALREADY_INVITED');
-    if (world.cats.length >= 16) throw new CommandError('CAT_LIMIT');
-    const position = Array.from({ length: 100 }, (_, n) => ({
-      x: n % 10,
-      y: Math.floor(n / 10),
-    })).find((p) => isWalkable(world, p));
+    if (world.cats.length >= MAX_CATS) throw new CommandError('CAT_LIMIT');
+    const position = world.map.tiles
+      .map((tile) => tile.position)
+      .find((p) => isWalkable(world, p));
     if (!position) throw new CommandError('INVALID_PLACEMENT');
     const cat = instantiatePepper(`cat-${world.nextId++}`, position);
     world.cats.push(cat);
@@ -59,7 +66,7 @@ export function applyAngling(
   } else if (command.type === 'BUY_BAIT') {
     const price = BAITS[command.baitId].price;
     if (world.coins < price) throw new CommandError('INSUFFICIENT_COINS');
-    if (fishing.baits[command.baitId] >= 999)
+    if (fishing.baits[command.baitId] >= FISHING.bait.max)
       throw new CommandError('BAIT_LIMIT');
     world.coins -= price;
     fishing.baits[command.baitId]++;
@@ -69,18 +76,14 @@ export function applyAngling(
     const cat = world.cats.find((cat) => cat.id === command.catId);
     if (!cat) throw new CommandError('CAT_NOT_FOUND');
     if (cat.rest) throw new CommandError('CAT_RESTING');
-    if (
-      !spotUnlocked(
-        command.spotId,
-        fishing.xp,
-        Object.values(fishing.atlas).filter((entry) => entry.count > 0).length,
-      )
-    )
+    if (!spotOpen(command.spotId, fishing))
       throw new CommandError('SPOT_LOCKED');
     if (!atFishingShore(world, cat, command.spotId))
       throw new CommandError('TRAVEL_REQUIRED');
-    if (cat.needs.energy < 8) throw new CommandError('LOW_STAMINA');
-    if (fishing.inventory.length >= 30) throw new CommandError('BAG_FULL');
+    if (cat.needs.energy < CAST.staminaCost)
+      throw new CommandError('LOW_STAMINA');
+    if (fishing.inventory.length >= FISHING.bag.capacity)
+      throw new CommandError('BAG_FULL');
     if (command.baitId !== 'BREAD') {
       if (fishing.baits[command.baitId] === 0)
         throw new CommandError('NO_BAIT');
@@ -90,16 +93,16 @@ export function applyAngling(
     const serial = world.nextId++;
     fishing.active = initialAngling({
       catId: command.catId,
-      catBreed: world.cats.find((cat) => cat.id === command.catId)!.breedId,
+      catBreed: cat.breedId,
       baitId: command.baitId,
       direction: command.direction,
       aimDepth: command.aimDepth,
       spotId: command.spotId,
       id: `angling-${serial}`,
-      seed: (world.seed ^ Math.imul(serial, 2246822519)) >>> 0,
+      seed: runSeed(world.seed, serial),
       skillLevel: skillLevel(fishing.xp),
     });
-    cat.needs.energy -= 8;
+    cat.needs.energy -= CAST.staminaCost;
     emit('started', fishing.active.id);
   } else if (
     command.type === 'FISH_CAST' ||
@@ -157,13 +160,7 @@ export function applyAngling(
           fishing.supplies.coinBags++;
         } else fishing.supplies.cans++;
       } else if (next.phase === 'caught' && speciesId) {
-        if (
-          !canCatchFish(
-            speciesId,
-            world.cats.find((cat) => cat.id === next.catId)!.breedId,
-          )
-        )
-          throw new CommandError('BREED_REQUIRED');
+        // Breed eligibility was enforced when the fish was chosen and on load.
         fishing.inventory.push({
           id: `fish-${world.nextId++}`,
           speciesId,
@@ -175,8 +172,8 @@ export function applyAngling(
         record.bestLengthMm = Math.max(record.bestLengthMm, next.lengthMm);
         record.bestWeight = Math.max(record.bestWeight, next.weight);
         fishing.xp = Math.min(
-          1_000_000_000,
-          fishing.xp + 10 + fishById(speciesId).stars * 5,
+          WORLD_LIMIT,
+          fishing.xp + catchXp(fishById(speciesId).stars),
         );
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.fishingMemory ??= {
@@ -185,7 +182,7 @@ export function applyAngling(
           spotId: next.spotId,
           minute: world.minute,
         };
-        cat.mood = Math.min(100, cat.mood + 3);
+        cat.mood = Math.min(MAX_STAT, cat.mood + COMPANION.catchMood);
         rewardBond(cat, world.minute);
       }
       fishing.active = null;
@@ -209,8 +206,11 @@ export function applyAngling(
         minute: world.minute,
         favorite,
       };
-      cat.mood = Math.min(100, cat.mood + (favorite ? 8 : 3));
-      cat.needs.hunger = Math.max(0, cat.needs.hunger - 10);
+      cat.mood = Math.min(
+        MAX_STAT,
+        cat.mood + (favorite ? COMPANION.favoriteGiftMood : COMPANION.giftMood),
+      );
+      cat.needs.hunger = Math.max(0, cat.needs.hunger - COMPANION.giftHunger);
       rewardBond(cat, world.minute);
       emit(favorite ? 'favorite-gift' : 'gift', cat.id);
     }

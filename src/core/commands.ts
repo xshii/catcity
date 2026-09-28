@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
 import { baitIdSchema, spotIdSchema } from './fishing/schema';
 import { positionSchema } from './schema';
-import type { SpotId } from '../content/fish';
+import type { SpotId } from '../content/fishing';
 
 export const commandSchema = z.discriminatedUnion('type', [
   z.strictObject({

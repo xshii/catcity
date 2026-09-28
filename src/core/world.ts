@@ -1,3 +1,4 @@
+import { WORLD_LIMIT } from './limits';
 import { generateCityMap, shoreTiles, tileAt } from './city/map';
 import { initialFishing } from './fishing/schema';
 import { instantiateMochi } from '../content/definitions';
@@ -39,7 +40,7 @@ export class World {
       if (error instanceof CommandError)
         return { ok: false, error: error.message };
       // Overflow is a rejected command; unexpected implementation errors remain visible.
-      if (next.coins > 1_000_000_000 || next.nextId > 1_000_000_000)
+      if (next.coins > WORLD_LIMIT || next.nextId > WORLD_LIMIT)
         return { ok: false, error: 'WORLD_LIMIT' };
       throw error;
     }

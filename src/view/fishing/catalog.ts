@@ -6,7 +6,7 @@ import {
   fishStars,
   LOOT,
   SPOTS,
-} from '../../content/fish';
+} from '../../content/fishing';
 import type { GameCommand } from '../../core';
 import type { CatEntity, WorldState } from '../../core';
 import { fishIllustration } from './stage';

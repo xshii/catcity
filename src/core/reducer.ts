@@ -1,3 +1,5 @@
+import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from './limits';
+import { CARE } from '../content/care';
 import { applyCity } from './city/building';
 import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
@@ -32,10 +34,13 @@ export function applyCommand(
       if (cat.rest) throw new CommandError('CAT_RESTING');
       if (world.fishing.active?.catId === cat.id)
         throw new CommandError('CAT_BUSY');
-      if (cat.needs.energy === 100) throw new CommandError('STAMINA_FULL');
-      if (world.minute + 60 > 1_000_000_000)
+      if (cat.needs.energy === MAX_STAT) throw new CommandError('STAMINA_FULL');
+      if (world.minute + CARE.rest.minutes > WORLD_LIMIT)
         throw new CommandError('TIME_LIMIT');
-      cat.rest = { startedAt: world.minute, until: world.minute + 60 };
+      cat.rest = {
+        startedAt: world.minute,
+        until: world.minute + CARE.rest.minutes,
+      };
       cat.currentActivity = 'resting';
       if (cat.walk) cat.walk.nextStepMinute = null;
       events.push({
@@ -58,7 +63,7 @@ export function applyCommand(
     case 'INVITE_PEPPER':
       return applyAngling(world, command);
     case 'ADVANCE_TIME':
-      if (world.minute + command.minutes > 1_000_000_000)
+      if (world.minute + command.minutes > WORLD_LIMIT)
         throw new CommandError('TIME_LIMIT');
       simulate(world, command.minutes, events);
       break;
@@ -72,7 +77,7 @@ export function applyCommand(
         message: command.message,
         reply: command.reply,
       });
-      cat.memories = cat.memories.slice(-50);
+      cat.memories = cat.memories.slice(-CARE.memoryLimit);
       rewardBond(cat, world.minute);
       cat.currentActivity = 'chatting';
       events.push({
@@ -87,7 +92,7 @@ export function applyCommand(
       events.push({ type: 'DebugChanged', minute: world.minute });
       break;
     case 'DEBUG_SPAWN_CAT':
-      if (world.cats.length >= 16) throw new CommandError('CAT_LIMIT');
+      if (world.cats.length >= MAX_CATS) throw new CommandError('CAT_LIMIT');
       if (!isWalkable(world, command.position))
         throw new CommandError('INVALID_PLACEMENT');
       world.cats.push(

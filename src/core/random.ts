@@ -1,4 +1,13 @@
-/** Stable uint32 LCG. Gameplay only; not cryptographic or generative randomness. */
+/** Salts that split one world seed into independent deterministic streams. */
+const STREAM_SALT = { map: 0xa17c9e33, trash: 0x85ebca6b } as const;
+const RUN_SEED_MULTIPLIER = 2246822519;
+export const streamSeed = (seed: number, stream: keyof typeof STREAM_SALT) =>
+  (seed ^ STREAM_SALT[stream]) >>> 0;
+/** Each fishing run gets its own seed from the world seed and its ID serial. */
+export const runSeed = (worldSeed: number, serial: number) =>
+  (worldSeed ^ Math.imul(serial, RUN_SEED_MULTIPLIER)) >>> 0;
+
+/** Stable uint32 LCG for simulation streams; not cryptographic or generative randomness. */
 export class RandomService {
   constructor(public state: number) {
     if (!Number.isInteger(state) || state < 0 || state > 0xffffffff)

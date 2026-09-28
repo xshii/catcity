@@ -1,4 +1,4 @@
-import { spotUnlocked } from '../../content/fish';
+import { spotOpen } from '../../content/fishing';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import { shoreTiles } from '../city/map';
 import { findWalkingPath, walkingMinutes } from '../city/path';
@@ -14,14 +14,7 @@ export function travelToFishingSpot(
   const cat = world.cats.find((cat) => cat.id === command.catId);
   if (!cat) throw new CommandError('CAT_NOT_FOUND');
   if (cat.rest) throw new CommandError('CAT_RESTING');
-  if (
-    !spotUnlocked(
-      command.spotId,
-      world.fishing.xp,
-      Object.values(world.fishing.atlas).filter((entry) => entry.count > 0)
-        .length,
-    )
-  )
+  if (!spotOpen(command.spotId, world.fishing))
     throw new CommandError('SPOT_LOCKED');
   if (atFishingShore(world, cat, command.spotId))
     throw new CommandError('ALREADY_AT_SPOT');

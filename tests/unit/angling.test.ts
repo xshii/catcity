@@ -1,7 +1,7 @@
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { describe, expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
-import { fishById } from '../../src/content/fish';
+import { fishById } from '../../src/content/fishing';
 import {
   greenZone,
   initialAngling,

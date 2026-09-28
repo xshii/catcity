@@ -1,4 +1,4 @@
-import { fishById, SPOTS } from '../content/fish';
+import { fishById, SPOTS } from '../content/fishing';
 import type {
   DialogueContext,
   DialogueProposal,

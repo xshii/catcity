@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
-import type { SpotId } from '../../content/fish';
+import type { SpotId } from '../../content/fishing';
 import type { Position } from '../../core';
 import { catArt } from '../companion/art';
 import type { CityActions } from './actions';

@@ -3,7 +3,7 @@ import { shoreTiles, samePosition } from '../../src/core/city/map';
 import { createWorld, World } from '../../src/core/world';
 import type { WorldState } from '../../src/core/schema';
 import type { GameCommand } from '../../src/core/commands';
-import type { SpotId } from '../../src/content/fish';
+import type { SpotId } from '../../src/content/fishing';
 
 /** Fishing unit tests isolate rod mechanics with a validated, already-at-shore fixture.
  * City/travel tests separately exercise real command-driven walking from the crossroads. */

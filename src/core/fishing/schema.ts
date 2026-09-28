@@ -1,8 +1,9 @@
+import { WORLD_LIMIT } from '../limits';
 import { z } from 'zod';
 import { CAT_BREED_IDS } from '../../content/breeds';
-import { BAIT_IDS, FISH_IDS, SPOT_IDS } from '../../content/fish';
+import { BAIT_IDS, FISH_IDS, FISHING, SPOT_IDS } from '../../content/fishing';
 
-const count = z.number().int().min(0).max(1_000_000_000);
+const count = z.number().int().min(0).max(WORLD_LIMIT);
 const pct = z.number().int().min(0).max(100);
 const id = z.string().min(1).max(100);
 export const catBreedSchema = z.enum(CAT_BREED_IDS);
@@ -94,7 +95,7 @@ export function initialFishing(): z.infer<typeof fishingSchema> {
   return {
     supplies: { trash: 0, cans: 0, coinBags: 0 },
     xp: 0,
-    baits: { WORM: 6, SHRIMP: 3 },
+    baits: { ...FISHING.bait.initial },
     active: null,
     inventory: [],
     atlas,

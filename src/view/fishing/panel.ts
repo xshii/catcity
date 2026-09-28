@@ -11,7 +11,7 @@ import {
   spotUnlocked,
   type BaitId,
   type SpotId,
-} from '../../content/fish';
+} from '../../content/fishing';
 import { greenZone } from '../../minigames/angling';
 import { mountFishingFeedback } from './feedback';
 import { mountFishingStage } from './stage';

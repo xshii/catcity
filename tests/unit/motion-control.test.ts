@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadWorld, type World } from '../../src/core';
-import { fishById, type BaitId } from '../../src/content/fish';
+import { fishById, type BaitId } from '../../src/content/fishing';
 import { greenZone } from '../../src/minigames/angling';
 import { finishFishing, fishingFixture } from './fishing-fixture';
 

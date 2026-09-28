@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { BUILDINGS } from '../../content/city';
-import { SPOTS, type SpotId } from '../../content/fish';
+import { SPOTS, type SpotId } from '../../content/fishing';
 import { shoreTiles, spotAt } from '../../core/city';
 import type { WorldState } from '../../core';
 import type { CitySelection } from './actions';

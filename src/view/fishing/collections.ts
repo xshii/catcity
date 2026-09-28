@@ -1,4 +1,4 @@
-import { FISH, fishStars } from '../../content/fish';
+import { FISH, fishStars } from '../../content/fishing';
 import './collections.css';
 
 /** Paginate the rendered collection. Navigation never changes inventory or world state. */

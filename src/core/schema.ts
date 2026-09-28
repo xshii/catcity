@@ -1,3 +1,5 @@
+import { MAX_BUILDINGS, MAX_CATS, MAX_STAT, WORLD_LIMIT } from './limits';
+import { CARE } from '../content/care';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
 import { assertCity } from './city/validation';
@@ -11,9 +13,9 @@ import {
 } from './fishing/schema';
 import { assertFishing } from './fishing/validation';
 
-const integer = z.number().int().min(0).max(1_000_000_000);
+const integer = z.number().int().min(0).max(WORLD_LIMIT);
 export const positionSchema = z.strictObject({ x: integer, y: integer });
-const percent = z.number().int().min(0).max(100);
+const percent = z.number().int().min(0).max(MAX_STAT);
 const text = z.string().min(1).max(500);
 const memorySchema = z.strictObject({
   id: text,
@@ -37,8 +39,8 @@ const catSchema = z.strictObject({
   needs: z.strictObject({ hunger: percent, energy: percent, social: percent }),
   relationships: z
     .array(z.strictObject({ catId: text, bond: percent }))
-    .max(16),
-  memories: z.array(memorySchema).max(50),
+    .max(MAX_CATS),
+  memories: z.array(memorySchema).max(CARE.memoryLimit),
   playerBond: percent,
   home: text.nullable(),
   favoritePlaces: z.array(text).max(10),
@@ -93,8 +95,8 @@ const worldSchema = z.strictObject({
       )
       .length(100),
   }),
-  buildings: z.array(buildingSchema).max(100),
-  cats: z.array(catSchema).min(1).max(16),
+  buildings: z.array(buildingSchema).max(MAX_BUILDINGS),
+  cats: z.array(catSchema).min(1).max(MAX_CATS),
   fishing: fishingSchema,
 });
 export type Position = z.infer<typeof positionSchema>;
@@ -143,7 +145,7 @@ export function assertWorld(value: unknown): WorldState {
     if (
       cat.rest &&
       (cat.rest.startedAt > world.minute ||
-        cat.rest.until !== cat.rest.startedAt + 60 ||
+        cat.rest.until !== cat.rest.startedAt + CARE.rest.minutes ||
         cat.rest.until <= world.minute ||
         world.fishing.active?.catId === cat.id)
     )

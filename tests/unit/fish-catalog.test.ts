@@ -9,7 +9,7 @@ import {
   fishById,
   fishHabitats,
   type FishId,
-} from '../../src/content/fish';
+} from '../../src/content/fishing';
 import {
   initialAngling,
   greenZone,

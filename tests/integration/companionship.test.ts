@@ -8,7 +8,7 @@ import { expect, it } from 'vitest';
 import legacy from '../fixtures/save-v1.json';
 import previous from '../fixtures/save-v8.json';
 import { loadWorld } from '../../src/core';
-import { fishById, SPOTS } from '../../src/content/fish';
+import { fishById, SPOTS } from '../../src/content/fishing';
 
 it('starts with empty factual memories and rejects prior/future save formats', () => {
   const world = createWorld(42);

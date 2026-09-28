@@ -1,3 +1,4 @@
+import { MAX_BUILDINGS } from '../limits';
 import { BUILDINGS, CITY_COSTS } from '../../content/city';
 import { samePosition, tileAt } from './map';
 import { isWalkable, roadConnectionPath } from './path';
@@ -87,7 +88,7 @@ export function applyCity(
           : null;
       if (command.type === 'MOVE_BUILDING' && !moved)
         throw new CommandError('BUILDING_NOT_FOUND');
-      if (!moved && world.buildings.length >= 100)
+      if (!moved && world.buildings.length >= MAX_BUILDINGS)
         throw new CommandError('BUILDING_LIMIT');
       // Removing the old footprint is safe on the dispatch copy and permits routes through it.
       const previous = moved?.position;

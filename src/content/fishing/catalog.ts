@@ -1,4 +1,10 @@
-import type { CatBreed } from './breeds';
+import { FISHING } from './spec';
+
+/** Fish, bait and waterway data. Tuning numbers live in spec.ts; derivations in rules.ts. */
+const { encounter, supplies } = FISHING;
+const LEFT = `向左抛（小于 −${encounter.sideDegrees}°）`;
+const RIGHT = `向右抛（大于 ${encounter.sideDegrees}°）`;
+
 export const FISH_IDS = [
   'SILVER',
   'CRUCIAN',
@@ -27,8 +33,7 @@ export const FISH = [
     maxWeight: 200,
     behavior: '平稳巡游',
     color: '#a7cbd4',
-    bait: 'BREAD',
-    clue: '池塘左侧，轻至中等力度',
+    clue: `池塘或河湾，${LEFT}`,
   },
   {
     id: 'CRUCIAN',
@@ -42,8 +47,7 @@ export const FISH = [
     maxWeight: 600,
     behavior: '缓缓摆动',
     color: '#bcaa86',
-    bait: 'BREAD',
-    clue: '池塘中央或右侧，中等力度',
+    clue: '池塘或河湾的中央与右侧；月光湖用面包饵',
   },
   {
     id: 'PERCH',
@@ -57,8 +61,7 @@ export const FISH = [
     maxWeight: 1200,
     behavior: '来回冲刺',
     color: '#829e72',
-    bait: 'WORM',
-    clue: '芦苇河湾，蚯蚓饵更常见',
+    clue: '芦苇河湾用蚯蚓饵；月光湖的常见鱼',
   },
   {
     id: 'CATFISH',
@@ -72,8 +75,7 @@ export const FISH = [
     maxWeight: 2000,
     behavior: '深水拉扯',
     color: '#8799af',
-    bait: 'SHRIMP',
-    clue: '芦苇河湾右侧，较大力度配虾饵',
+    clue: `芦苇河湾${RIGHT}，虾饵，力度至少 ${encounter.strongPower}%`,
   },
   {
     id: 'KOI',
@@ -87,8 +89,7 @@ export const FISH = [
     maxWeight: 1800,
     behavior: '突然转向',
     color: '#e59777',
-    bait: 'WORM',
-    clue: '月光湖左侧，中等力度配蚯蚓',
+    clue: '月光湖左侧配蚯蚓饵',
   },
   {
     id: 'MOON_CARP',
@@ -102,8 +103,7 @@ export const FISH = [
     maxWeight: 2500,
     behavior: '连续变向',
     color: '#a497ce',
-    bait: 'SHRIMP',
-    clue: '月光湖右侧远水，虾饵有机会引来',
+    clue: `月光湖${RIGHT}，虾饵，力度至少 ${encounter.moonCarpPower}% 时有机会`,
   },
   {
     id: 'MACKEREL',
@@ -117,8 +117,7 @@ export const FISH = [
     maxWeight: 1400,
     behavior: '沿浪巡游',
     color: '#6598ae',
-    bait: 'WORM',
-    clue: '海岸常见鱼；蚯蚓饵或左侧落点',
+    clue: '潮汐海岸的常见鱼',
   },
   {
     id: 'SEA_BREAM',
@@ -132,18 +131,24 @@ export const FISH = [
     maxWeight: 2400,
     behavior: '贴礁拉扯',
     color: '#d5969e',
-    bait: 'SHRIMP',
-    clue: '海岸右侧，力度至少 55% 配虾饵',
+    clue: `潮汐海岸${RIGHT}，虾饵，力度至少 ${encounter.strongPower}%`,
   },
 ] as const;
-export const fishById = (id: FishId) => FISH.find((fish) => fish.id === id)!;
 export const BAITS: Record<
   BaitId,
   { name: string; price: number; hint: string }
 > = {
-  BREAD: { name: '面包', price: 0, hint: '无限供应 · 适合常见鱼' },
-  WORM: { name: '蚯蚓', price: 6, hint: '适合鲈鱼、锦鲤和海岸鲭鱼' },
-  SHRIMP: { name: '虾饵', price: 12, hint: '适合鲶鱼、月光鲤和海鲷' },
+  BREAD: {
+    name: '面包',
+    price: 0,
+    hint: `无限供应 · 力度低于 ${supplies.breadPowerBelow}% 可能钓到补给`,
+  },
+  WORM: { name: '蚯蚓', price: 6, hint: '河湾引来鲈鱼，月光湖左侧引来锦鲤' },
+  SHRIMP: {
+    name: '虾饵',
+    price: 12,
+    hint: '向右大力抛：鲶鱼、海鲷、月光鲤',
+  },
 };
 export const SPOTS: Record<
   SpotId,
@@ -185,26 +190,6 @@ export const SPOTS: Record<
   },
 };
 
-/** Derive the atlas habitat range from the same pools used to validate catches. */
-export function fishHabitats(id: FishId): SpotId[] {
-  return SPOT_IDS.filter((spotId) => SPOTS[spotId].fish.includes(id));
-}
-
-export const skillLevel = (xp: number) => Math.min(10, 1 + Math.floor(xp / 40));
-export function spotUnlocked(
-  spot: SpotId,
-  xp: number,
-  discovered: number,
-): boolean {
-  return (
-    skillLevel(xp) >= SPOTS[spot].level && discovered >= SPOTS[spot].species
-  );
-}
-
-export function canCatchFish(id: FishId, breed: CatBreed): boolean {
-  const required = fishById(id).requiredBreed;
-  return required === null || required === breed;
-}
 export const fishStars = (stars: number) =>
   stars === 0 ? '0 星' : '★'.repeat(stars);
 export const LOOT = {

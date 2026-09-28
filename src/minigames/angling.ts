@@ -1,13 +1,23 @@
 import type { CatBreed } from '../content/breeds';
 import {
+  FISHING,
   fishById,
   canCatchFish,
   type CatchKind,
   type BaitId,
   type FishId,
   type SpotId,
-} from '../content/fish';
+} from '../content/fishing';
 import { RandomService } from '../core/random';
+
+const { input: INPUT, hook: HOOK, greenZone: ZONE, fight: FIGHT } = FISHING;
+const PERIOD = FISHING.oscillationTicks;
+const starsOf = (run: AnglingRun) =>
+  run.speciesId ? fishById(run.speciesId).stars : ZONE.unknownStars;
+const validTicks = (ticks: number) =>
+  Number.isInteger(ticks) && ticks >= 1 && ticks <= INPUT.maxTicks;
+const percent = (value: number) =>
+  Number.isInteger(value) && value >= 0 && value <= 100;
 
 export interface AnglingRun {
   id: string;
@@ -68,7 +78,7 @@ export function initialAngling(
     speciesId: null,
     weight: 0,
     precision: false,
-    tension: 50,
+    tension: FIGHT.startTension,
     progress: 0,
     lineHealth: 100,
     reason: 'none',
@@ -77,18 +87,28 @@ export function initialAngling(
 const triangle = (tick: number, period: number) =>
   Math.round((Math.abs((tick % period) - period / 2) * 200) / period);
 export function greenZone(run: AnglingRun): { low: number; high: number } {
-  if (run.phase === 'charge') return { low: 55, high: 80 };
-  const stars = run.speciesId ? fishById(run.speciesId).stars : 1;
+  if (run.phase === 'charge')
+    return {
+      low: FISHING.cast.precisionPower.min,
+      high: FISHING.cast.precisionPower.max,
+    };
+  const stars = starsOf(run);
   const width = Math.min(
-    64,
-    58 - stars * 8 + (run.skillLevel - 1) * 2 + (run.precision ? 4 : 0),
+    ZONE.maxWidth,
+    ZONE.baseWidth -
+      stars * ZONE.widthPerStar +
+      (run.skillLevel - 1) * ZONE.widthPerSkill +
+      (run.precision ? ZONE.precisionBonus : 0),
   );
   const targetCenter =
     run.phase === 'hook'
-      ? 55
-      : 30 +
+      ? HOOK.zoneCenter
+      : ZONE.fightLow +
         Math.round(
-          triangle(run.phaseTick + (run.seed % 40), 140 - stars * 18) * 0.4,
+          triangle(
+            run.phaseTick + (run.seed % ZONE.seedPhaseTicks),
+            ZONE.fightPeriodTicks - stars * ZONE.fightPeriodPerStar,
+          ) * ZONE.fightSwing,
         );
   const center = Math.max(width / 2, Math.min(100 - width / 2, targetCenter));
   return {
@@ -105,12 +125,11 @@ export function motionTarget(run: AnglingRun): {
   holdTicks: number;
 } {
   const zone = greenZone({ ...run, phase: 'hook' });
-  const stars = run.speciesId ? fishById(run.speciesId).stars : 1;
   return {
-    x: 50,
-    y: 50,
+    x: HOOK.motionCenter,
+    y: HOOK.motionCenter,
     radius: (zone.high - zone.low) / 2,
-    holdTicks: 6 + 2 * stars,
+    holdTicks: HOOK.holdBaseTicks + HOOK.holdTicksPerStar * starsOf(run),
   };
 }
 
@@ -122,14 +141,8 @@ export function stepMotionAngling(
   ticks: number,
 ): AnglingRun {
   if (input.phase !== 'hook') throw new Error('Motion requires hook phase');
-  if (
-    ![x, y].every(
-      (value) => Number.isInteger(value) && value >= 0 && value <= 100,
-    )
-  )
-    throw new Error('Invalid motion point');
-  if (!Number.isInteger(ticks) || ticks < 1 || ticks > 4)
-    throw new Error('Invalid angling ticks');
+  if (!percent(x) || !percent(y)) throw new Error('Invalid motion point');
+  if (!validTicks(ticks)) throw new Error('Invalid angling ticks');
   const run = { ...input, pressed: false };
   const target = motionTarget(run);
   const inside =
@@ -137,8 +150,8 @@ export function stepMotionAngling(
   for (let i = 0; i < ticks && run.phase === 'hook'; i++) {
     run.tick++;
     run.phaseTick++;
-    run.cursor = 100 - triangle(run.phaseTick, 64);
-    if (run.phaseTick >= 128) {
+    run.cursor = 100 - triangle(run.phaseTick, PERIOD);
+    if (run.phaseTick >= HOOK.deadlineTicks) {
       run.phase = 'escaped';
       run.reason = 'missed-hook';
       run.motionStableTicks = 0;
@@ -148,7 +161,7 @@ export function stepMotionAngling(
     if (run.motionStableTicks >= target.holdTicks) {
       run.phase = run.catchKind === 'fish' ? 'fight' : 'caught';
       run.phaseTick = 0;
-      run.tension = 50;
+      run.tension = FIGHT.startTension;
       run.motionStableTicks = 0;
     }
   }
@@ -156,32 +169,38 @@ export function stepMotionAngling(
 }
 
 function chooseFish(run: AnglingRun): void {
+  const { encounter: RULE, supplies: LOOT } = FISHING;
   const rng = new RandomService(run.seed);
-  let species: FishId = run.direction < -10 ? 'SILVER' : 'CRUCIAN';
+  const left = run.direction < -RULE.sideDegrees;
+  const strongRightShrimp = (power: number) =>
+    run.baitId === 'SHRIMP' &&
+    run.direction > RULE.sideDegrees &&
+    run.power >= power;
+  let species: FishId = left ? 'SILVER' : 'CRUCIAN';
   if (run.spotId === 'REEDS') {
     if (run.baitId === 'WORM') species = 'PERCH';
-    if (run.baitId === 'SHRIMP' && run.direction > 10 && run.power >= 55)
-      species = 'CATFISH';
+    if (strongRightShrimp(RULE.strongPower)) species = 'CATFISH';
   }
   if (run.spotId === 'MOON') {
     species = run.baitId === 'WORM' && run.direction < 0 ? 'KOI' : 'PERCH';
-    if (run.baitId === 'SHRIMP' && run.direction > 10 && run.power >= 70)
-      species = rng.nextInt(100) < 65 ? 'MOON_CARP' : 'KOI';
+    if (strongRightShrimp(RULE.moonCarpPower))
+      species =
+        rng.nextInt(100) < RULE.moonCarpChancePercent ? 'MOON_CARP' : 'KOI';
     if (run.baitId === 'BREAD') species = 'CRUCIAN';
   }
   if (run.spotId === 'COAST') {
-    species =
-      run.baitId === 'SHRIMP' && run.direction > 10 && run.power >= 55
-        ? 'SEA_BREAM'
-        : 'MACKEREL';
+    species = strongRightShrimp(RULE.strongPower) ? 'SEA_BREAM' : 'MACKEREL';
   }
-  if (!canCatchFish(species, run.catBreed)) species = 'PERCH';
+  if (!canCatchFish(species, run.catBreed)) species = RULE.breedFallback;
   // Light bread casts may hook supplies. Trash is only a failed-fishing outcome.
-  if (run.baitId === 'BREAD' && run.power < 35) {
-    const roll = rng.nextInt(4);
+  if (run.baitId === 'BREAD' && run.power < LOOT.breadPowerBelow) {
+    const roll = rng.nextInt(LOOT.rollSides);
     if (roll < 2) {
       run.catchKind = (['can', 'coins'] as const)[roll]!;
-      run.lootAmount = run.catchKind === 'coins' ? 25 + rng.nextInt(26) : 1;
+      run.lootAmount =
+        run.catchKind === 'coins'
+          ? LOOT.coins.min + rng.nextInt(LOOT.coins.max - LOOT.coins.min + 1)
+          : 1;
       return;
     }
   }
@@ -202,8 +221,7 @@ export function stepAngling(
   pressed: boolean,
   ticks: number,
 ): AnglingRun {
-  if (!Number.isInteger(ticks) || ticks < 1 || ticks > 4)
-    throw new Error('Invalid angling ticks');
+  if (!validTicks(ticks)) throw new Error('Invalid angling ticks');
   const run = { ...input, motionStableTicks: 0 };
   for (let i = 0; i < ticks; i++) {
     if (run.phase === 'caught' || run.phase === 'escaped') break;
@@ -217,49 +235,57 @@ export function stepAngling(
     if (run.phase === 'charge') {
       if (pressed) {
         run.hasHeld = true;
-        run.power = 100 - triangle(run.phaseTick, 64);
+        run.power = 100 - triangle(run.phaseTick, PERIOD);
       }
     } else if (run.phase === 'waiting') {
-      if (run.phaseTick >= 24 + (run.seed % 16)) {
+      const { baseTicks, seedJitterTicks } = FISHING.waiting;
+      if (run.phaseTick >= baseTicks + (run.seed % seedJitterTicks)) {
         run.phase = 'hook';
         run.phaseTick = 0;
         run.cursor = 0;
       }
     } else if (run.phase === 'hook') {
       const zone = greenZone(run);
-      if (run.phaseTick >= 128) {
+      if (run.phaseTick >= HOOK.deadlineTicks) {
         run.phase = 'escaped';
         run.reason = 'missed-hook';
       } else if (rising) {
         if (run.cursor >= zone.low && run.cursor <= zone.high) {
           run.phase = run.catchKind === 'fish' ? 'fight' : 'caught';
           run.phaseTick = 0;
-          run.tension = 50;
+          run.tension = FIGHT.startTension;
         } else {
           run.phase = 'escaped';
           run.reason = 'missed-hook';
         }
       } else {
-        run.cursor = 100 - triangle(run.phaseTick, 64);
+        run.cursor = 100 - triangle(run.phaseTick, PERIOD);
       }
     } else if (run.phase === 'fight') {
       const stars = fishById(run.speciesId!).stars;
       run.tension = Math.max(
         0,
-        Math.min(100, run.tension + (pressed ? 3 : -2)),
+        Math.min(
+          100,
+          run.tension + (pressed ? FIGHT.reelTension : -FIGHT.slackTension),
+        ),
       );
       const zone = greenZone(run);
       if (run.tension >= zone.low && run.tension <= zone.high)
         run.progress = Math.min(
           100,
-          run.progress + (run.phaseTick % (stars + 1) === 0 ? 2 : 0),
+          run.progress +
+            (run.phaseTick % (stars + 1) === 0 ? FIGHT.progressStep : 0),
         );
-      else if (run.phaseTick % 4 === 0)
+      else if (run.phaseTick % FIGHT.progressDecayEveryTicks === 0)
         run.progress = Math.max(0, run.progress - 1);
-      if (run.tension < 8 || run.tension > 92)
-        run.lineHealth = Math.max(0, run.lineHealth - 3);
+      if (
+        run.tension < FIGHT.safeTension.min ||
+        run.tension > FIGHT.safeTension.max
+      )
+        run.lineHealth = Math.max(0, run.lineHealth - FIGHT.lineDamage);
       if (run.progress >= 100) run.phase = 'caught';
-      else if (run.lineHealth === 0 || run.phaseTick >= 420) {
+      else if (run.lineHealth === 0 || run.phaseTick >= FIGHT.maxTicks) {
         run.phase = 'escaped';
         run.reason = run.lineHealth === 0 ? 'line-break' : 'escaped';
       }
@@ -272,12 +298,12 @@ export function stepAngling(
 /** Source-independent cast input shared by button release and motion adapters. */
 export function castAngling(input: AnglingRun, power: number): AnglingRun {
   if (input.phase !== 'charge') throw new Error('Cast requires charge phase');
-  if (!Number.isInteger(power) || power < 0 || power > 100)
-    throw new Error('Invalid cast power');
+  if (!percent(power)) throw new Error('Invalid cast power');
+  const { min, max } = FISHING.cast.precisionPower;
   const run: AnglingRun = {
     ...input,
     power,
-    precision: power >= 55 && power <= 80,
+    precision: power >= min && power <= max,
     phase: 'waiting',
     phaseTick: 0,
     tick: input.tick + 1,

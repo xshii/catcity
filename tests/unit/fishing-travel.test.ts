@@ -1,7 +1,12 @@
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
 import { expect, it } from 'vitest';
-import { FISH, SPOT_IDS, fishById, spotUnlocked } from '../../src/content/fish';
+import {
+  FISH,
+  SPOT_IDS,
+  fishById,
+  spotUnlocked,
+} from '../../src/content/fishing';
 import { loadWorld, type World } from '../../src/core/world';
 import {
   greenZone,

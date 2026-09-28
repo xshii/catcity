@@ -4,7 +4,7 @@ import {
   skillLevel,
   spotUnlocked,
   SPOTS,
-} from '../../content/fish';
+} from '../../content/fishing';
 import type { WorldState } from '../schema';
 import { failureTrash } from './rewards';
 import { motionTarget } from '../../minigames/angling';

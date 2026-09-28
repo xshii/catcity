@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { FISH_IDS, fishById } from '../../src/content/fish';
+import { FISH_IDS, fishById } from '../../src/content/fishing';
 import {
   greenZone,
   initialAngling,

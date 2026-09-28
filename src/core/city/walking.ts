@@ -1,5 +1,6 @@
-import { SPOT_IDS, spotUnlocked, type SpotId } from '../../content/fish';
-import { samePosition, shoreTiles } from './map';
+import { WORLD_LIMIT } from '../limits';
+import { SPOT_IDS, spotOpen, type SpotId } from '../../content/fishing';
+import { onShore, samePosition } from './map';
 import { findWalkingPath, isWalkable, walkingMinutes } from './path';
 import { CommandError, type GameEvent } from '../commands';
 import type { CatEntity, Position, WorldState } from '../schema';
@@ -9,23 +10,14 @@ export function atFishingShore(
   cat: CatEntity,
   spot: SpotId,
 ): boolean {
-  return (
-    !cat.walk &&
-    shoreTiles(world.map, spot).some((position) =>
-      samePosition(position, cat.position),
-    )
-  );
+  return !cat.walk && onShore(world.map, spot, cat.position);
 }
 
 function reachedSpot(world: WorldState, cat: CatEntity): SpotId | null {
-  const discovered = Object.values(world.fishing.atlas).filter(
-    (entry) => entry.count > 0,
-  ).length;
   return (
     SPOT_IDS.find(
       (spot) =>
-        spotUnlocked(spot, world.fishing.xp, discovered) &&
-        atFishingShore(world, cat, spot),
+        spotOpen(spot, world.fishing) && atFishingShore(world, cat, spot),
     ) ?? null
   );
 }
@@ -39,7 +31,7 @@ export function resumeWalk(world: WorldState, cat: CatEntity): void {
   )
     return;
   const minute = world.minute + walkingMinutes(world, cat.walk.route[0]!);
-  if (minute > 1_000_000_000) throw new CommandError('TIME_LIMIT');
+  if (minute > WORLD_LIMIT) throw new CommandError('TIME_LIMIT');
   cat.walk.nextStepMinute = minute;
   cat.currentActivity = 'wandering';
 }
@@ -64,7 +56,7 @@ export function queueWalk(
         (sum, position) => sum + walkingMinutes(world, position),
         0,
       ) >
-    1_000_000_000
+    WORLD_LIMIT
   )
     throw new CommandError('TIME_LIMIT');
   cat.walk = { destination, route, nextStepMinute: null, spotId };
