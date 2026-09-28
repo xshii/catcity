@@ -113,7 +113,7 @@ export class CityScene extends Phaser.Scene {
 
   private aimOnWater(pointer: Phaser.Input.Pointer) {
     if (this.session.getSnapshot().fishing.active) return;
-    const aim = aimAtPoint(pointer.x, pointer.y);
+    const aim = aimAtPoint(pointer.x, pointer.y, this.aim.get().power);
     if (aim) this.aim.set(aim);
   }
 

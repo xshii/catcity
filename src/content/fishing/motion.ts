@@ -87,13 +87,14 @@ export const MOTION = {
     },
   },
   /**
-   * Rod gestures from the gyroscope rate about `axis` (°/s). Holding the phone upright
-   * and facing the water, tipping the top away (down) lowers beta, so down reads negative.
+   * Rod gestures from the gyroscope rate about `axis` of the screen as held (°/s): pitch,
+   * roll or yaw. Holding the phone upright and facing the water, tipping the top away
+   * (down) lowers beta, so down reads negative.
    * Slow pitch sets the power; a quick flick down casts; a quick flick up strikes.
    * One-tap calibration replaces the axis, sign and flick threshold with the player's own.
    */
   gesture: {
-    axis: 'beta',
+    axis: 'pitch',
     pitchSign: -1,
     /** A flick down faster than this casts. */
     flickDegPerSec: 250,
@@ -113,16 +114,17 @@ export const MOTION = {
     powerRangeDeg: 25,
     /**
      * One-tap calibration: two flicks down within `windowMs`, each ending with `quietMs`
-     * below the onset speed. Both must agree on the sign; the flick threshold becomes a
-     * share of the weaker flick, clamped. Stored tunings outside these bounds are ignored.
+     * below the onset speed. The two strongest must agree on their net turn; the flick
+     * and lift thresholds become shares of the weaker one, clamped (the flick minimum
+     * stays above a finger tap). Stored tunings outside these bounds are ignored.
      */
     calibration: {
       windowMs: 3000,
       flicks: 2,
       quietMs: 150,
       minFlickDegPerSec: 150,
-      flick: { percent: 50, min: 120, max: 400 },
-      lift: { min: 150, max: 450 },
+      flick: { percent: 50, min: 180, max: 400 },
+      lift: { percent: 60, min: 150, max: 450 },
     },
   },
 } as const;

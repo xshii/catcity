@@ -29,17 +29,21 @@ it('shrinks toward the horizon and mirrors left and right', () => {
   expect(left.x + right.x).toBeCloseTo(2 * V.centerX);
 });
 
-it('turns a tap on the water back into the aim that lands there', () => {
+it('turns a tap on the water into the aim whose preview lands there', () => {
   const { maxDirection } = FISHING.input;
-  for (const direction of [-maxDirection, -20, 0, 25, maxDirection])
-    for (const depth of [0, 40, 100]) {
-      // Aim previews combine depth with the preview power; tap aiming ignores power.
-      const share = V.reach.near + ((V.reach.far - V.reach.near) * depth) / 100;
-      const { x, y } = waterPoint(direction, share);
-      expect(aimAtPoint(x, y)).toEqual({ direction, depth });
-    }
-  expect(aimAtPoint(V.centerX, V.horizonY - 10)).toBeNull();
-  expect(aimAtPoint(V.centerX, V.nearY + 10)).toBeNull();
+  for (const power of [30, 50, 80])
+    for (const direction of [-maxDirection, -20, 0, 25, maxDirection])
+      for (const depth of [10, 40, 70]) {
+        const { x, y } = waterPoint(direction, landingShare(depth, power));
+        const aim = aimAtPoint(x, y, power)!;
+        expect(aim.direction).toBe(direction);
+        // The depth slider moves in steps of 5.
+        expect(Math.abs(aim.depth - depth)).toBeLessThanOrEqual(5);
+        const shown = waterPoint(aim.direction, landingShare(aim.depth, power));
+        expect(Math.abs(shown.y - y)).toBeLessThan(12);
+      }
+  expect(aimAtPoint(V.centerX, V.horizonY - 10, 50)).toBeNull();
+  expect(aimAtPoint(V.centerX, V.nearY + 10, 50)).toBeNull();
 });
 
 it('puts the square fight plane over open water', () => {

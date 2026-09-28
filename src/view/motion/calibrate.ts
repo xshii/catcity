@@ -1,56 +1,98 @@
 import { FISHING } from '../../content/fishing';
-import { DEFAULT_TUNING, type RodTuning } from './rod';
+import type { RodTuning } from './rod';
 
 const G = FISHING.motion.gesture;
 const C = G.calibration;
-const AXES = ['alpha', 'beta', 'gamma'] as const;
+const AXES = ['pitch', 'roll', 'yaw'] as const;
 
-/** One gyroscope reading, °/s about each device axis (missing axes read 0). */
+/** One gyroscope reading, °/s about the screen's pitch, roll and yaw axes as held. */
 export interface SpinSample {
   t: number;
-  alpha: number;
-  beta: number;
-  gamma: number;
+  pitch: number;
+  roll: number;
+  yaw: number;
 }
 
 /**
- * The flicks on one axis: each starts at the first spin of at least `minFlickDegPerSec`,
- * takes its sign from that spike (the rebound comes later) and ends after `quietMs`
- * below the onset speed. `peak` is the fastest spin in the flick's own direction.
+ * Device rotation rates turned into the screen's axes, like the tilt: pitch tips the top
+ * toward or away from the player, roll tilts it sideways, yaw turns it flat.
+ */
+export function screenRates(
+  rate: {
+    alpha: number | null;
+    beta: number | null;
+    gamma: number | null;
+  } | null,
+  screenAngle: number,
+): Omit<SpinSample, 't'> {
+  const radians = (screenAngle * Math.PI) / 180;
+  const beta = rate?.beta ?? 0;
+  const gamma = rate?.gamma ?? 0;
+  return {
+    pitch: beta * Math.cos(radians) + gamma * Math.sin(radians),
+    roll: gamma * Math.cos(radians) - beta * Math.sin(radians),
+    yaw: rate?.alpha ?? 0,
+  };
+}
+
+/**
+ * The flicks on one axis: each starts at a spin of at least `minFlickDegPerSec` and ends
+ * after `quietMs` below the onset speed. Its sign is its net turn, so a lean back before
+ * it or an overshoot after it cannot flip it; `peak` is the fastest spin that way.
  */
 function flicksOn(samples: SpinSample[], axis: RodTuning['axis']) {
   const flicks: { sign: 1 | -1; peak: number }[] = [];
   let current: {
-    sign: 1 | -1;
-    peak: number;
+    rates: number[];
+    turn: number;
     quietSince: number | null;
   } | null = null;
+  let previous: number | null = null;
+  const close = () => {
+    if (!current) return;
+    const sign = current.turn >= 0 ? 1 : -1;
+    flicks.push({
+      sign,
+      peak: Math.max(...current.rates.map((rate) => rate * sign)),
+    });
+    current = null;
+  };
   for (const sample of samples) {
     const rate = sample[axis];
+    const dt = previous === null ? 0 : sample.t - previous;
+    previous = sample.t;
     if (!current) {
-      if (Math.abs(rate) >= C.minFlickDegPerSec)
-        current = { sign: rate > 0 ? 1 : -1, peak: 0, quietSince: null };
-      else continue;
+      if (Math.abs(rate) < C.minFlickDegPerSec) continue;
+      current = { rates: [], turn: 0, quietSince: null };
     }
-    current.peak = Math.max(current.peak, rate * current.sign);
+    current.rates.push(rate);
+    current.turn += rate * Math.max(dt, 1);
     if (Math.abs(rate) >= G.onsetDegPerSec) current.quietSince = null;
     else current.quietSince ??= sample.t;
     if (
       current.quietSince !== null &&
       sample.t - current.quietSince >= C.quietMs
-    ) {
-      flicks.push({ sign: current.sign, peak: current.peak });
-      current = null;
-    }
+    )
+      close();
   }
-  if (current) flicks.push({ sign: current.sign, peak: current.peak });
+  close();
   return flicks;
 }
 
+const share = (
+  peak: number,
+  rule: { percent: number; min: number; max: number },
+) =>
+  Math.min(
+    rule.max,
+    Math.max(rule.min, Math.round((peak * rule.percent) / 100)),
+  );
+
 /**
  * One-tap flick calibration (spec 030): the player flicks the tip down twice. The axis
- * with the fastest spin is the rod's; both flicks must agree on the sign, and the flick
- * threshold follows the weaker one. Null when that did not happen: ask again.
+ * with the fastest spin is the rod's; the two strongest flicks must agree (slower moves
+ * such as settling back are ignored), and the thresholds follow the weaker of the two.
+ * Null when that did not happen: ask again.
  */
 export function calibrateSwing(
   samples: SpinSample[],
@@ -63,25 +105,22 @@ export function calibrateSwing(
         fastest = Math.abs(sample[candidate]);
         axis = candidate;
       }
-  const flicks = flicksOn(samples, axis);
+  const strongest = flicksOn(samples, axis)
+    .sort((a, b) => b.peak - a.peak)
+    .slice(0, C.flicks);
   if (
-    flicks.length < C.flicks ||
-    flicks.some((flick) => flick.sign !== flicks[0]!.sign)
+    strongest.length < C.flicks ||
+    strongest.some((flick) => flick.sign !== strongest[0]!.sign)
   )
     return null;
-  // A flick down reads `sign`, so down × pitchSign is positive.
-  const pitchSign = flicks[0]!.sign;
-  const peak = Math.round(Math.min(...flicks.map((flick) => flick.peak)));
-  const flickDegPerSec = Math.min(
-    C.flick.max,
-    Math.max(C.flick.min, Math.round((peak * C.flick.percent) / 100)),
-  );
+  const peak = Math.round(Math.min(...strongest.map((flick) => flick.peak)));
   return {
     tuning: {
       axis,
-      pitchSign,
-      flickDegPerSec,
-      liftDegPerSec: DEFAULT_TUNING.liftDegPerSec,
+      // A flick down reads `sign`, so down × pitchSign is positive.
+      pitchSign: strongest[0]!.sign,
+      flickDegPerSec: share(peak, C.flick),
+      liftDegPerSec: share(peak, C.lift),
     },
     peak,
   };

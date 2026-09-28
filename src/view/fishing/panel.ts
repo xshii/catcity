@@ -294,7 +294,8 @@ export function mountAngling(
     spotId: (location.value || 'POND') as SpotId,
     direction: Number(direction.value),
     depth: Number(depth.value),
-    power: aimPower,
+    // Only motion aiming sets the power before a run; the button flow charges it.
+    power: motion.active() ? aimPower : FISHING.input.maxPower / 2,
   });
   const aim: AimControl = {
     get: currentAim,

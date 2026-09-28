@@ -14,7 +14,7 @@ export type RodEvent = { kind: 'cast'; power: number } | { kind: 'lift' };
 
 /** Which rate axis is the rod's pitch, its sign, and the speeds that count (°/s). */
 export interface RodTuning {
-  axis: 'alpha' | 'beta' | 'gamma';
+  axis: 'pitch' | 'roll' | 'yaw';
   pitchSign: 1 | -1;
   flickDegPerSec: number;
   liftDegPerSec: number;
@@ -34,7 +34,7 @@ export const DEFAULT_TUNING: RodTuning = {
  */
 export function createRodGestures(tuning: RodTuning = DEFAULT_TUNING) {
   let history: { t: number; power: number }[] = [];
-  let onset: number | null = null;
+  let onsetPower: number | null = null;
   let flicking = false;
   let lastLift = -Infinity;
   // The first reading inside the lead window: after a gap in the stream, older
@@ -43,7 +43,7 @@ export function createRodGestures(tuning: RodTuning = DEFAULT_TUNING) {
     (history.find((entry) => entry.t >= t) ?? history.at(-1)!).power;
   const reset = () => {
     history = [];
-    onset = null;
+    onsetPower = null;
     flicking = false;
   };
   return {
@@ -53,7 +53,7 @@ export function createRodGestures(tuning: RodTuning = DEFAULT_TUNING) {
       const down = sample.pitchRate * tuning.pitchSign;
       if (want === 'lift') {
         history = [];
-        onset = null;
+        onsetPower = null;
         if (
           !flicking &&
           -down >= tuning.liftDegPerSec &&
@@ -74,13 +74,14 @@ export function createRodGestures(tuning: RodTuning = DEFAULT_TUNING) {
         return null;
       }
       if (down < G.onsetDegPerSec) {
-        onset = null;
+        onsetPower = null;
         return null;
       }
-      onset ??= sample.t;
+      // Read the power as the push starts; it may sag while the push speeds up.
+      onsetPower ??= powerFrom(sample.t - G.powerLeadMs);
       if (down < tuning.flickDegPerSec) return null;
-      const power = powerFrom(onset - G.powerLeadMs);
-      onset = null;
+      const power = onsetPower;
+      onsetPower = null;
       flicking = true;
       // The rebound of this flick must not strike the new run.
       lastLift = sample.t;

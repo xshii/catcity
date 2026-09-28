@@ -9,7 +9,12 @@ import {
 import { FISHING } from '../../content/fishing';
 import { WATER_VIEW } from '../art/water-view';
 import { OrientationTracker } from './orientation';
-import { calibrateSwing, parseTuning, type SpinSample } from './calibrate';
+import {
+  calibrateSwing,
+  parseTuning,
+  screenRates,
+  type SpinSample,
+} from './calibrate';
 import { createRodGestures, DEFAULT_TUNING, type RodTuning } from './rod';
 import { createRodTip } from './tip';
 
@@ -174,18 +179,18 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     }
   }
   function onMotion(event: DeviceMotionEvent) {
+    const reading = event.rotationRate?.beta;
+    if (typeof reading !== 'number' || !Number.isFinite(reading)) return;
+    // Rates in the screen's axes, so a landscape hold pitches the same way.
+    const rates = screenRates(
+      event.rotationRate,
+      screen.orientation?.angle ?? 0,
+    );
     if (calibration) {
-      const spin = event.rotationRate;
-      calibration.push({
-        t: event.timeStamp,
-        alpha: spin?.alpha ?? 0,
-        beta: spin?.beta ?? 0,
-        gamma: spin?.gamma ?? 0,
-      });
+      calibration.push({ t: event.timeStamp, ...rates });
       return;
     }
-    const rate = event.rotationRate?.[tuning.axis];
-    if (typeof rate !== 'number' || !Number.isFinite(rate)) return;
+    const rate = rates[tuning.axis];
     if (capability !== 'ready') {
       capability = 'ready';
       deps.onChange();
@@ -227,6 +232,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   };
   $('motion-calibrate').addEventListener('click', (event) => {
     event.stopPropagation();
+    endCalibration();
     calibration = [];
     gestures.reset();
     deps.onChange();

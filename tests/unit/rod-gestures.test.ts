@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { FISHING } from '../../src/content/fishing';
-import { calibrateSwing, parseTuning } from '../../src/view/motion/calibrate';
+import {
+  calibrateSwing,
+  parseTuning,
+  screenRates,
+} from '../../src/view/motion/calibrate';
 import { createRodGestures } from '../../src/view/motion/rod';
 import { createRodTip } from '../../src/view/motion/tip';
 
@@ -36,6 +40,15 @@ describe('rod flick and lift', () => {
     const rates = [0, 0, 0, 0, 0, 120, 320, 500, 200, 60, 0];
     expect(feed(createRodGestures(), rates, 'cast', { power })).toEqual([
       { kind: 'cast', power: 70 },
+    ]);
+  });
+
+  it('reads the power when the push starts, even if it speeds up slowly', () => {
+    // A push above the onset speed for 300 ms, then the flick; power sags meanwhile.
+    const rates = [0, 0, 0, 0, 0, ...Array<number>(15).fill(120), 500, 0];
+    const power = (i: number) => (i < 5 ? 80 : 80 - (i - 4));
+    expect(feed(createRodGestures(), rates, 'cast', { power })).toEqual([
+      { kind: 'cast', power: 80 },
     ]);
   });
 
@@ -109,46 +122,43 @@ describe('rod tip', () => {
 });
 
 describe('one-tap flick calibration', () => {
-  const on = (axis: 'alpha' | 'beta' | 'gamma', rates: number[]) =>
+  const on = (axis: 'pitch' | 'roll' | 'yaw', rates: number[]) =>
     rates.map((rate, i) => ({
       t: i * 20,
-      alpha: 0,
-      beta: 0,
-      gamma: 0,
+      pitch: 0,
+      roll: 0,
+      yaw: 0,
       [axis]: rate,
     }));
   const quiet = Array<number>(Math.ceil(C.quietMs / 20) + 1).fill(0);
-  // Two flicks down that this phone reports as negative, each with an overshoot back.
-  const reversed = [
-    0,
-    -300,
-    -500,
-    -200,
-    350,
-    0,
+  // This phone reports a flick down as negative: a small lean back first, the flick,
+  // an overshoot, then a slow return to the resting pose.
+  const flick = (peak: number) => [0, 200, 120, -300, -peak, -200, 250, 0];
+  const settleBack = [0, 160, 200, 160, 0];
+  const twice = [
+    ...flick(500),
     ...quiet,
-    -250,
-    -420,
-    -100,
-    300,
-    0,
+    ...settleBack,
+    ...quiet,
+    ...flick(420),
+    ...quiet,
+    ...settleBack,
     ...quiet,
   ];
 
-  it("learns the axis and sign from the flicks' first strong spike, not the rebound", () => {
-    const result = calibrateSwing(on('beta', reversed))!;
+  it('takes the sign from the net turn of each flick, not a lean back or overshoot', () => {
+    const result = calibrateSwing(on('pitch', twice))!;
     expect(result.tuning).toEqual({
-      axis: 'beta',
+      axis: 'pitch',
       pitchSign: -1,
       flickDegPerSec: (420 * C.flick.percent) / 100,
-      liftDegPerSec: G.liftDegPerSec,
+      liftDegPerSec: (420 * C.lift.percent) / 100,
     });
     expect(result.peak).toBe(420);
-    expect(calibrateSwing(on('gamma', reversed))!.tuning.axis).toBe('gamma');
+    expect(calibrateSwing(on('roll', twice))!.tuning.axis).toBe('roll');
     // The tuned rod casts on such a flick.
     const rod = createRodGestures(result.tuning);
-    const casts = reversed
-      .slice(0, 8)
+    const casts = flick(500)
       .map((rate, i) =>
         rod.push({ t: i * 20, pitchRate: rate, power: 60 }, 'cast'),
       )
@@ -156,34 +166,35 @@ describe('one-tap flick calibration', () => {
     expect(casts).toEqual([{ kind: 'cast', power: 60 }]);
   });
 
-  it('asks again when the flicks disagree, are too few or too weak', () => {
-    const disagree = [0, -400, 0, ...quiet, 400, 0, ...quiet];
-    expect(calibrateSwing(on('beta', disagree))).toBeNull();
-    expect(calibrateSwing(on('beta', [0, -400, 0, ...quiet]))).toBeNull();
+  it('asks again when the two strongest flicks disagree, or there are too few', () => {
+    const disagree = [...flick(500), ...quiet, ...flick(-500), ...quiet];
+    expect(calibrateSwing(on('pitch', disagree))).toBeNull();
+    expect(calibrateSwing(on('pitch', [...flick(500), ...quiet]))).toBeNull();
     expect(
-      calibrateSwing(on('beta', [0, -100, 0, ...quiet, -120, 0, ...quiet])),
+      calibrateSwing(on('pitch', [0, -100, 0, ...quiet, -120, 0, ...quiet])),
     ).toBeNull();
     expect(calibrateSwing([])).toBeNull();
   });
 
-  it('keeps the flick threshold within bounds', () => {
+  it('keeps thresholds within bounds, high enough that a tap cannot cast', () => {
     const hard = [0, -3000, 0, ...quiet, -2500, 0, ...quiet];
-    expect(calibrateSwing(on('beta', hard))!.tuning.flickDegPerSec).toBe(
-      C.flick.max,
-    );
+    const strong = calibrateSwing(on('pitch', hard))!.tuning;
+    expect(strong.flickDegPerSec).toBe(C.flick.max);
+    expect(strong.liftDegPerSec).toBe(C.lift.max);
     const gentle = [0, -C.minFlickDegPerSec, 0, ...quiet, -160, 0, ...quiet];
-    expect(calibrateSwing(on('beta', gentle))!.tuning.flickDegPerSec).toBe(
-      C.flick.min,
-    );
+    const soft = calibrateSwing(on('pitch', gentle))!.tuning;
+    expect(soft.flickDegPerSec).toBe(C.flick.min);
+    expect(soft.liftDegPerSec).toBe(C.lift.min);
+    expect(C.flick.min).toBeGreaterThanOrEqual(180);
   });
 
   it('accepts only a well-formed stored tuning within the bounds', () => {
-    const tuning = calibrateSwing(on('beta', reversed))!.tuning;
+    const tuning = calibrateSwing(on('pitch', twice))!.tuning;
     expect(parseTuning(JSON.parse(JSON.stringify(tuning)))).toEqual(tuning);
     for (const broken of [
       null,
-      'beta',
-      { ...tuning, axis: 'roll' },
+      'pitch',
+      { ...tuning, axis: 'beta' },
       { ...tuning, pitchSign: 0 },
       { ...tuning, flickDegPerSec: C.flick.max + 1 },
       { ...tuning, flickDegPerSec: Number.NaN },
@@ -191,5 +202,16 @@ describe('one-tap flick calibration', () => {
       { ...tuning, liftDegPerSec: undefined },
     ])
       expect(parseTuning(broken)).toBeNull();
+  });
+});
+
+describe('screen-frame rotation rates', () => {
+  it('turns device rates into pitch, roll and yaw of the screen as held', () => {
+    const rate = { alpha: 5, beta: 100, gamma: 20 };
+    expect(screenRates(rate, 0)).toEqual({ pitch: 100, roll: 20, yaw: 5 });
+    const landscape = screenRates(rate, 90);
+    expect(landscape.pitch).toBeCloseTo(20);
+    expect(landscape.roll).toBeCloseTo(-100);
+    expect(screenRates(null, 0)).toEqual({ pitch: 0, roll: 0, yaw: 0 });
   });
 });

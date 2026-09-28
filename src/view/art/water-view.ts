@@ -25,6 +25,8 @@ export const WATER_VIEW = {
 const V = WATER_VIEW;
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+/** The aim sliders move in steps of 5. */
+const snap = (value: number) => Math.round(value / 5) * 5;
 
 /** How far out a cast lands (0 dock … 1 horizon) from the aimed depth and power. */
 export function landingShare(aimDepth: number, power: number): number {
@@ -42,27 +44,21 @@ export function waterPoint(direction: number, share: number) {
   return { x, y, scale: 1 - 0.7 * share };
 }
 
-/** The aim a tap on the water asks for, or null off the water (button flow). */
-export function aimAtPoint(x: number, y: number) {
+/**
+ * The aim a tap on the water asks for, or null off the water (button flow). The preview
+ * lands by depth and power together, so the depth is solved for the preview `power`.
+ */
+export function aimAtPoint(x: number, y: number, power: number) {
   if (y < V.horizonY || y > V.nearY) return null;
   const share = (V.nearY - y) / (V.nearY - V.horizonY);
   const half = V.nearHalf + (V.horizonHalf - V.nearHalf) * share;
-  const { maxDirection, maxDepth } = FISHING.input;
-  const step = 5;
+  const { maxDirection, maxDepth, maxPower } = FISHING.input;
+  const mix = (share - V.reach.near) / (V.reach.far - V.reach.near);
   const direction = clamp(
-    Math.round(
-      (((x - V.centerX) / (half * V.aimSpread)) * maxDirection) / step,
-    ) * step,
+    snap(((x - V.centerX) / (half * V.aimSpread)) * maxDirection),
     -maxDirection,
     maxDirection,
   );
-  const depth = clamp(
-    Math.round(
-      (((share - V.reach.near) / (V.reach.far - V.reach.near)) * maxDepth) /
-        step,
-    ) * step,
-    0,
-    maxDepth,
-  );
+  const depth = clamp(snap(mix * (maxDepth + maxPower) - power), 0, maxDepth);
   return { direction, depth };
 }

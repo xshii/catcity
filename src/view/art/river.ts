@@ -301,7 +301,8 @@ export class RiverView {
       active?.direction ?? preview.direction,
       landingShare(
         active?.aimDepth ?? preview.aimDepth,
-        cast ? active.power : preview.power,
+        // A charging button run previews its live power.
+        active?.power ?? preview.power,
       ),
     );
     // Aiming: a flattened ring where the cast would land.
