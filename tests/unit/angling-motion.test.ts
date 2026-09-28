@@ -45,7 +45,7 @@ describe('motion bite schedule', () => {
       const run = cast(seed);
       expect(motionSchedule(run)).toEqual(motionSchedule(cast(seed)));
       const { nibbles, bite } = motionSchedule(run);
-      const [min, max] = M.nibbles[stars(run)]!;
+      const [min, max] = M.nibbles[stars(run)];
       expect(nibbles.length).toBeGreaterThanOrEqual(min);
       expect(nibbles.length).toBeLessThanOrEqual(max);
       expect([...nibbles].sort((a, b) => a - b)).toEqual(nibbles);
@@ -56,14 +56,14 @@ describe('motion bite schedule', () => {
   it('opens the strike window at the bite and escapes after it closes', () => {
     const run = toBite(cast(7));
     expect(run.phase).toBe('hook');
-    const window = M.strikeWindowTicks[stars(run)]!;
+    const window = M.strikeWindowTicks[stars(run)];
     const late = wait(run, window);
     expect(late).toMatchObject({ phase: 'escaped', reason: 'missed-hook' });
   });
 
   it('rates a quick lift perfect and a later lift good', () => {
     const bite = toBite(cast(7));
-    const window = M.strikeWindowTicks[stars(bite)]!;
+    const window = M.strikeWindowTicks[stars(bite)];
     const perfect = strikeMotionRun(bite);
     expect(perfect).toMatchObject({ phase: 'fight', strike: 'perfect' });
     const good = strikeMotionRun(wait(bite, window - 1));
@@ -91,9 +91,9 @@ describe('fish circle fight', () => {
 
   it('keeps the fish on the water and moves it no faster than its star speed', () => {
     const run = fight(11);
-    const perTick = M.fishSpeed[stars(run)]! / FISHING.ticksPerSecond;
+    const perTick = M.fishSpeed[stars(run)] / FISHING.ticksPerSecond;
     let previous = fishPoint(run, 0);
-    for (let tick = 1; tick <= M.fightLimitTicks[stars(run)]!; tick++) {
+    for (let tick = 1; tick <= M.fightLimitTicks[stars(run)]; tick++) {
       const point = fishPoint(run, tick);
       for (const value of [point.x, point.y]) {
         expect(value).toBeGreaterThanOrEqual(0);
@@ -110,18 +110,18 @@ describe('fish circle fight', () => {
 
   it('breathes the ring around a shrinking size that never drops below its minimum', () => {
     const run = fight(11);
-    const size = M.radius[stars(run)]!;
+    const size = M.radius[stars(run)];
     expect(ringRadius(run, 0)).toBe(size.start);
-    for (let tick = 0; tick <= M.fightLimitTicks[stars(run)]!; tick++)
+    for (let tick = 0; tick <= M.fightLimitTicks[stars(run)]; tick++)
       expect(ringRadius(run, tick)).toBeGreaterThanOrEqual(size.min);
-    expect(ringRadius(run, M.fightLimitTicks[stars(run)]!)).toBeLessThan(
+    expect(ringRadius(run, M.fightLimitTicks[stars(run)])).toBeLessThan(
       size.start,
     );
   });
 
   it('lands the fish after enough time inside the ring', () => {
     let run = fight(11);
-    const need = M.holdTicks[stars(run)]!;
+    const need = M.holdTicks[stars(run)];
     for (let tick = 0; tick < 2 * need && run.phase === 'fight'; tick++)
       run = stepMotionRun(run, fishPoint(run, run.phaseTick + 1), 1);
     expect(run.phase).toBe('caught');
@@ -130,7 +130,7 @@ describe('fish circle fight', () => {
 
   it('decays time outside the ring and lets the fish escape at the limit', () => {
     let run = fight(11);
-    const limit = M.fightLimitTicks[stars(run)]!;
+    const limit = M.fightLimitTicks[stars(run)];
     run = stepMotionRun(run, fishPoint(run, 1), 1);
     run = stepMotionRun(run, fishPoint(run, 2), 1);
     const held = run.hold;
