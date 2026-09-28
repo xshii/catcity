@@ -1,3 +1,4 @@
+import type { PlaceState } from './place';
 import { STARTER_CAT_ID } from '../../content/cats';
 import { BUILDINGS, CITY_TIME } from '../../content/city';
 import type { GameSession } from '../../application';
@@ -7,7 +8,7 @@ import { mountCityActions } from '../city/actions';
 import { mountCompanionship } from '../companion/journal';
 import { toViewModel } from './model';
 
-export function mountPanel(session: GameSession) {
+export function mountPanel(session: GameSession, place: PlaceState) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <main class="shell">
       <header class="topbar"><a class="brand" href="./"><span class="brand-mark">c</span><span>CAT CITY<small>A LITTLE PLACE TO BELONG</small></span></a>
@@ -59,7 +60,7 @@ export function mountPanel(session: GameSession) {
       get('traits').textContent = model.cat.personalityLabel;
     }
     get('save-recovery').hidden = !session.storageError;
-    get('reset-demo').hidden = !session.storageError;
+    get('reset-demo').hidden = !session.saveRejected;
     get('storage-error').hidden = !session.storageError;
     get('storage-error').textContent = session.storageError ?? '';
   };
@@ -116,14 +117,22 @@ export function mountPanel(session: GameSession) {
       });
     });
   mountCompanionship(session);
-  const angling = mountAngling(session, notify, (spotId) =>
+  const angling = mountAngling(session, place, notify, (spotId) =>
     cityActions.focusWaterway(spotId),
   );
-  const cityActions = mountCityActions(session, notify, angling.enterAtSpot);
+  const cityActions = mountCityActions(
+    session,
+    place,
+    angling.tools,
+    notify,
+    angling.enterAtSpot,
+  );
   get('city-tab-outing').addEventListener('click', () =>
     cityActions.focusWaterway('POND'),
   );
-  mountCityGuide(session, notify, cityActions);
+  mountCityGuide(session, notify, cityActions, angling.tools, (message) => {
+    void talk(message);
+  });
   render();
   return { notify, cityActions, fishingClock: angling.fishingClock };
 }

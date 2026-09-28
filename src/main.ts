@@ -1,6 +1,7 @@
 import { GameSession } from './application';
 import { RuleBasedDialogueProvider } from './providers/rule-dialogue';
-import { BrowserSaveRepository } from './platform/storage';
+import { BrowserSaveRepository, SAVE_KEY } from './platform/storage';
+import { STARTER_CAT_ID } from './content/cats';
 import { mountGameView } from './view';
 
 const initialSeed =
@@ -14,7 +15,11 @@ const session = new GameSession({
   fallbackDialogue: dialogue,
   seed: initialSeed,
 });
-session.select('mochi');
+session.select(STARTER_CAT_ID);
+// `storage` fires only for writes from other tabs of this origin.
+window.addEventListener('storage', (event) => {
+  if (event.key === SAVE_KEY) session.externalSaveChanged();
+});
 const view = mountGameView(session);
 
 if (import.meta.env.DEV || import.meta.env.MODE === 'test') {

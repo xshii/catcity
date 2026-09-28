@@ -1,9 +1,14 @@
+import type { PlaceState } from './place';
 import type { GameSession } from '../../application';
 import './layout.css';
 import { mountSceneNavigation } from './navigation';
 
 /** Local navigation never owns gameplay time or progress. */
-export function mountFishingLayout(session: GameSession, pause: () => void) {
+export function mountFishingLayout(
+  session: GameSession,
+  place: PlaceState,
+  pause: () => void,
+) {
   const get = (id: string) => document.getElementById(id)!;
   const shell = document.querySelector<HTMLElement>('.shell')!;
   const mobile = window.matchMedia('(max-width: 760px)');
@@ -53,9 +58,12 @@ export function mountFishingLayout(session: GameSession, pause: () => void) {
       entry.button.addEventListener('click', () => show(entry.id)),
     );
     show(definitions[0]![0]);
-    return Object.fromEntries(entries.map((entry) => [entry.id, entry.page]));
+    return {
+      pages: Object.fromEntries(entries.map((entry) => [entry.id, entry.page])),
+      show,
+    };
   };
-  const gear = groups(get('river-panel-gear'), 'gear', [
+  const { pages: gear } = groups(get('river-panel-gear'), 'gear', [
     ['setup', '配装'],
     ['supplies', '补充 / 设置'],
     ['info', '钓点线索'],
@@ -84,10 +92,14 @@ export function mountFishingLayout(session: GameSession, pause: () => void) {
   );
   gearRoot.querySelector('.fishing-settings')!.remove();
 
-  const chat = groups(get('river-panel-chat'), 'chat', [
-    ['talk', '说说话'],
-    ['memory', '共同回忆'],
-  ]);
+  const { pages: chat, show: showChat } = groups(
+    get('river-panel-chat'),
+    'chat',
+    [
+      ['talk', '说说话'],
+      ['memory', '共同回忆'],
+    ],
+  );
   chat.talk!.append(
     get('river-panel-chat').querySelector('.desktop-chat-hint')!,
   );
@@ -102,7 +114,7 @@ export function mountFishingLayout(session: GameSession, pause: () => void) {
   get('dialogue').after(replyPages);
   let reply = '';
   let replyPage = 0;
-  const navigation = mountSceneNavigation(pause);
+  const navigation = mountSceneNavigation(place, pause);
   const seed = document.createElement('p');
   seed.id = 'city-map-seed';
   seed.className = 'fishing-clue';
@@ -145,5 +157,13 @@ export function mountFishingLayout(session: GameSession, pause: () => void) {
   });
   mobile.addEventListener('change', refresh);
   refresh();
-  return { ...navigation, refresh };
+  return {
+    ...navigation,
+    refresh,
+    /** Open the chat panel on its conversation page in the current scene. */
+    openTalk() {
+      navigation.open('chat');
+      showChat('talk');
+    },
+  };
 }

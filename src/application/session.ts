@@ -44,7 +44,8 @@ export class GameSession {
   private initialSave: string;
   private entries: TraceEntry[] = [];
   private epoch = 0;
-  private blockedSave = false;
+  /** Why saving stopped: a save that failed to load, or a newer save from another tab. */
+  private blocked: 'rejected' | 'external' | null = null;
   private readonly listeners = new Set<() => void>();
   selectedEntity: string | null = null;
   storageError: string | null = null;
@@ -70,7 +71,7 @@ export class GameSession {
       const save = this.repository.read();
       if (save !== null) this.world = loadWorld(save);
     } catch {
-      this.blockedSave = true;
+      this.blocked = 'rejected';
       this.storageError = '无法读取存档；原数据已保留，本次会话不会覆盖它。';
     }
     this.initialSave = this.world.save();
@@ -106,8 +107,22 @@ export class GameSession {
     return structuredClone(result);
   }
 
+  /** Only a rejected save may be replaced by an explicit reset. */
+  get saveRejected(): boolean {
+    return this.blocked === 'rejected';
+  }
+
+  /** Another tab wrote a newer save: stop writing so it is never overwritten. */
+  externalSaveChanged() {
+    if (this.blocked) return;
+    this.blocked = 'external';
+    this.storageError =
+      '存档已在另一个标签页更新；本页不再保存，请刷新页面继续。';
+    this.notify();
+  }
+
   save(): boolean {
-    if (this.blockedSave) return false;
+    if (this.blocked) return false;
     try {
       this.repository.write(this.world.save());
       this.storageError = null;
@@ -124,7 +139,7 @@ export class GameSession {
     this.initialSave = this.world.save();
     this.entries = [];
     this.selectedEntity = STARTER_CAT_ID;
-    this.blockedSave = false;
+    this.blocked = null;
     this.save();
     this.notify();
   }

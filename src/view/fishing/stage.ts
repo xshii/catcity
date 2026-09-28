@@ -1,3 +1,4 @@
+import type { PlaceState } from '../shell/place';
 import { CITY_TIME } from '../../content/city';
 import type { GameSession } from '../../application';
 import { CAT_BREEDS } from '../../content/breeds';
@@ -57,6 +58,7 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */
 export function mountFishingStage(
   session: GameSession,
+  place: PlaceState,
   access: { canEnter: () => boolean; onNeedTravel: () => void },
 ) {
   const game = document.getElementById('game')!;
@@ -86,11 +88,14 @@ export function mountFishingStage(
   const cardContainer = document.getElementById('cat-energy-cards')!;
   let resultKey = '';
   let previousRun: string | undefined;
-  const show = (next: boolean) => {
-    hud.hidden = !next;
-    roster.hidden = !next;
-    stage.classList.toggle('is-river', next);
-  };
+  // The class only styles the river; modules read and follow `place` directly.
+  place.subscribe((next) => {
+    const river = next === 'river';
+    hud.hidden = !river;
+    roster.hidden = !river;
+    stage.classList.toggle('is-river', river);
+  });
+  const show = (river: boolean) => place.set(river ? 'river' : 'city');
   const showRiver = () => {
     if (!access.canEnter()) {
       show(false);
@@ -111,7 +116,7 @@ export function mountFishingStage(
       const runId = world.fishing.active?.id;
       if (runId && runId !== previousRun) showRiver();
       previousRun = runId;
-      if (stage.classList.contains('is-river') && !access.canEnter()) {
+      if (place.get() === 'river' && !access.canEnter()) {
         show(false);
         access.onNeedTravel();
       }

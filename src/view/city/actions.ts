@@ -1,3 +1,4 @@
+import type { PlaceState, Tools } from '../shell/place';
 import { restMinutesLeft } from '../shell/model';
 import { CARE } from '../../content/care';
 import type { GameSession } from '../../application';
@@ -35,6 +36,8 @@ const coordinate = (position: Position) =>
 /** Local map selection and command input. Core owns routes, costs and placement. */
 export function mountCityActions(
   session: GameSession,
+  place: PlaceState,
+  tools: Tools,
   notify: (text: string) => void,
   enterFishing: (spotId: SpotId, catId: string) => void,
 ): CityActions {
@@ -56,10 +59,7 @@ export function mountCityActions(
     render();
     listeners.forEach((listener) => listener());
   };
-  const closeTools = () => {
-    if (!document.getElementById('river-tools')!.hidden)
-      document.getElementById('river-tools-close')!.click();
-  };
+  const closeTools = tools.close;
   const currentCat = () => {
     const world = session.getSnapshot();
     return (
@@ -104,7 +104,7 @@ export function mountCityActions(
     return `位于 ${coordinate(cat.position)} · 点目标地块步行，再点这只猫取消选择`;
   };
   const render = () => {
-    card.hidden = !selection || stage.classList.contains('is-river');
+    card.hidden = !selection || place.get() === 'river';
     if (!selection) return;
     const world = session.getSnapshot();
     actions.replaceChildren();
@@ -119,11 +119,7 @@ export function mountCityActions(
       if (!cat) return clear();
       title.textContent = `${cat.name} · 体力 ${cat.needs.energy}/100`;
       detail.textContent = walking(cat);
-      button('city-cat-chat', '聊一会', () => {
-        const chat = document.getElementById('city-tab-chat')!;
-        if (chat.getAttribute('aria-selected') !== 'true') chat.click();
-        document.getElementById('chat-tab-talk')!.click();
-      });
+      button('city-cat-chat', '聊一会', tools.openTalk);
       button(
         'city-rest-cat',
         cat.rest ? '正在休息' : `休息 ${CARE.rest.minutes / 60} 小时`,
@@ -305,7 +301,7 @@ export function mountCityActions(
     }
   };
   const focusWaterway = (spotId: SpotId) => {
-    document.getElementById('visit-city')!.click();
+    place.set('city');
     closeTools();
     const world = session.getSnapshot();
     const tile = world.map.tiles.find(
@@ -318,17 +314,10 @@ export function mountCityActions(
   };
   card.querySelector('#cancel-city-action')!.addEventListener('click', clear);
   session.subscribe(render);
-  let wasRiver = stage.classList.contains('is-river');
-  new MutationObserver(() => {
-    const isRiver = stage.classList.contains('is-river');
-    if (isRiver !== wasRiver) {
-      wasRiver = isRiver;
-      if (isRiver) clear();
-      else render();
-    } else render();
-  }).observe(stage, {
-    attributes: true,
-    attributeFilter: ['class'],
+  // Entering the river clears any map selection; returning re-renders the card.
+  place.subscribe((next) => {
+    if (next === 'river') clear();
+    else render();
   });
   return {
     selectTile,
