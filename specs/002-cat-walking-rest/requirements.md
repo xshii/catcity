@@ -11,10 +11,10 @@
 
 ## 验收标准与证据
 
-| 标准                                                     | 证据                                                              |
-| -------------------------------------------------------- | ----------------------------------------------------------------- |
-| 每步走一格，只扣行走猫的体力，路线持久化                 | `tests/unit/city-walking.test.ts`                                 |
-| 体力耗尽暂停路线，休息后继续；新障碍重新寻路；多猫不重叠 | `tests/unit/city-walking.test.ts`                                 |
-| 休息 60 分钟，公寓旁恢复加倍；只恢复休息中的猫           | `tests/unit/cat-rest.test.ts`、`tests/unit/city-loop.test.ts`     |
-| 一次推进与分块推进结果相同                               | `tests/simulation/city.test.ts`、`tests/simulation/world.test.ts` |
-| 城市时钟推进时焦点卡片与休息状态正确                     | `tests/e2e/fishing-scene.spec.ts`                                 |
+| 标准                                                                 | 证据                                                              |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 每步走一格，只扣行走猫的体力，路线持久化                             | `tests/unit/city-walking.test.ts`                                 |
+| 体力耗尽暂停路线，空闲恢复体力后自动继续；新障碍重新寻路；多猫不重叠 | `tests/unit/city-walking.test.ts`                                 |
+| 空闲每 10 分钟恢复，公寓旁加倍；钓鱼与迈步中的猫不恢复               | `tests/unit/cat-recovery.test.ts`、`tests/unit/city-loop.test.ts` |
+| 一次推进与分块推进结果相同                                           | `tests/simulation/city.test.ts`、`tests/simulation/world.test.ts` |
+| 城市时钟推进时焦点卡片与恢复标记（zZ）正确                           | `tests/e2e/fishing-scene.spec.ts`                                 |

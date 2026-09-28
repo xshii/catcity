@@ -1,3 +1,4 @@
+import { CARE } from '../../../src/content/care';
 import { catchFish } from './angling-input';
 import assert from 'node:assert/strict';
 import { expect, type Page } from '@playwright/test';
@@ -122,7 +123,13 @@ export function createCatCityAdapter(): GameAdapter {
           await page.locator('#city-wait').click();
         const arrived = await readWorld(page);
         assert.deepEqual(arrived.cats[0]!.position, { x: 4, y: 5 });
-        assert.equal(arrived.cats[0]!.needs.energy, 100 - steps);
+        // One energy per tile; the last 10-minute wait may add one idle recovery tick
+        // after arriving (beside the home apartment at most).
+        const energy = arrived.cats[0]!.needs.energy;
+        assert.ok(
+          energy >= 100 - steps && energy <= 100 - steps + CARE.recovery.home,
+          `energy ${energy} after ${steps} steps`,
+        );
         assert.equal(arrived.cats[0]!.walk, null);
       });
       await step('dialogue', async () => {

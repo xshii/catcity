@@ -228,3 +228,25 @@ test('city clock updates preserve the focused cat card and render fixture names 
   await expect(card.locator('strong b')).toHaveCount(0);
   expect(await mounted.evaluate((element) => element.isConnected)).toBe(true);
 });
+
+test('leaving the river gives up an uncast rod, but keeps a cast one to come back to', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await ready(page);
+  await enterRiver(page);
+  const arrival = await readWorld(page);
+  await page.locator('#cast-start').click();
+  expect((await readWorld(page)).fishing.active?.phase).toBe('charge');
+  await page.locator('#visit-city').click();
+  // Nothing was paid, and the cat is free to recover.
+  const left = await readWorld(page);
+  expect(left.fishing.active).toBeNull();
+  expect(left.cats[0]!.needs.energy).toBe(arrival.cats[0]!.needs.energy);
+  await enterRiver(page);
+  await page.locator('#cast-start').click();
+  await castOnce(page);
+  await page.locator('#visit-city').click();
+  expect((await readWorld(page)).fishing.active?.phase).not.toBe('charge');
+  expect((await readWorld(page)).fishing.active).not.toBeNull();
+});

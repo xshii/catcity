@@ -183,12 +183,21 @@ function checkBounds(world: WorldState) {
   );
 }
 
+/** Even seeds start with tired cats, so walks run out of energy and resume after recovery. */
+function startWorld(seed: number) {
+  if (seed % 2) return createWorld(seed);
+  const save = JSON.parse(createWorld(seed).save());
+  for (const cat of save.world.cats) cat.needs.energy = 3;
+  return loadWorld(JSON.stringify(save));
+}
+
 function play(seed: number) {
-  const world = createWorld(seed);
+  const world = startWorld(seed);
   const rng = new RandomService(seed * 104729);
   const initial = world.save();
   const commands: GameCommand[] = [];
   let accepted = 0;
+  let exhaustedWalks = 0;
   for (let step = 0; step < STEPS; step++) {
     const before = world.getSnapshot();
     const saved = world.save();
@@ -206,12 +215,19 @@ function play(seed: number) {
     expect(after.minute).toBeGreaterThanOrEqual(before.minute);
     expect(after.nextId).toBeGreaterThanOrEqual(before.nextId);
     checkBounds(after);
+    // Recovery during a walk only happens once the walk stopped for lack of energy.
+    if (result.ok)
+      exhaustedWalks += result.events.filter(
+        (event) =>
+          event.type === 'EnergyRecovered' &&
+          before.cats.some((cat) => cat.id === event.entityId && cat.walk),
+      ).length;
     if (step % ROUND_TRIP_EVERY === 0) {
       const save = world.save();
       expect(loadWorld(save).save(), `round trip: ${where}`).toBe(save);
     }
   }
-  return { world, initial, commands, accepted };
+  return { world, initial, commands, accepted, exhaustedWalks };
 }
 
 describe('Core under random command sequences', () => {
@@ -226,6 +242,13 @@ describe('Core under random command sequences', () => {
       expect(replay.save()).toBe(world.save());
     },
   );
+
+  it('reaches walks stopped by exhaustion that go on after recovery', () => {
+    // Tired starts must actually exercise the resume path, not just pass by it.
+    let stopped = 0;
+    for (const seed of [2, 4, 6]) stopped += play(seed).exhaustedWalks;
+    expect(stopped).toBeGreaterThan(0);
+  });
 
   it('rejects reachable saves once a bounded field is tampered with', () => {
     const { world } = play(99);
