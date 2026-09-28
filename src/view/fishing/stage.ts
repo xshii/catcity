@@ -107,7 +107,11 @@ export function mountFishingStage(
   return {
     stage,
     showRiver,
-    render(world: WorldState, selected: string, spot: SpotId) {
+    /**
+     * World changes that move the scene: a new run shows the river; a cat that left the
+     * shore takes it back to the city. Called on world changes, never while rendering.
+     */
+    follow(world: WorldState) {
       const runId = world.fishing.active?.id;
       if (runId && runId !== previousRun) showRiver();
       previousRun = runId;
@@ -115,6 +119,8 @@ export function mountFishingStage(
         show(false);
         access.onNeedTravel();
       }
+    },
+    render(world: WorldState, selected: string, spot: SpotId) {
       const run = world.fishing.active;
       const clock = toViewModel(world, selected);
       document.getElementById('river-clock')!.textContent =

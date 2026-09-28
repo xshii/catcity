@@ -4,6 +4,8 @@ import { CAT_BREED_IDS } from '../../content/breeds';
 import { BAIT_IDS, FISH_IDS, FISHING, SPOT_IDS } from '../../content/fishing';
 
 const count = z.number().int().min(0).max(WORLD_LIMIT);
+/** Buying stops at the bait cap, so a save above it was never reached. */
+const baitCount = z.number().int().min(0).max(FISHING.bait.max);
 const pct = z.number().int().min(0).max(100);
 const id = z.string().min(1).max(100);
 export const catBreedSchema = z.enum(CAT_BREED_IDS);
@@ -58,7 +60,7 @@ const anglingSchema = z.strictObject({
 export const fishingSchema = z.strictObject({
   supplies: z.strictObject({ trash: count, cans: count, coinBags: count }),
   xp: count,
-  baits: z.strictObject({ WORM: count, SHRIMP: count }),
+  baits: z.strictObject({ WORM: baitCount, SHRIMP: baitCount }),
   active: anglingSchema.nullable(),
   inventory: z
     .array(
