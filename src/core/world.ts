@@ -4,7 +4,12 @@ import { generateCityMap, shoreTiles, tileAt } from './city/map';
 import { initialFishing } from './fishing/schema';
 import { instantiateCat } from './cats';
 import { STARTER_CAT_ID } from '../content/cats';
-import { commandSchema, CommandError, type CommandResult } from './commands';
+import {
+  commandSchema,
+  CommandError,
+  type CheckResult,
+  type CommandResult,
+} from './commands';
 import { applyCommand } from './reducer';
 import {
   assertWorld,
@@ -30,19 +35,32 @@ export class World {
   }
 
   dispatch(input: unknown): CommandResult {
-    const parsed = commandSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, error: 'INVALID_COMMAND' };
+    const outcome = this.run(input);
+    if (!outcome.result.ok) return outcome.result;
+    this.state = outcome.next;
+    return outcome.result;
+  }
+
+  /** Dry run on a copy, e.g. to explain a disabled action; the world never changes. */
+  check(input: unknown): CheckResult {
+    const { result } = this.run(input);
+    return result.ok ? { ok: true } : result;
+  }
+
+  private run(input: unknown): { result: CommandResult; next: WorldState } {
     const next = copy(this.state);
+    const parsed = commandSchema.safeParse(input);
+    if (!parsed.success)
+      return { result: { ok: false, error: 'INVALID_COMMAND' }, next };
     try {
       const events = applyCommand(next, parsed.data);
-      this.state = assertWorld(next);
-      return { ok: true, events };
+      return { result: { ok: true, events }, next: assertWorld(next) };
     } catch (error) {
       if (error instanceof CommandError)
-        return { ok: false, error: error.code };
+        return { result: { ok: false, error: error.code }, next };
       // Overflow is a rejected command; unexpected implementation errors remain visible.
       if (next.coins > WORLD_LIMIT || next.nextId > WORLD_LIMIT)
-        return { ok: false, error: 'WORLD_LIMIT' };
+        return { result: { ok: false, error: 'WORLD_LIMIT' }, next };
       throw error;
     }
   }

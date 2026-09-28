@@ -30,8 +30,8 @@ import {
   ANGLING_MARKUP,
   BUTTON_PHASE_INSTRUCTIONS,
   BUTTON_PHASE_NAMES,
-  FISHING_ERRORS,
 } from './template';
+import { ERROR_MESSAGES } from '../shell/errors';
 
 const CAST_COST = FISHING.cast.staminaCost;
 const REST = CARE.rest;
@@ -78,11 +78,7 @@ export function mountAngling(
   stage.stage.append(ready);
   const restActions = document.createElement('div');
   restActions.className = 'cat-rest-actions';
-  restActions.append(
-    get('fish-rest'),
-    get('time-forward'),
-    get('invite-pepper'),
-  );
+  restActions.append(get('fish-rest'));
   get('river-roster').append(restActions);
   const feedback = mountFishingFeedback(session, stage.stage);
   const location = get<HTMLSelectElement>('fish-location');
@@ -99,10 +95,7 @@ export function mountAngling(
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
-  ) =>
-    notify(
-      result.ok ? success : (FISHING_ERRORS[result.error] ?? result.error),
-    );
+  ) => notify(result.ok ? success : ERROR_MESSAGES[result.error]);
   const render = () => {
     const world = session.getSnapshot();
     const f = world.fishing;
@@ -130,15 +123,14 @@ export function mountAngling(
       !!selectedCat.rest || energy === 100 || run?.catId === selectedCat.id;
     get('fish-rest').textContent = selectedCat.rest
       ? `${selectedCat.name} 休息中 · 剩 ${restMinutesLeft(selectedCat.rest, world.minute)} 分钟`
-      : `休息 ${REST.minutes / 60} 小时 · +${(REST.minutes / REST.tickMinutes) * REST.recovery} 体力`;
+      : run?.catId === selectedCat.id
+        ? '钓鱼中 · 收竿后再休息'
+        : energy === 100
+          ? `${selectedCat.name} 体力已满，不需要休息`
+          : `休息 ${REST.minutes / 60} 小时 · +${(REST.minutes / REST.tickMinutes) * REST.recovery} 体力`;
     for (const field of [location, companion, bait, direction, depth])
       field.disabled = active;
 
-    get<HTMLButtonElement>('fishing').disabled =
-      active || !!selectedCat.rest || energy < CAST_COST;
-    get('fishing').textContent = active
-      ? '正在一起钓鱼…'
-      : `邀请 ${world.cats.find((cat) => cat.id === session.selectedEntity)?.name ?? 'Mochi'} 去钓鱼 ↗`;
     get('angling-live').hidden = !run;
     get('angling-live').dataset.mode = run?.mode ?? '';
     const key = JSON.stringify([
@@ -407,9 +399,6 @@ export function mountAngling(
     });
     report(result, '落点已锁定，按住按钮蓄力，松开抛竿。');
   }
-  get('fishing').addEventListener('click', () =>
-    enterAtSpot(location.value as SpotId, companion.value),
-  );
   get('travel-to-spot').addEventListener('click', () => {
     const spotId = location.value as SpotId;
     const result = session.execute({

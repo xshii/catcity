@@ -59,20 +59,20 @@ export function createCatCityAdapter(): GameAdapter {
         )!;
         assert.equal(tile.owned, true);
         assert.equal(tile.road, 'STONE');
-        assert.equal((await readWorld(page)).coins, 920);
+        assert.equal((await readWorld(page)).coins, 880);
       });
       await step('apartment-and-home', async () => {
         await clickTile(page, 4, 6);
         await page.locator('[data-build-type="CAT_APARTMENT"]').click();
-        await page.locator('#assign-home').click();
+        await page.locator('#assign-home-mochi').click();
         const world = await readWorld(page);
-        assert.equal(world.coins, 670);
+        assert.equal(world.coins, 630);
         assert.equal(world.cats[0]!.home, world.buildings[0]!.id);
       });
       await step('build-cafe', async () => {
         await clickTile(page, 4, 4);
         await page.locator('[data-build-type="CAT_CAFE"]').click();
-        await expect(page.getByTestId('coins')).toHaveText('370');
+        await expect(page.getByTestId('coins')).toHaveText('330');
         const world = await readWorld(page);
         assert.equal(world.buildings.length, 2);
         assert.equal(world.buildings[1]!.type, 'CAT_CAFE');
@@ -83,15 +83,16 @@ export function createCatCityAdapter(): GameAdapter {
         await clickTile(page, 6, 4);
         const world = await readWorld(page);
         assert.deepEqual(world.buildings[1]!.position, { x: 6, y: 4 });
-        assert.equal(world.coins, 370);
+        assert.equal(world.coins, 330);
         assert.equal(world.buildings.length, 2);
       });
       await step('income', async () => {
-        await page.locator('#city-tab-build').click();
-        await page
-          .getByRole('button', { name: '营业一小时 · +10 金币' })
-          .click();
-        await expect(page.getByTestId('coins')).toHaveText('380');
+        // The guide points at the clock speed; the test build's clock is advanced explicitly.
+        await page.locator('#city-tab-guide').click();
+        await page.getByRole('button', { name: '去调快时间' }).click();
+        await expect(page.locator('#clock-speed')).toBeFocused();
+        await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
+        await expect(page.getByTestId('coins')).toHaveText('340');
         assert.equal((await readWorld(page)).minute, 60);
       });
       await step('select-cat', async () => {
@@ -106,6 +107,8 @@ export function createCatCityAdapter(): GameAdapter {
       await step('cat-walking', async () => {
         const before = await readWorld(page);
         await clickTile(page, 4, 5);
+        assert.deepEqual(await readWorld(page), before);
+        await page.locator('#walk-here').click();
         const started = await readWorld(page);
         assert.deepEqual(started.cats[0]!.walk!.destination, { x: 4, y: 5 });
         assert.deepEqual(started.cats[0]!.position, before.cats[0]!.position);
@@ -133,7 +136,8 @@ export function createCatCityAdapter(): GameAdapter {
         assert.equal(cat.playerBond, 1);
       });
       await step('shared-outing', async () => {
-        await page.getByRole('button', { name: '邀请 Mochi 去钓鱼 ↗' }).click();
+        await page.locator('#city-tab-outing').click();
+        await page.locator('[data-outing-spot="POND"]').click();
         await expect(page.locator('#visit-city')).toHaveAttribute(
           'aria-pressed',
           'true',
@@ -158,7 +162,7 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.locator('#memory-fact')).toContainText('银鱼');
         await expect(page.locator('#memory-fact')).toBeVisible();
         const world = await readWorld(page);
-        assert.equal(world.coins, 370 + Math.floor(world.minute / 60) * 10);
+        assert.equal(world.coins, 330 + Math.floor(world.minute / 60) * 10);
         assert.equal(world.fishing.inventory.length, 1);
         assert.equal(world.cats[0]!.fishingMemory!.speciesId, 'SILVER');
         await openBag(page);
@@ -202,7 +206,7 @@ export function createCatCityAdapter(): GameAdapter {
           before.cats[0]!.needs.energy,
         );
         assert.equal(resting.cats[0]!.rest!.startedAt, before.minute);
-        await page.locator('#time-forward').click();
+        await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
         const recovered = await readWorld(page);
         assert.equal(recovered.minute, before.minute + 60);
         assert.equal(recovered.cats[0]!.needs.energy, 100);
@@ -210,11 +214,14 @@ export function createCatCityAdapter(): GameAdapter {
         assert.equal(recovered.coins, before.coins + 10);
         assert.equal(
           recovered.coins,
-          378 + Math.floor(recovered.minute / 60) * 10,
+          338 + Math.floor(recovered.minute / 60) * 10,
         );
       });
       await step('save-reload', async () => {
+        await page.locator('#visit-city').click();
+        await page.locator('#city-tab-guide').click();
         await page.getByRole('button', { name: '保存进度' }).click();
+        await page.locator('#river-tools-close').click();
         capturedReplay = await page.evaluate(() =>
           window.CAT_CITY_DEBUG!.getReplay(),
         );

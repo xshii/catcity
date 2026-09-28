@@ -24,6 +24,7 @@ export function applyCommand(
     case 'MOVE_BUILDING':
     case 'PLACE_ROAD':
     case 'UPGRADE_ROAD':
+    case 'REMOVE_ROAD':
     case 'ASSIGN_HOME':
       return applyCity(world, command);
     case 'TRAVEL_TO_FISHING_SPOT':

@@ -28,14 +28,14 @@ describe('headless world', () => {
 
   it('builds a cafe and charges exactly once', () => {
     const world = createWorld(42);
-    expect(buildCafe(world, { x: 3, y: 3 }).ok).toBe(true);
+    expect(buildCafe(world, { x: 4, y: 4 }).ok).toBe(true);
     expect(world.getSnapshot().coins).toBe(700);
     expect(world.getSnapshot().buildings[0]).toMatchObject({
       type: 'CAT_CAFE',
-      position: { x: 3, y: 3 },
+      position: { x: 4, y: 4 },
     });
     const before = world.save();
-    expect(buildCafe(world, { x: 3, y: 3 }).ok).toBe(false);
+    expect(buildCafe(world, { x: 4, y: 4 }).ok).toBe(false);
     expect(world.save()).toBe(before);
   });
 
@@ -57,7 +57,7 @@ describe('headless world', () => {
     save.world.coins = 299;
     const world = loadWorld(JSON.stringify(save));
     const before = world.save();
-    expect(buildCafe(world, { x: 3, y: 3 })).toMatchObject({
+    expect(buildCafe(world, { x: 4, y: 4 })).toMatchObject({
       ok: false,
       error: 'INSUFFICIENT_COINS',
     });
@@ -67,7 +67,7 @@ describe('headless world', () => {
   it('counts income from construction, including partial hours', () => {
     const world = createWorld(42);
     advance(world, 25);
-    buildCafe(world, { x: 3, y: 3 });
+    buildCafe(world, { x: 4, y: 4 });
     advance(world, 59);
     expect(world.getSnapshot().coins).toBe(700);
     advance(world, 1);
@@ -135,7 +135,7 @@ describe('headless world', () => {
 
   it('emits causally useful events without putting diagnostics in save state', () => {
     const world = createWorld(1);
-    expect(buildCafe(world, { x: 3, y: 3 })).toMatchObject({
+    expect(buildCafe(world, { x: 4, y: 4 })).toMatchObject({
       ok: true,
       events: [{ type: 'BuildingBuilt', cost: 300 }],
     });
@@ -159,4 +159,25 @@ it('keeps time running when cafe income reaches the coin limit', () => {
     minute: save.world.minute + 120,
     coins: WORLD_LIMIT,
   });
+});
+
+it('checks a command without applying it: same outcome as dispatch, world unchanged', () => {
+  const world = createWorld(42);
+  const before = world.save();
+  const build = {
+    type: 'BUILD_BUILDING',
+    buildingType: 'CAT_CAFE',
+    position: { x: 4, y: 4 },
+  } as const;
+  expect(world.check(build)).toEqual({ ok: true });
+  expect(world.check({ ...build, position: { x: 4, y: 2 } })).toEqual({
+    ok: false,
+    error: 'LAND_NOT_OWNED',
+  });
+  expect(world.check({ type: 'NOT_A_COMMAND' })).toEqual({
+    ok: false,
+    error: 'INVALID_COMMAND',
+  });
+  expect(world.save()).toBe(before);
+  expect(world.dispatch(build).ok).toBe(true);
 });

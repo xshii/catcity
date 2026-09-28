@@ -17,14 +17,23 @@ export const BUILDINGS = {
     homeCapacity: 2,
   },
 } as const;
+/** Roads cost a real share of land (spec 014); buildings never lay them for free. */
 export const CITY_COSTS = {
   buyLand: 50,
-  placeRoad: 10,
-  upgradeRoad: 20,
+  placeRoad: 30,
+  upgradeRoad: 40,
+} as const;
+/** Everything paid for a road surface; removing the road refunds it in full. */
+export const ROAD_PRICE = {
+  DIRT: CITY_COSTS.placeRoad,
+  STONE: CITY_COSTS.placeRoad + CITY_COSTS.upgradeRoad,
 } as const;
 export const WALK_MINUTES = { GRASS: 10, DIRT: 5, STONE: 3 } as const;
-/** Player time shortcuts: wait on the action card, fast-forward the whole city. */
-export const CITY_TIME = { waitMinutes: 10, fastForwardMinutes: 60 } as const;
+/**
+ * Waiting on the action card, and the city clock speeds: game minutes per real second
+ * while the page is in the foreground (tapping cycles through them).
+ */
+export const CITY_TIME = { waitMinutes: 10, speeds: [1, 2, 4] } as const;
 
 /** The starting city: square map size, owned starter district, its crossroads and funds. */
 export const CITY_START = {

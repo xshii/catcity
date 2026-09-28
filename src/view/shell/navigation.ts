@@ -1,8 +1,9 @@
 import type { Place, PlaceState } from './place';
 const cityPanels = [
-  ['build', '建设', '⌂'],
+  ['guide', '指引', '⌂'],
   ['cats', '猫咪', '♧'],
   ['chat', '聊天', '♡'],
+  ['outing', '出游', '↗'],
 ] as const;
 const riverPanels = [
   ['gear', '钓具', '⌁'],
@@ -19,9 +20,10 @@ export function mountSceneNavigation(places: PlaceState, pause: () => void) {
   const root = get('angling');
   const sheet = get('river-tools');
   const mobile = window.matchMedia('(max-width: 760px)');
+  const cityOnly = ['guide', 'cats', 'outing'] as const;
   const panelId = (id: Panel) =>
-    `${id === 'build' || id === 'cats' ? 'city' : 'river'}-panel-${id}`;
-  for (const id of ['build', 'cats'] as const) {
+    `${(cityOnly as readonly Panel[]).includes(id) ? 'city' : 'river'}-panel-${id}`;
+  for (const id of cityOnly) {
     const panel = document.createElement('section');
     panel.id = panelId(id);
     panel.hidden = true;
@@ -29,7 +31,9 @@ export function mountSceneNavigation(places: PlaceState, pause: () => void) {
     panel.setAttribute('aria-labelledby', `city-tab-${id}`);
     sheet.append(panel);
   }
-  get('city-panel-build').append(get('city-guide'), get('city-clock-actions'));
+  get('city-panel-guide').append(get('city-guide'), get('city-save'));
+  // Pepper is invited from the cats page only; the roster joins it when the page opens.
+  get('city-panel-cats').append(get('invite-pepper'));
   const homes = ['river-roster'].map((id) => {
     const element = get(id);
     const home = document.createComment(id);
@@ -58,11 +62,6 @@ export function mountSceneNavigation(places: PlaceState, pause: () => void) {
           `<button id="${scene}-tab-${id}" role="tab" aria-controls="${panelId(id)}" aria-expanded="false" aria-selected="false"><span aria-hidden="true">${icon}</span>${name}</button>`,
       )
       .join('');
-    if (scene === 'city')
-      nav.insertAdjacentHTML(
-        'beforeend',
-        '<button id="city-tab-outing"><span aria-hidden="true">↗</span>出游</button>',
-      );
     root.prepend(nav);
     entries.forEach(([id]) => {
       get(`${scene}-tab-${id}`).addEventListener('click', () => {
@@ -126,15 +125,11 @@ export function mountSceneNavigation(places: PlaceState, pause: () => void) {
       `${place}-tab-chat`,
     );
     for (const { element, home } of homes) {
-      const roster = element.id === 'river-roster';
-      const destination =
-        selected === (roster ? 'cats' : 'build')
-          ? get(panelId(roster ? 'cats' : 'build'))
-          : null;
+      const destination = selected === 'cats' ? get(panelId('cats')) : null;
       if (destination) {
-        if (element.parentElement !== destination) destination.append(element);
+        if (element.parentElement !== destination) destination.prepend(element);
       } else if (element.previousSibling !== home) home.after(element);
-      if (roster) element.hidden = !river && selected !== 'cats';
+      element.hidden = !river && selected !== 'cats';
     }
   };
   function close() {
@@ -147,7 +142,6 @@ export function mountSceneNavigation(places: PlaceState, pause: () => void) {
     if (previous)
       get(`${place}-tab-${previous}`).focus({ preventScroll: true });
   };
-  get('city-tab-outing').addEventListener('click', close);
   get('river-tools-close').addEventListener('click', dismiss);
   shade.addEventListener('click', dismiss);
   document.addEventListener('keydown', (event) => {

@@ -106,3 +106,32 @@ it('preserves corrupt saves and reports write failures', () => {
   expect(quota.save()).toBe(false);
   expect(quota.storageError).not.toBeNull();
 });
+
+it('checks a command for the view without recording, saving or notifying', () => {
+  let writes = 0;
+  const session = createTestSession({
+    repository: { read: () => null, write: () => void writes++ },
+  });
+  const listener = vi.fn();
+  session.subscribe(listener);
+  const before = session.getSnapshot();
+  expect(session.check({ type: 'REST_CAT', catId: 'mochi' })).toEqual({
+    ok: false,
+    error: 'STAMINA_FULL',
+  });
+  expect(session.check({ type: 'BUY_LAND', position: { x: 4, y: 2 } })).toEqual(
+    { ok: true },
+  );
+  expect(session.getSnapshot()).toEqual(before);
+  expect(session.getReplay().entries).toHaveLength(0);
+  expect(writes).toBe(0);
+  expect(listener).not.toHaveBeenCalled();
+});
+
+it('tells a resumed save from a new game', () => {
+  const storage = repository();
+  expect(createTestSession({ repository: storage }).resumed).toBe(false);
+  const session = createTestSession({ repository: storage });
+  session.execute({ type: 'ADVANCE_TIME', minutes: 1 });
+  expect(createTestSession({ repository: storage }).resumed).toBe(true);
+});

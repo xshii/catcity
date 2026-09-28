@@ -5,6 +5,7 @@ import {
   loadWorld,
   MAX_TEXT,
   type World,
+  type CheckResult,
   type CommandResult,
   type GameCommand,
 } from '../core';
@@ -50,6 +51,8 @@ export class GameSession {
   selectedEntity: string | null = null;
   storageError: string | null = null;
   lastDialogueFallback = false;
+  /** True when this session continued a saved world rather than starting a new one. */
+  readonly resumed: boolean = false;
 
   constructor(options: GameSessionOptions) {
     if (
@@ -69,7 +72,10 @@ export class GameSession {
     this.world = createWorld(options.seed);
     try {
       const save = this.repository.read();
-      if (save !== null) this.world = loadWorld(save);
+      if (save !== null) {
+        this.world = loadWorld(save);
+        this.resumed = true;
+      }
     } catch {
       this.blocked = 'rejected';
       this.storageError = '无法读取存档；原数据已保留，本次会话不会覆盖它。';
@@ -105,6 +111,11 @@ export class GameSession {
     if (result.ok) this.save();
     this.notify();
     return structuredClone(result);
+  }
+
+  /** Would Core accept this now? Not recorded, saved or announced. */
+  check(command: GameCommand): CheckResult {
+    return this.world.check(command);
   }
 
   /** Only a rejected save may be replaced by an explicit reset. */

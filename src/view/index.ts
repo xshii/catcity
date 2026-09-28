@@ -34,5 +34,7 @@ export function mountGameView(session: GameSession) {
     tileScreenPosition: (position: Position) =>
       scene.getTileScreenPosition(position),
     fishingClock: panel.fishingClock,
+    /** Game minutes per real second chosen at the city clock. */
+    clockSpeed: panel.clockSpeed,
   };
 }

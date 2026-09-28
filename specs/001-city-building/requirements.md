@@ -10,14 +10,14 @@
 
 ## 验收标准与证据
 
-| 标准                                                      | 证据                                                          |
-| --------------------------------------------------------- | ------------------------------------------------------------- |
-| 同种子地图可复现；起始土地干燥、所有水域可达              | `tests/unit/city-map.test.ts`                                 |
-| 先买地后建设；建筑自动连路，失败整次回滚不扣费            | `tests/unit/city-loop.test.ts`                                |
-| 公寓最多 2 只猫登记；道路铺设/升级只扣一次                | `tests/unit/city-loop.test.ts`                                |
-| 每家猫咖独立累计收入，搬移保留收入进度与住所引用          | `tests/unit/city-loop.test.ts`、`tests/unit/world.test.ts`    |
-| 新世界 Mochi 在未购买的池塘岸边（种子 0–127），可立即钓鱼 | `tests/unit/city-map.test.ts`、`tests/e2e/city-input.spec.ts` |
-| 真实格子点击完成购地、铺路、建造、搬移                    | `harness/tasks/city-loop.ts`、`tests/e2e/game.spec.ts`        |
+| 标准                                                                             | 证据                                                          |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| 同种子地图可复现；起始土地干燥、所有水域可达                                     | `tests/unit/city-map.test.ts`                                 |
+| 先买地后建设；建筑须紧挨已连路网的道路（014 起不再自动铺路），失败整次回滚不扣费 | `tests/unit/city-loop.test.ts`                                |
+| 公寓最多 2 只猫登记；道路铺设/升级只扣一次                                       | `tests/unit/city-loop.test.ts`                                |
+| 每家猫咖独立累计收入，搬移保留收入进度与住所引用                                 | `tests/unit/city-loop.test.ts`、`tests/unit/world.test.ts`    |
+| 新世界 Mochi 在未购买的池塘岸边（种子 0–127），可立即钓鱼                        | `tests/unit/city-map.test.ts`、`tests/e2e/city-input.spec.ts` |
+| 真实格子点击完成购地、铺路、建造、搬移                                           | `harness/tasks/city-loop.ts`、`tests/e2e/game.spec.ts`        |
 
 ## 未完成 / 限制
 

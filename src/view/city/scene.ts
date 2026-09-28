@@ -1,5 +1,4 @@
 import type { AimControl, PlaceState } from '../shell/place';
-import { CITY_START } from '../../content/city';
 import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
@@ -9,7 +8,7 @@ import type { CityActions } from './actions';
 import { drawCityMap } from '../art/city-map';
 import { RiverView } from '../art/river';
 import { aimAtPoint } from '../art/water-view';
-import { MAP_VIEW, tileCenter } from './geometry';
+import { boardSize, frameMap, MAP_VIEW, tileCenter } from './geometry';
 
 export class CityScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
@@ -19,7 +18,17 @@ export class CityScene extends Phaser.Scene {
   private riverMode = false;
   private paintedState = '';
   private overview = false;
-  private cameraMode = '';
+  /** Overview focus in world pixels; null centres the board. */
+  private pan: { x: number; y: number } | null = null;
+  /** The map frame (#game) in CSS pixels. */
+  private frame = { width: 0, height: 0 };
+  private tiles = { width: 0, height: 0 };
+  private drag: {
+    x: number;
+    y: number;
+    center: { x: number; y: number };
+    moved: boolean;
+  } | null = null;
   constructor(
     private readonly session: GameSession,
     private readonly place: PlaceState,
@@ -38,18 +47,23 @@ export class CityScene extends Phaser.Scene {
     const overview = document.getElementById('city-overview')!;
     const toggleOverview = () => {
       this.overview = !this.overview;
-      this.updateCamera();
+      this.pan = null;
+      this.syncOverviewButton();
     };
     overview.addEventListener('click', toggleOverview);
     const unsubscribeAim = this.aim.subscribe(repaint);
+    const game = document.getElementById('game')!;
+    this.frame = { width: game.clientWidth, height: game.clientHeight };
     const sizeObserver = new ResizeObserver(([entry]) => {
-      if (entry)
-        this.scale.setParentSize(
-          entry.contentRect.width,
-          entry.contentRect.height,
-        );
+      if (!entry) return;
+      this.frame = {
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      };
+      this.scale.setParentSize(this.frame.width, this.frame.height);
+      this.fitCanvas();
     });
-    sizeObserver.observe(document.getElementById('game')!);
+    sizeObserver.observe(game);
     const unsubscribe = this.session.subscribe(repaint);
     const unsubscribeSelection = this.cityActions.subscribe(repaint);
     this.events.once('shutdown', () => {
@@ -65,28 +79,37 @@ export class CityScene extends Phaser.Scene {
         this.aimOnWater(pointer);
         return;
       }
-      const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const x = Math.floor((point.x - MAP_VIEW.origin) / MAP_VIEW.tile);
-      const y = Math.floor((point.y - MAP_VIEW.origin) / MAP_VIEW.tile);
-      if (x < 0 || x >= CITY_START.size || y < 0 || y >= CITY_START.size)
-        return;
-      const cat = this.session
-        .getSnapshot()
-        .cats.find((item) => item.position.x === x && item.position.y === y);
-      if (cat) {
-        this.cityActions.selectCat(cat.id);
-        this.onMessage(
-          this.cityActions.isSelected(cat.id)
-            ? `已选中 ${cat.name}，点击目标地块让它走过去。`
-            : '已取消猫咪选择，可以选地建设。',
-        );
-      } else this.cityActions.selectTile({ x, y });
+      const { x, y } = this.cameras.main.midPoint;
+      this.drag = {
+        x: pointer.x,
+        y: pointer.y,
+        center: { x, y },
+        moved: false,
+      };
+    });
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      const drag = this.drag;
+      if (!drag || !pointer.isDown) return;
+      const dx = pointer.x - drag.x;
+      const dy = pointer.y - drag.y;
+      // Pointer coordinates are logical pixels; the threshold is in CSS pixels.
+      if (Math.hypot(dx, dy) / this.logicalPerCss() > MAP_VIEW.dragPx)
+        drag.moved = true;
+      if (!drag.moved || !this.overview) return;
+      const zoom = this.cameras.main.zoom;
+      this.pan = { x: drag.center.x - dx / zoom, y: drag.center.y - dy / zoom };
+    });
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      const tap = this.drag && !this.drag.moved;
+      this.drag = null;
+      if (tap && !this.riverMode) this.tapMap(pointer);
     });
     this.game.canvas.setAttribute(
       'aria-label',
-      '猫咪城市地图：点击土地购买或建设；点击猫再点目的地步行；点击水域前往岸边',
+      '猫咪城市地图：点击土地购买或建设；点击猫后在地块卡片上让它走过去；点击水域前往岸边；总览时拖动平移',
     );
     this.game.canvas.setAttribute('role', 'img');
+    this.fitCanvas();
     this.paint();
   }
 
@@ -117,28 +140,82 @@ export class CityScene extends Phaser.Scene {
     if (aim) this.aim.set(aim);
   }
 
-  private updateCamera() {
+  private tapMap(pointer: Phaser.Input.Pointer) {
+    const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const x = Math.floor((point.x - MAP_VIEW.padding) / MAP_VIEW.tile);
+    const y = Math.floor((point.y - MAP_VIEW.padding) / MAP_VIEW.tile);
+    if (x < 0 || x >= this.tiles.width || y < 0 || y >= this.tiles.height)
+      return;
+    const cat = this.session
+      .getSnapshot()
+      .cats.find((item) => item.position.x === x && item.position.y === y);
+    if (cat) {
+      this.cityActions.selectCat(cat.id);
+      this.onMessage(
+        this.cityActions.isSelected(cat.id)
+          ? `已选中 ${cat.name}：点一块地，在卡片上选「让 ${cat.name} 走到这里」。`
+          : '已取消猫咪选择。',
+      );
+    } else this.cityActions.selectTile({ x, y });
+  }
+
+  private logicalPerCss() {
+    return this.frame.width ? this.scale.width / this.frame.width : 1;
+  }
+
+  /**
+   * The city canvas fills the frame with its short side at `MAP_VIEW.size` logical pixels;
+   * the river keeps the square its art and the motion overlay are drawn for.
+   */
+  private fitCanvas() {
+    const { width, height } = this.frame;
+    if (!width || !height) return;
+    const ratio = MAP_VIEW.size / Math.min(width, height);
+    const next = this.riverMode
+      ? { width: MAP_VIEW.size, height: MAP_VIEW.size }
+      : {
+          width: Math.round(width * ratio),
+          height: Math.round(height * ratio),
+        };
+    if (next.width !== this.scale.width || next.height !== this.scale.height)
+      this.scale.setGameSize(next.width, next.height);
+  }
+
+  private followedCat() {
     const selected = this.cityActions.getSelection();
     const catId =
       selected?.kind === 'cat'
         ? selected.catId
         : (this.session.selectedEntity ?? STARTER_CAT_ID);
-    const nextMode = this.riverMode
-      ? 'river'
-      : this.overview
-        ? 'overview'
-        : catId;
-    if (nextMode === this.cameraMode) return;
-    this.cameraMode = nextMode;
+    return this.cats.get(catId) ?? this.cats.get(STARTER_CAT_ID);
+  }
+
+  /** Frame the camera every frame, so a walking cat and a resized frame stay centred. */
+  update() {
     const camera = this.cameras.main;
-    camera.stopFollow();
-    camera.setBounds(0, 0, MAP_VIEW.size, MAP_VIEW.size);
-    if (this.riverMode || this.overview) camera.setZoom(1).centerOn(320, 320);
-    else {
-      camera.setZoom(1.5);
-      const cat = this.cats.get(catId) ?? this.cats.get(STARTER_CAT_ID);
-      if (cat) camera.startFollow(cat, true, 0.12, 0.12);
+    if (this.riverMode) {
+      camera.setZoom(1).centerOn(MAP_VIEW.size / 2, MAP_VIEW.size / 2);
+      return;
     }
+    if (!this.frame.width || !this.frame.height || !this.tiles.width) return;
+    const board = boardSize(this.tiles);
+    const cat = this.followedCat();
+    const focus = this.overview
+      ? (this.pan ?? { x: board.width / 2, y: board.height / 2 })
+      : cat
+        ? { x: cat.x, y: cat.y }
+        : { x: board.width / 2, y: board.height / 2 };
+    const { scale, center } = frameMap(
+      this.frame,
+      this.tiles,
+      !this.overview,
+      focus,
+    );
+    if (this.overview && this.pan) this.pan = center;
+    camera.setZoom(scale * this.logicalPerCss()).centerOn(center.x, center.y);
+  }
+
+  private syncOverviewButton() {
     const button = document.getElementById('city-overview')!;
     button.setAttribute('aria-pressed', String(this.overview));
     button.textContent = this.overview ? '跟随猫咪' : '总览地图';
@@ -165,7 +242,12 @@ export class CityScene extends Phaser.Scene {
 
   private paint() {
     const world = this.session.getSnapshot();
-    this.riverMode = this.place.get() === 'river';
+    const riverMode = this.place.get() === 'river';
+    if (riverMode !== this.riverMode) {
+      this.riverMode = riverMode;
+      this.fitCanvas();
+    }
+    this.tiles = { width: world.map.width, height: world.map.height };
     this.river.root.setVisible(this.riverMode);
     document
       .querySelector('.map-card')!
@@ -232,6 +314,6 @@ export class CityScene extends Phaser.Scene {
         sprite.destroy();
         this.cats.delete(id);
       }
-    this.updateCamera();
+    this.syncOverviewButton();
   }
 }

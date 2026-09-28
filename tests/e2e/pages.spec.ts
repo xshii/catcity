@@ -74,6 +74,7 @@ test('Pages subpath loads production assets and preserves a built cafe on reload
   await clickTile(page, 4, 4);
   await page.locator('[data-build-type=CAT_CAFE]').click();
   await expect(page.getByTestId('coins')).toHaveText('700');
+  await page.locator('#city-tab-guide').click();
   await page.getByRole('button', { name: '保存进度' }).click();
   const saved = await page.evaluate(() =>
     localStorage.getItem('cat-city.save.v1'),

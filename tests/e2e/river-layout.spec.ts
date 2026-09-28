@@ -28,8 +28,9 @@ async function singleScreen(page: Page) {
       'river-panel-bag',
       'river-panel-atlas',
       'river-panel-chat',
-      'city-panel-build',
+      'city-panel-guide',
       'city-panel-cats',
+      'city-panel-outing',
     ]
       .map((id) => document.getElementById(id)!)
       .filter((element) => element.getClientRects().length)
@@ -52,7 +53,7 @@ async function cityNavigation(page: Page) {
   await onScreen(page.locator('#city-tools-nav'));
   await expect(page.locator('#city-tools-nav button')).toHaveCount(4);
   for (const [id, label] of [
-    ['build', '建设'],
+    ['guide', '指引'],
     ['cats', '猫咪'],
     ['chat', '聊天'],
     ['outing', '出游'],
@@ -63,13 +64,14 @@ async function cityNavigation(page: Page) {
   await expect(page.locator('#river-tools-nav')).toBeHidden();
   await expect(page.locator('#river-tools')).toBeHidden();
   const before = await readWorld(page);
-  await page.locator('#city-tab-build').click();
-  await expect(page.locator('#city-tab-build')).toHaveAttribute(
+  await page.locator('#city-tab-guide').click();
+  await expect(page.locator('#city-tab-guide')).toHaveAttribute(
     'aria-expanded',
     'true',
   );
-  await onScreen(page.locator('#city-panel-build'));
+  await onScreen(page.locator('#city-panel-guide'));
   await onScreen(page.locator('#city-action'));
+  await onScreen(page.locator('#save'));
   await singleScreen(page);
   await expect(page.locator('#visit-city')).toHaveAttribute(
     'aria-pressed',
@@ -80,6 +82,7 @@ async function cityNavigation(page: Page) {
   await page.locator('#city-tab-cats').click();
   await onScreen(page.locator('#city-panel-cats'));
   await onScreen(page.locator('#fish-rest'));
+  await onScreen(page.locator('#invite-pepper'));
   await onScreen(page.locator('[data-cat-id="mochi"]'));
   await page.locator('[data-cat-id="mochi"]').click();
   await singleScreen(page);
@@ -104,9 +107,14 @@ async function cityNavigation(page: Page) {
   await closeRiverPanel(page);
   await onScreen(page.locator('#city-overview'));
 
-  // Outing locates the waterway. Cats must walk to shore before changing scene.
-  await page.locator('#city-tab-build').click();
+  // Outing lists the waterways and locates one. Cats must walk to shore before changing scene.
+  await page.locator('#city-tab-guide').click();
   await page.locator('#city-tab-outing').click();
+  await onScreen(page.locator('#city-panel-outing'));
+  for (const spot of ['POND', 'REEDS', 'MOON', 'COAST'])
+    await onScreen(page.locator(`[data-outing-spot="${spot}"]`));
+  await singleScreen(page);
+  await page.locator('[data-outing-spot="POND"]').click();
   await expect(page.locator('#visit-city')).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -118,7 +126,7 @@ async function cityNavigation(page: Page) {
   await onScreen(page.locator('#city-tools-nav'));
   await expect(page.locator('#river-tools-nav')).toBeHidden();
   await expect(page.locator('#river-tools')).toBeHidden();
-  await expect(page.locator('#city-tab-build')).toHaveAttribute(
+  await expect(page.locator('#city-tab-guide')).toHaveAttribute(
     'aria-expanded',
     'false',
   );

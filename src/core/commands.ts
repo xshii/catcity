@@ -20,6 +20,7 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('BUY_LAND'), position: positionSchema }),
   z.strictObject({ type: z.literal('PLACE_ROAD'), position: positionSchema }),
   z.strictObject({ type: z.literal('UPGRADE_ROAD'), position: positionSchema }),
+  z.strictObject({ type: z.literal('REMOVE_ROAD'), position: positionSchema }),
   z.strictObject({
     type: z.literal('BUILD_BUILDING'),
     buildingType: z.enum(BUILDING_IDS),
@@ -168,6 +169,8 @@ export type ErrorCode =
   | 'ROAD_EXISTS'
   | 'ROAD_NOT_CONNECTED'
   | 'DIRT_ROAD_REQUIRED'
+  | 'NO_ROAD'
+  | 'ROAD_IN_USE'
   | 'BUILDING_NOT_FOUND'
   | 'BUILDING_LIMIT'
   | 'HOME_NOT_FOUND'
@@ -190,6 +193,8 @@ export type ErrorCode =
   | 'ALREADY_INVITED';
 export type CommandResult =
   { ok: true; events: GameEvent[] } | { ok: false; error: ErrorCode };
+/** A dry run: whether Core would accept the command now. */
+export type CheckResult = { ok: true } | { ok: false; error: ErrorCode };
 
 /** A rule rejection; World.dispatch turns it into a failed result with no state change. */
 export class CommandError extends Error {

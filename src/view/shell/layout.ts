@@ -16,14 +16,8 @@ export function mountFishingLayout(
   const status = document.createElement('div');
   status.className = 'river-status';
   status.innerHTML = '<span id="river-coins" aria-label="城市金币"></span>';
-  status.prepend(get('clock'));
+  status.prepend(get('clock'), get('clock-speed'));
   get('map-heading').append(status);
-  const cityClock = document.createElement('div');
-  cityClock.id = 'city-clock-actions';
-  const rest = get('rest');
-  rest.textContent = '全城快进 1 小时 ⏱';
-  cityClock.append(rest);
-  get('city-guide').after(cityClock);
 
   const groups = (
     parent: HTMLElement,
@@ -115,15 +109,10 @@ export function mountFishingLayout(
   let reply = '';
   let replyPage = 0;
   const navigation = mountSceneNavigation(place, pause);
-  const seed = document.createElement('p');
-  seed.id = 'city-map-seed';
-  seed.className = 'fishing-clue';
-  get('city-panel-build').append(seed);
   const refresh = () => {
     const world = session.getSnapshot();
     navigation.refresh();
     get('river-coins').textContent = `● ${world.coins}`;
-    seed.textContent = `地图种子 ${world.seed} · 每只猫的位置、土地和道路自动保存`;
     if (mobile.matches) {
       if (catCard.parentElement !== chat.talk) chat.talk!.append(catCard);
     } else if (catCard.previousSibling !== catHome) catHome.after(catCard);

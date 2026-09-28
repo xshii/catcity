@@ -1,7 +1,12 @@
 import { MAX_BUILDINGS } from '../limits';
-import { BUILDINGS, CITY_COSTS } from '../../content/city';
+import {
+  BUILDINGS,
+  CITY_COSTS,
+  CITY_START,
+  ROAD_PRICE,
+} from '../../content/city';
 import { samePosition, tileAt } from './map';
-import { isWalkable, roadConnectionPath } from './path';
+import { isWalkable, touchesNetwork } from './path';
 import { replanWalk } from './walking';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { WorldState } from '../schema';
@@ -15,6 +20,7 @@ type CityCommand = Extract<
       | 'MOVE_BUILDING'
       | 'PLACE_ROAD'
       | 'UPGRADE_ROAD'
+      | 'REMOVE_ROAD'
       | 'ASSIGN_HOME';
   }
 >;
@@ -61,7 +67,24 @@ export function applyCity(
     tile.owned = true;
   } else {
     if (!tile.owned) throw new CommandError('LAND_NOT_OWNED');
-    if (command.type === 'PLACE_ROAD' || command.type === 'UPGRADE_ROAD') {
+    if (command.type === 'REMOVE_ROAD') {
+      if (!tile.road) throw new CommandError('NO_ROAD');
+      // The crossroads roots the network; every building must stay connected to it.
+      if (samePosition(command.position, CITY_START.crossroads))
+        throw new CommandError('ROAD_IN_USE');
+      const refund = ROAD_PRICE[tile.road];
+      tile.road = null;
+      if (
+        world.buildings.some(
+          (building) => !touchesNetwork(world, building.position),
+        )
+      )
+        throw new CommandError('ROAD_IN_USE');
+      world.coins += refund;
+    } else if (
+      command.type === 'PLACE_ROAD' ||
+      command.type === 'UPGRADE_ROAD'
+    ) {
       if (
         world.buildings.some((building) =>
           samePosition(building.position, command.position),
@@ -93,10 +116,9 @@ export function applyCity(
       // Removing the old footprint is safe on the dispatch copy and permits routes through it.
       const previous = moved?.position;
       if (moved) moved.position = command.position;
-      const connection = roadConnectionPath(world, command.position);
-      if (!connection) throw new CommandError('ROAD_NOT_CONNECTED');
-      for (const position of connection)
-        tileAt(world.map, position)!.road ??= 'DIRT';
+      // Roads are laid only by the player; a building must already touch the network.
+      if (!touchesNetwork(world, command.position))
+        throw new CommandError('ROAD_NOT_CONNECTED');
       if (moved) {
         events.push({
           type: 'CityChanged',
