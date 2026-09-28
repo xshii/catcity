@@ -86,8 +86,14 @@ export const MOTION = {
       cooldownTicks: 40,
     },
   },
+  /**
+   * Swing gestures from the gyroscope rate about `axis` (°/s). Holding the phone upright,
+   * tipping the top away (the forward whip) lowers beta, so forward reads negative. One-tap
+   * calibration replaces the axis, sign and thresholds with the player's own swing.
+   */
   gesture: {
-    pitchSign: 1,
+    axis: 'beta',
+    pitchSign: -1,
     backswingDegPerSec: 120,
     forwardDegPerSec: 250,
     fullPowerDegPerSec: 900,
@@ -101,5 +107,17 @@ export const MOTION = {
     smoothing: 0.3,
     /** Roll that maps to the full ±`input.maxDirection` aim. */
     aimRangeDeg: 30,
+    /**
+     * One-tap calibration: two swings within `windowMs`. Thresholds are a share of the
+     * measured peaks (the whip, or the backswing for the backswing and the lift), clamped.
+     */
+    calibration: {
+      windowMs: 2500,
+      minForwardDegPerSec: 150,
+      forward: { percent: 50, min: 120, max: 400 },
+      backswing: { percent: 50, min: 60, max: 200 },
+      fullPower: { percent: 120, min: 300, max: 1500 },
+      lift: { percent: 70, min: 120, max: 300 },
+    },
   },
 } as const;

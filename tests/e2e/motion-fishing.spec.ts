@@ -277,3 +277,31 @@ test('after a reload mid-run, phones are asked to re-enable motion', async ({
   await expect(page.locator('#motion-onboarding')).toBeVisible();
   await context.close();
 });
+
+test('one-tap calibration lets a phone with a reversed pitch cast', async ({
+  page,
+}) => {
+  await inMotionRiver(page);
+  const reversed = (rates: number[]) =>
+    spin(
+      page,
+      rates.map((r) => -r),
+    );
+  // Before calibrating, the reversed swing is not a cast.
+  await reversed([-200, -150, 0, 700, 900, 100]);
+  expect((await readWorld(page)).fishing.active).toBeNull();
+  await page.locator('#motion-calibrate').click();
+  await expect(page.locator('#motion-fishing-hint')).toContainText('校准');
+  await reversed([-200, -150, 0, 700, 900, 100]);
+  await expect(page.locator('#motion-fishing-hint')).toContainText('校准完成');
+  await expect(page.locator('#motion-fishing-hint')).toContainText('前甩 900');
+  await reversed([-200, -150, 0, 700, 900, 100]);
+  expect((await readWorld(page)).fishing.active).toMatchObject({
+    mode: 'motion',
+    phase: 'waiting',
+  });
+  // The tuning is kept for this device.
+  expect(
+    await page.evaluate(() => localStorage.getItem('cat-city.rod-tuning')),
+  ).toContain('"pitchSign"');
+});

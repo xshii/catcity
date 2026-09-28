@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FISHING } from '../../src/content/fishing';
 import { createRodGestures } from '../../src/view/motion/rod';
 import { createRodTip } from '../../src/view/motion/tip';
+import { calibrateSwing, parseTuning } from '../../src/view/motion/calibrate';
 
 const G = FISHING.motion.gesture;
 /** Feed pitch-rate samples 20 ms apart; positive rate swings the tip forward/down. */
@@ -91,5 +92,79 @@ describe('rod tip', () => {
     expect(tip.aim({ x: -3 * G.aimRangeDeg, y: 0 })).toBe(
       -FISHING.input.maxDirection,
     );
+  });
+});
+
+describe('one-tap swing calibration', () => {
+  const C = G.calibration;
+  const on = (axis: 'alpha' | 'beta' | 'gamma', rates: number[]) =>
+    rates.map((rate, i) => ({
+      t: i * 20,
+      alpha: 0,
+      beta: 0,
+      gamma: 0,
+      [axis]: rate,
+    }));
+  // Tip back at 200°/s, then a forward whip at 500°/s that this phone reports as negative.
+  const reversed = [0, 150, 200, 100, 0, -300, -500, -200, 0];
+
+  it("learns a reversed pitch and scales thresholds to the player's own swing", () => {
+    const result = calibrateSwing(on('beta', reversed))!;
+    expect(result.peaks).toEqual({ backswing: 200, forward: 500 });
+    expect(result.tuning).toEqual({
+      axis: 'beta',
+      pitchSign: -1,
+      forwardDegPerSec: (500 * C.forward.percent) / 100,
+      backswingDegPerSec: (200 * C.backswing.percent) / 100,
+      fullPowerDegPerSec: (500 * C.fullPower.percent) / 100,
+      liftDegPerSec: (200 * C.lift.percent) / 100,
+    });
+    // The tuned rod casts on that very swing, and lifts on a quick tip-up.
+    const rod = createRodGestures(result.tuning);
+    const events = reversed.map((rate, i) =>
+      rod.push({ t: i * 20, pitchRate: rate }, 'cast'),
+    );
+    expect(events.filter(Boolean)).toEqual([
+      { kind: 'cast', power: expect.any(Number) },
+    ]);
+    expect(rod.push({ t: 1000, pitchRate: 200 }, 'lift')).toEqual({
+      kind: 'lift',
+    });
+  });
+
+  it('follows the axis the swing happened on', () => {
+    expect(calibrateSwing(on('gamma', reversed))!.tuning.axis).toBe('gamma');
+  });
+
+  it('keeps thresholds within bounds for very gentle or very hard swings', () => {
+    const hard = calibrateSwing(on('beta', [0, 900, 0, -3000, 0]))!.tuning;
+    expect(hard.forwardDegPerSec).toBe(C.forward.max);
+    expect(hard.backswingDegPerSec).toBe(C.backswing.max);
+    expect(hard.fullPowerDegPerSec).toBe(C.fullPower.max);
+    const gentle = calibrateSwing(
+      on('beta', [0, 40, 0, -C.minForwardDegPerSec, 0]),
+    )!.tuning;
+    expect(gentle.forwardDegPerSec).toBe(C.forward.min);
+    expect(gentle.backswingDegPerSec).toBe(C.backswing.min);
+    expect(gentle.liftDegPerSec).toBe(C.lift.min);
+  });
+
+  it('asks again when it felt no real swing', () => {
+    expect(calibrateSwing(on('beta', [0, 30, -80, 20, 0]))).toBeNull();
+    expect(calibrateSwing([])).toBeNull();
+  });
+
+  it('accepts only a well-formed stored tuning', () => {
+    const tuning = calibrateSwing(on('beta', reversed))!.tuning;
+    expect(parseTuning(JSON.parse(JSON.stringify(tuning)))).toEqual(tuning);
+    for (const broken of [
+      null,
+      'beta',
+      { ...tuning, axis: 'roll' },
+      { ...tuning, pitchSign: 0 },
+      { ...tuning, forwardDegPerSec: -1 },
+      { ...tuning, liftDegPerSec: undefined },
+    ])
+      expect(parseTuning(broken)).toBeNull();
   });
 });

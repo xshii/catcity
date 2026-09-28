@@ -21,7 +21,19 @@
   color: #45613f;
   font-size: 16px;
   font-weight: 600;
-  white-space: nowrap;
+  /* Short hints stay on one line; long ones wrap inside the water. */
+  width: max-content;
+  max-width: 96%;
+  text-align: center;
+}
+.motion-calibrate {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  pointer-events: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
 }
 #motion-fishing.nibble .motion-fishing-hint {
   animation: motion-nibble 0.3s ease-in-out;
