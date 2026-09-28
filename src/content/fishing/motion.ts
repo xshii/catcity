@@ -86,20 +86,45 @@ export const MOTION = {
       cooldownTicks: 40,
     },
   },
+  /**
+   * Rod gestures from the gyroscope rate about `axis` of the screen as held (°/s): pitch,
+   * roll or yaw. Holding the phone upright and facing the water, tipping the top away
+   * (down) lowers beta, so down reads negative.
+   * Slow pitch sets the power; a quick flick down casts; a quick flick up strikes.
+   * One-tap calibration replaces the axis, sign and flick threshold with the player's own.
+   */
   gesture: {
-    pitchSign: 1,
-    backswingDegPerSec: 120,
-    forwardDegPerSec: 250,
-    fullPowerDegPerSec: 900,
-    minPower: 20,
-    swingWindowMs: 700,
+    axis: 'pitch',
+    pitchSign: -1,
+    /** A flick down faster than this casts. */
+    flickDegPerSec: 250,
+    /** Faster than this, a pitch may be a flick: the power is read from before it. */
+    onsetDegPerSec: 80,
+    /** How far back from the flick's start the power is read. */
+    powerLeadMs: 100,
     liftDegPerSec: 300,
     liftCooldownMs: 400,
     /** Tilting ±`tiltRangeDeg` from the calibrated pose spans the water plane. */
     tiltRangeDeg: 30,
-    /** Exponential smoothing of the rod tip; 1 means no smoothing. */
+    /** Exponential smoothing of the rod tip and power; 1 means no smoothing. */
     smoothing: 0.3,
     /** Roll that maps to the full ±`input.maxDirection` aim. */
     aimRangeDeg: 30,
+    /** Pitch back (+) or forward (−) from the resting pose spanning power 0–100; rest is 50. */
+    powerRangeDeg: 25,
+    /**
+     * One-tap calibration: two flicks down within `windowMs`, each ending with `quietMs`
+     * below the onset speed. The two strongest must agree on their net turn; the flick
+     * and lift thresholds become shares of the weaker one, clamped (the flick minimum
+     * stays above a finger tap). Stored tunings outside these bounds are ignored.
+     */
+    calibration: {
+      windowMs: 3000,
+      flicks: 2,
+      quietMs: 150,
+      minFlickDegPerSec: 150,
+      flick: { percent: 50, min: 180, max: 400 },
+      lift: { percent: 60, min: 150, max: 450 },
+    },
   },
 } as const;

@@ -2,148 +2,75 @@ import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import type { WorldState } from '../../core';
 import { catArt } from './cat';
+import { landingShare, WATER_VIEW, waterPoint } from './water-view';
 
+const V = WATER_VIEW;
+/** Water colour per spot: pond, reed river, moon lake, coast. */
+const WATER_COLOUR: Record<SpotId, number> = {
+  POND: 0x9bc8b7,
+  REEDS: 0x83b9af,
+  MOON: 0x7f9fb5,
+  COAST: 0x77b8c2,
+};
+const FRAME = { inset: 30, radius: 22 };
+/** Where the rod leaves the bottom of the view, and the cat beside the player. */
+const ROD_BASE = { x: 430, y: V.size - FRAME.inset };
+const ROD_TIP = { x: 372, y: 330 };
+const COMPANION = { x: 196, y: 560, scale: 1.7 };
+
+/**
+ * The fishing scene in first person (spec 030): looking out from the dock over the water
+ * toward the far shore. Presentation only; the landing point, float, bite mark and fish
+ * shadow follow the run and the aim preview, never the other way round.
+ */
 export class RiverView {
   readonly root: Phaser.GameObjects.Container;
+  private water: Phaser.GameObjects.Graphics;
+  private scenery: Record<SpotId, Phaser.GameObjects.Graphics>;
+  private marker: Phaser.GameObjects.Graphics;
+  private float: Phaser.GameObjects.Container;
+  private fishShadow: Phaser.GameObjects.Graphics;
+  private bite: Phaser.GameObjects.Text;
   private rod: Phaser.GameObjects.Graphics;
-  private float!: Phaser.GameObjects.Container;
-  private moon!: Phaser.GameObjects.Rectangle;
-  private reeds!: Phaser.GameObjects.Graphics;
-  private companion!: Phaser.GameObjects.Container;
+  private companion: Phaser.GameObjects.Container;
   private coat = 'cream';
-  private fishShadow!: Phaser.GameObjects.Graphics;
-  private bite!: Phaser.GameObjects.Text;
-  private water!: Phaser.GameObjects.Graphics;
-  private shore!: Phaser.GameObjects.Graphics;
-  private waterKind = 'POND';
+  private waterKind: SpotId = 'POND';
   private waterFrame = -1;
   private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     .matches;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.root = scene.add.container(0, 0).setDepth(20).setVisible(false);
-    let g = scene.add.graphics();
-    this.root.add(g);
-    g.fillStyle(0xdce6cd).fillRoundedRect(18, 18, 604, 604, 28);
-    g.fillStyle(0xeaf0de).fillRoundedRect(30, 30, 580, 580, 22);
-    // The curved river is a drawn scene, not the authoritative city tile map.
-    g.fillStyle(0x98c5bb)
-      .beginPath()
-      .moveTo(210, 154)
-      .lineTo(609, 134)
-      .lineTo(609, 558)
-      .lineTo(292, 549)
-      .lineTo(338, 442)
-      .lineTo(228, 365)
-      .lineTo(277, 250)
-      .closePath()
-      .fillPath();
-    g.lineStyle(8, 0xd1ddbb)
-      .beginPath()
-      .moveTo(211, 154)
-      .lineTo(277, 250)
-      .lineTo(228, 365)
-      .lineTo(338, 442)
-      .lineTo(292, 549)
-      .strokePath();
+    const frame = scene.add.graphics();
+    frame.fillStyle(0xdce6cd).fillRoundedRect(18, 18, 604, 604, 28);
+    frame
+      .fillStyle(0xeaf0de)
+      .fillRoundedRect(
+        FRAME.inset,
+        FRAME.inset,
+        V.size - 2 * FRAME.inset,
+        V.size - 2 * FRAME.inset,
+        FRAME.radius,
+      );
     this.water = scene.add.graphics();
-    this.root.add(this.water);
-    this.shore = scene.add.graphics();
-    this.shore
-      .fillStyle(0xe9d5ac)
-      .beginPath()
-      .moveTo(195, 154)
-      .lineTo(254, 250)
-      .lineTo(210, 365)
-      .lineTo(317, 442)
-      .lineTo(272, 549)
-      .lineTo(292, 549)
-      .lineTo(338, 442)
-      .lineTo(228, 365)
-      .lineTo(277, 250)
-      .lineTo(210, 154)
-      .closePath()
-      .fillPath();
-    this.root.add(this.shore);
-    // Shore decorations remain above water effects and never affect collision state.
-    g = scene.add.graphics();
-    this.root.add(g);
-    for (const [x, y, size] of [
-      [87, 186, 38],
-      [150, 223, 28],
-      [76, 293, 39],
-      [546, 90, 35],
-      [470, 102, 26],
-    ]) {
-      g.fillStyle(0x789d75, 0.2).fillEllipse(x!, y! + size!, size! * 1.5, 18);
-      g.fillStyle(0xa0b68a).fillRoundedRect(x! - 5, y!, 10, size! + 8, 3);
-      g.fillStyle(0x91ac7e).fillCircle(x!, y!, size!);
-      g.fillStyle(0xb7c999).fillCircle(
-        x! - size! * 0.2,
-        y! - size! * 0.2,
-        size! * 0.75,
-      );
-    }
-    for (let i = 0; i < 34; i++) {
-      const x = 57 + ((i * 37) % 146),
-        y = 226 + ((i * 71) % 300);
-      g.lineStyle(2, 0xa7ba8a)
-        .lineBetween(x, y, x - 2, y - 5)
-        .lineBetween(x, y, x + 3, y - 7);
-      if (i % 4 === 0) g.fillStyle(0xe8bc97).fillCircle(x, y - 8, 3);
-    }
-    // A small wooden jetty, picnic basket, and a place beside Mochi.
-    g.fillStyle(0x719d8e, 0.22).fillRoundedRect(121, 360, 199, 31, 9);
-    g.fillStyle(0xbfa47c).fillRoundedRect(117, 339, 199, 31, 6);
-    for (let i = 0; i < 8; i++)
-      g.lineStyle(1, 0x967e5c, 0.5).lineBetween(
-        124 + i * 25,
-        341,
-        124 + i * 25,
-        367,
-      );
-    g.fillStyle(0xe3be7f).fillRoundedRect(77, 357, 33, 28, 6);
-    g.lineStyle(3, 0xc6a16e).strokeEllipse(93, 359, 23, 20);
-    g.fillStyle(0xf2e5c4).fillRoundedRect(218, 335, 49, 9, 4);
-    this.moon = scene.add
-      .rectangle(320, 320, 604, 604, 0x7778b0, 0.22)
-      .setVisible(false);
-    this.root.add(this.moon);
-    this.reeds = scene.add.graphics();
-    for (let i = 0; i < 12; i++) {
-      const x = 280 + i * 22;
-      const y = 500 + (i % 3) * 8;
-      this.reeds
-        .lineStyle(3, 0x6b8e6a)
-        .lineBetween(x, y, x - 8, y - 40)
-        .lineBetween(x, y, x + 5, y - 28);
-    }
-    this.root.add(this.reeds);
-    this.companion = catArt(scene, 164, 383, 2.4);
-    this.root.add(this.companion);
-    const ripple = scene.add.ellipse(0, 0, 44, 18).setStrokeStyle(2, 0xfaf3cf);
-    this.float = scene.add.container(420, 340, [
-      ripple,
-      scene.add.circle(0, -4, 5, 0xd98b6c),
-    ]);
-    this.root.add(this.float);
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-      scene.tweens.add({
-        targets: ripple,
-        scale: 1.2,
-        alpha: 0.35,
-        duration: 1000,
-        yoyo: true,
-        repeat: -1,
-      });
-    this.rod = scene.add.graphics();
-    this.root.add(this.rod);
+    this.scenery = {
+      POND: this.drawPond(scene.add.graphics()),
+      REEDS: this.drawReeds(scene.add.graphics()),
+      MOON: this.drawMoon(scene.add.graphics()),
+      COAST: this.drawCoast(scene.add.graphics()),
+    };
+    const dock = this.drawDock(scene.add.graphics());
+    this.marker = scene.add.graphics();
     this.fishShadow = scene.add.graphics();
     this.fishShadow
       .fillStyle(0x3a796b, 0.5)
       .fillEllipse(0, 0, 42, 17)
       .fillTriangle(-16, 0, -34, -12, -34, 12);
-    this.root.add(this.fishShadow);
+    const ripple = scene.add.ellipse(0, 0, 44, 16).setStrokeStyle(2, 0xfaf3cf);
+    this.float = scene.add.container(0, 0, [
+      ripple,
+      scene.add.circle(0, -4, 5, 0xd98b6c),
+    ]);
     this.bite = scene.add
       .text(0, 0, '!', {
         fontFamily: 'system-ui',
@@ -153,25 +80,151 @@ export class RiverView {
         strokeThickness: 5,
       })
       .setOrigin(0.5);
-    this.root.add(this.bite);
-    for (let i = 0; i < 4; i++) {
-      const leaf = scene.add
-        .ellipse(360 + i * 55, 195 + i * 80, 14, 5, 0x779e8d, 0.45)
-        .setAngle(-20);
-      this.root.add(leaf);
-      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-        scene.tweens.add({
-          targets: leaf,
-          x: leaf.x + 24,
-          y: leaf.y + 10,
-          duration: 3300 + i * 300,
-          yoyo: true,
-          repeat: -1,
-        });
-    }
+    this.rod = scene.add.graphics();
+    this.companion = catArt(scene, COMPANION.x, COMPANION.y, COMPANION.scale);
+    this.root.add([
+      frame,
+      this.water,
+      ...Object.values(this.scenery),
+      this.marker,
+      this.fishShadow,
+      this.float,
+      this.bite,
+      dock,
+      this.companion,
+      this.rod,
+    ]);
+    if (!this.reducedMotion)
+      scene.tweens.add({
+        targets: ripple,
+        scale: 1.2,
+        alpha: 0.35,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+      });
     const animate = (time: number) => this.animateWater(time);
     scene.events.on('update', animate);
     scene.events.once('shutdown', () => scene.events.off('update', animate));
+  }
+
+  /** The water trapezoid from the horizon to the dock, clipped to the frame. */
+  private waterShape(g: Phaser.GameObjects.Graphics) {
+    const left = FRAME.inset;
+    const right = V.size - FRAME.inset;
+    return g
+      .beginPath()
+      .moveTo(V.centerX - V.horizonHalf, V.horizonY)
+      .lineTo(V.centerX + V.horizonHalf, V.horizonY)
+      .lineTo(right, V.horizonY + (right - V.centerX - V.horizonHalf) * 3)
+      .lineTo(right, V.nearY)
+      .lineTo(left, V.nearY)
+      .lineTo(left, V.horizonY + (V.centerX - V.horizonHalf - left) * 3)
+      .closePath();
+  }
+
+  /** Far bank with round trees along the horizon (pond, reeds, lake). */
+  private farShore(g: Phaser.GameObjects.Graphics, tint: number) {
+    g.fillStyle(tint).fillRect(
+      FRAME.inset,
+      V.horizonY - 26,
+      V.size - 2 * FRAME.inset,
+      30,
+    );
+    for (const [x, size] of [
+      [70, 24],
+      [128, 30],
+      [230, 20],
+      [410, 26],
+      [505, 32],
+      [575, 22],
+    ]) {
+      g.fillStyle(0x91ac7e).fillCircle(x!, V.horizonY - 30, size!);
+      g.fillStyle(0xb7c999).fillCircle(
+        x! - size! * 0.2,
+        V.horizonY - 30 - size! * 0.2,
+        size! * 0.7,
+      );
+    }
+    return g;
+  }
+
+  private drawPond(g: Phaser.GameObjects.Graphics) {
+    this.farShore(g, 0xc9d8b5);
+    // Lily pads shrink with distance.
+    for (const [direction, share] of [
+      [-38, 0.2],
+      [-30, 0.55],
+      [34, 0.35],
+      [40, 0.7],
+    ]) {
+      const { x, y, scale } = waterPoint(direction!, share!);
+      g.fillStyle(0x7fa77b, 0.8).fillEllipse(x, y, 46 * scale, 16 * scale);
+    }
+    return g;
+  }
+
+  private drawReeds(g: Phaser.GameObjects.Graphics) {
+    this.farShore(g, 0xbfd1a8);
+    for (let i = 0; i < 16; i++) {
+      const side = i % 2 ? 1 : -1;
+      const x = V.centerX + side * (250 + (i % 4) * 14);
+      const y = V.nearY - 20 - (i % 5) * 42;
+      const height = 34 + (i % 3) * 14;
+      g.lineStyle(3, 0x6b8e6a)
+        .lineBetween(x, y, x - 6 * side, y - height)
+        .lineBetween(x, y, x + 4 * side, y - height * 0.7);
+    }
+    return g;
+  }
+
+  private drawMoon(g: Phaser.GameObjects.Graphics) {
+    this.farShore(g, 0xa9b3c4);
+    g.fillStyle(0xf5ecc9).fillCircle(470, 78, 26);
+    g.fillStyle(0x7778b0, 0.18).fillRect(
+      FRAME.inset,
+      FRAME.inset,
+      V.size - 2 * FRAME.inset,
+      V.size - 2 * FRAME.inset,
+    );
+    return g;
+  }
+
+  private drawCoast(g: Phaser.GameObjects.Graphics) {
+    // Open sea: a flat horizon, no far bank.
+    g.lineStyle(2, 0x5f9aa6).lineBetween(
+      FRAME.inset,
+      V.horizonY,
+      V.size - FRAME.inset,
+      V.horizonY,
+    );
+    g.fillStyle(0xe9d5ac).fillRect(
+      FRAME.inset,
+      V.nearY - 18,
+      V.size - 2 * FRAME.inset,
+      18,
+    );
+    return g;
+  }
+
+  private drawDock(g: Phaser.GameObjects.Graphics) {
+    const top = V.nearY;
+    const bottom = V.size - FRAME.inset;
+    g.fillStyle(0xbfa47c).fillRect(
+      FRAME.inset,
+      top,
+      V.size - 2 * FRAME.inset,
+      bottom - top,
+    );
+    for (let x = FRAME.inset + 34; x < V.size - FRAME.inset; x += 58)
+      g.lineStyle(2, 0x967e5c, 0.5).lineBetween(x, top, x - 10, bottom);
+    g.lineStyle(3, 0x967e5c).lineBetween(
+      FRAME.inset,
+      top,
+      V.size - FRAME.inset,
+      top,
+    );
+    return g;
   }
 
   private animateWater(time: number) {
@@ -181,93 +234,31 @@ export class RiverView {
     this.waterFrame = frame;
     const t = frame / 20;
     const kind = this.waterKind;
-    const coast = kind === 'COAST';
-    const river = kind === 'REEDS';
-    const lake = kind === 'MOON';
     const g = this.water.clear();
-    g.fillStyle(
-      coast ? 0x77b8c2 : river ? 0x83b9af : lake ? 0x7f9fb5 : 0x9bc8b7,
-    )
-      .beginPath()
-      .moveTo(210, 154)
-      .lineTo(609, 134)
-      .lineTo(609, 558)
-      .lineTo(292, 549)
-      .lineTo(338, 442)
-      .lineTo(228, 365)
-      .lineTo(277, 250)
-      .closePath()
-      .fillPath();
-    // Ripples drift slowly in still water, downstream in rivers, and form wave fronts at sea.
-    for (let i = 0; i < 18; i++) {
-      const x =
-        355 + ((i * 43) % 215) + Math.sin(t * 0.8 + i) * (lake ? 12 : 5);
-      const y = 174 + ((i * 61 + (river ? t * 19 : coast ? t * 7 : 0)) % 340);
-      const length = coast ? 26 : lake ? 30 : 14;
+    g.fillStyle(WATER_COLOUR[kind]);
+    this.waterShape(g).fillPath();
+    // Ripples drift toward the dock; at sea they roll in as wave fronts.
+    const flow = kind === 'REEDS' ? 0.12 : kind === 'COAST' ? 0.08 : 0.02;
+    for (let i = 0; i < 16; i++) {
+      const share = (((i * 0.137 + t * flow) % 1) + 1) % 1;
+      const direction = ((i * 29) % 90) - 45 + Math.sin(t + i) * 3;
+      const { x, y, scale } = waterPoint(direction, 1 - share);
+      const length = (kind === 'COAST' ? 40 : 22) * scale;
       g.lineStyle(
-        coast ? 2 : 1.5,
+        Math.max(1, 2 * scale),
         0xe0f2df,
         0.2 + (Math.sin(t + i) + 1) * 0.12,
       );
-      g.beginPath()
-        .moveTo(x, y)
-        .lineTo(x + length / 2, y - Math.sin(t + i) * 2)
-        .lineTo(x + length, y)
-        .strokePath();
+      g.lineBetween(x - length / 2, y, x + length / 2, y);
     }
-    if (coast) {
-      for (let row = 0; row < 4; row++) {
-        const shift = (t * 13 + row * 36) % 144;
-        const x = 380 + shift;
-        g.lineStyle(3, 0xf6f7df, 0.28 * (1 - shift / 180));
-        g.beginPath()
-          .moveTo(x, 170)
-          .lineTo(x - 13, 235)
-          .lineTo(x + 3, 300)
-          .lineTo(x - 8, 365)
-          .lineTo(x + 6, 430)
-          .lineTo(x - 8, 520)
-          .strokePath();
-      }
-    } else if (lake) {
-      for (let i = 0; i < 7; i++)
-        g.fillStyle(0xf1e9ce, 0.13).fillEllipse(
-          490 + Math.sin(t + i) * 4,
-          200 + i * 11,
-          75 - i * 7,
+    if (kind === 'MOON')
+      for (let i = 0; i < 6; i++)
+        g.fillStyle(0xf1e9ce, 0.16).fillEllipse(
+          470 + Math.sin(t + i) * 4,
+          V.horizonY + 14 + i * 16,
+          60 - i * 7,
           4,
         );
-    } else if (!river) {
-      for (let i = 0; i < 3; i++) {
-        const phase = (t * 0.35 + i / 3) % 1;
-        g.lineStyle(1.5, 0xe9f4d9, (1 - phase) * 0.4).strokeEllipse(
-          380 + i * 73,
-          220 + i * 90,
-          18 + phase * 30,
-          5 + phase * 10,
-        );
-      }
-    }
-    const count = coast ? 8 : lake ? 3 : river ? 6 : 4;
-    for (let i = 0; i < count; i++) {
-      const x =
-        374 + ((i * 47) % 190) + Math.sin(t * (river ? 1.1 : 0.5) + i) * 12;
-      const y =
-        190 +
-        ((i * 53 + (river ? t * 15 : coast ? t * 5 : 0)) % 285) +
-        Math.cos(t * 0.6 + i) * 4;
-      const size = lake ? 1.1 : coast ? 0.75 : 0.6;
-      g.fillStyle(lake ? 0x454f77 : 0x3b8274, 0.24)
-        .fillEllipse(x, y, 21 * size, 8 * size)
-        .fillTriangle(
-          x - 8 * size,
-          y,
-          x - 17 * size,
-          y - 6 * size,
-          x - 17 * size,
-          y + 6 * size,
-        );
-    }
   }
 
   render(
@@ -276,6 +267,7 @@ export class RiverView {
       catId: string;
       direction: number;
       aimDepth: number;
+      power: number;
       spotId: SpotId;
     },
   ) {
@@ -286,28 +278,46 @@ export class RiverView {
       this.waterKind = spotId;
       this.waterFrame = -1;
     }
-    this.shore.setVisible(this.waterKind === 'COAST');
+    for (const [id, layer] of Object.entries(this.scenery))
+      layer.setVisible(id === spotId);
     this.animateWater(this.scene.time.now);
-    this.moon.setVisible(spotId === 'MOON');
-    this.reeds.setVisible(spotId === 'REEDS');
     const cat =
       world.cats.find((cat) => cat.id === (active?.catId ?? preview.catId)) ??
       world.cats[0]!;
     if (cat.appearance.coat !== this.coat) {
       this.companion.destroy();
       this.coat = cat.appearance.coat;
-      this.companion = catArt(this.scene, 164, 383, 2.4, cat.appearance.coat);
-      this.root.add(this.companion);
+      this.companion = catArt(
+        this.scene,
+        COMPANION.x,
+        COMPANION.y,
+        COMPANION.scale,
+        cat.appearance.coat,
+      );
+      this.root.addAt(this.companion, this.root.getIndex(this.rod));
     }
-    this.bite.setVisible(active?.phase === 'hook');
-    this.fishShadow.setVisible(
-      active?.phase === 'fight' || (!active && !recent),
+    const cast = !!active && active.phase !== 'charge';
+    const land = waterPoint(
+      active?.direction ?? preview.direction,
+      landingShare(
+        active?.aimDepth ?? preview.aimDepth,
+        // A charging button run previews its live power.
+        active?.power ?? preview.power,
+      ),
     );
-    const x = 430 + (active?.direction ?? preview.direction) * 2;
-    const y =
-      480 -
-      (active?.aimDepth ?? preview.aimDepth) * 2 -
-      (active?.power ?? 60) * 0.8;
+    // Aiming: a flattened ring where the cast would land.
+    this.marker.clear().setVisible(!cast);
+    if (!cast)
+      this.marker
+        .lineStyle(3, 0xfff4c0, 0.9)
+        .strokeEllipse(land.x, land.y, 56 * land.scale, 20 * land.scale)
+        .lineStyle(2, 0xfff4c0, 0.9)
+        .lineBetween(
+          land.x,
+          land.y - 8 * land.scale,
+          land.x,
+          land.y + 8 * land.scale,
+        );
     const flight =
       active?.phase === 'waiting' ? Math.min(1, active.phaseTick / 10) : 1;
     const bob =
@@ -316,31 +326,44 @@ export class RiverView {
         : active?.phase === 'waiting'
           ? Math.sin(active.phaseTick / 5) * 2
           : 0;
-    this.float.setPosition(
-      237 + (x - 237) * flight,
-      244 + (y - 244) * flight - Math.sin(flight * Math.PI) * 60 + bob,
-    );
-    this.float.setScale(active?.phase === 'hook' ? 1.5 : 1);
-    this.bite.setPosition(x, y - 45);
-    this.fishShadow.setPosition(
-      x - 20 + Math.sin((active?.tick ?? 0) / 10) * 16,
-      y + 30,
-    );
-    this.fishShadow.setScale(
-      active?.phase === 'fight' ? 1 + active.progress / 100 : 1,
-    );
-    this.companion.setPosition(164, 310);
+    this.float
+      .setVisible(cast)
+      .setPosition(
+        ROD_TIP.x + (land.x - ROD_TIP.x) * flight,
+        ROD_TIP.y +
+          (land.y - ROD_TIP.y) * flight -
+          Math.sin(flight * Math.PI) * 60 +
+          bob,
+      )
+      .setScale(land.scale * (active?.phase === 'hook' ? 1.5 : 1));
+    this.bite
+      .setVisible(active?.phase === 'hook')
+      .setPosition(land.x, land.y - 45 * land.scale);
+    this.fishShadow
+      .setVisible(active?.phase === 'fight' || (!active && !recent))
+      .setPosition(
+        land.x - 20 * land.scale + Math.sin((active?.tick ?? 0) / 10) * 16,
+        land.y + 24 * land.scale,
+      )
+      .setScale(
+        land.scale *
+          (active?.phase === 'fight' ? 1 + active.progress / 100 : 1),
+      );
     this.rod
       .clear()
-      .lineStyle(3, 0x886c4d)
-      .lineBetween(190, 330, 237, 244)
-      .lineStyle(
-        active?.phase === 'fight' ? 2 : 1,
-        active && (active.tension > 85 || active.tension < 15)
-          ? 0xcc7454
-          : 0xf6f0d9,
-        0.9,
-      )
-      .lineBetween(237, 244, this.float.x, this.float.y - 4);
+      .lineStyle(5, 0x886c4d)
+      .lineBetween(ROD_BASE.x, ROD_BASE.y, ROD_TIP.x, ROD_TIP.y);
+    if (cast)
+      this.rod
+        .lineStyle(
+          active.phase === 'fight' ? 2 : 1,
+          // Only the button flow has line tension to warn about.
+          active.mode === 'buttons' &&
+            (active.tension > 85 || active.tension < 15)
+            ? 0xcc7454
+            : 0xf6f0d9,
+          0.9,
+        )
+        .lineBetween(ROD_TIP.x, ROD_TIP.y, this.float.x, this.float.y - 4);
   }
 }

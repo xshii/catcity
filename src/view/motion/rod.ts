@@ -5,63 +5,87 @@ const G = FISHING.motion.gesture;
 export interface RodSample {
   /** Milliseconds, monotonic (event timestamps). */
   t: number;
-  /** Gyroscope pitch rate in °/s as reported by the device. */
+  /** Gyroscope rate about the tuned axis, °/s, as reported by the device. */
   pitchRate: number;
+  /** The power the slow pitch currently sets (0–100). */
+  power: number;
 }
 export type RodEvent = { kind: 'cast'; power: number } | { kind: 'lift' };
 
+/** Which rate axis is the rod's pitch, its sign, and the speeds that count (°/s). */
+export interface RodTuning {
+  axis: 'pitch' | 'roll' | 'yaw';
+  pitchSign: 1 | -1;
+  flickDegPerSec: number;
+  liftDegPerSec: number;
+}
+export const DEFAULT_TUNING: RodTuning = {
+  axis: G.axis,
+  pitchSign: G.pitchSign,
+  flickDegPerSec: G.flickDegPerSec,
+  liftDegPerSec: G.liftDegPerSec,
+};
+
 /**
  * Phone-as-rod gestures (spec 030). Pure: fed samples and timestamps, it reports a cast
- * (backswing then forward whip; power from the whip's peak rate) or a quick tip-up lift.
- * `want` scopes recognition to the phase, so a backswing is never read as a lift.
+ * when the tip flicks down fast (with the power set just before the flick began) or a
+ * lift when it flicks up fast. Slow pitching only sets the power. `want` scopes
+ * recognition to the phase; the rebound of a cast is never read as a lift.
  */
-export function createRodGestures() {
-  let backswingAt: number | null = null;
-  let whipPeak = 0;
+export function createRodGestures(tuning: RodTuning = DEFAULT_TUNING) {
+  let history: { t: number; power: number }[] = [];
+  let onsetPower: number | null = null;
+  let flicking = false;
   let lastLift = -Infinity;
+  // The first reading inside the lead window: after a gap in the stream, older
+  // readings are stale.
+  const powerFrom = (t: number) =>
+    (history.find((entry) => entry.t >= t) ?? history.at(-1)!).power;
   const reset = () => {
-    backswingAt = null;
-    whipPeak = 0;
+    history = [];
+    onsetPower = null;
+    flicking = false;
   };
   return {
     reset,
     push(sample: RodSample, want: 'cast' | 'lift'): RodEvent | null {
-      // Positive `forward` swings the tip toward the water; negative lifts it.
-      const forward = sample.pitchRate * G.pitchSign;
+      // Positive `down` flicks the tip toward the water; negative lifts it.
+      const down = sample.pitchRate * tuning.pitchSign;
       if (want === 'lift') {
-        reset();
+        history = [];
+        onsetPower = null;
         if (
-          -forward >= G.liftDegPerSec &&
+          !flicking &&
+          -down >= tuning.liftDegPerSec &&
           sample.t - lastLift >= G.liftCooldownMs
         ) {
           lastLift = sample.t;
           return { kind: 'lift' };
         }
+        if (Math.abs(down) < G.onsetDegPerSec) flicking = false;
         return null;
       }
-      if (-forward >= G.backswingDegPerSec) {
-        backswingAt = sample.t;
-        whipPeak = 0;
+      history.push({ t: sample.t, power: sample.power });
+      history = history.filter(
+        (entry) => entry.t >= sample.t - 2 * G.powerLeadMs - 100,
+      );
+      if (flicking) {
+        if (Math.abs(down) < G.onsetDegPerSec) flicking = false;
         return null;
       }
-      if (backswingAt === null) return null;
-      if (sample.t - backswingAt > G.swingWindowMs && whipPeak === 0) {
-        reset();
+      if (down < G.onsetDegPerSec) {
+        onsetPower = null;
         return null;
       }
-      if (forward >= G.forwardDegPerSec) {
-        whipPeak = Math.max(whipPeak, forward);
-        return null;
-      }
-      if (whipPeak === 0) return null;
-      // The whip ended: power scales from the threshold to full speed.
-      const span = G.fullPowerDegPerSec - G.forwardDegPerSec;
-      const share = Math.min(1, (whipPeak - G.forwardDegPerSec) / span);
-      reset();
-      return {
-        kind: 'cast',
-        power: Math.round(G.minPower + share * (100 - G.minPower)),
-      };
+      // Read the power as the push starts; it may sag while the push speeds up.
+      onsetPower ??= powerFrom(sample.t - G.powerLeadMs);
+      if (down < tuning.flickDegPerSec) return null;
+      const power = onsetPower;
+      onsetPower = null;
+      flicking = true;
+      // The rebound of this flick must not strike the new run.
+      lastLift = sample.t;
+      return { kind: 'cast', power };
     },
   };
 }

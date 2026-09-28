@@ -19,9 +19,21 @@
   border-radius: 999px;
   background: rgba(255, 253, 244, 0.92);
   color: #45613f;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  white-space: nowrap;
+  /* The plane is 60% of the canvas: hints may widen past it, within the canvas. */
+  width: max-content;
+  max-width: 160%;
+  text-align: center;
+}
+.motion-calibrate {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  pointer-events: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
 }
 #motion-fishing.nibble .motion-fishing-hint {
   animation: motion-nibble 0.3s ease-in-out;
@@ -135,4 +147,33 @@
   height: auto;
   padding: 6px 12px;
   background: #fffcf0cc;
+}
+/* Cast power set by slow pitch: a vertical meter with the precise band highlighted. */
+.motion-power {
+  position: absolute;
+  right: -18px;
+  top: 8%;
+  width: 12px;
+  height: 84%;
+  border-radius: 999px;
+  background: rgba(255, 253, 244, 0.7);
+  overflow: hidden;
+}
+.motion-power-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--band-low);
+  height: var(--band-size);
+  background: rgba(95, 156, 90, 0.55);
+}
+.motion-power-level {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: var(--power);
+  height: 4px;
+  border-radius: 2px;
+  background: #d9644c;
+  transform: translateY(50%);
 }

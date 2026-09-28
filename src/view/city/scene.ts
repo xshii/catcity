@@ -3,12 +3,12 @@ import { CITY_START } from '../../content/city';
 import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
-import { FISHING } from '../../content/fishing';
 import type { Position } from '../../core';
 import { catArt } from '../art/cat';
 import type { CityActions } from './actions';
 import { drawCityMap } from '../art/city-map';
 import { RiverView } from '../art/river';
+import { aimAtPoint } from '../art/water-view';
 import { MAP_VIEW, tileCenter } from './geometry';
 
 export class CityScene extends Phaser.Scene {
@@ -112,24 +112,9 @@ export class CityScene extends Phaser.Scene {
   }
 
   private aimOnWater(pointer: Phaser.Input.Pointer) {
-    if (
-      this.session.getSnapshot().fishing.active ||
-      pointer.x < 270 ||
-      pointer.y < 150 ||
-      pointer.y >= 470
-    )
-      return;
-    const { maxDirection, maxDepth } = FISHING.input;
-    this.aim.set({
-      direction: Math.max(
-        -maxDirection,
-        Math.min(maxDirection, Math.round((pointer.x - 430) / 10) * 5),
-      ),
-      depth: Math.max(
-        0,
-        Math.min(maxDepth, Math.round((432 - pointer.y) / 10) * 5),
-      ),
-    });
+    if (this.session.getSnapshot().fishing.active) return;
+    const aim = aimAtPoint(pointer.x, pointer.y, this.aim.get().power);
+    if (aim) this.aim.set(aim);
   }
 
   private updateCamera() {
@@ -190,6 +175,7 @@ export class CityScene extends Phaser.Scene {
       catId: this.session.selectedEntity ?? STARTER_CAT_ID,
       direction: aim.direction,
       aimDepth: aim.depth,
+      power: aim.power,
       spotId: aim.spotId,
     });
     document

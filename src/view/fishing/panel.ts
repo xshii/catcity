@@ -93,6 +93,7 @@ export function mountAngling(
   const control = get<HTMLButtonElement>('fish-control');
   let detailsKey = '';
   let aimKey = '';
+  let aimPower = FISHING.input.maxPower / 2;
   const aimListeners = new Set<() => void>();
   let previousRun: string | undefined;
   const report = (
@@ -293,6 +294,8 @@ export function mountAngling(
     spotId: (location.value || 'POND') as SpotId,
     direction: Number(direction.value),
     depth: Number(depth.value),
+    // Only motion aiming sets the power before a run; the button flow charges it.
+    power: motion.active() ? aimPower : FISHING.input.maxPower / 2,
   });
   const aim: AimControl = {
     get: currentAim,
@@ -300,6 +303,7 @@ export function mountAngling(
       if (next.direction !== undefined)
         direction.value = String(next.direction);
       if (next.depth !== undefined) depth.value = String(next.depth);
+      if (next.power !== undefined) aimPower = next.power;
       render();
     },
     subscribe(listener) {
@@ -330,7 +334,7 @@ export function mountAngling(
     canPlay: () =>
       place.get() === 'river' && !layout.isOpen() && !document.hidden,
     isPaused: () => controls.paused(),
-    previewAim: (swingDirection) => aim.set({ direction: swingDirection }),
+    previewAim: (preview) => aim.set(preview),
     // One swing starts and casts a motion run: nothing is spent before it.
     cast: (swingDirection, power) => {
       if (session.getSnapshot().fishing.active) return false;

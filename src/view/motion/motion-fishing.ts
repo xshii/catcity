@@ -7,20 +7,25 @@ import {
   ringRadius,
 } from '../../minigames/angling-motion';
 import { FISHING } from '../../content/fishing';
+import { WATER_VIEW } from '../art/water-view';
 import { OrientationTracker } from './orientation';
-import { createRodGestures } from './rod';
+import {
+  calibrateSwing,
+  parseTuning,
+  screenRates,
+  type SpinSample,
+} from './calibrate';
+import { createRodGestures, DEFAULT_TUNING, type RodTuning } from './rod';
 import { createRodTip } from './tip';
 
 type Capability = 'unknown' | 'ready' | 'denied' | 'unsupported';
 type Preference = 'motion' | 'buttons';
 /** Per-device choice; never part of the world or a save. */
 const PREFERENCE_KEY = 'cat-city.fishing-input';
-/**
- * Open water in the river art (x 210–609, y 134–558 of the 640 canvas), as shares of the
- * square canvas: a square as large as the water allows, spilling a little onto the west bank.
- */
-const WATER = { left: 0.35, top: 0.2, side: 0.6 };
-
+/** Per-device swing calibration; never part of the world or a save. */
+const TUNING_KEY = 'cat-city.rod-tuning';
+/** How long the calibration result stays on screen. */
+const NOTICE_MS = 3000;
 interface PermissionApi {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 }
@@ -35,8 +40,8 @@ export interface MotionFishingDeps {
   canPlay: () => boolean;
   /** A paused run ignores gestures until the player resumes it. */
   isPaused: () => boolean;
-  /** Live aim while no run exists, so the water preview follows the tilt. */
-  previewAim: (direction: number) => void;
+  /** Live aim and power while no run exists, so the water preview follows the rod. */
+  previewAim: (aim: { direction: number; power: number }) => void;
   /** Starts a motion run and casts it at once; false if Core rejected it. */
   cast: (direction: number, power: number) => boolean;
   strike: () => void;
@@ -53,7 +58,10 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   let preference: Preference = readPreference();
   let capability: Capability = 'unknown';
   const tracker = new OrientationTracker();
-  const gestures = createRodGestures();
+  let tuning = readTuning();
+  let gestures = createRodGestures(tuning);
+  let calibration: SpinSample[] | null = null;
+  let notice: { text: string; until: number } | null = null;
   const tip = createRodTip();
   let tilt: { x: number; y: number } | null = null;
   let rebase = true;
@@ -61,7 +69,9 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   let lastRun: string | null = null;
   let lastPhase = '';
   let cuedNibble = -1;
-  let lastAim: number | null = null;
+  let power = 50;
+  let lastPreview = '';
+  let calibrationTimer = 0;
 
   const overlay = document.createElement('div');
   overlay.id = 'motion-fishing';
@@ -71,18 +81,24 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     '<strong id="motion-bite" class="motion-bite" hidden aria-live="assertive">！</strong>' +
     '<span id="motion-ring" class="motion-ring" hidden aria-hidden="true"></span>' +
     '<span id="motion-tip" class="motion-tip" hidden></span>' +
-    '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>';
+    '<div id="motion-power" class="motion-power" hidden role="meter" aria-label="抛竿力度" aria-valuemin="0" aria-valuemax="100"><span class="motion-power-band"></span><i class="motion-power-level"></i></div>' +
+    '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>' +
+    '<button id="motion-calibrate" class="motion-calibrate" hidden>校准甩竿</button>';
   deps.plane.append(overlay);
   const $ = <T extends HTMLElement>(id: string) =>
     overlay.querySelector<T>(`#${id}`)!;
   const ring = $('motion-ring');
+  // The precise-cast band on the power meter comes from the cast rules.
+  const band = FISHING.cast.precisionPower;
+  $('motion-power').style.setProperty('--band-low', `${band.min}%`);
+  $('motion-power').style.setProperty('--band-size', `${band.max - band.min}%`);
 
   const card = document.createElement('div');
   card.id = 'motion-onboarding';
   card.className = 'motion-onboarding';
   card.hidden = true;
   card.innerHTML =
-    '<p>开启体感钓鱼：倾斜瞄准，后扬再前压甩竿，看到"！"快速上扬。</p>' +
+    '<p>开启体感钓鱼：面向水面，左右瞄准，慢慢俯仰调力度，快速下甩抛竿，看到"！"快速上扬。</p>' +
     '<button id="motion-enable" class="primary">开启体感钓鱼</button>' +
     '<button id="motion-use-buttons" class="quiet">改用按钮</button>';
   deps.stage.append(card);
@@ -155,14 +171,26 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       rebase = false;
     }
     if (active() && deps.canPlay() && !deps.getRun()) {
-      const aim = tip.aim(next);
-      if (aim !== lastAim) deps.previewAim(aim);
-      lastAim = aim;
+      power = tip.power(next);
+      const preview = { direction: tip.aim(next), power };
+      const key = `${preview.direction}/${preview.power}`;
+      if (key !== lastPreview) deps.previewAim(preview);
+      lastPreview = key;
     }
   }
   function onMotion(event: DeviceMotionEvent) {
-    const rate = event.rotationRate?.beta;
-    if (typeof rate !== 'number' || !Number.isFinite(rate)) return;
+    const reading = event.rotationRate?.beta;
+    if (typeof reading !== 'number' || !Number.isFinite(reading)) return;
+    // Rates in the screen's axes, so a landscape hold pitches the same way.
+    const rates = screenRates(
+      event.rotationRate,
+      screen.orientation?.angle ?? 0,
+    );
+    if (calibration) {
+      calibration.push({ t: event.timeStamp, ...rates });
+      return;
+    }
+    const rate = rates[tuning.axis];
     if (capability !== 'ready') {
       capability = 'ready';
       deps.onChange();
@@ -177,7 +205,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         : null;
     if (!want) return gestures.reset();
     const gesture = gestures.push(
-      { t: event.timeStamp, pitchRate: rate },
+      { t: event.timeStamp, pitchRate: rate, power },
       want,
     );
     if (gesture?.kind === 'cast') {
@@ -197,12 +225,43 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       deps.strike();
   });
 
+  // One-tap calibration: two flicks down, then the rod follows this phone and player.
+  const endCalibration = () => {
+    window.clearTimeout(calibrationTimer);
+    calibration = null;
+  };
+  $('motion-calibrate').addEventListener('click', (event) => {
+    event.stopPropagation();
+    endCalibration();
+    calibration = [];
+    gestures.reset();
+    deps.onChange();
+    calibrationTimer = window.setTimeout(() => {
+      const result = calibrateSwing(calibration ?? []);
+      endCalibration();
+      if (result) {
+        tuning = result.tuning;
+        gestures = createRodGestures(tuning);
+        saveTuning(tuning);
+      }
+      notice = {
+        text: result
+          ? `校准完成：下甩 ${result.peak}°/s`
+          : '没感到两次一致的下甩，再试一次',
+        until: performance.now() + NOTICE_MS,
+      };
+      window.setTimeout(deps.onChange, NOTICE_MS);
+      deps.onChange();
+    }, FISHING.motion.gesture.calibration.windowMs);
+  });
+
   /** Keep the plane square over the canvas's open water, so drawing matches Core. */
   const place = () => {
     const canvas = deps.plane.querySelector('canvas');
     if (!canvas) return;
     const box = deps.plane.getBoundingClientRect();
     const art = canvas.getBoundingClientRect();
+    const WATER = WATER_VIEW.plane;
     const side = art.width * WATER.side;
     overlay.style.left = `${art.left - box.left + art.width * WATER.left}px`;
     overlay.style.top = `${art.top - box.top + art.height * WATER.top}px`;
@@ -255,6 +314,9 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
             : '钓鱼操作：按钮（点此开启体感）';
     toggle.setAttribute('aria-pressed', String(active()));
     toggle.disabled = capability === 'unsupported';
+    // Leaving the water or starting a run abandons a calibration in progress.
+    if (calibration && (motionRun || !active() || !deps.canPlay()))
+      endCalibration();
     overlay.hidden = !(active() || motionRun) || !deps.canPlay();
     if (overlay.hidden) return;
     place();
@@ -270,20 +332,30 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     }
     const phase = motionRun?.phase ?? 'aim';
     overlay.dataset.phase = phase;
-    $('motion-fishing-hint').textContent =
-      motionRun && deps.isPaused()
-        ? '已暂停 · 点「继续钓鱼」再继续'
-        : phase === 'aim'
-          ? '左右倾斜瞄准，后扬再前压甩竿'
-          : phase === 'waiting'
-            ? '拿稳鱼竿，等"！"再上扬'
-            : phase === 'hook'
-              ? '快速上扬提竿！'
-              : phase === 'fight'
-                ? (motionRun?.phaseTick ?? 0) <= FISHING.motion.fight.graceTicks
-                  ? '稳住，竿尖放进鱼圈'
-                  : '倾斜手机，让竿尖追住鱼圈'
-                : '';
+    $('motion-calibrate').hidden = !!motionRun || !active() || !!calibration;
+    const meter = $('motion-power');
+    meter.hidden = !!motionRun || !active();
+    meter.style.setProperty('--power', `${power}%`);
+    meter.setAttribute('aria-valuenow', String(power));
+    if (notice && performance.now() >= notice.until) notice = null;
+    $('motion-fishing-hint').textContent = calibration
+      ? '校准：向下快甩两次'
+      : notice && !motionRun
+        ? notice.text
+        : motionRun && deps.isPaused()
+          ? '已暂停 · 点「继续钓鱼」再继续'
+          : phase === 'aim'
+            ? '左右瞄准 · 俯仰调力度 · 下甩抛竿'
+            : phase === 'waiting'
+              ? '拿稳鱼竿，等"！"再上扬'
+              : phase === 'hook'
+                ? '快速上扬提竿！'
+                : phase === 'fight'
+                  ? (motionRun?.phaseTick ?? 0) <=
+                    FISHING.motion.fight.graceTicks
+                    ? '稳住，竿尖放进鱼圈'
+                    : '倾斜手机追住鱼圈'
+                  : '';
     $('motion-bite').hidden = phase !== 'hook';
     if (motionRun?.phase === 'waiting') {
       const nibble = motionSchedule(motionRun).nibbles.findIndex(
@@ -327,6 +399,23 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   return { active, point, refresh };
 }
 
+function readTuning(): RodTuning {
+  try {
+    return (
+      parseTuning(JSON.parse(localStorage.getItem(TUNING_KEY) ?? 'null')) ??
+      DEFAULT_TUNING
+    );
+  } catch {
+    return DEFAULT_TUNING;
+  }
+}
+function saveTuning(tuning: RodTuning) {
+  try {
+    localStorage.setItem(TUNING_KEY, JSON.stringify(tuning));
+  } catch {
+    // Private mode or blocked storage: the calibration lasts for this page only.
+  }
+}
 function readPreference(): Preference {
   try {
     return localStorage.getItem(PREFERENCE_KEY) === 'buttons'
