@@ -7,6 +7,7 @@ import { catchFish } from '../../harness/adapters/catcity/angling-input';
 import { expect, test } from '@playwright/test';
 import {
   closeRiverPanel,
+  invitePepper,
   openChat,
   openGear,
   showBagFish,
@@ -41,6 +42,7 @@ test('corrupt save remains untouched and the player sees the error', async ({
   await page.goto('/');
   await ready(page);
   await expect(page.getByRole('alert')).toContainText('原数据已保留');
+  await page.locator('#city-tab-guide').click();
   await page.getByRole('button', { name: '保存进度' }).click();
   expect(
     await page.evaluate(() => localStorage.getItem('cat-city.save.v1')),
@@ -79,7 +81,8 @@ test('mobile touch layout resumes a shared outing and recalls it after reload', 
     await openChat(page);
     await page.getByRole('button', { name: '今天有点累', exact: true }).tap();
     await expect(page.getByTestId('dialogue')).toContainText('歇一会');
-    await page.getByRole('button', { name: '邀请 Mochi 去钓鱼 ↗' }).tap();
+    await page.locator('#city-tab-outing').tap();
+    await page.locator('[data-outing-spot="POND"]').tap();
     await reachWaterway(page);
     await page.locator('#begin-fishing').click();
     expect((await readWorld(page)).fishing.active).toBeNull();
@@ -160,20 +163,23 @@ test('city guide makes construction, income and the relationship activity discov
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await ready(page);
-  await page.locator('#city-tab-build').click();
+  await page.locator('#city-tab-guide').click();
   await expect(page.locator('#city-goal')).toHaveText('先给 Mochi 建一间猫咖');
   await page.getByRole('button', { name: '回地图选择空地' }).click();
   expect((await readWorld(page)).buildings).toHaveLength(0);
   await page.locator('[data-build-type=CAT_CAFE]').click();
   await expect(page.getByTestId('coins')).toHaveText('700');
   expect((await readWorld(page)).buildings).toHaveLength(1);
-  await page.locator('#city-tab-build').click();
-  await page.getByRole('button', { name: '营业一小时 · +10 金币' }).click();
+  await page.locator('#city-tab-guide').click();
+  // The guide points at the clock speed; the test build advances its clock explicitly.
+  await page.getByRole('button', { name: '去调快时间' }).click();
+  await expect(page.locator('#clock-speed')).toBeFocused();
+  await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
   await expect(page.getByTestId('coins')).toHaveText('710');
   await expect(page.locator('#cafe-income')).toContainText('累计赚取 10 金币');
   await page.reload();
   await ready(page);
-  await page.locator('#city-tab-build').click();
+  await page.locator('#city-tab-guide').click();
   await expect(page.locator('#city-goal')).toContainText('一起留下回忆');
   await page.getByRole('button', { name: '在地图找到池塘' }).click();
   await expect(page.locator('#visit-city')).toHaveAttribute(
@@ -190,7 +196,7 @@ test('city guide makes construction, income and the relationship activity discov
   await expect(page.locator('#city-instruction')).toContainText(
     '安排公寓与道路',
   );
-  await page.locator('#city-tab-build').click();
+  await page.locator('#city-tab-guide').click();
   await page.getByRole('button', { name: '和 Mochi 聊聊共同回忆' }).click();
   await expect(page.getByTestId('dialogue')).toBeVisible();
   await expect(page.getByTestId('dialogue')).toContainText('银鱼');
@@ -254,7 +260,7 @@ test('skill and atlas unlock a new waterway; bait changes catches and Pepper rec
     (fish) => fish.speciesId === 'PERCH',
   )!;
   expect(perch).toBeDefined();
-  await page.locator('#invite-pepper').click();
+  await invitePepper(page);
   const pepper = (await readWorld(page)).cats.find(
     (cat) => cat.definitionId === 'PEPPER',
   )!;
@@ -357,8 +363,7 @@ test('old demo saves require an explicit reset; atlas shows all tiers, lengths a
   await expect(page.locator('[data-species="KOI"]')).toContainText(
     '品种条件已满足',
   );
-  await closeRiverPanel(page);
-  await page.locator('#invite-pepper').click();
+  await invitePepper(page);
   const pepper = (await readWorld(page)).cats.find(
     (cat) => cat.definitionId === 'PEPPER',
   )!;

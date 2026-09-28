@@ -29,8 +29,8 @@ export const cityLoopTask: HarnessTask = {
   ],
   expectedState: {
     initialCoins: 1000,
-    builtCoins: 370,
-    finalCoins: '378 + 10 × floor(finalMinute / 60)',
+    builtCoins: 330,
+    finalCoins: '338 + 10 × floor(finalMinute / 60)',
     finalMinute: 'city walking time + 120',
     landBought: 1,
     upgradedRoads: 1,

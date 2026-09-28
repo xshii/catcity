@@ -5,7 +5,6 @@ import { BUILDINGS } from '../../content/city';
 import type { Position, WorldState } from '../../core';
 import { tileAt } from '../../core/city';
 import type { CityActions } from './actions';
-import { ERROR_MESSAGES } from '../shell/errors';
 
 const { CAT_CAFE } = BUILDINGS;
 
@@ -71,17 +70,25 @@ export function mountCityGuide(
     get('city-instruction').textContent = !cafe
       ? `回地图选一块空地，先买地、再建猫咖或公寓。城中心已有少量土地和土路。猫咖需要 ${CAT_CAFE.cost} 金币。`
       : !earned
-        ? `猫咖每游戏小时自动赚 ${CAT_CAFE.income} 金币。点按钮快进一小时，马上看到收入。`
+        ? `猫咖每游戏小时自动赚 ${CAT_CAFE.income} 金币。时间一直在走；顶部时钟旁的速度按钮可以切到 2× 或 4×。`
         : !remembered
           ? '在地图点池塘，站在岸边就能开始钓鱼，留下一段共同回忆。'
           : '扩建猫咖赚收入，安排公寓与道路，带不同的猫去岸边钓鱼。累了就让它们休息。';
     action.textContent = !cafe
       ? '回地图选择空地'
       : !earned
-        ? `营业一小时 · +${CAT_CAFE.income} 金币`
+        ? '去调快时间'
         : !remembered
           ? '在地图找到池塘'
           : '和 Mochi 聊聊共同回忆';
+    get('city-hint').textContent = !cafe
+      ? '下一步：点城中心的空地，建一间猫咖'
+      : !earned
+        ? `下一步：等猫咖营业满 1 小时 · 可点顶部「速度」调快`
+        : !remembered
+          ? '下一步：点池塘，和 Mochi 一起钓一次鱼'
+          : '点地建设 · 选猫后点地块，在卡片上让它走过去';
+    get('clock-speed').classList.toggle('guide-target', !!cafe && !earned);
     get('cafe-income').hidden = !cafe;
     get('cafe-income').textContent =
       `第一家猫咖 · 累计赚取 ${earned} 金币 · 距离下笔收入 ${CAT_CAFE.intervalMinutes - (cafe ? (world.minute - cafe.builtAtMinute) % CAT_CAFE.intervalMinutes : 0)} 游戏分钟`;
@@ -95,15 +102,9 @@ export function mountCityGuide(
       if (position) cityActions.selectTile(position);
       notify('点击地图空地选址，再在下方选择要建的建筑。');
     } else if (!earned) {
-      const result = session.execute({
-        type: 'ADVANCE_TIME',
-        minutes: CAT_CAFE.intervalMinutes,
-      });
-      notify(
-        result.ok
-          ? `第一家猫咖的营业收入到账：+${CAT_CAFE.income} 金币。接下来邀请 Mochi 一起出游吧。`
-          : ERROR_MESSAGES[result.error],
-      );
+      tools.close();
+      get('clock-speed').focus();
+      notify('点顶部的「速度」切换 1× / 2× / 4×，猫咖营业满一小时就有收入。');
     } else if (!remembered) {
       cityActions.focusWaterway('POND');
     } else {

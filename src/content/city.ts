@@ -25,8 +25,11 @@ export const CITY_COSTS = {
   roadRefund: { DIRT: 15, STONE: 35 },
 } as const;
 export const WALK_MINUTES = { GRASS: 10, DIRT: 5, STONE: 3 } as const;
-/** Player time shortcuts: wait on the action card, fast-forward the whole city. */
-export const CITY_TIME = { waitMinutes: 10, fastForwardMinutes: 60 } as const;
+/**
+ * Waiting on the action card, and the city clock speeds: game minutes per real second
+ * while the page is in the foreground (tapping cycles through them).
+ */
+export const CITY_TIME = { waitMinutes: 10, speeds: [1, 2, 4] } as const;
 
 /** The starting city: square map size, owned starter district, its crossroads and funds. */
 export const CITY_START = {

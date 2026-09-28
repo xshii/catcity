@@ -28,9 +28,11 @@ if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
   );
 }
 
-// Browser time is an input adapter. Test builds advance game time explicitly.
+// Browser time is an input adapter: each real second advances the city by the chosen
+// speed. Test builds advance game time explicitly.
 if (import.meta.env.MODE !== 'test') {
   window.setInterval(() => {
-    if (!document.hidden) session.execute({ type: 'ADVANCE_TIME', minutes: 1 });
+    if (!document.hidden)
+      session.execute({ type: 'ADVANCE_TIME', minutes: view.clockSpeed() });
   }, 1000);
 }

@@ -6,6 +6,7 @@ import { catchFish } from '../../harness/adapters/catcity/angling-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import {
   closeRiverPanel,
+  invitePepper,
   openGear,
 } from '../../harness/adapters/catcity/navigation';
 
@@ -45,7 +46,7 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   await expect(page.locator('[data-cat-id="mochi"]')).toContainText(
     '休息中 60 分钟',
   );
-  await page.locator('#invite-pepper').click();
+  await invitePepper(page);
   const pepper = (await readWorld(page)).cats[1]!;
   await page.locator(`[data-cat-id="${pepper.id}"]`).click();
   await enterRiver(page);
@@ -54,7 +55,8 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   await page.locator('#fish-cancel').click();
   const pepperEnergy = pepperArrival.cats[1]!.needs.energy - 8;
   expect((await readWorld(page)).cats[1]!.needs.energy).toBe(pepperEnergy);
-  await page.locator('#time-forward').click();
+  // The city clock (the browser's real-time adapter in play) completes the rest.
+  await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
   expect((await readWorld(page)).cats.map((cat) => cat.needs.energy)).toEqual([
     100,
     pepperEnergy,

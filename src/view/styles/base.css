@@ -278,20 +278,6 @@ input::placeholder {
 #send:disabled {
   opacity: 0.5;
 }
-.rest {
-  border: 1px solid #daddcd;
-  border-radius: 11px;
-  background: transparent;
-  padding: 15px;
-  color: #6c7a60;
-  font-size: 12px;
-  text-align: left;
-}
-.rest span {
-  float: right;
-  font-size: 10px;
-  color: #939b85;
-}
 #notice {
   font-size: 12px;
   color: #7c886f;
@@ -321,9 +307,6 @@ footer {
   }
   aside {
     grid-template-columns: 1fr 1fr;
-  }
-  .rest {
-    grid-column: 1 / -1;
   }
   .offline {
     display: none;
@@ -479,12 +462,6 @@ aside {
   cursor: default;
   transform: none;
 }
-.card > .activity-note {
-  text-align: center;
-  margin: 8px 0 0;
-  font-size: 10px;
-  color: #9b9e86;
-}
 .journal {
   background: #faf7eb;
 }
@@ -576,9 +553,6 @@ aside {
   min-width: 133px;
   font-size: 10px;
   padding: 11px;
-}
-.rest {
-  align-self: center;
 }
 footer {
   align-items: flex-start;
@@ -1122,24 +1096,6 @@ footer details p {
   font:
     italic 14px Georgia,
     serif;
-}
-.clock-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 10px;
-  font-size: 10px;
-  color: #8b9480;
-}
-.clock-actions button {
-  border: 1px solid #d6ddc6;
-  background: #fffdef;
-  color: #647854;
-  border-radius: 9px;
-  padding: 10px;
-  font-size: 12px;
-  min-height: 40px;
 }
 #fishing-stage:not(.is-river) .scene-ready {
   display: none;

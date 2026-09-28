@@ -1,10 +1,12 @@
 import type { PlaceState } from './place';
 import { STARTER_CAT_ID } from '../../content/cats';
-import { BUILDINGS, CITY_TIME } from '../../content/city';
+import { BUILDINGS } from '../../content/city';
 import type { GameSession } from '../../application';
 import { mountAngling } from '../fishing/panel';
 import { mountCityGuide } from '../city/guide';
 import { mountCityActions } from '../city/actions';
+import { mountOuting } from '../city/outing';
+import { mountClockSpeed } from './clock-speed';
 import { mountCompanionship } from '../companion/journal';
 import { toViewModel } from './model';
 import { ERROR_MESSAGES } from './errors';
@@ -15,23 +17,24 @@ export function mountPanel(session: GameSession, place: PlaceState) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <main class="shell">
       <header class="topbar"><a class="brand" href="./"><span class="brand-mark">c</span><span>CAT CITY<small>A LITTLE PLACE TO BELONG</small></span></a>
-        <div class="top-actions"><span class="offline"><i></i> 本地陪伴 · 自动保存</span><button id="save" class="quiet">保存进度</button></div></header>
+        <div class="top-actions"><span class="offline"><i></i> 本地陪伴 · 自动保存</span></div></header>
       <section class="intro"><div><p class="eyebrow">A SMALL MOMENT, TOGETHER</p><h1>小城很慢，幸好有你。</h1><p class="subtitle" id="chapter-progress"></p></div>
         <div class="wallet"><span class="coin">●</span><div><small>城市金币</small><strong id="coins" data-testid="coins"></strong></div></div></section>
       <section id="save-recovery" class="save-recovery" hidden><div id="storage-error" role="alert" hidden></div><button id="reset-demo" hidden>清除旧试玩存档，开始新版</button></section>
-      <div class="layout"><section class="map-card"><div id="map-heading" class="map-heading"><div class="scene-tabs"><button id="visit-city" aria-pressed="true">小城</button><button id="visit-river" aria-pressed="false">河畔</button></div><span id="clock"></span></div>
+      <div class="layout"><section class="map-card"><div id="map-heading" class="map-heading"><div class="scene-tabs"><button id="visit-city" aria-pressed="true">小城</button><button id="visit-river" aria-pressed="false">河畔</button></div><span id="clock"></span><button id="clock-speed" class="quiet"></button></div>
         <section id="city-guide" class="city-guide" aria-label="小城玩法指引"><ol class="city-steps"><li data-city-step="0">猫咖开张</li><li data-city-step="1">营业收入</li><li data-city-step="2">共同回忆</li></ol><h2 id="city-goal"></h2><p id="city-instruction"></p><button id="city-action" class="primary"></button><p id="cafe-income" class="cafe-income" hidden></p></section>
-        <div class="city-map-hint"><span id="city-hint">点地建设 · 点猫后选择步行目的地</span><button id="city-overview" class="quiet" aria-pressed="false">总览地图</button></div><div id="game"></div>
+        <section id="city-save" class="city-save" aria-label="保存"><p>进度会自动保存在这台设备；也可以现在手动保存一次。</p><button id="save" class="quiet">保存进度</button></section>
+        <div class="city-map-hint"><span id="city-hint" aria-live="polite"></span><button id="city-overview" class="quiet" aria-pressed="false">总览地图</button></div><div id="game"></div>
         <div class="map-footer"><span id="map-hint">点击空地建一间猫咖，或邀请 Mochi 出游</span><span>慢慢来 ♧</span></div></section>
         <aside><section class="card cat-card"><p class="eyebrow">YOUR LITTLE COMPANION</p><div class="cat-heading"><div class="cat-avatar" aria-hidden="true"><svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><path d="M12 31L10 9l17 12h10L54 9l-2 22" fill="#efdbb2"/><path d="M15 26l-2-12 10 9M41 23l10-9-2 12" fill="#dda996"/><ellipse cx="32" cy="34" rx="23" ry="20" fill="#f7e7c6"/><g class="portrait-eyes" fill="#605942"><ellipse cx="23" cy="32" rx="2" ry="3"/><ellipse cx="41" cy="32" rx="2" ry="3"/></g><path d="M29 38h6l-3 4z" fill="#ca9785"/><path d="M32 42v3m0 0l-4 2m4-2l4 2" fill="none" stroke="#a38a6b" stroke-linecap="round"/><ellipse cx="17" cy="39" rx="4" ry="2" fill="#e8bba4"/><ellipse cx="47" cy="39" rx="4" ry="2" fill="#e8bba4"/></svg></div><div><h2 id="cat-name">认识 Mochi</h2><span class="pill" id="mood">第一位居民</span></div><span class="tiny-heart">♡</span></div><p id="cat-description">点击地图上的奶油色小猫，或者在这里打个招呼。</p><button id="meet-cat" class="quiet">认识 Mochi</button>
         <div id="cat-detail" hidden><div class="traits" id="traits"></div><p id="reunion" class="reunion"></p><p class="bond" id="bond"></p><div id="dialogue" data-testid="dialogue" class="speech" aria-live="polite"></div>
         <div class="quick-talk"><button data-message="今天有点累">今天有点累</button><button data-message="今天很开心">有个好消息</button><button data-message="还记得我们钓鱼吗？">聊聊我们的回忆</button></div>
         <form id="dialogue-form"><label for="message">和 Mochi 说句话</label><div class="input-row"><input id="message" maxlength="500" placeholder="今天想和它说些什么？" autocomplete="off" required /><button id="send" type="submit" aria-label="发送">↗</button></div></form></div>
-        <button id="fishing" class="primary"></button><p class="activity-note">按住蓄力，绿色区提竿，再慢慢收线。一起发现新钓点。</p></section>
+        </section>
         <section class="card journal"><div class="journal-heading"><p class="eyebrow">OUR LITTLE MEMORIES</p><span>✧</span></div><h2>一起经历的事</h2><p id="journal-count" class="journal-count"></p><p id="memory-empty">第一次一起去的地方，<br>会成为故事的第一页。</p><article id="memory-card" hidden><div class="memory-art" aria-hidden="true">☀<span>≈ 𓆝 ≈</span></div><small id="memory-date"></small><strong id="memory-fact"></strong><p id="memory-caption"></p></article></section>
         </aside></div>
-      <div class="city-tools"><section class="card build-card"><div><p class="eyebrow">A PLACE TO MEET AGAIN</p><h2>给小城一扇亮着灯的窗</h2><p>猫咖 · 建造 ${BUILDINGS.CAT_CAFE.cost} 金币 · 每游戏小时收入 ${BUILDINGS.CAT_CAFE.income} 金币</p></div><div id="build-status" class="build-status"></div></section><button id="rest" class="rest">全城快进一小时 <span>营业与猫咪休息同时推进 →</span></button></div>
-      <div id="notice" role="status">欢迎回来。这里有一只猫，正在慢慢认识你。</div>
+      <div class="city-tools"><section class="card build-card"><div><p class="eyebrow">A PLACE TO MEET AGAIN</p><h2>给小城一扇亮着灯的窗</h2><p>猫咖 · 建造 ${BUILDINGS.CAT_CAFE.cost} 金币 · 每游戏小时收入 ${BUILDINGS.CAT_CAFE.income} 金币</p></div><div id="build-status" class="build-status"></div></section></div>
+      <div id="notice" role="status"></div>
       <footer><span>BUILD A CITY. MAKE A FRIEND.</span><details><summary>关于这次体验</summary><p>这是情感玩法的离线 Demo，使用规则对话，尚未接入生成式 AI。重要共同回忆与进度保存在当前浏览器，暂无跨设备同步。</p></details></footer>
     </main>`;
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
@@ -81,17 +84,6 @@ export function mountPanel(session: GameSession, place: PlaceState) {
     );
     render();
   });
-  get('rest').addEventListener('click', () => {
-    const result = session.execute({
-      type: 'ADVANCE_TIME',
-      minutes: CITY_TIME.fastForwardMinutes,
-    });
-    notify(
-      result.ok
-        ? '一小时过去了，阳光落在小城的另一边。'
-        : ERROR_MESSAGES[result.error],
-    );
-  });
   const talk = async (message: string) => {
     const catId = session.selectedEntity;
     const send = get<HTMLButtonElement>('send');
@@ -140,14 +132,22 @@ export function mountPanel(session: GameSession, place: PlaceState) {
     notify,
     angling.enterAtSpot,
   );
-  get('city-tab-outing').addEventListener('click', () =>
-    cityActions.focusWaterway('POND'),
-  );
+  mountOuting(session, cityActions);
   mountCityGuide(session, notify, cityActions, angling.tools, (message) => {
     void talk(message);
   });
+  const clockSpeed = mountClockSpeed(
+    place,
+    get<HTMLButtonElement>('clock-speed'),
+  );
+  notify(
+    session.resumed
+      ? '欢迎回来。小城一直在等你。'
+      : '欢迎来到小城。这里有一只猫，正在慢慢认识你。',
+  );
   render();
   return {
+    clockSpeed,
     notify,
     cityActions,
     aim: angling.aim,

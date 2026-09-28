@@ -73,3 +73,16 @@ export async function showFish(page: Page, species: string) {
   await page.locator('#atlas-species').selectOption(species);
   await expect(page.locator(`[data-species="${species}"]`)).toBeVisible();
 }
+
+/** Pepper is invited from the city's cats page; returns to the scene afterwards. */
+export async function invitePepper(page: Page) {
+  const river =
+    (await page.locator('#visit-river').getAttribute('aria-pressed')) ===
+    'true';
+  await closeRiverPanel(page);
+  if (river) await page.locator('#visit-city').click();
+  await expandTab(page, '#city-tab-cats');
+  await page.locator('#invite-pepper').click();
+  await closeRiverPanel(page);
+  if (river) await page.locator('#visit-river').click();
+}

@@ -19,6 +19,7 @@ test('a newer save from another tab stops this tab from overwriting it', async (
   await expect(first.locator('#reset-demo')).toBeHidden();
   // The stale tab keeps playing locally but never writes over the newer save.
   await first.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(5));
+  await first.locator('#city-tab-guide').click();
   await first.locator('#save').click();
   expect(
     await first.evaluate(() => localStorage.getItem('cat-city.save.v1')),

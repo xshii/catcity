@@ -1,5 +1,4 @@
 import type { PlaceState } from '../shell/place';
-import { CITY_TIME } from '../../content/city';
 import type { GameSession } from '../../application';
 import { CAT_BREEDS } from '../../content/breeds';
 import {
@@ -49,7 +48,9 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
         ? `休息中 ${restMinutesLeft(cat.rest, minute)} 分钟`
         : cat.walk
           ? `步行中 · 剩 ${cat.walk.route.length} 格`
-          : `位置 ${cat.position.x + 1},${cat.position.y + 1}`;
+          : cat.fishingSpotId
+            ? `在${SPOTS[cat.fishingSpotId].name}岸边`
+            : '在小城里';
       sleep.hidden = !cat.rest;
     },
   };
@@ -76,14 +77,8 @@ export function mountFishingStage(
   roster.hidden = true;
   roster.setAttribute('aria-label', '猫咪体力与休息');
   roster.innerHTML =
-    '<div id="cat-energy-cards" class="cat-energy-cards"></div><div class="clock-actions"><span>所有猫共享城市时间</span><button id="time-forward">全城快进 1 小时 ⏱</button></div>';
+    '<div id="cat-energy-cards" class="cat-energy-cards"></div>';
   stage.before(roster);
-  document.getElementById('time-forward')!.addEventListener('click', () =>
-    session.execute({
-      type: 'ADVANCE_TIME',
-      minutes: CITY_TIME.fastForwardMinutes,
-    }),
-  );
   const cards = new Map<string, ReturnType<typeof createEnergyCard>>();
   const cardContainer = document.getElementById('cat-energy-cards')!;
   let resultKey = '';

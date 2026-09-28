@@ -58,9 +58,7 @@ test('a new cat starts beside the pond and can enter fishing without travel or r
   expect(screen).not.toBeNull();
   await page.mouse.click(screen!.x, screen!.y);
   await expect(page.locator('#city-selection-label')).toContainText('Mochi');
-  await expect(page.locator('#city-action-detail')).toContainText(
-    '点目标地块步行',
-  );
+  await expect(page.locator('#city-action-detail')).toContainText('走到这里');
   const selectedScreen = await page.evaluate(
     (position) => window.CAT_CITY_DEBUG!.getTileScreenPosition(position),
     before.cats[0]!.position,

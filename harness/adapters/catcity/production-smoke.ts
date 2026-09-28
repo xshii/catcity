@@ -32,7 +32,7 @@ export async function productionSmoke(publication: LocalPublication) {
     await page.locator('#place-road').click();
     await clickTile(page, 4, 4);
     await page.locator('[data-build-type=CAT_CAFE]').click();
-    await expect(page.getByTestId('coins')).toHaveText('640');
+    await expect(page.getByTestId('coins')).toHaveText('620');
     await page.screenshot({
       path: join(publication.evidence, 'city.png'),
       fullPage: true,
@@ -40,7 +40,8 @@ export async function productionSmoke(publication: LocalPublication) {
     await openChat(page);
     await page.getByRole('button', { name: '今天有点累', exact: true }).tap();
     await expect(page.getByTestId('dialogue')).toContainText('歇一会');
-    await page.getByRole('button', { name: '邀请 Mochi 去钓鱼 ↗' }).tap();
+    await page.locator('#city-tab-outing').tap();
+    await page.locator('[data-outing-spot="POND"]').tap();
     await reachWaterway(page);
     const fishingResources = () =>
       page.evaluate(() => {
