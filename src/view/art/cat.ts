@@ -74,6 +74,10 @@ export function catArt(
       repeat: -1,
       repeatDelay: 3100,
     });
+    // Looping tweens outlive their targets unless stopped with them.
+    root.once(Phaser.GameObjects.Events.DESTROY, () =>
+      scene.tweens.killTweensOf([tail, body, eyes]),
+    );
   }
   return root;
 }

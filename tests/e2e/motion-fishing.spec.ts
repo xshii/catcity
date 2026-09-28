@@ -36,6 +36,16 @@ async function spin(page: Page, rates: number[]) {
     { rates, sign: FISHING.motion.gesture.pitchSign },
   );
 }
+/** Enabling awaits a permission promise; feed still samples until the game hears them. */
+async function sensorsOn(page: Page, withOrientation = true) {
+  await expect
+    .poll(async () => {
+      if (withOrientation) await orient(page, 0, 0);
+      await spin(page, [0]);
+      return page.locator('#motion-mode-toggle').getAttribute('aria-pressed');
+    })
+    .toBe('true');
+}
 const step = (page: Page, ticks = 1) =>
   page.evaluate((n) => window.CAT_CITY_DEBUG!.stepFishing(n), ticks);
 
@@ -56,8 +66,7 @@ async function inMotionRiver(page: Page) {
   await page.locator('#motion-mode-toggle').click();
   await closeRiverPanel(page);
   await page.evaluate(() => window.CAT_CITY_DEBUG!.useManualFishingClock(true));
-  await orient(page, 0, 0);
-  await spin(page, [0]);
+  await sensorsOn(page);
   await expect(page.locator('#motion-fishing')).toBeVisible();
   await expect(page.locator('#scene-ready')).toBeHidden();
 }
@@ -157,6 +166,10 @@ test('the tilt aim survives the city clock refreshing the view', async ({
   // Any session update (the city clock ticks every second) must keep the zero pose.
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(1));
   await orient(page, -aimRangeDeg, 0);
+  // The water preview follows the tilt before the cast.
+  await expect(page.locator('#fish-direction')).toHaveValue(
+    String(-FISHING.input.maxDirection),
+  );
   await swing(page);
   expect((await readWorld(page)).fishing.active!.direction).toBe(
     -FISHING.input.maxDirection,
@@ -211,7 +224,7 @@ test('a phone without orientation readings can still cast straight ahead', async
   await openGear(page, 'supplies');
   await page.locator('#motion-mode-toggle').click();
   await closeRiverPanel(page);
-  await spin(page, [0]);
+  await sensorsOn(page, false);
   await swing(page);
   expect((await readWorld(page)).fishing.active).toMatchObject({
     mode: 'motion',
@@ -239,8 +252,7 @@ test('after a reload mid-run, phones are asked to re-enable motion', async ({
   await closeRiverPanel(page);
   await expect(page.locator('#motion-onboarding')).toBeVisible();
   await page.locator('#motion-enable').click();
-  await orient(page, 0, 0);
-  await spin(page, [0]);
+  await sensorsOn(page);
   await swing(page);
   expect((await readWorld(page)).fishing.active!.mode).toBe('motion');
   await page.reload();

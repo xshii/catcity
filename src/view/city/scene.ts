@@ -1,9 +1,9 @@
-import type { PlaceState } from '../shell/place';
+import type { AimControl, PlaceState } from '../shell/place';
 import { CITY_START } from '../../content/city';
 import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
-import type { SpotId } from '../../content/fishing';
+import { FISHING } from '../../content/fishing';
 import type { Position } from '../../core';
 import { catArt } from '../art/cat';
 import type { CityActions } from './actions';
@@ -25,6 +25,7 @@ export class CityScene extends Phaser.Scene {
     private readonly place: PlaceState,
     private readonly onMessage: (message: string) => void,
     private readonly cityActions: CityActions,
+    private readonly aim: AimControl,
   ) {
     super('city');
   }
@@ -40,10 +41,7 @@ export class CityScene extends Phaser.Scene {
       this.updateCamera();
     };
     overview.addEventListener('click', toggleOverview);
-    for (const id of ['fish-location', 'fish-direction', 'fish-depth']) {
-      document.getElementById(id)!.addEventListener('input', repaint);
-      document.getElementById(id)!.addEventListener('change', repaint);
-    }
+    const unsubscribeAim = this.aim.subscribe(repaint);
     const sizeObserver = new ResizeObserver(([entry]) => {
       if (entry)
         this.scale.setParentSize(
@@ -60,10 +58,7 @@ export class CityScene extends Phaser.Scene {
       unsubscribe();
       unsubscribeSelection();
       overview.removeEventListener('click', toggleOverview);
-      for (const id of ['fish-location', 'fish-direction', 'fish-depth']) {
-        document.getElementById(id)?.removeEventListener('input', repaint);
-        document.getElementById(id)?.removeEventListener('change', repaint);
-      }
+      unsubscribeAim();
     });
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.riverMode) {
@@ -124,18 +119,17 @@ export class CityScene extends Phaser.Scene {
       pointer.y >= 470
     )
       return;
-    const direction = document.getElementById(
-      'fish-direction',
-    ) as HTMLInputElement;
-    direction.value = String(
-      Math.max(-45, Math.min(45, Math.round((pointer.x - 430) / 10) * 5)),
-    );
-    direction.dispatchEvent(new Event('input'));
-    const depth = document.getElementById('fish-depth') as HTMLInputElement;
-    depth.value = String(
-      Math.max(0, Math.min(100, Math.round((432 - pointer.y) / 10) * 5)),
-    );
-    depth.dispatchEvent(new Event('input'));
+    const { maxDirection, maxDepth } = FISHING.input;
+    this.aim.set({
+      direction: Math.max(
+        -maxDirection,
+        Math.min(maxDirection, Math.round((pointer.x - 430) / 10) * 5),
+      ),
+      depth: Math.max(
+        0,
+        Math.min(maxDepth, Math.round((432 - pointer.y) / 10) * 5),
+      ),
+    });
   }
 
   private updateCamera() {
@@ -191,16 +185,12 @@ export class CityScene extends Phaser.Scene {
     document
       .querySelector('.map-card')!
       .classList.toggle('river-mode', this.riverMode);
+    const aim = this.aim.get();
     this.river.render(world, {
       catId: this.session.selectedEntity ?? STARTER_CAT_ID,
-      direction: Number(
-        (document.getElementById('fish-direction') as HTMLInputElement).value,
-      ),
-      aimDepth: Number(
-        (document.getElementById('fish-depth') as HTMLInputElement).value,
-      ),
-      spotId: ((document.getElementById('fish-location') as HTMLSelectElement)
-        .value || 'POND') as SpotId,
+      direction: aim.direction,
+      aimDepth: aim.depth,
+      spotId: aim.spotId,
     });
     document
       .getElementById('visit-city')
