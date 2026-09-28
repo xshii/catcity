@@ -27,9 +27,8 @@ async function singleScreen(page: Page) {
       'river-panel-gear',
       'river-panel-bag',
       'river-panel-atlas',
-      'river-panel-chat',
+      'panel-cats',
       'city-panel-guide',
-      'city-panel-cats',
       'city-panel-outing',
     ]
       .map((id) => document.getElementById(id)!)
@@ -39,7 +38,20 @@ async function singleScreen(page: Page) {
         height: element.clientHeight,
         content: element.scrollHeight,
       })),
+    scene: (() => {
+      const box = document
+        .getElementById('fishing-stage')!
+        .getBoundingClientRect();
+      return { x: box.x, y: box.y, width: box.width, height: box.height };
+    })(),
   }));
+  // The scene fills the viewport; the bars float over it (spec 031).
+  expect(layout.scene).toEqual({
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: layout.height,
+  });
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.width);
   expect(layout.documentHeight).toBeLessThanOrEqual(layout.height);
   for (const panel of layout.panels)
@@ -51,11 +63,10 @@ async function singleScreen(page: Page) {
 
 async function cityNavigation(page: Page) {
   await onScreen(page.locator('#city-tools-nav'));
-  await expect(page.locator('#city-tools-nav button')).toHaveCount(4);
+  await expect(page.locator('#city-tools-nav button')).toHaveCount(3);
   for (const [id, label] of [
     ['guide', '指引'],
     ['cats', '猫咪'],
-    ['chat', '聊天'],
     ['outing', '出游'],
   ] as const) {
     await onScreen(page.locator(`#city-tab-${id}`));
@@ -80,7 +91,7 @@ async function cityNavigation(page: Page) {
   expect(await readWorld(page)).toEqual(before);
   await closeRiverPanel(page);
   await page.locator('#city-tab-cats').click();
-  await onScreen(page.locator('#city-panel-cats'));
+  await onScreen(page.locator('#panel-cats'));
   await onScreen(page.locator('#invite-pepper'));
   await onScreen(page.locator('[data-cat-id="mochi"]'));
   await page.locator('[data-cat-id="mochi"]').click();
@@ -91,7 +102,7 @@ async function cityNavigation(page: Page) {
   );
   expect(await readWorld(page)).toEqual(before);
   await openChat(page);
-  await expect(page.locator('#city-tab-chat')).toHaveAttribute(
+  await expect(page.locator('#city-tab-cats')).toHaveAttribute(
     'aria-expanded',
     'true',
   );
@@ -129,7 +140,7 @@ async function cityNavigation(page: Page) {
     'aria-expanded',
     'false',
   );
-  await expect(page.locator('#city-tab-chat')).toHaveAttribute(
+  await expect(page.locator('#city-tab-cats')).toHaveAttribute(
     'aria-expanded',
     'false',
   );

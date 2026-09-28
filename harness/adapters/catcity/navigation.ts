@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { enterRiver } from './city-input';
 
-export type RiverPanel = 'gear' | 'bag' | 'atlas' | 'chat';
+export type RiverPanel = 'gear' | 'bag' | 'atlas' | 'cats';
 
 async function expandTab(page: Page, selector: string) {
   const tab = page.locator(selector);
@@ -51,9 +51,9 @@ export async function openChat(
   if (
     (await page.locator('#visit-city').getAttribute('aria-pressed')) === 'true'
   )
-    await expandTab(page, '#city-tab-chat');
-  else await openRiverPanel(page, 'chat');
-  await page.locator(`#chat-tab-${section}`).click();
+    await expandTab(page, '#city-tab-cats');
+  else await openRiverPanel(page, 'cats');
+  await page.locator(`#cats-tab-${section}`).click();
 }
 
 export async function showBagFish(page: Page, fishId: string) {
@@ -74,15 +74,15 @@ export async function showFish(page: Page, species: string) {
   await expect(page.locator(`[data-species="${species}"]`)).toBeVisible();
 }
 
-/** Pepper is invited from the city's cats page; returns to the scene afterwards. */
+/** Pepper is invited from the cats panel of either scene; returns to the scene. */
 export async function invitePepper(page: Page) {
+  await closeRiverPanel(page);
   const river =
     (await page.locator('#visit-river').getAttribute('aria-pressed')) ===
     'true';
-  await closeRiverPanel(page);
-  if (river) await page.locator('#visit-city').click();
-  await expandTab(page, '#city-tab-cats');
+  if (river) await openRiverPanel(page, 'cats');
+  else await expandTab(page, '#city-tab-cats');
+  await page.locator('#cats-tab-roster').click();
   await page.locator('#invite-pepper').click();
   await closeRiverPanel(page);
-  if (river) await page.locator('#visit-river').click();
 }

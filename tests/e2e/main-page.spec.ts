@@ -300,7 +300,7 @@ test('outing lists waterways with their conditions; chat has no second fishing e
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await ready(page);
-  await page.locator('#city-tab-chat').click();
+  await page.locator('#city-tab-cats').click();
   await expect(page.getByRole('button', { name: /去钓鱼/ })).toHaveCount(0);
   await page.locator('#city-tab-outing').click();
   await expect(page.locator('#city-tab-outing')).toHaveAttribute(

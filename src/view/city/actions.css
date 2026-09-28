@@ -1,10 +1,19 @@
+/* The next step floats under the scene bar (spec 031). */
 .city-map-hint {
+  position: absolute;
+  z-index: 33;
+  top: var(--under-bar);
+  left: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: space-between;
-  flex: 0 0 30px;
-  padding: 2px 12px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 12px;
+  background: #faf9efcc;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #66775b;
   font-size: 10px;
 }
@@ -17,10 +26,16 @@
 .river-mode #city-action-card {
   display: none;
 }
+/* The selection card floats over the map, above the tool bar. */
 #city-action-card {
-  flex: 0 0 auto;
-  margin: 0 8px 6px;
+  position: absolute;
+  z-index: 33;
+  left: 8px;
+  right: 8px;
+  bottom: var(--over-nav);
+  margin: 0;
   padding: 8px 10px;
+  box-shadow: 0 6px 24px #304b3924;
   background: #faf9ef;
   border: 1px solid #cedabb;
   border-radius: 12px;

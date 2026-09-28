@@ -1,15 +1,15 @@
 import type { Place, PlaceState } from './place';
+// Both scenes share the cats panel: roster, chat and memories (spec 031).
 const cityPanels = [
   ['guide', '指引', '⌂'],
-  ['cats', '猫咪', '♧'],
-  ['chat', '聊天', '♡'],
+  ['cats', '猫咪', '♡'],
   ['outing', '出游', '↗'],
 ] as const;
 const riverPanels = [
   ['gear', '钓具', '⌁'],
   ['bag', '鱼篓', '▱'],
   ['atlas', '图鉴', '▤'],
-  ['chat', '聊天', '♡'],
+  ['cats', '猫咪', '♡'],
 ] as const;
 type Panel = (typeof cityPanels | typeof riverPanels)[number][0];
 
@@ -20,10 +20,11 @@ export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
   const shell = document.querySelector<HTMLElement>('.shell')!;
   const root = get('angling');
   const sheet = get('river-tools');
-  const mobile = window.matchMedia('(max-width: 760px)');
-  const cityOnly = ['guide', 'cats', 'outing'] as const;
+  const cityOnly = ['guide', 'outing'] as const;
   const panelId = (id: Panel) =>
-    `${(cityOnly as readonly Panel[]).includes(id) ? 'city' : 'river'}-panel-${id}`;
+    id === 'cats'
+      ? 'panel-cats'
+      : `${(cityOnly as readonly Panel[]).includes(id) ? 'city' : 'river'}-panel-${id}`;
   for (const id of cityOnly) {
     const panel = document.createElement('section');
     panel.id = panelId(id);
@@ -33,14 +34,6 @@ export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
     sheet.append(panel);
   }
   get('city-panel-guide').append(get('city-guide'), get('city-save'));
-  // Pepper is invited from the cats page only; the roster joins it when the page opens.
-  get('city-panel-cats').append(get('invite-pepper'));
-  const homes = ['river-roster'].map((id) => {
-    const element = get(id);
-    const home = document.createComment(id);
-    element.before(home);
-    return { element, home };
-  });
   const shade = document.createElement('button');
   shade.id = 'river-tools-shade';
   shade.type = 'button';
@@ -103,7 +96,7 @@ export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
     shell.dataset.riverPanel = selected ?? '';
     root.hidden = false;
     sheet.hidden = selected === null;
-    shade.hidden = sheet.hidden || !mobile.matches;
+    shade.hidden = sheet.hidden;
     get('river-tools-close').textContent = river ? '返回钓鱼 ↓' : '返回小城 ↓';
     get('river-tools-close').setAttribute(
       'aria-label',
@@ -121,17 +114,7 @@ export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
       [...cityPanels, ...riverPanels].map(([id]) => id),
     ))
       get(panelId(id)).hidden = id !== selected;
-    get('river-panel-chat').setAttribute(
-      'aria-labelledby',
-      `${place}-tab-chat`,
-    );
-    for (const { element, home } of homes) {
-      const destination = selected === 'cats' ? get(panelId('cats')) : null;
-      if (destination) {
-        if (element.parentElement !== destination) destination.prepend(element);
-      } else if (element.previousSibling !== home) home.after(element);
-      element.hidden = !river && selected !== 'cats';
-    }
+    get('panel-cats').setAttribute('aria-labelledby', `${place}-tab-cats`);
   };
   function close() {
     selected = null;
@@ -161,7 +144,6 @@ export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
     refresh();
   }
   places.subscribe(refresh);
-  mobile.addEventListener('change', refresh);
   refresh();
   return { refresh, close, open, isOpen: () => selected !== null };
 }

@@ -45,7 +45,12 @@ export function mountPanel(
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T;
   const notify = (message: string) => {
-    get('notice').textContent = message;
+    const notice = get('notice');
+    notice.textContent = message;
+    // Each message fades after a while (layout.css); a new one starts it over.
+    for (const animation of notice.getAnimations()) animation.cancel();
+    notice.classList.remove('fading');
+    requestAnimationFrame(() => notice.classList.add('fading'));
   };
   const render = () => {
     const model = toViewModel(session.getSnapshot(), session.selectedEntity);

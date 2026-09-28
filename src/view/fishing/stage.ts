@@ -78,7 +78,6 @@ export function mountFishingStage(
   stage.append(hud);
   const roster = document.createElement('section');
   roster.id = 'river-roster';
-  roster.hidden = true;
   roster.setAttribute('aria-label', '猫咪体力');
   roster.innerHTML =
     '<div id="cat-energy-cards" class="cat-energy-cards"></div>';
@@ -91,7 +90,6 @@ export function mountFishingStage(
   place.subscribe((next) => {
     const river = next === 'river';
     hud.hidden = !river;
-    roster.hidden = !river;
     stage.classList.toggle('is-river', river);
   });
   const show = (river: boolean) => place.set(river ? 'river' : 'city');
@@ -131,6 +129,8 @@ export function mountFishingStage(
         `第 ${clock.day} 天 · ${clock.time}`;
       document.getElementById('river-place')!.textContent =
         SPOTS[run?.spotId ?? spot].name;
+      // The page continues the far bank of the water shown (layout.css).
+      stage.dataset.spot = run?.spotId ?? spot;
       document.getElementById('river-tip')!.textContent = run
         ? {
             charge: '按住鱼竿蓄力，松开抛投',

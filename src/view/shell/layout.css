@@ -7,59 +7,67 @@ body,
 body {
   overflow: hidden;
 }
+/*
+ * Full-screen frame (spec 031): the scene fills the viewport; the scene bar floats on
+ * top, the tool bar and messages float at the bottom, panels open over the scene. The
+ * same on phones and desktops. Floating chrome keeps out of the iOS safe areas.
+ */
+.game-screen {
+  --safe-top: max(8px, env(safe-area-inset-top));
+  --safe-bottom: max(8px, env(safe-area-inset-bottom));
+  --bar-height: 44px;
+  --nav-height: 54px;
+  /* Below the scene bar, and above the tool bar. */
+  --under-bar: calc(var(--safe-top) + var(--bar-height) + 8px);
+  --over-nav: calc(var(--safe-bottom) + var(--nav-height) + 8px);
+}
 .game-screen.shell {
-  position: relative;
-  width: 100%;
-  max-width: 1440px;
-  height: 100dvh;
-  margin: auto;
-  padding: 10px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  position: fixed;
+  inset: 0;
+  width: auto;
+  max-width: none;
+  height: auto;
+  margin: 0;
+  padding: 0;
 }
-.game-screen .topbar {
-  flex: 0 0 35px;
-  min-height: 35px;
-  padding: 0 0 7px;
-}
-.game-screen .brand {
-  font-size: 18px;
-  gap: 10px;
-}
-.game-screen .brand-mark {
-  width: 28px;
-  height: 28px;
-  font-size: 20px;
-}
-.game-screen .brand small,
+.game-screen .topbar,
 .game-screen .intro,
 .game-screen footer,
 .game-screen .city-tools,
 .game-screen .map-footer,
-.game-screen .river-clock {
+.game-screen .river-clock,
+.game-screen aside {
   display: none;
 }
-.game-screen .layout {
-  flex: 1;
-  min-height: 0;
+.game-screen .layout,
+.game-screen .map-card {
+  position: absolute;
+  inset: 0;
+  display: block;
   margin: 0;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 16px;
-  align-items: stretch;
 }
 .game-screen .map-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #e4ead3;
+  overflow: hidden;
 }
 .game-screen .map-heading {
-  flex: 0 0 42px;
-  min-height: 42px;
-  padding: 5px 12px;
+  position: absolute;
+  z-index: 33;
+  top: var(--safe-top);
+  left: 8px;
+  right: 8px;
+  height: var(--bar-height);
+  min-height: 0;
+  padding: 5px 10px;
   gap: 8px;
+  border: 1px solid #d7dfc6b3;
+  border-radius: 14px;
+  background: #faf9efcc;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .game-screen .scene-tabs {
   padding: 3px;
@@ -78,25 +86,50 @@ body {
   color: #9b7d43;
   white-space: nowrap;
 }
+/* The last message floats under the scene bar and its hint, and never takes a tap. */
 .game-screen #notice {
-  flex: 0 0 auto;
+  position: absolute;
+  z-index: 32;
+  left: 50%;
+  top: calc(var(--under-bar) + 40px);
+  transform: translateX(-50%);
+  max-width: min(92vw, 560px);
   margin: 0;
-  min-height: 15px;
-  padding: 0 5px;
-  font-size: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #faf9efd9;
+  font-size: 11px;
   line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+}
+.game-screen #notice:empty {
+  display: none;
+}
+/* A message stays readable for a while, then gives the scene back. */
+.game-screen #notice.fading {
+  animation: notice-fade 6s ease-in forwards;
+}
+@keyframes notice-fade {
+  80% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-screen #notice.fading {
+    animation-timing-function: steps(1, end);
+  }
 }
 .game-screen #save-recovery:not([hidden]) {
   position: absolute;
-  top: 55px;
+  top: var(--under-bar);
   left: 12px;
   right: 12px;
   z-index: 45;
   box-shadow: 0 10px 40px #344b432b;
-}
-.game-screen #river-roster {
-  flex: 0 0 auto;
-  padding: 3px 10px 7px;
 }
 .game-screen .cat-energy-cards {
   gap: 6px;
@@ -128,8 +161,8 @@ body {
 .game-screen #fishing-stage,
 .game-screen #fishing-stage.is-river,
 .game-screen #fishing-stage.is-river[data-phase='ready'] {
-  position: relative;
-  flex: 1;
+  position: absolute;
+  inset: 0;
   min-height: 0;
 }
 .game-screen #game {
@@ -141,12 +174,51 @@ body {
   margin: 0;
   aspect-ratio: auto;
 }
+/*
+ * The square river art stands on the dock above the cast area, as large as the screen
+ * allows (up to 1.4× its width: only far trees are cropped). The page continues its sky
+ * above and its dock below, so the scene fills the screen. Tap aim and the motion plane
+ * measure the canvas itself, so they follow this placement.
+ */
+.game-screen #fishing-stage.is-river {
+  --river-bottom: calc(var(--over-nav) + 96px);
+  --river-side: min(
+    140vw,
+    calc(100dvh - var(--river-bottom) - var(--under-bar))
+  );
+  --river-top: calc(100% - var(--river-bottom) - var(--river-side));
+  --far-shore: #eaf0de;
+  /*
+   * In art units of 640: the far bank's strip spans 124–154 (river.ts farShore) and the
+   * dock starts at 560 (WATER_VIEW.nearY).
+   */
+  background: linear-gradient(
+    to bottom,
+    #eaf0de calc(var(--river-top) + var(--river-side) * 124 / 640),
+    var(--far-shore) 0 calc(var(--river-top) + var(--river-side) * 154 / 640),
+    #eaf0de 0 calc(var(--river-top) + var(--river-side) * 560 / 640),
+    #bfa47c 0
+  );
+}
+.game-screen #fishing-stage[data-spot='POND'] {
+  --far-shore: #c9d8b5;
+}
+.game-screen #fishing-stage[data-spot='REEDS'] {
+  --far-shore: #bfd1a8;
+}
+.game-screen #fishing-stage[data-spot='MOON'] {
+  --far-shore: #a9b3c4;
+}
 .game-screen #fishing-stage.is-river #game {
-  bottom: 196px;
-  height: auto;
+  inset: auto;
+  left: 50%;
+  bottom: var(--river-bottom);
+  width: var(--river-side);
+  height: var(--river-side);
+  transform: translateX(-50%);
 }
 .game-screen .river-caption {
-  top: 7px;
+  top: var(--under-bar);
   left: 12px;
 }
 .game-screen .river-caption .eyebrow,
@@ -163,7 +235,7 @@ body {
 .game-screen .scene-ready {
   left: 12%;
   right: 12%;
-  bottom: 50px;
+  bottom: var(--over-nav);
 }
 .game-screen .scene-ready .primary {
   min-height: 44px;
@@ -173,7 +245,7 @@ body {
 .game-screen #angling-live.scene-console {
   left: 8px;
   right: 8px;
-  bottom: 8px;
+  bottom: var(--over-nav);
   margin: 0;
   height: 182px;
   padding: 10px 12px;
@@ -254,18 +326,25 @@ body {
 }
 .game-screen .angling {
   position: static;
-  flex: 0 0 auto;
   padding: 0;
 }
 .scene-tools-nav {
-  position: relative;
-  z-index: 32;
+  position: absolute;
+  z-index: 34;
+  left: 8px;
+  right: 8px;
+  bottom: var(--safe-bottom);
+  height: var(--nav-height);
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 5px 8px max(5px, env(safe-area-inset-bottom));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  padding: 5px;
   gap: 5px;
-  background: #f7f6e9;
-  border-top: 1px solid #dce3cf;
+  border: 1px solid #d7dfc6b3;
+  border-radius: 16px;
+  background: #faf9efd9;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .game-screen .scene-tools-nav button {
   display: flex;
@@ -287,15 +366,25 @@ body {
   background: #e1eacf;
   box-shadow: inset 0 0 0 1px #cad8b5;
 }
+/* Panels open over the scene: a sheet on phones, a drawer on the right on desktops. */
 .game-screen #river-tools {
   position: absolute;
-  z-index: 31;
-  inset: 45px 10px 64px;
-  padding: 0 16px 12px;
+  z-index: 36;
+  top: var(--under-bar);
+  left: 8px;
+  right: 8px;
+  bottom: var(--over-nav);
+  padding: 0 14px 12px;
   border: 1px solid #cad6ba;
-  border-radius: 15px;
+  border-radius: 16px;
   background: #faf9ef;
   box-shadow: 0 8px 40px #304b392b;
+}
+@media (min-width: 761px) {
+  .game-screen #river-tools {
+    left: auto;
+    width: 400px;
+  }
 }
 .river-tools-heading {
   display: flex;
@@ -429,17 +518,20 @@ body {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-#river-tools-shade {
-  display: none;
-}
-.desktop-chat-hint {
-  color: #728268;
-  font-size: 13px;
-  line-height: 1.8;
-}
-.game-screen aside {
+#river-tools-shade:not([hidden]) {
   display: block;
-  min-height: 0;
+  position: absolute;
+  z-index: 35;
+  inset: 0;
+  border: none;
+  border-radius: 0;
+  background: #314b453d;
+}
+#cats-page-talk .cat-card {
+  border: 0;
+  box-shadow: none;
+  padding: 5px 0 0;
+  background: transparent;
 }
 .game-screen .cat-card {
   padding: 17px;
@@ -510,7 +602,7 @@ body {
   min-height: 25px;
   padding: 3px 9px;
 }
-.game-screen #chat-page-memory .journal {
+.game-screen #cats-page-memory .journal {
   padding: 9px 0;
   border: 0;
   background: transparent;
@@ -574,19 +666,6 @@ body {
   .game-screen .atlas-picker select {
     font-size: 16px;
   }
-  .game-screen.shell {
-    padding: 7px 8px;
-    gap: 6px;
-  }
-  .game-screen .layout {
-    display: flex;
-  }
-  .game-screen .map-card {
-    width: 100%;
-  }
-  .game-screen aside {
-    display: none;
-  }
   .game-screen .map-heading {
     padding: 4px 8px;
   }
@@ -602,32 +681,6 @@ body {
     gap: 0;
     min-height: 40px;
     font-size: 9px;
-  }
-  .game-screen #river-tools {
-    position: fixed;
-    top: 49px;
-    left: 8px;
-    right: 8px;
-    bottom: calc(83px + env(safe-area-inset-bottom));
-    padding: 0 12px 10px;
-  }
-  #river-tools-shade:not([hidden]) {
-    display: block;
-    position: fixed;
-    z-index: 30;
-    inset: 0;
-    border: none;
-    border-radius: 0;
-    background: #314b454f;
-  }
-  #chat-page-talk .cat-card {
-    border: 0;
-    box-shadow: none;
-    padding: 5px 0 0;
-    background: transparent;
-  }
-  #chat-page-talk .desktop-chat-hint {
-    display: none;
   }
   .game-screen .catch-reveal {
     left: 20%;
@@ -678,14 +731,12 @@ body {
   margin: 12px 0;
 }
 #city-panel-guide,
-#city-panel-cats,
+#panel-cats,
 #city-panel-outing {
   display: flow-root;
 }
-.game-screen #city-panel-cats #river-roster {
-  margin-top: 12px;
-  padding: 10px;
-  border-radius: 12px;
+.game-screen #cats-page-roster #river-roster {
+  padding: 4px 0;
 }
 
 .game-screen .offline {
@@ -724,7 +775,7 @@ body {
   padding: 6px 12px;
   font-size: 11px;
 }
-.game-screen #city-panel-cats #invite-pepper {
+.game-screen #cats-page-roster #invite-pepper {
   width: 100%;
   min-height: 34px;
   margin-top: 10px;

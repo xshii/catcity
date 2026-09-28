@@ -138,10 +138,6 @@
   }
 }
 
-/* Motion play: only pause/cancel remain below the river, so the canvas grows. */
-.game-screen.motion-play #fishing-stage.is-river #game {
-  bottom: 64px;
-}
 .scene-console[data-mode='motion'] .bar-heading,
 .scene-console[data-mode='motion'] #angling-bar,
 .scene-console[data-mode='motion'] .fight-meters,

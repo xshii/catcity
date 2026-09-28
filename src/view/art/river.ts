@@ -12,7 +12,8 @@ const WATER_COLOUR: Record<SpotId, number> = {
   MOON: 0x7f9fb5,
   COAST: 0x77b8c2,
 };
-const FRAME = { inset: 30, radius: 22 };
+/** The scene runs edge to edge; the page continues its sky and dock (spec 031). */
+const FRAME = { inset: 0, radius: 0 };
 /** Where the rod leaves the bottom of the view, and the cat beside the player. */
 const ROD_BASE = { x: 430, y: V.size - FRAME.inset };
 const ROD_TIP = { x: 372, y: 330 };
@@ -42,7 +43,6 @@ export class RiverView {
   constructor(private readonly scene: Phaser.Scene) {
     this.root = scene.add.container(0, 0).setDepth(20).setVisible(false);
     const frame = scene.add.graphics();
-    frame.fillStyle(0xdce6cd).fillRoundedRect(18, 18, 604, 604, 28);
     frame
       .fillStyle(0xeaf0de)
       .fillRoundedRect(
