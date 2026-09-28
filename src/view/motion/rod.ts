@@ -48,6 +48,11 @@ export function createRodGestures(tuning: RodTuning = DEFAULT_TUNING) {
   };
   return {
     reset,
+    /** Treats the rod as mid-flick: nothing counts until it slows below the onset. */
+    settle() {
+      reset();
+      flicking = true;
+    },
     push(sample: RodSample, want: 'cast' | 'lift'): RodEvent | null {
       // Positive `down` flicks the tip toward the water; negative lifts it.
       const down = sample.pitchRate * tuning.pitchSign;
