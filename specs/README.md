@@ -64,6 +64,7 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 | 012 | [View 结构整理](012-view-structure/requirements.md)         | 验证中 | 瞄准状态替代 DOM 事件总线、钓鱼面板拆分、tween 泄漏        |
 | 013 | [规则与平台小缺陷](013-minor-defects/requirements.md)       | 完成   | Pepper 出生点、活动状态、iOS 安全区等 8 项                 |
 | 014 | [主页（小城）体验缺陷](014-main-page/requirements.md)       | 验证中 | 原始错误码、重复入口、选猫、首屏引导与地图居中、路价与拆路 |
+| 015 | [View 状态框架](015-view-state/requirements.md)             | 进行中 | 单一 View 状态、纯画面模型、不变量测试，减少界面残留类 bug |
 
 ### 后续需求
 

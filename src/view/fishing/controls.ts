@@ -1,53 +1,32 @@
 import type { GameSession } from '../../application';
 import { FISHING } from '../../content/fishing';
-import type { PlaceState } from '../shell/place';
 import { TIME_SCALE } from '../time-scale';
+import { canPlay, type FishingViewStore } from './view-state';
 
 export interface FishingControlsDeps {
   session: GameSession;
-  place: PlaceState;
+  view: FishingViewStore;
   /** The hold-to-reel button of the frozen button flow. */
   control: HTMLButtonElement;
   castStart: HTMLButtonElement;
-  toolsOpen: () => boolean;
   /** Motion rod tip on the 100×100 water plane; null before any reading. */
   rodTip: () => { x: number; y: number } | null;
   onCastStart: () => void;
-  onChange: () => void;
 }
 
 /**
  * Real inputs of a run: the held button, pause, and the 20 Hz clock that turns them into
- * fishing commands. Leaving the page or the scene pauses and releases the hold.
+ * fishing commands. Pause and hold live in the fishing view state, whose rules release
+ * them whenever play stops; this module only reports inputs and ticks.
  */
 export function mountFishingControls(deps: FishingControlsDeps) {
-  const { session, control, castStart } = deps;
-  let pressed = false;
-  let paused = true;
+  const { session, view, control, castStart } = deps;
   let freshCastPress = false;
   let manualClock = false;
-
-  const pause = () => {
-    paused = true;
-    pressed = false;
-  };
-  const down = () => {
-    if (deps.toolsOpen()) return;
-    if (session.getSnapshot().fishing.active?.mode === 'buttons') {
-      paused = false;
-      pressed = true;
-      deps.onChange();
-    }
-  };
-  const up = () => {
-    pressed = false;
-    deps.onChange();
-  };
-  const leave = () => {
-    freshCastPress = false;
-    paused = true;
-    up();
-  };
+  const buttonRun = () =>
+    session.getSnapshot().fishing.active?.mode === 'buttons';
+  const hold = (pressed: boolean) =>
+    view.dispatch({ type: 'hold', pressed, buttonRun: buttonRun() });
 
   document.addEventListener('pointerdown', (event) => {
     freshCastPress =
@@ -69,42 +48,39 @@ export function mountFishingControls(deps: FishingControlsDeps) {
     event.preventDefault();
     control.focus({ preventScroll: true });
     control.setPointerCapture(event.pointerId);
-    down();
+    hold(true);
   });
-  control.addEventListener('pointerup', up);
-  control.addEventListener('pointercancel', () => {
-    paused = true;
-    up();
-  });
-  control.addEventListener('lostpointercapture', up);
+  control.addEventListener('pointerup', () => hold(false));
+  control.addEventListener('pointercancel', () =>
+    view.dispatch({ type: 'pause' }),
+  );
+  control.addEventListener('lostpointercapture', () => hold(false));
   control.addEventListener('keydown', (event) => {
     if (event.code === 'Space' || event.code === 'Enter') {
       event.preventDefault();
-      if (!event.repeat) down();
+      if (!event.repeat) hold(true);
     }
   });
   control.addEventListener('keyup', (event) => {
     if (event.code === 'Space' || event.code === 'Enter') {
       event.preventDefault();
-      up();
+      hold(false);
     }
   });
-  window.addEventListener('blur', leave);
+  window.addEventListener('blur', () => {
+    freshCastPress = false;
+    view.dispatch({ type: 'pause' });
+  });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) leave();
+    if (document.hidden) freshCastPress = false;
+    view.dispatch({ type: 'page', hidden: document.hidden });
   });
 
   /** Fishing ticks from the current real inputs; false when play is paused. */
   const tick = (scale: number): boolean => {
     const run = session.getSnapshot().fishing.active;
-    if (
-      !run ||
-      paused ||
-      document.hidden ||
-      deps.place.get() !== 'river' ||
-      deps.toolsOpen()
-    )
-      return false;
+    const state = view.get();
+    if (!run || state.paused || !canPlay(state)) return false;
     // Only the bite wait is sped up; hook and fight need a timely player reaction.
     const ticks = run.phase === 'waiting' ? scale : 1;
     if (run.mode === 'motion') {
@@ -117,7 +93,12 @@ export function mountFishingControls(deps: FishingControlsDeps) {
         ticks,
       });
     } else
-      session.execute({ type: 'FISH_CONTROL', runId: run.id, pressed, ticks });
+      session.execute({
+        type: 'FISH_CONTROL',
+        runId: run.id,
+        pressed: state.pressed,
+        ticks,
+      });
     return true;
   };
   // Browser time drives ticks; tests may take over the clock like ADVANCE_TIME.
@@ -126,17 +107,6 @@ export function mountFishingControls(deps: FishingControlsDeps) {
   }, 1000 / FISHING.ticksPerSecond);
 
   return {
-    paused: () => paused,
-    pressed: () => pressed,
-    pause,
-    /** A successful motion cast starts the clock at once. */
-    resume: () => {
-      paused = false;
-    },
-    togglePause: () => {
-      paused = !paused;
-      pressed = false;
-    },
     clock: {
       setManual: (manual: boolean) => {
         manualClock = manual;

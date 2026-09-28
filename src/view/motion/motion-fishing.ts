@@ -8,6 +8,13 @@ import {
 } from '../../minigames/angling-motion';
 import { FISHING } from '../../content/fishing';
 import { WATER_VIEW } from '../art/water-view';
+import type { FishingScreen } from '../fishing/screen';
+import {
+  canPlay,
+  motionActive,
+  type FishingViewStore,
+  type Preference,
+} from '../fishing/view-state';
 import { OrientationTracker } from './orientation';
 import {
   calibrateSwing,
@@ -18,8 +25,6 @@ import {
 import { createRodGestures, DEFAULT_TUNING, type RodTuning } from './rod';
 import { createRodTip } from './tip';
 
-type Capability = 'unknown' | 'ready' | 'denied' | 'unsupported';
-type Preference = 'motion' | 'buttons';
 /** Per-device choice; never part of the world or a save. */
 const PREFERENCE_KEY = 'cat-city.fishing-input';
 /** Per-device swing calibration; never part of the world or a save. */
@@ -30,7 +35,20 @@ interface PermissionApi {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 }
 
+/** Motion facts read once at mount: the stored choice and what this device must ask. */
+export function motionStartup() {
+  return {
+    preference: readPreference(),
+    needsPermission:
+      typeof (window.DeviceMotionEvent as PermissionApi | undefined)
+        ?.requestPermission === 'function',
+    coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+  };
+}
+
 export interface MotionFishingDeps {
+  /** Preference, capability, calibration and pause live in the fishing view state. */
+  view: FishingViewStore;
   stage: HTMLElement;
   /** The canvas box: the overlay's 100×100 water plane scales with it. */
   plane: HTMLElement;
@@ -38,32 +56,28 @@ export interface MotionFishingDeps {
   /** The ready-to-cast area: while motion is off, a way back to it lives here. */
   readySlot: HTMLElement;
   getRun: () => AnglingRun | null;
-  /** River on screen, no tools open, page focused. */
-  canPlay: () => boolean;
-  /** A paused run ignores gestures until the player resumes it. */
-  isPaused: () => boolean;
   /** Live aim and power while no run exists, so the water preview follows the rod. */
   previewAim: (aim: { direction: number; power: number }) => void;
   /** Starts a motion run and casts it at once; false if Core rejected it. */
   cast: (direction: number, power: number) => boolean;
   strike: () => void;
   vibrate: (pattern: number | number[]) => void;
-  onChange: () => void;
 }
 
 /**
  * Motion fishing (spec 030): the phone is the rod. Default on capable phones; the frozen
  * button flow is used otherwise. The View only reports gestures and the rod tip; Core
- * decides nibbles, the bite window, the fish ring and the catch.
+ * decides nibbles, the bite window, the fish ring and the catch. What shows is decided
+ * by `fishingScreen` (spec 015); this module keeps only continuous sensor readings.
  */
 export function mountMotionFishing(deps: MotionFishingDeps) {
-  let preference: Preference = readPreference();
-  let capability: Capability = 'unknown';
+  const { view } = deps;
   const tracker = new OrientationTracker();
   let tuning = readTuning();
   let gestures = createRodGestures(tuning);
+  /** Spin samples while calibrating; the view state says whether calibration is on. */
   let calibration: SpinSample[] | null = null;
-  let notice: { text: string; until: number } | null = null;
+  let noticeTimer = 0;
   const tip = createRodTip();
   let tilt: { x: number; y: number } | null = null;
   let rebase = true;
@@ -114,21 +128,21 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   deps.readySlot.append(quick);
   quick.addEventListener('click', () => void enable());
 
-  const needsPermission = () =>
-    typeof (window.DeviceMotionEvent as PermissionApi | undefined)
-      ?.requestPermission === 'function';
+  const active = () => motionActive(view.get());
+  const playable = () => canPlay(view.get());
+  const choose = (preference: Preference) => {
+    savePreference(preference);
+    view.dispatch({ type: 'preference', preference });
+  };
   const listen = () => {
     window.addEventListener('devicemotion', onMotion);
     window.addEventListener('deviceorientation', onOrientation);
   };
   async function enable() {
-    preference = 'motion';
-    savePreference(preference);
-    if (!window.isSecureContext || !('DeviceMotionEvent' in window)) {
-      capability = 'unsupported';
-      return deps.onChange();
-    }
-    if (needsPermission()) {
+    choose('motion');
+    if (!window.isSecureContext || !('DeviceMotionEvent' in window))
+      return view.dispatch({ type: 'capability', capability: 'unsupported' });
+    if (view.get().motion.needsPermission) {
       // Both requests must start inside the click that triggered them.
       const motion = (window.DeviceMotionEvent as PermissionApi)
         .requestPermission!();
@@ -139,34 +153,29 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         motion.catch(() => 'denied' as const),
         orientation?.catch(() => 'denied' as const) ?? 'granted',
       ]);
-      if (results.some((result) => result !== 'granted')) {
-        capability = 'denied';
-        return deps.onChange();
-      }
-      // Granted after a refusal: the next sensor sample marks the device ready. A
-      // device already sending samples stays ready.
-      if (capability === 'denied') capability = 'unknown';
+      if (results.some((result) => result !== 'granted'))
+        return view.dispatch({ type: 'capability', capability: 'denied' });
+      view.dispatch({ type: 'grant' });
     }
     listen();
-    deps.onChange();
   }
   card
     .querySelector('#motion-enable')!
     .addEventListener('click', () => void enable());
-  card.querySelector('#motion-use-buttons')!.addEventListener('click', () => {
-    preference = 'buttons';
-    savePreference(preference);
-    deps.onChange();
-  });
+  card
+    .querySelector('#motion-use-buttons')!
+    .addEventListener('click', () => choose('buttons'));
   toggle.addEventListener('click', () => {
-    if (active()) {
-      preference = 'buttons';
-      savePreference(preference);
-      deps.onChange();
-    } else void enable();
+    if (active()) choose('buttons');
+    else void enable();
   });
   // Capable browsers without a permission prompt start listening right away.
-  if (preference === 'motion' && !needsPermission() && window.isSecureContext)
+  const startup = view.get().motion;
+  if (
+    startup.preference === 'motion' &&
+    !startup.needsPermission &&
+    window.isSecureContext
+  )
     listen();
 
   function onOrientation(event: DeviceOrientationEvent) {
@@ -178,7 +187,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       tip.calibrate(next);
       rebase = false;
     }
-    if (active() && deps.canPlay() && !deps.getRun()) {
+    if (active() && playable() && !deps.getRun()) {
       power = tip.power(next);
       const preview = { direction: tip.aim(next), power };
       const key = `${preview.direction}/${preview.power}`;
@@ -199,13 +208,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       return;
     }
     const rate = rates[tuning.axis];
-    if (capability !== 'ready') {
-      capability = 'ready';
-      deps.onChange();
-    }
-    if (!active() || !deps.canPlay()) return gestures.reset();
+    if (view.get().motion.capability !== 'ready')
+      view.dispatch({ type: 'capability', capability: 'ready' });
+    if (!active() || !playable()) return gestures.reset();
     const run = deps.getRun();
-    if (run && deps.isPaused()) return gestures.reset();
+    if (run && view.get().paused) return gestures.reset();
     const want = !run
       ? 'cast'
       : run.phase === 'waiting' || run.phase === 'hook'
@@ -227,7 +234,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     const run = deps.getRun();
     if (
       run?.mode === 'motion' &&
-      !deps.isPaused() &&
+      !view.get().paused &&
       (run.phase === 'waiting' || run.phase === 'hook')
     )
       deps.strike();
@@ -238,29 +245,41 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     window.clearTimeout(calibrationTimer);
     calibration = null;
   };
+  const showNotice = (text: string) => {
+    window.clearTimeout(noticeTimer);
+    view.dispatch({ type: 'notice', text });
+    noticeTimer = window.setTimeout(
+      () => view.dispatch({ type: 'notice', text: null }),
+      NOTICE_MS,
+    );
+  };
   $('motion-calibrate').addEventListener('click', (event) => {
     event.stopPropagation();
     endCalibration();
+    view.dispatch({ type: 'calibrating', on: true });
+    // The view state refuses calibration unless motion is active and playable.
+    if (!view.get().motion.calibrating) return;
     calibration = [];
     gestures.reset();
-    deps.onChange();
     calibrationTimer = window.setTimeout(() => {
       const result = calibrateSwing(calibration ?? []);
       endCalibration();
+      view.dispatch({ type: 'calibrating', on: false });
       if (result) {
         tuning = result.tuning;
         gestures = createRodGestures(tuning);
         saveTuning(tuning);
       }
-      notice = {
-        text: result
+      showNotice(
+        result
           ? `校准完成：下甩 ${result.peak}°/s`
           : '没感到两次一致的下甩，再试一次',
-        until: performance.now() + NOTICE_MS,
-      };
-      window.setTimeout(deps.onChange, NOTICE_MS);
-      deps.onChange();
+      );
     }, FISHING.motion.gesture.calibration.windowMs);
+  });
+  // The view state ends calibration when play or motion stops; drop its samples then.
+  view.subscribe((state) => {
+    if (!state.motion.calibrating && calibration) endCalibration();
   });
 
   /** Keep the plane square over the canvas's open water, so drawing matches Core. */
@@ -288,25 +307,6 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     };
   });
 
-  /**
-   * Phones that must ask for sensor permission get the one-tap card until the player
-   * chooses; desktops default to the button flow. A motion run restored after a reload
-   * needs the tap again, or its bite could not be struck.
-   */
-  function offersEnable() {
-    const run = deps.getRun();
-    const motionRun = run?.mode === 'motion' ? run : null;
-    return (
-      !!(motionRun || (preference === 'motion' && !run)) &&
-      capability === 'unknown' &&
-      needsPermission() &&
-      window.matchMedia('(pointer: coarse)').matches &&
-      deps.canPlay()
-    );
-  }
-  function active() {
-    return preference === 'motion' && capability === 'ready';
-  }
   function point(): { x: number; y: number } | null {
     if (finger && performance.now() < finger.until)
       return {
@@ -316,34 +316,17 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     return tilt ? tip.point(tilt) : null;
   }
 
-  function refresh() {
-    const run = deps.getRun();
+  /** Applies the screen model; decides nothing itself. */
+  function apply(screen: FishingScreen, run: AnglingRun | null) {
     const motionRun = run?.mode === 'motion' ? run : null;
-    card.hidden = !offersEnable();
-    toggle.textContent = active()
-      ? '钓鱼操作：体感 ✓（点此改用按钮）'
-      : capability === 'unsupported'
-        ? '此设备或连接不支持体感（需 HTTPS 与陀螺仪）'
-        : capability === 'denied'
-          ? '体感未获授权（点此重试）'
-          : preference === 'motion'
-            ? '开启体感钓鱼'
-            : '钓鱼操作：按钮（点此开启体感）';
-    toggle.setAttribute('aria-pressed', String(active()));
-    toggle.disabled = capability === 'unsupported';
-    // Button mode by choice or by failure: say so where the player casts, and offer the way back.
-    quick.hidden = active() || !!run || !deps.canPlay() || !card.hidden;
-    quick.disabled = capability === 'unsupported';
-    quick.textContent =
-      capability === 'unsupported'
-        ? '此设备或连接不支持体感'
-        : capability === 'denied'
-          ? '体感未获授权 · 点此重试'
-          : '改用体感钓鱼';
-    // Leaving the water or starting a run abandons a calibration in progress.
-    if (calibration && (motionRun || !active() || !deps.canPlay()))
-      endCalibration();
-    overlay.hidden = !(active() || motionRun) || !deps.canPlay();
+    card.hidden = !screen.motionCard;
+    toggle.textContent = screen.toggle.label;
+    toggle.setAttribute('aria-pressed', String(screen.toggle.pressed));
+    toggle.disabled = screen.toggle.disabled;
+    quick.hidden = !screen.quick.visible;
+    quick.textContent = screen.quick.label;
+    quick.disabled = screen.quick.disabled;
+    overlay.hidden = !screen.overlay;
     if (overlay.hidden) return;
     place();
     if (
@@ -356,32 +339,14 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       lastPhase = motionRun?.phase ?? '';
       cuedNibble = -1;
     }
-    const phase = motionRun?.phase ?? 'aim';
+    const phase = screen.overlayPhase;
     overlay.dataset.phase = phase;
-    $('motion-calibrate').hidden = !!motionRun || !active() || !!calibration;
+    $('motion-calibrate').hidden = !screen.calibrateButton;
     const meter = $('motion-power');
-    meter.hidden = !!motionRun || !active();
+    meter.hidden = !screen.powerMeter;
     meter.style.setProperty('--power', `${power}%`);
     meter.setAttribute('aria-valuenow', String(power));
-    if (notice && performance.now() >= notice.until) notice = null;
-    $('motion-fishing-hint').textContent = calibration
-      ? '校准：向下快甩两次'
-      : notice && !motionRun
-        ? notice.text
-        : motionRun && deps.isPaused()
-          ? '已暂停 · 点「继续钓鱼」再继续'
-          : phase === 'aim'
-            ? '左右瞄准 · 俯仰调力度 · 下甩抛竿'
-            : phase === 'waiting'
-              ? '拿稳鱼竿，等"！"再上扬'
-              : phase === 'hook'
-                ? '快速上扬提竿！'
-                : phase === 'fight'
-                  ? (motionRun?.phaseTick ?? 0) <=
-                    FISHING.motion.fight.graceTicks
-                    ? '稳住，竿尖放进鱼圈'
-                    : '倾斜手机追住鱼圈'
-                  : '';
+    $('motion-fishing-hint').textContent = screen.hint;
     $('motion-bite').hidden = phase !== 'hook';
     if (motionRun?.phase === 'waiting') {
       const nibble = motionSchedule(motionRun).nibbles.findIndex(
@@ -421,8 +386,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     );
   }
 
-  refresh();
-  return { active, offersEnable, point, refresh };
+  return { point, apply };
 }
 
 function readTuning(): RodTuning {

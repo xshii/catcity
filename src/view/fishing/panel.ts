@@ -23,10 +23,15 @@ import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
 import { restMinutesLeft } from '../shell/model';
 import { mountFishingCollections } from './collections';
-import { mountMotionFishing } from '../motion/motion-fishing';
+import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
-import { fishingChrome } from './chrome';
 import { mountFishingControls } from './controls';
+import { fishingScreen } from './screen';
+import {
+  createFishingView,
+  initialFishingView,
+  motionActive,
+} from './view-state';
 import {
   ANGLING_MARKUP,
   BUTTON_PHASE_INSTRUCTIONS,
@@ -92,7 +97,13 @@ export function mountAngling(
   let aimKey = '';
   let aimPower = FISHING.input.maxPower / 2;
   const aimListeners = new Set<() => void>();
-  let previousRun: string | undefined;
+  // Every switchable state of the fishing screen (spec 015): one store, one render.
+  const view = createFishingView(initialFishingView(motionStartup()));
+  view.dispatch({ type: 'place', place: place.get() });
+  view.dispatch({
+    type: 'run',
+    runId: session.getSnapshot().fishing.active?.id ?? null,
+  });
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
@@ -101,27 +112,18 @@ export function mountAngling(
     const world = session.getSnapshot();
     const f = world.fishing;
     const run = f.active;
-    if (run?.id !== previousRun) {
-      controls.pause();
-      previousRun = run?.id;
-      if (run) root.hidden = false;
-    }
+    const state = view.get();
+    const screen = fishingScreen(state, run ?? null);
     const active = !!run;
     const selectedCat =
       world.cats.find(
         (cat) => cat.id === (run?.catId ?? session.selectedEntity),
       ) ?? world.cats[0]!;
     const energy = selectedCat.needs.energy;
-    const chrome = fishingChrome({
-      place: place.get(),
-      run: run ?? null,
-      motionActive: !!motion?.active(),
-      offersMotion: !!motion?.offersEnable(),
-    });
     document
       .querySelector('.shell')
-      ?.classList.toggle('motion-play', chrome.motionPlay);
-    get('scene-ready').hidden = !chrome.readyToCast;
+      ?.classList.toggle('motion-play', screen.motionPlay);
+    get('scene-ready').hidden = !screen.readyToCast;
     get<HTMLButtonElement>('cast-start').disabled =
       active || !!selectedCat.rest || energy < CAST_COST;
     get<HTMLButtonElement>('fish-rest').disabled =
@@ -136,8 +138,8 @@ export function mountAngling(
     for (const field of [location, companion, bait, direction, depth])
       field.disabled = active;
 
-    get('angling-live').hidden = !chrome.console;
-    get('angling-live').dataset.mode = chrome.consoleMode ?? '';
+    get('angling-live').hidden = !screen.console;
+    get('angling-live').dataset.mode = screen.consoleMode ?? '';
     const key = JSON.stringify([
       f.xp,
       f.supplies,
@@ -223,7 +225,7 @@ export function mountAngling(
     }
     if (run) {
       get('angling-phase').textContent = BUTTON_PHASE_NAMES[run.phase];
-      get('angling-status').textContent = controls.paused()
+      get('angling-status').textContent = state.paused
         ? '已暂停 · 按操作键继续'
         : run.speciesId && run.phase === 'fight'
           ? `${fishStars(fishById(run.speciesId).stars)} ${fishById(run.speciesId).behavior}`
@@ -246,12 +248,12 @@ export function mountAngling(
       get('angling-bar').dataset.high = String(zone.high);
       get<HTMLProgressElement>('fish-progress').value = run.progress;
       get<HTMLProgressElement>('line-health').value = run.lineHealth;
-      control.setAttribute('aria-pressed', String(controls.pressed()));
-      get('fish-pause').textContent = controls.paused() ? '继续钓鱼' : '暂停';
+      control.setAttribute('aria-pressed', String(state.pressed));
+      get('fish-pause').textContent = screen.pauseLabel;
     }
     stage.render(world, selectedCat.id, (location.value || 'POND') as SpotId);
     layout?.refresh();
-    motion?.refresh();
+    motion?.apply(screen, run ?? null);
     collections.refresh();
     const destination = (location.value || 'POND') as SpotId;
     const atDestination = atShore(destination, selectedCat.id);
@@ -292,7 +294,7 @@ export function mountAngling(
     direction: Number(direction.value),
     depth: Number(depth.value),
     // Only motion aiming sets the power before a run; the button flow charges it.
-    power: motion.active() ? aimPower : FISHING.input.maxPower / 2,
+    power: motionActive(view.get()) ? aimPower : FISHING.input.maxPower / 2,
   });
   const aim: AimControl = {
     get: currentAim,
@@ -310,28 +312,23 @@ export function mountAngling(
   };
   const controls = mountFishingControls({
     session,
-    place,
+    view,
     control,
     castStart: get<HTMLButtonElement>('cast-start'),
-    toolsOpen: () => layout.isOpen(),
     rodTip: () => motion.point(),
     onCastStart: () => begin(),
-    onChange: () => render(),
   });
-  const layout = mountFishingLayout(session, place, () => {
-    controls.pause();
-    render();
-  });
+  const layout = mountFishingLayout(session, place, () =>
+    view.dispatch({ type: 'tools', open: layout.isOpen() }),
+  );
   const collections = mountFishingCollections();
   const motion = mountMotionFishing({
+    view,
     stage: stage.stage,
     plane: get('game'),
     settings: get('gear-page-supplies'),
     readySlot: ready,
     getRun: () => session.getSnapshot().fishing.active,
-    canPlay: () =>
-      place.get() === 'river' && !layout.isOpen() && !document.hidden,
-    isPaused: () => controls.paused(),
     previewAim: (preview) => aim.set(preview),
     // One swing starts and casts a motion run: nothing is spent before it.
     cast: (swingDirection, power) => {
@@ -360,10 +357,8 @@ export function mountAngling(
         runId: run.id,
         power,
       });
-      if (result.ok) controls.resume();
-      else controls.pause();
+      view.dispatch({ type: result.ok ? 'resume' : 'pause' });
       report(result, `甩竿力度 ${power}% · 拿稳鱼竿，等"！"再上扬。`);
-      render();
       return result.ok;
     },
     strike: () => {
@@ -372,7 +367,6 @@ export function mountAngling(
         session.execute({ type: 'FISH_STRIKE', runId: run.id });
     },
     vibrate: (pattern) => feedback.pulse(pattern),
-    onChange: () => render(),
   });
   function enterAtSpot(spotId: SpotId, catId: string) {
     const run = session.getSnapshot().fishing.active;
@@ -428,9 +422,8 @@ export function mountAngling(
     else {
       layout.close();
       root.hidden = true;
-      controls.pause();
     }
-    render();
+    view.dispatch({ type: 'place', place: next });
   });
   root.querySelectorAll<HTMLButtonElement>('[data-bait]').forEach((button) =>
     button.addEventListener('click', () => {
@@ -487,10 +480,9 @@ export function mountAngling(
         ),
       ),
     );
-  get('fish-pause').addEventListener('click', () => {
-    controls.togglePause();
-    render();
-  });
+  get('fish-pause').addEventListener('click', () =>
+    view.dispatch({ type: 'toggle-pause' }),
+  );
   get('fish-cancel').addEventListener('click', () => {
     const run = session.getSnapshot().fishing.active;
     if (run)
@@ -499,9 +491,15 @@ export function mountAngling(
         '收好鱼竿，稍后再来。体力和已用鱼饵不退回。',
       );
   });
+  // A world change or a view change: either way, one render applies the screen.
   session.subscribe(() => {
-    render();
+    const runId = session.getSnapshot().fishing.active?.id ?? null;
+    if (runId && runId !== view.get().runId) root.hidden = false;
+    const before = view.get();
+    view.dispatch({ type: 'run', runId });
+    if (view.get() === before) render();
   });
+  view.subscribe(() => render());
   root.hidden = !session.getSnapshot().fishing.active;
   render();
   return {
