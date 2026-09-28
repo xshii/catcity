@@ -42,10 +42,6 @@ export const commandSchema = z.discriminatedUnion('type', [
     spotId: spotIdSchema,
   }),
   z.strictObject({
-    type: z.literal('REST_CAT'),
-    catId: id,
-  }),
-  z.strictObject({
     type: z.literal('USE_CAN'),
     catId: id,
   }),
@@ -129,7 +125,7 @@ export type GameEvent =
       minutes: number;
     }
   | {
-      type: 'CatRestStarted' | 'CatRestFinished' | 'EnergyRecovered';
+      type: 'EnergyRecovered';
       minute: number;
       entityId: string;
     }
@@ -157,7 +153,6 @@ export type ErrorCode =
   | 'INSUFFICIENT_COINS'
   | 'CAT_NOT_FOUND'
   | 'CAT_LIMIT'
-  | 'CAT_RESTING'
   | 'CAT_BUSY'
   | 'STAMINA_FULL'
   | 'LOW_STAMINA'

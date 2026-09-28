@@ -15,7 +15,7 @@ export const cityLoopTask: HarnessTask = {
     'dialogue',
     'shared-outing',
     'atlas-and-breed',
-    'cat-rest-clock',
+    'cat-recovery-clock',
     'save-reload',
     'replay',
   ],

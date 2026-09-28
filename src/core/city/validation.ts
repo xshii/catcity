@@ -82,7 +82,7 @@ export function assertCity(world: WorldState): void {
     )
       throw new Error('Invalid cat walk');
     if (
-      cat.rest || !cat.needs.energy
+      !cat.needs.energy
         ? walk.nextStepMinute !== null
         : walk.nextStepMinute === null ||
           walk.nextStepMinute <= world.minute ||

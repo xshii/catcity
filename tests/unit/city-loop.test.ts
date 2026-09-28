@@ -164,9 +164,8 @@ it('gives apartments two homes and recovery only to assigned cats resting beside
   expect(world.save()).toBe(occupied);
   const fixture = JSON.parse(world.save());
   for (const cat of fixture.world.cats) cat.needs.energy = 40;
+  // Idle cats recover by themselves; the one beside its home recovers faster.
   const resting = loadWorld(JSON.stringify(fixture));
-  for (const cat of resting.getSnapshot().cats)
-    resting.dispatch({ type: 'REST_CAT', catId: cat.id });
   advance(resting, 10);
   expect(resting.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     45, 50, 45,

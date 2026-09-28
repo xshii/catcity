@@ -79,7 +79,6 @@ function commandFor(world: WorldState, rng: RandomService): GameCommand {
       catId: catId(),
       spotId: pick(SPOT_IDS),
     }),
-    () => ({ type: 'REST_CAT', catId: catId() }),
     () => ({ type: 'USE_CAN', catId: catId() }),
     () => ({ type: 'RECYCLE_TRASH' }),
     () => ({
@@ -156,7 +155,6 @@ function coinChange(
     case 'MOVE_BUILDING':
     case 'ASSIGN_HOME':
     case 'TRAVEL_TO_FISHING_SPOT':
-    case 'REST_CAT':
     case 'USE_CAN':
     case 'FISH_BEGIN':
     case 'FISH_CAST':

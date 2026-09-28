@@ -27,12 +27,9 @@ it.each([0, 42])(
     }
     for (let day = 0; day < 30; day++) {
       for (const game of [batch, sliced]) {
-        if (game.getSnapshot().cats[0]!.needs.energy < 100) {
-          expect(game.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(
-            true,
-          );
+        // An idle hour recovers a tired cat by itself.
+        if (game.getSnapshot().cats[0]!.needs.energy < 100)
           expect(advance(game, 60).ok).toBe(true);
-        }
         expect(
           game.dispatch({
             type: 'WALK_CAT',

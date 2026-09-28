@@ -1,5 +1,4 @@
 import type { PlaceState, Tools } from '../shell/place';
-import { restMinutesLeft } from '../shell/model';
 import { CARE } from '../../content/care';
 import type { GameSession } from '../../application';
 import {
@@ -111,10 +110,8 @@ export function mountCityActions(
       ),
     );
   const walking = (cat: CatEntity) => {
-    if (cat.rest)
-      return `休息中 · 还需 ${restMinutesLeft(cat.rest, session.getSnapshot().minute)} 分钟${cat.walk ? ' · 路线已暂停' : ''}`;
     if (cat.walk && cat.needs.energy === 0)
-      return '体力耗尽，路线已暂停；让这只猫休息后继续。';
+      return '体力耗尽，路线已暂停；歇一会儿会自己接着走。';
     if (cat.walk)
       return `正在走路 · 还剩 ${cat.walk.route.length} 格 · 每格 ${CARE.walkEnergyPerTile} 体力`;
     return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。`;
@@ -141,17 +138,7 @@ export function mountCityActions(
       title.textContent = `${cat.name} · 体力 ${cat.needs.energy}/100`;
       detail.textContent = walking(cat);
       button('city-cat-chat', '聊一会', tools.openTalk);
-      button(
-        'city-rest-cat',
-        cat.rest ? '正在休息' : `休息 ${CARE.rest.minutes / 60} 小时`,
-        () =>
-          command(
-            { type: 'REST_CAT', catId: cat.id },
-            `${cat.name} 开始休息，城市时间继续流动。`,
-          ),
-        blocked({ type: 'REST_CAT', catId: cat.id }),
-      );
-      if (cat.walk || cat.rest) wait();
+      if (cat.walk) wait();
       return;
     }
     if (selected.kind === 'water') {
@@ -175,7 +162,7 @@ export function mountCityActions(
           'begin-fishing',
           world.fishing.active ? '返回当前钓鱼' : '进入钓点',
           () => enterFishing(spotId, cat.id),
-          cat.rest ? ERROR_MESSAGES.CAT_RESTING : null,
+          null,
         );
       } else {
         const travel = {
@@ -197,7 +184,7 @@ export function mountCityActions(
               : blocked(travel),
         );
       }
-      if (cat.walk || cat.rest) wait();
+      if (cat.walk) wait();
       return;
     }
     const position = selected.position;
@@ -218,7 +205,7 @@ export function mountCityActions(
       detail.textContent =
         building.type === 'CAT_CAFE'
           ? '猫咖每小时提供营业收入，沿道路迎接城市里的猫。'
-          : `住户 ${residents.length}/${BUILDINGS.CAT_APARTMENT.homeCapacity}${residents.length ? ` · ${residents.map((cat) => cat.name).join('、')}` : ' · 安顿猫咪，休息恢复更快'}`;
+          : `住户 ${residents.length}/${BUILDINGS.CAT_APARTMENT.homeCapacity}${residents.length ? ` · ${residents.map((cat) => cat.name).join('、')}` : ' · 住在家旁边，体力恢复更快'}`;
       button('move-building', '移动建筑', () => {
         movingBuilding = building.id;
         announce();

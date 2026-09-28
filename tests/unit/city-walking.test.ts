@@ -1,3 +1,4 @@
+import { CARE } from '../../src/content/care';
 import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
@@ -46,7 +47,7 @@ it('moves one real tile per scheduled step, charges only that cat and persists t
   expect(world.getSnapshot().cats[0]!.position).toEqual(stopped);
 });
 
-it('stops exhausted cats and resumes their saved destination only after rest finishes', () => {
+it('stops exhausted cats, which recover by themselves and resume their saved destination', () => {
   const fixture = JSON.parse(centeredWorld(42).save());
   fixture.world.cats[0].needs.energy = 1;
   const world = loadWorld(JSON.stringify(fixture));
@@ -59,21 +60,24 @@ it('stops exhausted cats and resumes their saved destination only after rest fin
   const tired = world.getSnapshot().cats[0]!;
   expect(tired.needs.energy).toBe(0);
   expect(tired.walk!.nextStepMinute).toBeNull();
-  advance(world, 20);
+  advance(world, 4);
   expect(world.getSnapshot().cats[0]!.position).toEqual(tired.position);
-  world.dispatch({ type: 'REST_CAT', catId: 'mochi' });
-  advance(world, 60);
-  expect(world.getSnapshot().cats[0]!.needs.energy).toBe(30);
-  expect(world.getSnapshot().cats[0]!.position).toEqual(tired.position);
-  expect(world.getSnapshot().cats[0]!.walk!.nextStepMinute).toBeGreaterThan(
+  // The stopped cat is idle: the next recovery tick lets it go on.
+  advance(world, 1);
+  const recovered = world.getSnapshot().cats[0]!;
+  expect(recovered.needs.energy).toBe(CARE.recovery.idle);
+  expect(recovered.position).toEqual(tired.position);
+  expect(recovered.walk!.nextStepMinute).toBeGreaterThan(
     world.getSnapshot().minute,
   );
-  advance(world, 10);
+  const left = recovered.walk!.route.length;
+  advance(world, 120);
   expect(world.getSnapshot().cats[0]).toMatchObject({
     position: { x: 6, y: 6 },
-    needs: { energy: 29 },
     walk: null,
   });
+  // One energy per tile; a walking cat does not recover, an idle one does again.
+  expect(left).toBeLessThanOrEqual(CARE.recovery.idle);
 });
 
 it('uses stone road timing and rejects water, occupied destinations and invalid inputs atomically', () => {
@@ -225,7 +229,13 @@ it('replans routes around construction and resumes an exhausted route using cann
   expect(tired.getSnapshot().cats[0]!.walk!.nextStepMinute).toBeGreaterThan(
     tired.getSnapshot().minute,
   );
-  advance(tired, 120);
+  // Arriving has cost energy; an idle cat would start recovering after that.
+  for (
+    let minute = 0;
+    minute < 120 && tired.getSnapshot().cats[0]!.walk;
+    minute++
+  )
+    advance(tired, 1);
   expect(tired.getSnapshot().cats[0]!.position).toEqual({ x: 3, y: 3 });
   expect(tired.getSnapshot().cats[0]!.needs.energy).toBeLessThan(20);
 });

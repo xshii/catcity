@@ -8,8 +8,8 @@ import {
   SPOTS,
   type SpotId,
 } from '../../content/fishing';
-import type { CatEntity, WorldState } from '../../core';
-import { restMinutesLeft, toViewModel } from '../shell/model';
+import { catIdle, type CatEntity, type WorldState } from '../../core';
+import { toViewModel } from '../shell/model';
 import { catPortrait, fishIllustration } from '../art/illustrations';
 
 function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
@@ -32,7 +32,12 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   button.addEventListener('click', () => select(cat.id));
   return {
     button,
-    update(cat: CatEntity, minute: number, selected: string, fishing: boolean) {
+    update(
+      cat: CatEntity,
+      world: WorldState,
+      selected: string,
+      fishing: boolean,
+    ) {
       if (coat !== cat.appearance.coat) {
         coat = cat.appearance.coat;
         button.querySelector('svg')!.remove();
@@ -44,14 +49,13 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
       energy.textContent = `${CAT_BREEDS[cat.breedId].name} · ${cat.needs.energy}/100`;
       progress.value = cat.needs.energy;
       progress.setAttribute('aria-label', `${cat.name} 体力`);
-      activity.textContent = cat.rest
-        ? `休息中 ${restMinutesLeft(cat.rest, minute)} 分钟`
-        : cat.walk
-          ? `步行中 · 剩 ${cat.walk.route.length} 格`
-          : cat.fishingSpotId
-            ? `在${SPOTS[cat.fishingSpotId].name}岸边`
-            : '在小城里';
-      sleep.hidden = !cat.rest;
+      const recovering = catIdle(world, cat) && cat.needs.energy < 100;
+      activity.textContent = cat.walk
+        ? `步行中 · 剩 ${cat.walk.route.length} 格`
+        : cat.fishingSpotId
+          ? `在${SPOTS[cat.fishingSpotId].name}岸边`
+          : '在小城里';
+      sleep.hidden = !recovering;
     },
   };
 }
@@ -75,7 +79,7 @@ export function mountFishingStage(
   const roster = document.createElement('section');
   roster.id = 'river-roster';
   roster.hidden = true;
-  roster.setAttribute('aria-label', '猫咪体力与休息');
+  roster.setAttribute('aria-label', '猫咪体力');
   roster.innerHTML =
     '<div id="cat-energy-cards" class="cat-energy-cards"></div>';
   stage.before(roster);
@@ -146,7 +150,7 @@ export function mountFishingStage(
           card = createEnergyCard(cat, (id) => session.select(id));
           cards.set(cat.id, card);
         }
-        card.update(cat, world.minute, selected, !!run);
+        card.update(cat, world, selected, !!run);
         if (card.button !== next) cardContainer.insertBefore(card.button, next);
         next = card.button.nextElementSibling;
       }

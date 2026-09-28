@@ -1,3 +1,4 @@
+import { CARE } from '../../src/content/care';
 import { advance, buildCafe } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
@@ -51,11 +52,9 @@ function play(world: World) {
   expect(world.getSnapshot().fishing.lastResult!.caught).toBe(true);
 }
 
-it('queues real shore travel, advancing income and other cats rest only on the shared clock', () => {
+it('queues real shore travel, advancing income and idle cats recovery only on the shared clock', () => {
   const world = unlocked();
   advance(world, 20);
-  const pepper = world.getSnapshot().cats[1]!;
-  expect(world.dispatch({ type: 'REST_CAT', catId: pepper.id }).ok).toBe(true);
   expect(
     world.dispatch({
       type: 'TRAVEL_TO_FISHING_SPOT',
@@ -78,8 +77,9 @@ it('queues real shore travel, advancing income and other cats rest only on the s
   expect(state.minute).toBe(20 + duration);
   expect(state.coins).toBe(700 + 10 * Math.floor(state.minute / 60));
   expect(state.cats.map((cat) => cat.needs.energy)).toEqual([
+    // Walking costs a tile each; idle Pepper recovers every tick from the start.
     100 - route.length,
-    50 + 5 * Math.floor(Math.min(duration, 60) / 10),
+    Math.min(100, 50 + CARE.recovery.idle * Math.floor(state.minute / 10)),
   ]);
   expect(state.cats[0]!.fishingSpotId).toBe('COAST');
   expect(state.cats[1]!.fishingSpotId).toBeNull();
@@ -161,19 +161,9 @@ it('rejects locked, same-place, unknown-cat and forged-duration travel without m
   expect(ready.save()).toBe(unchanged);
 });
 
-it('rejects travel during rest or an active fishing run and rejects clock overflow atomically', () => {
+it('rejects travel during an active fishing run and rejects clock overflow atomically', () => {
   const world = unlocked();
   const pepper = world.getSnapshot().cats[1]!;
-  world.dispatch({ type: 'REST_CAT', catId: pepper.id });
-  const resting = world.save();
-  expect(
-    world.dispatch({
-      type: 'TRAVEL_TO_FISHING_SPOT',
-      catId: pepper.id,
-      spotId: 'COAST',
-    }),
-  ).toEqual({ ok: false, error: 'CAT_RESTING' });
-  expect(world.save()).toBe(resting);
   world.dispatch({
     aimDepth: 50,
 

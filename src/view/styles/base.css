@@ -1361,24 +1361,6 @@ footer details p {
 #fishing-stage[data-feedback='missed'] .scene-console {
   border-color: #c18c73;
 }
-.cat-rest-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-.cat-rest-actions button {
-  padding: 10px;
-  min-height: 42px;
-  border: 1px solid #d6ddc6;
-  border-radius: 10px;
-  background: #fffdef;
-  font-size: 11px;
-  color: #647854;
-}
-.cat-rest-actions button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
 @media (max-width: 600px) {
   #fishing-stage.is-river[data-phase='ready'] {
     min-height: 430px;

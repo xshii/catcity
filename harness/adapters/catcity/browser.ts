@@ -197,21 +197,14 @@ export function createCatCityAdapter(): GameAdapter {
         );
         await closeRiverPanel(page);
       });
-      await step('cat-rest-clock', async () => {
+      await step('cat-recovery-clock', async () => {
+        // An idle cat recovers by itself on the city clock; nothing to press.
         const before = await readWorld(page);
-        await page.locator('#fish-rest').click();
-        const resting = await readWorld(page);
-        assert.equal(resting.minute, before.minute);
-        assert.equal(
-          resting.cats[0]!.needs.energy,
-          before.cats[0]!.needs.energy,
-        );
-        assert.equal(resting.cats[0]!.rest!.startedAt, before.minute);
+        assert.ok(before.cats[0]!.needs.energy < 100);
         await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
         const recovered = await readWorld(page);
         assert.equal(recovered.minute, before.minute + 60);
         assert.equal(recovered.cats[0]!.needs.energy, 100);
-        assert.equal(recovered.cats[0]!.rest, null);
         assert.equal(recovered.coins, before.coins + 10);
         assert.equal(
           recovered.coins,

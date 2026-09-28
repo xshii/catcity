@@ -125,16 +125,6 @@ body {
   height: 5px;
   margin-top: 3px;
 }
-.game-screen .cat-rest-actions {
-  margin-top: 5px;
-  gap: 5px;
-}
-.game-screen .cat-rest-actions button {
-  flex: 1;
-  min-height: 30px;
-  padding: 5px;
-  font-size: 10px;
-}
 .game-screen #fishing-stage,
 .game-screen #fishing-stage.is-river,
 .game-screen #fishing-stage.is-river[data-phase='ready'] {
@@ -645,9 +635,6 @@ body {
   }
 }
 @media (max-height: 700px) {
-  .game-screen .cat-rest-actions button {
-    font-size: 9px;
-  }
   .game-screen .energy-cat svg {
     width: 26px;
   }

@@ -12,11 +12,10 @@ import {
   stepAngling,
 } from '../../src/minigames/angling';
 
-it('simulates 30 days of catch/sell/rest cycles without impossible values or losing replay state', () => {
+it('simulates 30 days of catch/sell/recover cycles without impossible values or losing replay state', () => {
   let world = createWorld(73);
   for (let day = 0; day < 30; day++) {
-    if (world.getSnapshot().cats[0]!.needs.energy < 100)
-      world.dispatch({ type: 'REST_CAT', catId: 'mochi' });
+    // A day idle recovers the cat by itself.
     advance(world, 1440);
     world.dispatch({
       spotId: 'POND',

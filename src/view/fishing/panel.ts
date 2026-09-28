@@ -21,7 +21,6 @@ import { mountFishingFeedback } from './feedback';
 import { mountFishingStage } from './stage';
 import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
-import { restMinutesLeft } from '../shell/model';
 import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
@@ -43,7 +42,6 @@ import type { Trace } from '../../platform/device-log';
 const CAST_COST = FISHING.cast.staminaCost;
 /** A render that triggers more than this many re-renders is a state loop, not UI. */
 const MAX_RENDER_PASSES = 5;
-const REST = CARE.rest;
 
 export function mountAngling(
   session: GameSession,
@@ -86,10 +84,6 @@ export function mountAngling(
   ready.className = 'scene-ready';
   ready.append(get('cast-start'));
   stage.stage.append(ready);
-  const restActions = document.createElement('div');
-  restActions.className = 'cat-rest-actions';
-  restActions.append(get('fish-rest'));
-  get('river-roster').append(restActions);
   const feedback = mountFishingFeedback(session, stage.stage);
   const location = get<HTMLSelectElement>('fish-location');
   const companion = get<HTMLSelectElement>('fish-companion');
@@ -150,16 +144,7 @@ export function mountAngling(
       ?.classList.toggle('motion-play', screen.motionPlay);
     get('scene-ready').hidden = !screen.readyToCast;
     get<HTMLButtonElement>('cast-start').disabled =
-      active || !!selectedCat.rest || energy < CAST_COST;
-    get<HTMLButtonElement>('fish-rest').disabled =
-      !!selectedCat.rest || energy === 100 || run?.catId === selectedCat.id;
-    get('fish-rest').textContent = selectedCat.rest
-      ? `${selectedCat.name} 休息中 · 剩 ${restMinutesLeft(selectedCat.rest, world.minute)} 分钟`
-      : run?.catId === selectedCat.id
-        ? '钓鱼中 · 收竿后再休息'
-        : energy === 100
-          ? `${selectedCat.name} 体力已满，不需要休息`
-          : `休息 ${REST.minutes / 60} 小时 · +${(REST.minutes / REST.tickMinutes) * REST.recovery} 体力`;
+      active || energy < CAST_COST;
     for (const field of [location, companion, bait, direction, depth])
       field.disabled = active;
 
@@ -176,7 +161,6 @@ export function mountAngling(
       world.cats.map((cat) => [
         cat.id,
         cat.fishGift,
-        cat.rest,
         cat.needs.energy,
         cat.fishingSpotId,
         cat.walk,
@@ -287,8 +271,7 @@ export function mountAngling(
       : selectedCat.walk
         ? `步行中 · 剩 ${selectedCat.walk.route.length} 格 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`
         : `需要先走到岸边 · 耗时取决于道路 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`;
-    get<HTMLButtonElement>('travel-to-spot').disabled =
-      active || !!selectedCat.rest || atDestination;
+    get<HTMLButtonElement>('travel-to-spot').disabled = active || atDestination;
     get('travel-to-spot').textContent = atDestination
       ? '已经抵达'
       : '出发去钓点 →';
@@ -485,12 +468,6 @@ export function mountAngling(
     report(
       session.execute({ type: 'INVITE_PEPPER' }),
       'Pepper 来了！它喜欢鲈鱼和鲶鱼。',
-    ),
-  );
-  get('fish-rest').addEventListener('click', () =>
-    report(
-      session.execute({ type: 'REST_CAT', catId: companion.value }),
-      `伙伴开始休息。城市每过去 ${REST.tickMinutes} 分钟恢复 ${REST.recovery} 体力，可以换只猫继续钓鱼。`,
     ),
   );
   root
