@@ -146,6 +146,21 @@ describe('fish circle fight', () => {
     expect(run.phaseTick).toBe(limit);
   });
 
+  it('never lands a fish that drifts in and out of the ring half the time', () => {
+    let run = fight(11);
+    const start = run.hold;
+    const far = (at: number) => {
+      const fish = fishPoint(run, at);
+      return { x: fish.x > 50 ? 0 : 100, y: fish.y > 50 ? 0 : 100 };
+    };
+    for (let i = 0; i < 40 && run.phase === 'fight'; i++) {
+      const at = run.phaseTick + 1;
+      run = stepMotionRun(run, i % 2 ? far(at) : fishPoint(run, at), 1);
+    }
+    expect(run.phase).toBe('fight');
+    expect(run.hold).toBeLessThanOrEqual(start);
+  });
+
   it('gives the same state for chunked and single ticks', () => {
     const start = fight(11);
     let single = start;

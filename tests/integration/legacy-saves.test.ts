@@ -14,6 +14,8 @@ import v9 from '../fixtures/save-v9.json';
 import v10 from '../fixtures/save-v10.json';
 import v11 from '../fixtures/save-v11.json';
 import v12 from '../fixtures/save-v12.json';
+// Mid-fight save from before the stricter hold rule (content 5).
+import v13 from '../fixtures/save-v13.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -32,6 +34,7 @@ const incompatible = {
   v10,
   v11,
   v12,
+  v13,
   future,
 };
 

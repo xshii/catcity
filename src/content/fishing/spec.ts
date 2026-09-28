@@ -104,8 +104,8 @@ export const FISHING = {
     toleranceUnits: 1,
     precisionRadiusBonus: 1,
     holdTicks: [60, 80, 100, 120, 140, 160],
-    /** Inside earns `insideGain`, outside loses `outsideLoss` (half-ticks, so 0.5×). */
-    hold: { insideGain: 2, outsideLoss: 1 },
+    /** Inside earns `insideGain` per tick, outside loses `outsideLoss`: drifting never pays. */
+    hold: { insideGain: 1, outsideLoss: 2 },
     fightLimitTicks: [400, 440, 480, 520, 560, 600],
     /**
      * Phone-as-rod gestures, read from gyroscope rotation rate (°/s) and orientation.
