@@ -10,10 +10,15 @@ import { mountClockSpeed } from './clock-speed';
 import { mountCompanionship } from '../companion/journal';
 import { toViewModel } from './model';
 import { ERROR_MESSAGES } from './errors';
+import type { Trace } from '../../platform/device-log';
 
 const TALK_RETRY = '暂时没能完成对话，请再试一次。';
 
-export function mountPanel(session: GameSession, place: PlaceState) {
+export function mountPanel(
+  session: GameSession,
+  place: PlaceState,
+  trace: Trace,
+) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <main class="shell">
       <header class="topbar"><a class="brand" href="./"><span class="brand-mark">c</span><span>CAT CITY<small>A LITTLE PLACE TO BELONG</small></span></a>
@@ -122,8 +127,12 @@ export function mountPanel(session: GameSession, place: PlaceState) {
       });
     });
   mountCompanionship(session);
-  const angling = mountAngling(session, place, notify, (spotId) =>
-    cityActions.focusWaterway(spotId),
+  const angling = mountAngling(
+    session,
+    place,
+    notify,
+    (spotId) => cityActions.focusWaterway(spotId),
+    trace,
   );
   const cityActions = mountCityActions(
     session,

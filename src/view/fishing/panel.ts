@@ -38,6 +38,7 @@ import {
   BUTTON_PHASE_NAMES,
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
+import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
 /** A render that triggers more than this many re-renders is a state loop, not UI. */
@@ -49,6 +50,7 @@ export function mountAngling(
   place: PlaceState,
   notify: (text: string) => void,
   onNeedTravel: (spotId: SpotId) => void,
+  trace: Trace,
 ) {
   const atShore = (spotId: SpotId, catId: string) => {
     const world = session.getSnapshot();
@@ -390,6 +392,7 @@ export function mountAngling(
         session.execute({ type: 'FISH_STRIKE', runId: run.id });
     },
     vibrate: (pattern) => feedback.pulse(pattern),
+    trace,
   });
   function enterAtSpot(spotId: SpotId, catId: string) {
     const run = session.getSnapshot().fishing.active;
@@ -523,7 +526,11 @@ export function mountAngling(
     view.dispatch({ type: 'run', runId });
     if (view.get() === before) render();
   });
-  view.subscribe(() => render());
+  view.subscribe((state) => {
+    trace('view', { ...state });
+    render();
+  });
+  trace('view', { ...view.get() });
   root.hidden = !session.getSnapshot().fishing.active;
   // A run restored from the save takes the scene to the river before the first render.
   stage.follow(session.getSnapshot());

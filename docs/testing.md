@@ -23,6 +23,8 @@ Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真�
 
 [Playwright 配置](../playwright.config.ts) 中 Chromium 执行全量 E2E，WebKit 仅执行带 `@motion-smoke` 标记的代表性体感输入与延迟恢复用例，二者都属于 `check`。可用 `npm run test:e2e -- --project=webkit-motion` 定向验证；自动化注入读数用于验证浏览器适配，仍需 Safari 实机确认权限弹窗、传感器和手感。
 
+实机问题先用[实机调试日志](local-publication.md#实机调试日志)记录，再用 `npm run device-trace` 切成 `tests/fixtures/device/` 下的夹具；[device-traces.test.ts](../tests/unit/device-traces.test.ts) 按设备送来的顺序，把每个夹具经与 `motion-fishing.ts` 相同的纯函数（姿态连续化、竿尖、屏幕轴角速度、甩竿识别、校准）重放，结果必须等于夹具的 `expect`。重放不含 DOM 与 View 状态，窗口需落在同一阶段内（瞄准、等咬钩/提竿或校准）。
+
 静态检查在执行前发现未处理 Promise、错误异步回调、不必要的类型断言、遗漏的联合类型分支及违反模块边界的导入。运行时验证由行为测试、模拟不变量、覆盖率和浏览器断言承担；覆盖率不代替结果正确性。Knip 的公共入口显式列在 [knip.json](../knip.json)，仅为实际使用的 API 保留入口，不批量忽略问题。
 
 V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runner；浏览器 View 与 E2E 不计入这份 Headless 覆盖率。门槛由 [vitest.config.ts](../vitest.config.ts) 强制执行：

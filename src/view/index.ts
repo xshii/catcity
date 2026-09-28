@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { GameSession } from '../application';
+import type { Trace } from '../platform/device-log';
 import type { Position } from '../core';
 import { CityScene } from './city/scene';
 import { MAP_VIEW } from './city/geometry';
@@ -8,9 +9,9 @@ import { createPlace } from './shell/place';
 import './styles/base.css';
 
 /** Browser composition; the application owns the session, this layer owns rendering. */
-export function mountGameView(session: GameSession) {
+export function mountGameView(session: GameSession, trace: Trace) {
   const place = createPlace();
-  const panel = mountPanel(session, place);
+  const panel = mountPanel(session, place, trace);
   const scene = new CityScene(
     session,
     place,

@@ -52,4 +52,18 @@ tailscale serve status
 
 从返回的 HTTPS 地址访问，在河畔体感入口或“钓具 → 补充/设置”主动授权。拒绝、无硬件或无读数时仍可手动完成钓鱼。Serve 和预览服务独立管理，`harness -- stop` 只停止预览源服务。
 
+## 实机调试日志
+
+试玩预览（`publish`/`publish-test` 启动的 `vite preview --mode device-log`）额外接收调试日志；开发服务器与测试构建没有该接口。手机打开 `…/?debug=1` 后本设备开启记录（记在本机 localStorage，`?debug=0` 关闭），左下角显示"调试日志 · 已发 N"。不开启时页面不记录、不发送任何内容。
+
+开启后页面每 2 秒把以下内容发回提供页面的这台 Mac：设备信息（UA、屏幕、DPR、构建版本）、原始陀螺仪与姿态读数（约 60 Hz）、竿尖重新居中、识别出的甩竿/上扬、校准结果与所用调校、钓鱼画面状态、命令结果（逐 tick 控制只记改变局面的）、页面切换与脚本错误。日志按 UTC 日期与页面会话写入 `artifacts/device-logs/<日期>/<会话>.jsonl`（已被 Git 忽略）；单次请求上限 512 KB，单个会话上限 20 MB，未发出的积压超过约 8000 条时丢弃最旧的并记录丢弃数。
+
+把一段实机窗口转成回归夹具：
+
+```sh
+npm run device-trace -- artifacts/device-logs/<日期>/<会话>.jsonl <夹具名> <cast|lift|calibrate> <起始ms> <结束ms>
+```
+
+时间取日志里的 `t`（页面时间，毫秒）。夹具写入 `tests/fixtures/device/`，`expect` 先记录当时游戏识别的结果；若那正是 bug，改成玩家本意后提交，单测会用同一组纯函数重放它，见[测试](testing.md)。夹具只含传感器读数与设备型号，不含存档或聊天。
+
 自动化不证明真实手机的传感器方向、Safari 弹窗、触摸手感、GPU、振动或 tailnet 连通性。这些需要实机验证，不能用模拟事件或 API 调用成功代替。
