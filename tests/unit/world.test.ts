@@ -28,14 +28,14 @@ describe('headless world', () => {
 
   it('builds a cafe and charges exactly once', () => {
     const world = createWorld(42);
-    expect(buildCafe(world, { x: 3, y: 3 }).ok).toBe(true);
+    expect(buildCafe(world, { x: 4, y: 4 }).ok).toBe(true);
     expect(world.getSnapshot().coins).toBe(700);
     expect(world.getSnapshot().buildings[0]).toMatchObject({
       type: 'CAT_CAFE',
-      position: { x: 3, y: 3 },
+      position: { x: 4, y: 4 },
     });
     const before = world.save();
-    expect(buildCafe(world, { x: 3, y: 3 }).ok).toBe(false);
+    expect(buildCafe(world, { x: 4, y: 4 }).ok).toBe(false);
     expect(world.save()).toBe(before);
   });
 
@@ -57,7 +57,7 @@ describe('headless world', () => {
     save.world.coins = 299;
     const world = loadWorld(JSON.stringify(save));
     const before = world.save();
-    expect(buildCafe(world, { x: 3, y: 3 })).toMatchObject({
+    expect(buildCafe(world, { x: 4, y: 4 })).toMatchObject({
       ok: false,
       error: 'INSUFFICIENT_COINS',
     });
@@ -67,7 +67,7 @@ describe('headless world', () => {
   it('counts income from construction, including partial hours', () => {
     const world = createWorld(42);
     advance(world, 25);
-    buildCafe(world, { x: 3, y: 3 });
+    buildCafe(world, { x: 4, y: 4 });
     advance(world, 59);
     expect(world.getSnapshot().coins).toBe(700);
     advance(world, 1);
@@ -135,7 +135,7 @@ describe('headless world', () => {
 
   it('emits causally useful events without putting diagnostics in save state', () => {
     const world = createWorld(1);
-    expect(buildCafe(world, { x: 3, y: 3 })).toMatchObject({
+    expect(buildCafe(world, { x: 4, y: 4 })).toMatchObject({
       ok: true,
       events: [{ type: 'BuildingBuilt', cost: 300 }],
     });

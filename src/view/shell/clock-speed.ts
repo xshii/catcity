@@ -12,9 +12,12 @@ export const nextClockSpeed = (speed: ClockSpeed): ClockSpeed =>
     (CITY_TIME.speeds.indexOf(speed) + 1) % CITY_TIME.speeds.length
   ]!;
 
-export function readClockSpeed(storage: Pick<Storage, 'getItem'>): ClockSpeed {
+/** `storage` is a getter: with site data blocked, touching `localStorage` itself throws. */
+export function readClockSpeed(
+  storage: () => Pick<Storage, 'getItem'>,
+): ClockSpeed {
   try {
-    const stored = storage.getItem(SPEED_KEY);
+    const stored = storage().getItem(SPEED_KEY);
     return CITY_TIME.speeds.find((speed) => String(speed) === stored) ?? NORMAL;
   } catch {
     return NORMAL;
@@ -26,7 +29,7 @@ export function readClockSpeed(storage: Pick<Storage, 'getItem'>): ClockSpeed {
  * keeps 1× until the player taps again. Returns game minutes per real second.
  */
 export function mountClockSpeed(place: PlaceState, button: HTMLButtonElement) {
-  let speed = readClockSpeed(localStorage);
+  let speed = readClockSpeed(() => localStorage);
   const render = () => {
     const locked = place.get() !== 'city';
     button.disabled = locked;

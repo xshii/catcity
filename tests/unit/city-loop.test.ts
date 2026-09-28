@@ -2,7 +2,7 @@ import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 
-it('buys land before building, connects a cafe to dirt roads and preserves income when moving', () => {
+it('buys land and a road before building a connected cafe, and preserves income when moving', () => {
   const world = createWorld(42);
   const land = world
     .getSnapshot()
@@ -27,6 +27,19 @@ it('buys land before building, connects a cafe to dirt roads and preserves incom
     true,
   );
   expect(world.getSnapshot().coins).toBe(950);
+  // Buildings never lay roads: connect the plot to the starter network first.
+  const bought = world.save();
+  expect(
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_CAFE',
+      position: land.position,
+    }),
+  ).toEqual({ ok: false, error: 'ROAD_NOT_CONNECTED' });
+  expect(world.save()).toBe(bought);
+  expect(
+    world.dispatch({ type: 'PLACE_ROAD', position: { x: 4, y: 3 } }).ok,
+  ).toBe(true);
   expect(
     world.dispatch({
       type: 'BUILD_BUILDING',
@@ -34,7 +47,7 @@ it('buys land before building, connects a cafe to dirt roads and preserves incom
       position: land.position,
     }).ok,
   ).toBe(true);
-  expect(world.getSnapshot().coins).toBe(650);
+  expect(world.getSnapshot().coins).toBe(620);
   expect(
     world
       .getSnapshot()
@@ -55,9 +68,9 @@ it('buys land before building, connects a cafe to dirt roads and preserves incom
     builtAtMinute: 0,
     position: { x: 6, y: 4 },
   });
-  expect(world.getSnapshot().coins).toBe(650);
+  expect(world.getSnapshot().coins).toBe(620);
   advance(world, 5);
-  expect(world.getSnapshot().coins).toBe(660);
+  expect(world.getSnapshot().coins).toBe(630);
   expect(loadWorld(world.save()).save()).toBe(world.save());
 });
 

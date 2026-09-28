@@ -228,14 +228,14 @@ test('tile cards explain disabled actions in words and offer road removal', asyn
   await expect(page.locator('#place-road')).toContainText('30');
   await expect(page.locator('body')).not.toContainText(/[A-Z]{2,}_[A-Z_]+/);
 
-  // Starter roads: one can be removed for a refund, the crossroads cannot.
+  // Starter roads: one can be removed for a full refund, the crossroads cannot.
   const coins = (await readWorld(page)).coins;
   await clickTile(page, 3, 5);
   await expect(page.locator('#upgrade-road')).toContainText('40');
-  await expect(page.locator('#remove-road')).toContainText('退 15 金币');
+  await expect(page.locator('#remove-road')).toContainText('退 30 金币');
   await page.locator('#remove-road').click();
   const removed = await readWorld(page);
-  expect(removed.coins).toBe(coins + 15);
+  expect(removed.coins).toBe(coins + 30);
   expect(removed.map.tiles[5 * removed.map.width + 3]!.road).toBeNull();
   await expect(page.locator('[data-build-type=CAT_CAFE]')).toBeEnabled();
   await clickTile(page, 5, 5);

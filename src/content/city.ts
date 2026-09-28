@@ -17,12 +17,16 @@ export const BUILDINGS = {
     homeCapacity: 2,
   },
 } as const;
-/** Roads cost a real share of land (spec 014); removal refunds half of what was paid. */
+/** Roads cost a real share of land (spec 014); buildings never lay them for free. */
 export const CITY_COSTS = {
   buyLand: 50,
   placeRoad: 30,
   upgradeRoad: 40,
-  roadRefund: { DIRT: 15, STONE: 35 },
+} as const;
+/** Everything paid for a road surface; removing the road refunds it in full. */
+export const ROAD_PRICE = {
+  DIRT: CITY_COSTS.placeRoad,
+  STONE: CITY_COSTS.placeRoad + CITY_COSTS.upgradeRoad,
 } as const;
 export const WALK_MINUTES = { GRASS: 10, DIRT: 5, STONE: 3 } as const;
 /**

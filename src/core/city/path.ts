@@ -75,32 +75,10 @@ export function connectedRoads(world: WorldState): Position[] {
   return result;
 }
 
-/** Shortest owned land connection, planned before any building/road is committed. */
-export function roadConnectionPath(
-  world: WorldState,
-  buildingPosition: Position,
-): Position[] | null {
-  const connected = new Set(connectedRoads(world).map(key));
-  const open = neighbors(buildingPosition).map((position) => [position]);
-  const visited = new Set<number>();
-  while (open.length) {
-    const route = open.shift()!;
-    const position = route.at(-1)!;
-    const tile = tileAt(world.map, position);
-    if (
-      !tile ||
-      visited.has(key(position)) ||
-      !tile.owned ||
-      tile.terrain !== 'GRASS' ||
-      samePosition(position, buildingPosition) ||
-      world.buildings.some((building) =>
-        samePosition(building.position, position),
-      )
-    )
-      continue;
-    visited.add(key(position));
-    if (connected.has(key(position))) return route;
-    for (const next of neighbors(position)) open.push([...route, next]);
-  }
-  return null;
+/** A building needs a neighbouring road that belongs to the crossroads network. */
+export function touchesNetwork(world: WorldState, position: Position): boolean {
+  const connected = connectedRoads(world);
+  return neighbors(position).some((next) =>
+    connected.some((road) => samePosition(road, next)),
+  );
 }

@@ -16,6 +16,8 @@ import v11 from '../fixtures/save-v11.json';
 import v12 from '../fixtures/save-v12.json';
 // Mid-fight save from before the stricter hold rule (content 5).
 import v13 from '../fixtures/save-v13.json';
+// Road prices changed after this save (content 6).
+import v13Content6 from '../fixtures/save-v13-content6.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -35,6 +37,7 @@ const incompatible = {
   v11,
   v12,
   v13,
+  v13Content6,
   future,
 };
 

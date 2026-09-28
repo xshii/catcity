@@ -21,7 +21,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   LAND_ALREADY_OWNED: '这块地已经买下了。',
   LAND_NOT_OWNED: '先买下这块土地。',
   ROAD_EXISTS: '这里已经有路了。',
-  ROAD_NOT_CONNECTED: '连不上城中心的路网：先买下通往道路的相邻土地。',
+  ROAD_NOT_CONNECTED: '需先修路连到路网：建筑旁要有一格连着城中心的道路。',
   DIRT_ROAD_REQUIRED: '只有土路可以升级成石路。',
   NO_ROAD: '这里没有道路可拆。',
   ROAD_IN_USE: '这段路连着建筑或城中心路口，拆了会断开路网。',

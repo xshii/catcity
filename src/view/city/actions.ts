@@ -7,6 +7,7 @@ import {
   BUILDINGS,
   CITY_COSTS,
   CITY_TIME,
+  ROAD_PRICE,
   WALK_MINUTES,
 } from '../../content/city';
 import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
@@ -286,7 +287,7 @@ export function mountCityActions(
             ),
           blocked({ type: 'UPGRADE_ROAD', position }),
         );
-      const refund = CITY_COSTS.roadRefund[tile.road];
+      const refund = ROAD_PRICE[tile.road];
       button(
         'remove-road',
         `拆除道路 · 退 ${refund} 金币`,
@@ -298,7 +299,8 @@ export function mountCityActions(
         blocked({ type: 'REMOVE_ROAD', position }),
       );
     } else {
-      detail.textContent = '选择建筑；会在已拥有的土地内连接道路。';
+      detail.textContent =
+        '建筑要紧挨一格连着城中心路网的道路；也可以在这里铺路。';
       for (const type of BUILDING_IDS) {
         const definition = BUILDINGS[type];
         const build = {

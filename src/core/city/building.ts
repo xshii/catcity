@@ -1,12 +1,12 @@
 import { MAX_BUILDINGS } from '../limits';
-import { BUILDINGS, CITY_COSTS, CITY_START } from '../../content/city';
-import { samePosition, tileAt } from './map';
 import {
-  connectedRoads,
-  isWalkable,
-  neighbors,
-  roadConnectionPath,
-} from './path';
+  BUILDINGS,
+  CITY_COSTS,
+  CITY_START,
+  ROAD_PRICE,
+} from '../../content/city';
+import { samePosition, tileAt } from './map';
+import { isWalkable, touchesNetwork } from './path';
 import { replanWalk } from './walking';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { WorldState } from '../schema';
@@ -72,15 +72,11 @@ export function applyCity(
       // The crossroads roots the network; every building must stay connected to it.
       if (samePosition(command.position, CITY_START.crossroads))
         throw new CommandError('ROAD_IN_USE');
-      const refund = CITY_COSTS.roadRefund[tile.road];
+      const refund = ROAD_PRICE[tile.road];
       tile.road = null;
-      const connected = connectedRoads(world);
       if (
         world.buildings.some(
-          (building) =>
-            !neighbors(building.position).some((position) =>
-              connected.some((road) => samePosition(road, position)),
-            ),
+          (building) => !touchesNetwork(world, building.position),
         )
       )
         throw new CommandError('ROAD_IN_USE');
@@ -120,10 +116,9 @@ export function applyCity(
       // Removing the old footprint is safe on the dispatch copy and permits routes through it.
       const previous = moved?.position;
       if (moved) moved.position = command.position;
-      const connection = roadConnectionPath(world, command.position);
-      if (!connection) throw new CommandError('ROAD_NOT_CONNECTED');
-      for (const position of connection)
-        tileAt(world.map, position)!.road ??= 'DIRT';
+      // Roads are laid only by the player; a building must already touch the network.
+      if (!touchesNetwork(world, command.position))
+        throw new CommandError('ROAD_NOT_CONNECTED');
       if (moved) {
         events.push({
           type: 'CityChanged',

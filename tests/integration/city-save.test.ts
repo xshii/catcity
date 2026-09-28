@@ -16,6 +16,7 @@ it('replays purchase, roads, road removal, building movement and partial walking
   });
   for (const command of [
     { type: 'BUY_LAND', position: { x: 4, y: 2 } },
+    { type: 'PLACE_ROAD', position: { x: 4, y: 3 } },
     {
       type: 'BUILD_BUILDING',
       buildingType: 'CAT_APARTMENT',
