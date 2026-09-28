@@ -7,6 +7,7 @@ import {
   ringRadius,
 } from '../../minigames/angling-motion';
 import { FISHING } from '../../content/fishing';
+import { fishShadow } from '../art/illustrations';
 import { WATER_VIEW } from '../art/water-view';
 import type { FishingScreen } from '../fishing/screen';
 import type { Trace } from '../../platform/device-log';
@@ -108,8 +109,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   overlay.innerHTML =
     '<p id="motion-fishing-hint" class="motion-fishing-hint" role="status"></p>' +
     '<strong id="motion-bite" class="motion-bite" hidden aria-live="assertive">！</strong>' +
+    `<span id="motion-fish" class="motion-fish" hidden aria-hidden="true">${fishShadow()}</span>` +
     '<span id="motion-ring" class="motion-ring" hidden aria-hidden="true"></span>' +
-    '<span id="motion-tip" class="motion-tip" hidden></span>' +
     '<div id="motion-power" class="motion-power" hidden role="meter" aria-label="抛竿力度" aria-valuemin="0" aria-valuemax="100"><span class="motion-power-band"></span><i class="motion-power-level"></i></div>' +
     '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>' +
     '<button id="motion-calibrate" class="motion-calibrate" hidden>校准甩竿</button>';
@@ -393,26 +394,31 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       }
     } else overlay.classList.remove('nibble');
     const fighting = motionRun?.phase === 'fight';
+    const fishMark = $('motion-fish');
     ring.hidden = !fighting;
-    $('motion-tip').hidden = !fighting;
+    fishMark.hidden = !fighting;
     $('motion-hold').hidden = !fighting;
     if (!fighting || !motionRun) return;
     // Draw the tick Core judges next: it steps first, then tests the rod tip.
     const next = { ...motionRun, phaseTick: motionRun.phaseTick + 1 };
     const fish = fishPoint(next, next.phaseTick);
+    const before = fishPoint(next, next.phaseTick - 1);
     const radius = ringRadius(next);
     const rod = point() ?? { x: 50, y: 50 };
     const inside = (rod.x - fish.x) ** 2 + (rod.y - fish.y) ** 2 <= radius ** 2;
-    // The overlay is the square 100×100 water plane; sizes are percentages of it.
-    ring.style.left = `${fish.x}%`;
-    ring.style.top = `${fish.y}%`;
+    // The player's ring follows the rod tip and must cover the fish; Core tests the
+    // same distance. The overlay is the square 100×100 water plane; sizes are percent.
+    ring.style.left = `${rod.x}%`;
+    ring.style.top = `${rod.y}%`;
     ring.style.width = `${radius * 2}%`;
     ring.classList.toggle('inside', inside);
-    ring.classList.toggle('warning', fish.warning);
-    ring.classList.toggle('dashing', fish.dashing);
-    const tipDot = $('motion-tip');
-    tipDot.style.left = `${rod.x}%`;
-    tipDot.style.top = `${rod.y}%`;
+    fishMark.style.left = `${fish.x}%`;
+    fishMark.style.top = `${fish.y}%`;
+    // The shadow faces right; it turns to where the fish swims.
+    if (fish.x !== before.x)
+      fishMark.classList.toggle('left', fish.x < before.x);
+    fishMark.classList.toggle('warning', fish.warning);
+    fishMark.classList.toggle('dashing', fish.dashing);
     $<HTMLProgressElement>('motion-hold').value = Math.round(
       (motionRun.hold / motionBounds(motionRun).holdTarget) * 100,
     );

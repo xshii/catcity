@@ -22,8 +22,8 @@ export const SCREEN_COPY = {
     aim: '左右瞄准 · 俯仰调力度 · 下甩抛竿',
     waiting: '拿稳鱼竿，等"！"再上扬',
     hook: '快速上扬提竿！',
-    settle: '稳住，竿尖放进鱼圈',
-    fight: '倾斜手机追住鱼圈',
+    settle: '稳住，用圈罩住鱼',
+    fight: '倾斜手机，让圈罩住鱼',
   },
   pause: { pause: '暂停', resume: '继续钓鱼' },
 } as const;

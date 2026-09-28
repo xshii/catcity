@@ -109,11 +109,11 @@ test(
     for (let i = 0; i < 800; i++) {
       const run = (await readWorld(page)).fishing.active;
       if (!run) break;
-      // Aim at the ring as drawn; it must sit where Core judges the next tick.
-      const ring = (await page.locator('#motion-ring').boundingBox())!;
+      // Cover the fish as drawn with the ring; it must sit where Core judges the next tick.
+      const fish = (await page.locator('#motion-fish').boundingBox())!;
       const centre = {
-        x: ring.x + ring.width / 2,
-        y: ring.y + ring.height / 2,
+        x: fish.x + fish.width / 2,
+        y: fish.y + fish.height / 2,
       };
       if (run.phase === 'fight') {
         const judged = fishPoint(run, run.phaseTick + 1);
