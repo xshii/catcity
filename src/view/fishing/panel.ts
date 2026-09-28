@@ -339,10 +339,19 @@ export function mountAngling(
     getRun: () => session.getSnapshot().fishing.active,
     canPlay: () =>
       place.get() === 'river' && !layout.isOpen() && !document.hidden,
+    isPaused: () => paused,
+    previewAim: (aim) => {
+      direction.value = String(aim);
+      // The same input event a slider drag sends: labels and the preview follow.
+      direction.dispatchEvent(new Event('input'));
+    },
     // One swing starts and casts a motion run: nothing is spent before it.
     cast: (swingDirection, power) => {
       if (session.getSnapshot().fishing.active) return false;
-      if (!atShore(location.value as SpotId, companion.value)) return false;
+      if (!atShore(location.value as SpotId, companion.value)) {
+        notify('先让猫走到岸边，再甩竿。');
+        return false;
+      }
       direction.value = String(swingDirection);
       const begun = session.execute({
         type: 'FISH_BEGIN',
