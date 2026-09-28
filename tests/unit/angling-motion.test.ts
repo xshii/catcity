@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FISH_IDS, FISHING, fishById } from '../../src/content/fishing';
 import { castAngling, initialAngling } from '../../src/minigames/angling';
 import {
+  fishPath,
   fishPoint,
   motionSchedule,
   ringRadius,
@@ -126,9 +127,10 @@ describe('fish ring fight', () => {
           FISHING.ticksPerSecond;
         const dash =
           (W.speed[star]! * W.dash.speedPercent) / 100 / FISHING.ticksPerSecond;
-        let previous = fishPoint(run, 0);
-        for (let tick = 1; tick <= F.graceTicks + F.limitTicks; tick++) {
-          const point = fishPoint(run, tick);
+        const path = fishPath(run, F.graceTicks + F.limitTicks);
+        expect(path[80]).toEqual(fishPoint(run, 80));
+        let previous = path[0]!;
+        for (const point of path.slice(1)) {
           for (const value of [point.x, point.y]) {
             expect(value).toBeGreaterThanOrEqual(margin - 1);
             expect(value).toBeLessThanOrEqual(100 - margin + 1);
@@ -146,10 +148,13 @@ describe('fish ring fight', () => {
   it('announces every dash before it starts', () => {
     let dashes = 0;
     for (let seed = 1; seed <= 30; seed++) {
-      const run = ofStars(fight(seed), 5);
-      for (let tick = 1; tick <= F.graceTicks + F.limitTicks; tick++) {
-        const now = fishPoint(run, tick);
-        const before = fishPoint(run, tick - 1);
+      const path = fishPath(
+        ofStars(fight(seed), 5),
+        F.graceTicks + F.limitTicks,
+      );
+      for (let tick = 1; tick < path.length; tick++) {
+        const now = path[tick]!;
+        const before = path[tick - 1]!;
         if (now.dashing && !before.dashing) {
           dashes++;
           expect(before.warning).toBe(true);

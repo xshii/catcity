@@ -1,10 +1,10 @@
 import { expect, it } from 'vitest';
-import { FISH_IDS, fishById } from '../../src/content/fishing';
+import { FISH_IDS, FISHING, fishById } from '../../src/content/fishing';
 import { RandomService } from '../../src/core/random';
 import { castAngling, initialAngling } from '../../src/minigames/angling';
 import type { AnglingRun } from '../../src/minigames/angling';
 import {
-  fishPoint,
+  fishPath,
   motionSchedule,
   stepMotionRun,
   strikeMotionRun,
@@ -31,6 +31,7 @@ const TARGETS: [keyof typeof PLAYERS, number, number, number][] = [
   ['skilled', 3, 90, 100],
   ['skilled', 5, 80, 100],
 ];
+const M = FISHING.motion;
 const SAMPLES = 40;
 /** Ticks of motion the player extrapolates from. */
 const TREND = 4;
@@ -76,10 +77,11 @@ function measure(player: keyof typeof PLAYERS, stars: number) {
     const hand = new RandomService(seed * 7919);
     const wobble = () => hand.nextInt(2 * jitter + 1) - jitter;
     let run = fightOf(seed, stars);
+    const fish = fishPath(run, M.fight.graceTicks + M.fight.limitTicks);
     while (run.phase === 'fight') {
       const now = Math.max(0, run.phaseTick + 1 - delay);
-      const seen = fishPoint(run, now);
-      const earlier = fishPoint(run, Math.max(0, now - TREND));
+      const seen = fish[now]!;
+      const earlier = fish[Math.max(0, now - TREND)]!;
       const aim = (at: number, before: number) =>
         Math.min(
           100,
@@ -112,13 +114,14 @@ it.each(TARGETS)(
   },
 );
 
-it('never makes a higher-star fish easier for the same player', () => {
-  for (const player of Object.keys(PLAYERS) as (keyof typeof PLAYERS)[]) {
+it.each(Object.keys(PLAYERS) as (keyof typeof PLAYERS)[])(
+  'never makes a higher-star fish easier for %s players',
+  (player) => {
     const rates = [0, 1, 2, 3, 4, 5].map((stars) => catchRate(player, stars));
     for (let stars = 1; stars <= 5; stars++)
       // Sampling noise: allow one fish either way.
       expect(rates[stars]).toBeLessThanOrEqual(
         rates[stars - 1]! + 100 / SAMPLES,
       );
-  }
-});
+  },
+);

@@ -83,6 +83,11 @@ export interface FishState {
  * the water's edge. The fish waits while the player settles in, then eases up to speed.
  */
 export function fishPoint(run: AnglingRun, tick: number): FishState {
+  return fishPath(run, tick)[tick]!;
+}
+
+/** The fish at every tick from 0 to `ticks`, in one pass (see `fishPoint`). */
+export function fishPath(run: AnglingRun, ticks: number): FishState[] {
   const rng = new RandomService(streamSeed(run.seed, 'fish'));
   const speed = pick(W.speed, run);
   const margin = (pick(F.radius, run).start + F.breathe.amplitude) * SCALE;
@@ -110,7 +115,14 @@ export function fishPoint(run: AnglingRun, tick: number): FishState {
         ? W.rest.speedPercent
         : 100 - jitter + rng.nextInt(2 * jitter + 1);
   };
-  for (let t = still + 1; t <= tick; t++) {
+  const at = (): FishState => ({
+    x: Math.round(fish.x / SCALE),
+    y: Math.round(fish.y / SCALE),
+    warning: fish.warnLeft > 0,
+    dashing: fish.dashLeft > 0,
+  });
+  const path = Array.from({ length: Math.min(still, ticks) + 1 }, at);
+  for (let t = still + 1; t <= ticks; t++) {
     if (fish.warnLeft > 0) {
       fish.warnLeft--;
       if (fish.warnLeft === 0) {
@@ -148,13 +160,9 @@ export function fishPoint(run: AnglingRun, tick: number): FishState {
     }
     fish.x = x;
     fish.y = y;
+    path.push(at());
   }
-  return {
-    x: Math.round(fish.x / SCALE),
-    y: Math.round(fish.y / SCALE),
-    warning: fish.warnLeft > 0,
-    dashing: fish.dashLeft > 0,
-  };
+  return path;
 }
 
 const holdTarget = (run: AnglingRun) =>
