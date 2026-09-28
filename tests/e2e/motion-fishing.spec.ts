@@ -109,11 +109,11 @@ test(
     for (let i = 0; i < 800; i++) {
       const run = (await readWorld(page)).fishing.active;
       if (!run) break;
-      // Aim at the ring as drawn; it must sit where Core judges the next tick.
-      const ring = (await page.locator('#motion-ring').boundingBox())!;
+      // Cover the fish as drawn with the ring; it must sit where Core judges the next tick.
+      const fish = (await page.locator('#motion-fish').boundingBox())!;
       const centre = {
-        x: ring.x + ring.width / 2,
-        y: ring.y + ring.height / 2,
+        x: fish.x + fish.width / 2,
+        y: fish.y + fish.height / 2,
       };
       if (run.phase === 'fight') {
         const judged = fishPoint(run, run.phaseTick + 1);
@@ -302,6 +302,10 @@ test('one-tap calibration lets a phone with a reversed pitch cast', async ({
   }
   await expect(page.locator('#motion-fishing-hint')).toContainText('校准完成');
   await expect(page.locator('#motion-fishing-hint')).toContainText('下甩 900');
+  // Flicks just after calibrating still belong to it; after the settle, one casts.
+  await reversed(flick);
+  expect((await readWorld(page)).fishing.active).toBeNull();
+  await page.waitForTimeout(FISHING.motion.gesture.calibration.settleMs);
   await reversed(flick);
   expect((await readWorld(page)).fishing.active).toMatchObject({
     mode: 'motion',
@@ -309,7 +313,7 @@ test('one-tap calibration lets a phone with a reversed pitch cast', async ({
   });
   // The tuning is kept for this device.
   expect(
-    await page.evaluate(() => localStorage.getItem('cat-city.rod-tuning')),
+    await page.evaluate(() => localStorage.getItem('cat-city.rod-tuning.v2')),
   ).toContain('"pitchSign"');
 });
 

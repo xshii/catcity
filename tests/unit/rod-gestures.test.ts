@@ -3,6 +3,7 @@ import { FISHING } from '../../src/content/fishing';
 import {
   calibrateSwing,
   parseTuning,
+  rateAxesFor,
   screenRates,
 } from '../../src/view/motion/calibrate';
 import { createRodGestures } from '../../src/view/motion/rod';
@@ -28,6 +29,19 @@ function feed(
 }
 
 describe('rod flick and lift', () => {
+  it('after settling, lets a flick in progress end before the next one casts', () => {
+    const rod = createRodGestures();
+    rod.settle();
+    // Mid-flick when settled: no cast, however fast; quiet, then a new flick casts.
+    expect(feed(rod, [500, 400, 200], 'cast', { power: () => 40 })).toEqual([]);
+    expect(
+      feed(rod, [0, 0, 120, 320, 500], 'cast', {
+        start: 100,
+        power: () => 40,
+      }),
+    ).toEqual([{ kind: 'cast', power: 40 }]);
+  });
+
   it('ignores slow pitching, which only sets the power', () => {
     expect(
       feed(createRodGestures(), [30, 60, -40, -70, 20, 60, 0], 'cast'),
@@ -146,7 +160,7 @@ describe('one-tap flick calibration', () => {
     ...quiet,
   ];
 
-  it('takes the sign from the net turn of each flick, not a lean back or overshoot', () => {
+  it('takes the sign from the fastest spin of each flick, not a lean back or overshoot', () => {
     const result = calibrateSwing(on('pitch', twice))!;
     expect(result.tuning).toEqual({
       axis: 'pitch',
@@ -164,6 +178,25 @@ describe('one-tap flick calibration', () => {
       )
       .filter(Boolean);
     expect(casts).toEqual([{ kind: 'cast', power: 60 }]);
+  });
+
+  it('reads a wind-up and a long return around the flick as parts of the same flick', () => {
+    // As recorded on an iPhone: a quick lift first, the flick down, then a slower but
+    // longer return that turns further than the flick did.
+    const windUp = [0, 150, 320, 230, 0, -300, -560, -280, -140, 0];
+    const longReturn = [110, 260, 240, 190, 140, 180, 240, 150, 0];
+    const result = calibrateSwing(
+      on('pitch', [
+        ...windUp,
+        ...longReturn,
+        ...quiet,
+        ...windUp,
+        ...longReturn,
+        ...quiet,
+      ]),
+    )!;
+    expect(result.tuning).toMatchObject({ axis: 'pitch', pitchSign: -1 });
+    expect(result.peak).toBe(560);
   });
 
   it('asks again when the two strongest flicks disagree, or there are too few', () => {
@@ -213,5 +246,29 @@ describe('screen-frame rotation rates', () => {
     expect(landscape.pitch).toBeCloseTo(20);
     expect(landscape.roll).toBeCloseTo(-100);
     expect(screenRates(null, 0)).toEqual({ pitch: 0, roll: 0, yaw: 0 });
+  });
+
+  it('knows iOS browsers, iPads that report a Mac included, by their user agent', () => {
+    const iphone =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1';
+    const mac =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Safari/605.1.15';
+    const android =
+      'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36';
+    expect(rateAxesFor(iphone, 5)).toBe('webkit');
+    expect(rateAxesFor(mac, 5)).toBe('webkit');
+    expect(rateAxesFor(mac, 0)).toBe('standard');
+    expect(rateAxesFor(android, 5)).toBe('standard');
+  });
+
+  it('reads iOS WebKit rates, which come in device x, y, z order, on the same axes', () => {
+    // WebKit on iOS fills alpha, beta, gamma with rotation about x, y, z; the standard
+    // puts z, x, y there. The same physical spin must give the same screen rates.
+    const standard = { alpha: 5, beta: 100, gamma: 20 };
+    const webkit = { alpha: 100, beta: 20, gamma: 5 };
+    for (const angle of [0, 90, 270])
+      expect(screenRates(webkit, angle, 'webkit')).toEqual(
+        screenRates(standard, angle, 'standard'),
+      );
   });
 });

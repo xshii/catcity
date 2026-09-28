@@ -114,7 +114,7 @@ export const MOTION = {
     powerRangeDeg: 25,
     /**
      * One-tap calibration: two flicks down within `windowMs`, each ending with `quietMs`
-     * below the onset speed. The two strongest must agree on their net turn; the flick
+     * below the onset speed. The two strongest must agree on the sign of their fastest spin; the flick
      * and lift thresholds become shares of the weaker one, clamped (the flick minimum
      * stays above a finger tap). Stored tunings outside these bounds are ignored.
      */
@@ -125,6 +125,12 @@ export const MOTION = {
       minFlickDegPerSec: 150,
       flick: { percent: 50, min: 180, max: 400 },
       lift: { percent: 60, min: 150, max: 450 },
+      /**
+       * After calibrating, the rod ignores flicks this long and then waits for it to slow
+       * down: players keep flicking past the window (recorded: a third flick 20 ms after
+       * it closed, and one flick straddling its end), and that must not cast.
+       */
+      settleMs: 1000,
     },
   },
 } as const;

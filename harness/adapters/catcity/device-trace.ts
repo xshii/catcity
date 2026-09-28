@@ -1,3 +1,5 @@
+import { FISHING } from '../../../src/content/fishing';
+import { rateAxesFor, type RateAxes } from '../../../src/view/motion/calibrate';
 import type { RodEvent, RodTuning } from '../../../src/view/motion/rod';
 
 /** What the player was doing in the window: aiming a cast, striking a bite, calibrating. */
@@ -12,6 +14,8 @@ interface Reading {
   angle: number;
   /** The rod tip was re-centred on this orientation reading. */
   rebase?: true;
+  /** Just after a calibration: the rod lets this motion pass as part of it. */
+  settle?: true;
 }
 /** A window of a real device log, kept as a regression fixture (spec 015 step 3). */
 export interface DeviceTrace {
@@ -20,7 +24,11 @@ export interface DeviceTrace {
   want: TraceWant;
   /** The rod tuning in effect; null means the defaults. */
   tuning: RodTuning | null;
+  /** How this browser orders `rotationRate`. */
+  rateAxes: RateAxes;
   readings: Reading[];
+  /** Why `expect` differs from what the device did, when that was a bug. */
+  note?: string;
   /** What the game recognised then; edit it to what the player meant when that was a bug. */
   expect: { gestures: RodEvent[] } | { calibration: RodTuning | null };
 }
@@ -49,14 +57,39 @@ export function extractDeviceTrace(
       )?.t ?? span.from;
   const inWindow = (entry: Entry) => entry.t >= start && entry.t <= span.to;
   let tuning: RodTuning | null = null;
+  // Logs from before the game recorded it: only iOS browsers order the rates x, y, z.
+  let rateAxes: RateAxes = rateAxesFor(String(device?.ua), 0);
   for (const entry of entries) {
-    if (entry.t >= start) break;
+    if (entry.kind === 'tuning' && entry.rateAxes)
+      rateAxes = entry.rateAxes as RateAxes;
+    if (entry.t >= start) continue;
     if (entry.kind === 'tuning') tuning = pick(entry);
     const result = entry.result as { tuning: RodTuning } | null | undefined;
     if (entry.kind === 'calibration' && result) tuning = result.tuning;
   }
+  // While calibrating, rotation feeds the calibration, not the rod's gestures.
+  const calibrating: [number, number][] = [];
+  for (const entry of entries)
+    if (entry.kind === 'view') {
+      const on = (entry.motion as { calibrating: boolean }).calibrating;
+      const open = calibrating.at(-1);
+      if (on && (!open || open[1] !== Infinity))
+        calibrating.push([entry.t, Infinity]);
+      if (!on && open?.[1] === Infinity) open[1] = entry.t;
+    }
+  const feedsGestures = (t: number) =>
+    span.want === 'calibrate' ||
+    !calibrating.some(([from, to]) => t >= from && t <= to);
+  const settling = (t: number) =>
+    entries.some(
+      (entry) =>
+        entry.kind === 'calibration' &&
+        t >= entry.t &&
+        t < entry.t + FISHING.motion.gesture.calibration.settleMs,
+    );
   const readings: Reading[] = [];
   for (const entry of entries.filter(inWindow)) {
+    if (entry.kind === 'motion' && !feedsGestures(entry.t)) continue;
     if (entry.kind === 'rebase') {
       const last = lastOf(readings, (item) => item.kind === 'orientation');
       if (last?.t === entry.t) last.rebase = true;
@@ -69,6 +102,9 @@ export function extractDeviceTrace(
         b: entry.b as number | null,
         g: entry.g as number | null,
         angle: entry.angle as number,
+        ...(entry.kind === 'motion' && settling(entry.t)
+          ? { settle: true as const }
+          : {}),
       });
   }
   const seen = entries.filter(inWindow);
@@ -78,6 +114,7 @@ export function extractDeviceTrace(
     device: device ? omit(device, ['kind', 't', 'received']) : null,
     want: span.want,
     tuning,
+    rateAxes,
     readings,
     expect:
       span.want === 'calibrate'

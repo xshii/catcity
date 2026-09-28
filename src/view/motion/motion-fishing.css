@@ -60,8 +60,8 @@
 .motion-ring.inside {
   border-color: #5f9c5a;
 }
-/* A dash is coming: the ring ripples, then flashes while the fish darts. */
-.motion-ring.warning::after {
+/* A dash is coming: the fish ripples, then flashes while it darts. */
+.motion-fish.warning::after {
   content: '';
   position: absolute;
   inset: -14px;
@@ -69,8 +69,8 @@
   border: 3px solid #fff4c0;
   animation: motion-ripple 0.4s ease-out infinite;
 }
-.motion-ring.dashing {
-  box-shadow: 0 0 0 5px #fff4c0;
+.motion-fish.dashing svg {
+  filter: drop-shadow(0 0 4px #fff4c0) drop-shadow(0 0 2px #fff4c0);
 }
 @keyframes motion-ripple {
   from {
@@ -83,19 +83,25 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .motion-ring.warning::after {
+  .motion-fish.warning::after {
     animation: none;
   }
 }
-.motion-tip {
+/* The fish: a small shadow under the water that the player's ring must cover. */
+.motion-fish {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 44px;
+  height: 25px;
   transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: #fffdf4;
-  border: 4px solid #45613f;
-  box-shadow: 0 2px 6px rgba(40, 60, 40, 0.35);
+  opacity: 0.85;
+}
+.motion-fish svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.motion-fish.left svg {
+  transform: scaleX(-1);
 }
 .motion-hold {
   position: absolute;

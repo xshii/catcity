@@ -8,10 +8,14 @@ import {
 } from '../../src/view/motion/rod';
 import { createRodTip } from '../../src/view/motion/tip';
 
-const rates = (reading: DeviceTrace['readings'][number]) =>
+const rates = (
+  reading: DeviceTrace['readings'][number],
+  axes: DeviceTrace['rateAxes'],
+) =>
   screenRates(
     { alpha: reading.a, beta: reading.b, gamma: reading.g },
     reading.angle,
+    axes,
   );
 
 /**
@@ -29,7 +33,10 @@ export function replayDeviceTrace(trace: DeviceTrace): DeviceTrace['expect'] {
     return {
       calibration:
         calibrateSwing(
-          motion.map((reading) => ({ t: reading.t, ...rates(reading) })),
+          motion.map((reading) => ({
+            t: reading.t,
+            ...rates(reading, trace.rateAxes),
+          })),
         )?.tuning ?? null,
     };
   const tuning = trace.tuning ?? DEFAULT_TUNING;
@@ -48,8 +55,16 @@ export function replayDeviceTrace(trace: DeviceTrace): DeviceTrace['expect'] {
       continue;
     }
     if (!motion.includes(reading)) continue;
+    if (reading.settle) {
+      gestures.settle();
+      continue;
+    }
     const event = gestures.push(
-      { t: reading.t, pitchRate: rates(reading)[tuning.axis], power },
+      {
+        t: reading.t,
+        pitchRate: rates(reading, trace.rateAxes)[tuning.axis],
+        power,
+      },
       trace.want,
     );
     if (!event) continue;
