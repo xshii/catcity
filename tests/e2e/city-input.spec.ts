@@ -89,17 +89,21 @@ test('a new cat starts beside the pond and can enter fishing without travel or r
   expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
     arrived.cats[0]!.needs.energy,
   );
-  const charging = await readWorld(page);
+  // Leaving with the rod uncast gives it up at no cost; back at the shore, the player
+  // prepares again (spec 002: the cat recovers instead of holding the rod).
   await page.locator('#visit-city').click();
+  const left = await readWorld(page);
+  expect(left.fishing.active).toBeNull();
+  expect(left.cats[0]!.needs.energy).toBe(arrived.cats[0]!.needs.energy);
+  expect(left.fishing.baits).toEqual(arrived.fishing.baits);
   await reachWaterway(page);
   await page.locator('#begin-fishing').click();
-  await expect(page.locator('#fish-control')).toBeVisible();
-  expect(await readWorld(page)).toEqual(charging);
+  await expect(page.locator('#cast-start')).toBeVisible();
   expect(
     await page.evaluate(() =>
       window
         .CAT_CITY_DEBUG!.getReplay()
-        .entries.filter((entry) => entry.command.type === 'FISH_BEGIN'),
+        .entries.filter((entry) => entry.command.type === 'FISH_CANCEL'),
     ),
   ).toHaveLength(1);
 });

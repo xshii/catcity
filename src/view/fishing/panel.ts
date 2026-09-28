@@ -431,6 +431,11 @@ export function mountAngling(
     else {
       layout.close();
       root.hidden = true;
+      // Leaving with the rod still uncast gives it up: nothing was paid, and the cat
+      // goes back to recovering. A cast run waits for the player to come back.
+      const run = session.getSnapshot().fishing.active;
+      if (run?.phase === 'charge')
+        session.execute({ type: 'FISH_CANCEL', runId: run.id });
     }
     view.dispatch({ type: 'place', place: next });
   });
