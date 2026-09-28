@@ -20,6 +20,8 @@ import v13 from '../fixtures/save-v13.json';
 import v13Content6 from '../fixtures/save-v13-content6.json';
 // Mid-charge button run from before casts paid (content 7): it had already paid.
 import v13Content7 from '../fixtures/save-v13-content7.json';
+// A cat resting under the removed rest rule (save 13); idle cats recover by themselves now.
+import v13Rest from '../fixtures/save-v13-rest.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -41,6 +43,7 @@ const incompatible = {
   v13,
   v13Content6,
   v13Content7,
+  v13Rest,
   future,
 };
 

@@ -2,6 +2,7 @@
 export { createWorld, loadWorld, World } from './world';
 export { commandSchema } from './commands';
 export { MAX_TEXT } from './limits';
+export { catIdle } from './cats';
 export type {
   GameCommand,
   CommandResult,

@@ -4,6 +4,7 @@ import { BUILDINGS } from '../content/city';
 import type { GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
+import { catIdle } from './cats';
 
 export function simulate(
   world: WorldState,
@@ -31,9 +32,9 @@ export function simulate(
         }
       }
     }
-    for (const cat of world.cats) {
-      if (!cat.rest) continue;
-      if ((minute - cat.rest.startedAt) % CARE.rest.tickMinutes === 0) {
+    if (minute % CARE.recovery.tickMinutes === 0)
+      for (const cat of world.cats) {
+        if (!catIdle(world, cat)) continue;
         const home = world.buildings.find(
           (building) =>
             building.id === cat.home && building.type === 'CAT_APARTMENT',
@@ -46,17 +47,13 @@ export function simulate(
         const before = cat.needs.energy;
         cat.needs.energy = Math.min(
           MAX_STAT,
-          before + (nearHome ? CARE.rest.homeRecovery : CARE.rest.recovery),
+          before + (nearHome ? CARE.recovery.home : CARE.recovery.idle),
         );
-        if (cat.needs.energy > before)
+        if (cat.needs.energy > before) {
           events.push({ type: 'EnergyRecovered', minute, entityId: cat.id });
+          resumeWalk(world, cat);
+        }
       }
-      if (minute === cat.rest.startedAt + CARE.rest.minutes) {
-        cat.rest = null;
-        events.push({ type: 'CatRestFinished', minute, entityId: cat.id });
-        resumeWalk(world, cat);
-      }
-    }
     advanceWalking(world, events);
   }
 }

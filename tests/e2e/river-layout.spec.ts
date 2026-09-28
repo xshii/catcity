@@ -81,7 +81,6 @@ async function cityNavigation(page: Page) {
   await closeRiverPanel(page);
   await page.locator('#city-tab-cats').click();
   await onScreen(page.locator('#city-panel-cats'));
-  await onScreen(page.locator('#fish-rest'));
   await onScreen(page.locator('#invite-pepper'));
   await onScreen(page.locator('[data-cat-id="mochi"]'));
   await page.locator('[data-cat-id="mochi"]').click();

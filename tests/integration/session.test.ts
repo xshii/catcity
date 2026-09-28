@@ -115,10 +115,13 @@ it('checks a command for the view without recording, saving or notifying', () =>
   const listener = vi.fn();
   session.subscribe(listener);
   const before = session.getSnapshot();
-  expect(session.check({ type: 'REST_CAT', catId: 'mochi' })).toEqual({
-    ok: false,
-    error: 'STAMINA_FULL',
-  });
+  expect(
+    session.check({
+      type: 'WALK_CAT',
+      catId: 'ghost',
+      destination: { x: 1, y: 1 },
+    }),
+  ).toEqual({ ok: false, error: 'CAT_NOT_FOUND' });
   expect(session.check({ type: 'BUY_LAND', position: { x: 4, y: 2 } })).toEqual(
     { ok: true },
   );
@@ -140,11 +143,11 @@ it('reports the latest command and its outcome, as a copy', () => {
   const session = createTestSession();
   expect(session.lastCommand()).toBeNull();
   session.execute({ type: 'RECYCLE_TRASH' });
-  session.execute({ type: 'REST_CAT', catId: 'ghost' });
+  session.execute({ type: 'USE_CAN', catId: 'ghost' });
   const last = session.lastCommand()!;
   expect(last).toMatchObject({
     sequence: 1,
-    command: { type: 'REST_CAT', catId: 'ghost' },
+    command: { type: 'USE_CAN', catId: 'ghost' },
     result: { ok: false },
   });
   last.sequence = 99;
