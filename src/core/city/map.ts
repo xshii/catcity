@@ -1,3 +1,4 @@
+import { CITY_START } from '../../content/city';
 import type { SpotId } from '../../content/fishing';
 import { RandomService, streamSeed } from '../random';
 
@@ -13,8 +14,8 @@ export interface CityTile {
   road: 'DIRT' | 'STONE' | null;
 }
 export interface CityMap {
-  width: 10;
-  height: 10;
+  width: typeof CITY_START.size;
+  height: typeof CITY_START.size;
   generationVersion: 1;
   tiles: CityTile[];
 }
@@ -60,22 +61,29 @@ export function shoreTiles(map: CityMap, spot: SpotId): Position[] {
     .map((tile) => ({ ...tile.position }));
 }
 
+const SIZE = CITY_START.size;
+const CROSSROADS = CITY_START.crossroads;
+const inDistrict = (value: number) =>
+  value >= CITY_START.starterDistrict.min &&
+  value <= CITY_START.starterDistrict.max;
+
 /** Bounded templates guarantee connected land; this stream never consumes gameplay RNG. */
 export function generateCityMap(seed: number): CityMap {
   const rng = new RandomService(streamSeed(seed, 'map'));
   const map: CityMap = {
-    width: 10,
-    height: 10,
+    width: SIZE,
+    height: SIZE,
     generationVersion: 1,
-    tiles: Array.from({ length: 100 }, (_, index) => {
-      const x = index % 10;
-      const y = Math.floor(index / 10);
-      const owned = x >= 3 && x <= 6 && y >= 3 && y <= 6;
+    tiles: Array.from({ length: SIZE * SIZE }, (_, index) => {
+      const x = index % SIZE;
+      const y = Math.floor(index / SIZE);
+      const owned = inDistrict(x) && inDistrict(y);
       return {
         position: { x, y },
         terrain: 'GRASS',
         owned,
-        road: owned && (x === 5 || y === 5) ? 'DIRT' : null,
+        road:
+          owned && (x === CROSSROADS.x || y === CROSSROADS.y) ? 'DIRT' : null,
       };
     }),
   };

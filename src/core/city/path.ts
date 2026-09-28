@@ -1,3 +1,4 @@
+import { CITY_START } from '../../content/city';
 import { WALK_MINUTES } from '../../content/city';
 import { samePosition, tileAt } from './map';
 import type { Position, WorldState } from '../schema';
@@ -8,7 +9,7 @@ export const neighbors = ({ x, y }: Position): Position[] => [
   { x, y: y + 1 },
   { x: x - 1, y },
 ];
-const key = (position: Position) => position.y * 10 + position.x;
+const key = (position: Position) => position.y * CITY_START.size + position.x;
 
 export function isWalkable(
   world: WorldState,
@@ -30,7 +31,7 @@ export function walkingMinutes(world: WorldState, position: Position): number {
   return WALK_MINUTES[tileAt(world.map, position)?.road ?? 'GRASS'];
 }
 
-/** At most 100 nodes: stable Dijkstra ordering favors actual travel time. */
+/** At most size² nodes: stable Dijkstra ordering favors actual travel time. */
 export function findWalkingPath(
   world: WorldState,
   catId: string,
@@ -60,7 +61,7 @@ export function findWalkingPath(
 
 /** Only the road component connected to the starting crossroads supplies buildings. */
 export function connectedRoads(world: WorldState): Position[] {
-  const queue = [{ x: 5, y: 5 }];
+  const queue: Position[] = [{ ...CITY_START.crossroads }];
   const visited = new Set<number>();
   const result: Position[] = [];
   while (queue.length) {

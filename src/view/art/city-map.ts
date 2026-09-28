@@ -13,6 +13,8 @@ type Label = (
   size?: number,
   color?: string,
 ) => void;
+/** Walk routes use each cat's coat colour. */
+const ROUTE_COLOR = { cream: 0xc38d55, gray: 0x68758d } as const;
 const terrainColor = {
   GRASS: 0xd5dfbc,
   POND: 0x93c5b9,
@@ -112,7 +114,7 @@ export function drawCityMap(
   for (const cat of world.cats) {
     if (!cat.walk) continue;
     let previous = tileCenter(cat.position.x, cat.position.y);
-    g.lineStyle(3, cat.id === 'mochi' ? 0xc38d55 : 0x68758d, 0.75);
+    g.lineStyle(3, ROUTE_COLOR[cat.appearance.coat], 0.75);
     for (const tile of cat.walk.route) {
       const next = tileCenter(tile.x, tile.y);
       g.lineBetween(previous.x, previous.y, next.x, next.y);

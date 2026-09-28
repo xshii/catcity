@@ -3,7 +3,8 @@
 统一入口在 Harness。发布到本机网络，不上传公网，不改 GitHub 可见性或 Tailscale 权限。
 
 ```sh
-npm run harness -- publish
+npm run harness -- publish       # 完整门禁 + 生产烟测后发布
+npm run harness -- publish-test  # 试玩用快速发布：只构建，不跑门禁与烟测
 npm run harness -- status
 npm run harness -- stop
 ```
@@ -15,6 +16,8 @@ npm run harness -- stop
 新 Gate 通过后才替换服务。新版本启动、就绪或生产烟测失败时，停止属于该次发布的进程，并自动尝试恢复替换前**正在健康运行且已验收通过**的固定版本。恢复核对 release marker，状态写回 `current.json`；无符合条件的旧版本就不恢复。手动停止或未验收版本不会自动复活。
 
 发布记录必须包含 `launch.executable` 和 `launch.args`，恢复使用原记录的启动方式，不猜测项目命令、不提供缺字段兼容默认值。恢复成功仍是本次发布失败；恢复失败及清理异常也写入失败 `result.json`，保留原始失败原因。
+
+`publish-test` 只做生产构建、固定副本、启动和健康检查（约数秒），用于实机试玩。它同样受 `status`/`stop` 管理，但 `result.json` 与 `status` 标记 `verified: false`，之后的正式发布失败时**不会**恢复它。正式发布前无需手动停止，发布流程会先停掉当前受管理进程。
 
 `status` 核对进程命令中的唯一版本目录和 HTTP release marker。`stop` 只停止匹配该目录的受管理进程，不按端口批量杀进程。源码或 `dist` 的后续修改不会改变固定发布副本。当前进程管理面向 macOS/Linux；不安装开机自启。
 

@@ -1,3 +1,5 @@
+import { CITY_START } from '../content/city';
+import { CAT_DEFINITION_IDS, STARTER_CAT_ID } from '../content/cats';
 import {
   MAX_BUILDINGS,
   MAX_CATS,
@@ -32,7 +34,7 @@ const memorySchema = z.strictObject({
 });
 const catSchema = z.strictObject({
   id: text,
-  definitionId: z.enum(['MOCHI', 'PEPPER']),
+  definitionId: z.enum(CAT_DEFINITION_IDS),
   name: text,
   appearance: z.strictObject({ coat: z.enum(['cream', 'gray']) }),
   personality: z.array(text).max(10),
@@ -85,8 +87,8 @@ const worldSchema = z.strictObject({
   coins: integer,
   nextId: integer.min(1),
   map: z.strictObject({
-    width: z.literal(10),
-    height: z.literal(10),
+    width: z.literal(CITY_START.size),
+    height: z.literal(CITY_START.size),
     generationVersion: z.literal(1),
     tiles: z
       .array(
@@ -97,7 +99,7 @@ const worldSchema = z.strictObject({
           road: z.enum(['DIRT', 'STONE']).nullable(),
         }),
       )
-      .length(100),
+      .length(CITY_START.size * CITY_START.size),
   }),
   buildings: z.array(buildingSchema).max(MAX_BUILDINGS),
   cats: z.array(catSchema).min(1).max(MAX_CATS),
@@ -122,7 +124,7 @@ export function assertWorld(value: unknown): WorldState {
   const uniqueId = (id: string) => {
     if (ids.has(id)) throw new Error(`Duplicate entity/memory ID: ${id}`);
     ids.add(id);
-    if (id !== 'mochi') {
+    if (id !== STARTER_CAT_ID) {
       const match = /^(building|cat|memory|angling|fish)-(\d+)$/.exec(id);
       if (!match || Number(match[2]) >= world.nextId)
         throw new Error('Invalid ID allocation');
@@ -136,7 +138,7 @@ export function assertWorld(value: unknown): WorldState {
       throw new Error('Invalid entity placement');
     occupied.add(key);
   }
-  if (!world.cats.some((cat) => cat.id === 'mochi'))
+  if (!world.cats.some((cat) => cat.id === STARTER_CAT_ID))
     throw new Error('Mochi must persist');
   for (const building of world.buildings) {
     if (building.builtAtMinute > world.minute)

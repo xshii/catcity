@@ -1,3 +1,4 @@
+import { STARTER_CAT_ID } from '../../content/cats';
 import { BUILDINGS, CITY_TIME } from '../../content/city';
 import type { GameSession } from '../../application';
 import { mountAngling } from '../fishing/panel';
@@ -67,7 +68,9 @@ export function mountPanel(session: GameSession) {
     session.resetDemo();
     notify('已开始新版试玩。');
   });
-  get('meet-cat').addEventListener('click', () => session.select('mochi'));
+  get('meet-cat').addEventListener('click', () =>
+    session.select(STARTER_CAT_ID),
+  );
   get('save').addEventListener('click', () => {
     notify(
       session.save() ? '进度已保存在这台设备。' : '保存未完成，请查看提示。',

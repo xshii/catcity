@@ -1,3 +1,4 @@
+import { STARTER_CAT_ID } from '../content/cats';
 import {
   commandSchema,
   createWorld,
@@ -122,7 +123,7 @@ export class GameSession {
     this.epoch++;
     this.initialSave = this.world.save();
     this.entries = [];
-    this.selectedEntity = 'mochi';
+    this.selectedEntity = STARTER_CAT_ID;
     this.blockedSave = false;
     this.save();
     this.notify();

@@ -4,7 +4,7 @@ import { applyCity } from './city/building';
 import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
 import { rewardBond } from './bond';
-import { instantiateMochi } from '../content/definitions';
+import { instantiateCat } from './cats';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { simulate } from './simulation';
@@ -89,7 +89,7 @@ export function applyCommand(
       if (!isWalkable(world, command.position))
         throw new CommandError('INVALID_PLACEMENT');
       world.cats.push(
-        instantiateMochi(`cat-${world.nextId++}`, command.position),
+        instantiateCat('MOCHI', `cat-${world.nextId++}`, command.position),
       );
       events.push({ type: 'DebugChanged', minute: world.minute });
       break;
