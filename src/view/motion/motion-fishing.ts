@@ -20,6 +20,7 @@ import { OrientationTracker } from './orientation';
 import {
   calibrateSwing,
   parseTuning,
+  rateAxesFor,
   screenRates,
   type SpinSample,
 } from './calibrate';
@@ -28,8 +29,11 @@ import { createRodTip } from './tip';
 
 /** Per-device choice; never part of the world or a save. */
 const PREFERENCE_KEY = 'cat-city.fishing-input';
-/** Per-device swing calibration; never part of the world or a save. */
-const TUNING_KEY = 'cat-city.rod-tuning';
+/**
+ * Per-device swing calibration; never part of the world or a save. Version 2: earlier
+ * calibrations on iPhones named the rate axes wrongly and are ignored.
+ */
+const TUNING_KEY = 'cat-city.rod-tuning.v2';
 /** How long the calibration result stays on screen. */
 const NOTICE_MS = 3000;
 interface PermissionApi {
@@ -78,7 +82,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   const tracker = new OrientationTracker();
   let tuning = readTuning();
   let gestures = createRodGestures(tuning);
-  deps.trace('tuning', { ...tuning });
+  const rateAxes = rateAxesFor(navigator.userAgent, navigator.maxTouchPoints);
+  deps.trace('tuning', { ...tuning, rateAxes });
   /** Spin samples while calibrating; the view state says whether calibration is on. */
   let calibration: SpinSample[] | null = null;
   let noticeTimer = 0;
@@ -92,6 +97,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   let power = 50;
   let lastPreview = '';
   let calibrationTimer = 0;
+  /** Event time until which flicks still belong to the calibration just finished. */
+  let settleUntil = -Infinity;
 
   const overlay = document.createElement('div');
   overlay.id = 'motion-fishing';
@@ -208,11 +215,13 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     const rates = screenRates(
       event.rotationRate,
       screen.orientation?.angle ?? 0,
+      rateAxes,
     );
     if (calibration) {
       calibration.push({ t: event.timeStamp, ...rates });
       return;
     }
+    if (event.timeStamp < settleUntil) return gestures.settle();
     const rate = rates[tuning.axis];
     if (view.get().motion.capability !== 'ready')
       view.dispatch({ type: 'capability', capability: 'ready' });
@@ -274,6 +283,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         samples: calibration?.length ?? 0,
         result,
       });
+      settleUntil =
+        performance.now() + FISHING.motion.gesture.calibration.settleMs;
       endCalibration();
       view.dispatch({ type: 'calibrating', on: false });
       if (result) {
