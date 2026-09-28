@@ -177,3 +177,14 @@
   background: #d9644c;
   transform: translateY(50%);
 }
+/* The way back to motion fishing, under the cast button while motion is off. */
+#motion-quick {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  min-height: 40px;
+  font-size: 14px;
+}
+#motion-quick[hidden] {
+  display: none;
+}

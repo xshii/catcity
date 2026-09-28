@@ -2,7 +2,10 @@ import { enterRiver } from '../../harness/adapters/catcity/city-input';
 import { expect, test } from '@playwright/test';
 import { FISHING } from '../../src/content/fishing';
 import { WATER_VIEW, waterPoint } from '../../src/view/art/water-view';
-import { catchFish } from '../../harness/adapters/catcity/angling-input';
+import {
+  castOnce,
+  catchFish,
+} from '../../harness/adapters/catcity/angling-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import {
   closeRiverPanel,
@@ -37,6 +40,7 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   await closeRiverPanel(page);
   await page.locator('#cast-start').click();
   await expect(page.locator('#fishing-stage #fish-control')).toBeVisible();
+  await castOnce(page);
   await page.locator('#fish-cancel').click();
   expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
     arrival.cats[0]!.needs.energy - 8,
@@ -52,6 +56,7 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   await enterRiver(page);
   const pepperArrival = await readWorld(page);
   await page.locator('#cast-start').click();
+  await castOnce(page);
   await page.locator('#fish-cancel').click();
   const pepperEnergy = pepperArrival.cats[1]!.needs.energy - 8;
   expect((await readWorld(page)).cats[1]!.needs.energy).toBe(pepperEnergy);
@@ -182,8 +187,9 @@ test('browsers without vibration retain visual controls and do not change gamepl
   const before = await readWorld(page);
   await page.locator('#cast-start').click();
   await expect(page.locator('#fish-control')).toBeVisible();
+  // Preparing is free; stamina is paid when the cast is released.
   expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
-    before.cats[0]!.needs.energy - 8,
+    before.cats[0]!.needs.energy,
   );
   expect(errors).toEqual([]);
 });
@@ -202,6 +208,7 @@ test('city clock updates preserve the focused cat card and render fixture names 
   expect(await mounted.evaluate((element) => element.isConnected)).toBe(true);
   // A pond-shore spawn arrives at full energy; spend a cast so rest is available.
   await page.locator('#cast-start').click();
+  await castOnce(page);
   await page.locator('#fish-cancel').click();
   const tired = (await readWorld(page)).cats[0]!.needs.energy;
   expect(tired).toBeLessThan(100);

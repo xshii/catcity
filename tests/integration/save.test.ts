@@ -16,6 +16,8 @@ it('saves only facts: no RNG state, income remainder or rest end minute', () => 
     spotId: 'POND',
   });
   const runId = world.getSnapshot().fishing.active!.id;
+  // The cast spends stamina, so the cat has something to rest for.
+  world.dispatch({ type: 'FISH_CAST', runId, power: 50 });
   world.dispatch({ type: 'FISH_CANCEL', runId });
   expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
   const save = JSON.parse(world.save());

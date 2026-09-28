@@ -7,7 +7,8 @@ import { mountSceneNavigation } from './navigation';
 export function mountFishingLayout(
   session: GameSession,
   place: PlaceState,
-  pause: () => void,
+  /** A tool panel opened or closed: fishing input stays paused until resumed. */
+  toggled: () => void,
 ) {
   const get = (id: string) => document.getElementById(id)!;
   const shell = document.querySelector<HTMLElement>('.shell')!;
@@ -108,7 +109,7 @@ export function mountFishingLayout(
   get('dialogue').after(replyPages);
   let reply = '';
   let replyPage = 0;
-  const navigation = mountSceneNavigation(place, pause);
+  const navigation = mountSceneNavigation(place, toggled);
   const refresh = () => {
     const world = session.getSnapshot();
     navigation.refresh();

@@ -14,7 +14,8 @@ const riverPanels = [
 type Panel = (typeof cityPanels | typeof riverPanels)[number][0];
 
 /** Scene-local menus share content without navigating or changing the world. */
-export function mountSceneNavigation(places: PlaceState, pause: () => void) {
+/** `toggled` runs when a panel opens or closes: fishing input pauses, the scene redraws. */
+export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
   const get = (id: string) => document.getElementById(id)!;
   const shell = document.querySelector<HTMLElement>('.shell')!;
   const root = get('angling');
@@ -135,6 +136,7 @@ export function mountSceneNavigation(places: PlaceState, pause: () => void) {
   function close() {
     selected = null;
     refresh();
+    toggled();
   }
   const dismiss = () => {
     const previous = selected;
@@ -155,7 +157,7 @@ export function mountSceneNavigation(places: PlaceState, pause: () => void) {
     get('river-tools-title').textContent =
       entries.find(([key]) => key === id)?.[1] ?? '';
     if (id === 'atlas') (get('fish-atlas') as HTMLDetailsElement).open = true;
-    pause();
+    toggled();
     refresh();
   }
   places.subscribe(refresh);

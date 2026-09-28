@@ -75,6 +75,10 @@ test('mobile touch layout resumes a shared outing and recalls it after reload', 
   const page = await context.newPage();
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
+  // This phone plays the button flow; without a choice it would be offered motion.
+  await page.addInitScript(() =>
+    localStorage.setItem('cat-city.fishing-input', 'buttons'),
+  );
   try {
     await page.goto('http://127.0.0.1:4173/');
     await ready(page);

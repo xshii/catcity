@@ -19,7 +19,7 @@ import {
 import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
 import { rewardBond } from '../bond';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
-import type { CatEntity, Position, WorldState } from '../schema';
+import type { Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
 import { failureTrash } from './rewards';
 import { runSeed } from '../random';
@@ -40,8 +40,13 @@ export function applyAngling(
       action,
       entityId,
     });
-  // Checked by the caller first; spends stamina and one bait (bread is free).
-  const payForCast = (cat: CatEntity, baitId: BaitId) => {
+  /** The cast itself costs stamina and one bait (bread is free); preparing is free. */
+  const payForCast = (catId: string, baitId: BaitId) => {
+    const cat = world.cats.find((cat) => cat.id === catId)!;
+    if (cat.needs.energy < CAST.staminaCost)
+      throw new CommandError('LOW_STAMINA');
+    if (baitId !== 'BREAD' && fishing.baits[baitId] === 0)
+      throw new CommandError('NO_BAIT');
     cat.needs.energy -= CAST.staminaCost;
     if (baitId !== 'BREAD') fishing.baits[baitId]--;
   };
@@ -100,8 +105,6 @@ export function applyAngling(
     if (command.baitId !== 'BREAD' && fishing.baits[command.baitId] === 0)
       throw new CommandError('NO_BAIT');
     const mode = command.mode ?? 'buttons';
-    // Buttons pay when preparing; motion pays at the swing (FISH_CAST).
-    if (mode === 'buttons') payForCast(cat, command.baitId);
     cat.fishingSpotId = command.spotId;
     const serial = world.nextId++;
     fishing.active = initialAngling({
@@ -134,19 +137,16 @@ export function applyAngling(
     }
     if (command.type === 'FISH_CAST') {
       if (run.phase !== 'charge') throw new CommandError('CAST_NOT_READY');
-      if (run.mode === 'motion') {
-        const cat = world.cats.find((cat) => cat.id === run.catId)!;
-        if (cat.needs.energy < CAST.staminaCost)
-          throw new CommandError('LOW_STAMINA');
-        if (run.baitId !== 'BREAD' && fishing.baits[run.baitId] === 0)
-          throw new CommandError('NO_BAIT');
-        payForCast(cat, run.baitId);
-      }
+      // Every cast pays, whether swung (motion) or given an explicit power.
+      payForCast(run.catId, run.baitId);
       fishing.active = castAngling(run, command.power);
       emit('waiting', run.id);
       return events;
     }
     const next = advanceRun(run, command);
+    // Releasing a button charge is the cast: it pays now.
+    if (run.phase === 'charge' && next.phase !== 'charge')
+      payForCast(run.catId, run.baitId);
     fishing.active = next;
     emit(next.phase === run.phase ? 'control' : next.phase, run.id);
     if (next.phase === 'caught' || next.phase === 'escaped') {

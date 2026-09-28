@@ -25,6 +25,7 @@ import { restMinutesLeft } from '../shell/model';
 import { mountFishingCollections } from './collections';
 import { mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
+import { fishingChrome } from './chrome';
 import { mountFishingControls } from './controls';
 import {
   ANGLING_MARKUP,
@@ -111,12 +112,16 @@ export function mountAngling(
         (cat) => cat.id === (run?.catId ?? session.selectedEntity),
       ) ?? world.cats[0]!;
     const energy = selectedCat.needs.energy;
-    // Motion play needs no prepare button or button-mode meters, so the river grows.
-    const motionPlay = motion?.active() || run?.mode === 'motion';
+    const chrome = fishingChrome({
+      place: place.get(),
+      run: run ?? null,
+      motionActive: !!motion?.active(),
+      offersMotion: !!motion?.offersEnable(),
+    });
     document
       .querySelector('.shell')
-      ?.classList.toggle('motion-play', !!motionPlay);
-    get('scene-ready').hidden = active || !!motion?.active();
+      ?.classList.toggle('motion-play', chrome.motionPlay);
+    get('scene-ready').hidden = !chrome.readyToCast;
     get<HTMLButtonElement>('cast-start').disabled =
       active || !!selectedCat.rest || energy < CAST_COST;
     get<HTMLButtonElement>('fish-rest').disabled =
@@ -131,8 +136,8 @@ export function mountAngling(
     for (const field of [location, companion, bait, direction, depth])
       field.disabled = active;
 
-    get('angling-live').hidden = !run;
-    get('angling-live').dataset.mode = run?.mode ?? '';
+    get('angling-live').hidden = !chrome.console;
+    get('angling-live').dataset.mode = chrome.consoleMode ?? '';
     const key = JSON.stringify([
       f.xp,
       f.supplies,
@@ -262,7 +267,7 @@ export function mountAngling(
       : '出发去钓点 →';
     get<HTMLButtonElement>('cast-start').disabled ||= !atDestination;
     get('cast-start').textContent = atDestination
-      ? `准备抛竿 ↗ · ${CAST_COST} 体力`
+      ? `准备抛竿 ↗ · 抛出耗 ${CAST_COST} 体力`
       : '先在地图走到岸边';
     root
       .querySelectorAll<HTMLButtonElement>('[data-bait]')
@@ -322,6 +327,7 @@ export function mountAngling(
     stage: stage.stage,
     plane: get('game'),
     settings: get('gear-page-supplies'),
+    readySlot: ready,
     getRun: () => session.getSnapshot().fishing.active,
     canPlay: () =>
       place.get() === 'river' && !layout.isOpen() && !document.hidden,
@@ -415,14 +421,15 @@ export function mountAngling(
       onNeedTravel(spotId);
     }
   });
-  get('visit-river').addEventListener('click', () => {
-    root.hidden = false;
-    render();
-  });
-  get('visit-city').addEventListener('click', () => {
-    layout?.close();
-    root.hidden = true;
-    controls.pause();
+  // Every way in or out of the river passes through the place state: leaving it closes
+  // the tools, pauses input and redraws, so nothing of the river stays on screen.
+  place.subscribe((next) => {
+    if (next === 'river') root.hidden = false;
+    else {
+      layout.close();
+      root.hidden = true;
+      controls.pause();
+    }
     render();
   });
   root.querySelectorAll<HTMLButtonElement>('[data-bait]').forEach((button) =>

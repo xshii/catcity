@@ -153,9 +153,10 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.locator('#cast-start')).toBeVisible();
         assert.deepEqual(await readWorld(page), arrived);
         await page.locator('#cast-start').click();
+        // Preparing is free; stamina is paid when the cast is released.
         assert.equal(
           (await readWorld(page)).cats[0]!.needs.energy,
-          arrived.cats[0]!.needs.energy - 8,
+          arrived.cats[0]!.needs.energy,
         );
         await catchFish(page);
         await openChat(page, 'memory');

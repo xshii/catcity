@@ -85,8 +85,9 @@ test('a new cat starts beside the pond and can enter fishing without travel or r
   expect(await readWorld(page)).toEqual(arrived);
   await page.locator('#cast-start').click();
   await expect(page.locator('#fish-control')).toBeVisible();
+  // Preparing is free; stamina is paid when the cast is released.
   expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
-    arrived.cats[0]!.needs.energy - 8,
+    arrived.cats[0]!.needs.energy,
   );
   const charging = await readWorld(page);
   await page.locator('#visit-city').click();

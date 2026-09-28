@@ -18,6 +18,8 @@ import v12 from '../fixtures/save-v12.json';
 import v13 from '../fixtures/save-v13.json';
 // Road prices changed after this save (content 6).
 import v13Content6 from '../fixtures/save-v13-content6.json';
+// Mid-charge button run from before casts paid (content 7): it had already paid.
+import v13Content7 from '../fixtures/save-v13-content7.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -38,6 +40,7 @@ const incompatible = {
   v12,
   v13,
   v13Content6,
+  v13Content7,
   future,
 };
 

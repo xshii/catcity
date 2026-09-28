@@ -7,7 +7,7 @@ import {
 } from './fishing-fixture';
 import { describe, expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
-import { fishById } from '../../src/content/fishing';
+import { FISHING, fishById } from '../../src/content/fishing';
 import {
   greenZone,
   initialAngling,
@@ -52,7 +52,8 @@ describe('skill-based angling', () => {
         direction: -30,
       }).ok,
     ).toBe(true);
-    expect(world.getSnapshot().cats[0]!.needs.energy).toBe(92);
+    // Preparing is free; the cast itself costs stamina (owner, 2026-09-29).
+    expect(world.getSnapshot().cats[0]!.needs.energy).toBe(100);
     play(world);
     const state = world.getSnapshot();
     expect(state.fishing.active).toBeNull();
@@ -73,6 +74,48 @@ describe('skill-based angling', () => {
     );
     expect(world.save()).toBe(before);
     expect(world.getSnapshot().fishing.atlas[fish.speciesId].count).toBe(1);
+  });
+
+  it('charges stamina and bait when the button run is cast, never when preparing or cancelling', () => {
+    const world = createWorld(42);
+    const begin = () =>
+      world.dispatch({
+        spotId: 'POND',
+        aimDepth: 50,
+        type: 'FISH_BEGIN',
+        catId: 'mochi',
+        baitId: 'WORM',
+        direction: -30,
+      });
+    const worms = world.getSnapshot().fishing.baits.WORM;
+    expect(begin().ok).toBe(true);
+    const control = (pressed: boolean) =>
+      world.dispatch({
+        type: 'FISH_CONTROL',
+        runId: world.getSnapshot().fishing.active!.id,
+        pressed,
+        ticks: 1,
+      });
+    // Holding to charge is still free.
+    for (let i = 0; i < 10; i++) expect(control(true).ok).toBe(true);
+    expect(world.getSnapshot().cats[0]!.needs.energy).toBe(100);
+    expect(world.getSnapshot().fishing.baits.WORM).toBe(worms);
+    // Cancelling before the cast costs nothing.
+    const runId = world.getSnapshot().fishing.active!.id;
+    expect(world.dispatch({ type: 'FISH_CANCEL', runId }).ok).toBe(true);
+    expect(world.getSnapshot().cats[0]!.needs.energy).toBe(100);
+    // Releasing the charge casts and pays once.
+    expect(begin().ok).toBe(true);
+    for (let i = 0; i < 10; i++) control(true);
+    expect(control(false).ok).toBe(true);
+    const cast = world.getSnapshot();
+    expect(cast.fishing.active!.phase).not.toBe('charge');
+    expect(cast.cats[0]!.needs.energy).toBe(100 - FISHING.cast.staminaCost);
+    expect(cast.fishing.baits.WORM).toBe(worms - 1);
+    control(false);
+    expect(world.getSnapshot().cats[0]!.needs.energy).toBe(
+      100 - FISHING.cast.staminaCost,
+    );
   });
 
   it('rejects forged results, missing bait and exhaustion atomically; recovers with simulation time', () => {

@@ -35,6 +35,8 @@ export interface MotionFishingDeps {
   /** The canvas box: the overlay's 100×100 water plane scales with it. */
   plane: HTMLElement;
   settings: HTMLElement;
+  /** The ready-to-cast area: while motion is off, a way back to it lives here. */
+  readySlot: HTMLElement;
   getRun: () => AnglingRun | null;
   /** River on screen, no tools open, page focused. */
   canPlay: () => boolean;
@@ -106,6 +108,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   const toggle = document.createElement('button');
   toggle.id = 'motion-mode-toggle';
   deps.settings.append(toggle);
+  const quick = document.createElement('button');
+  quick.id = 'motion-quick';
+  quick.className = 'quiet';
+  deps.readySlot.append(quick);
+  quick.addEventListener('click', () => void enable());
 
   const needsPermission = () =>
     typeof (window.DeviceMotionEvent as PermissionApi | undefined)
@@ -136,8 +143,9 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         capability = 'denied';
         return deps.onChange();
       }
-      // Granted: the first sensor sample marks the device ready.
-      capability = 'unknown';
+      // Granted after a refusal: the next sensor sample marks the device ready. A
+      // device already sending samples stays ready.
+      if (capability === 'denied') capability = 'unknown';
     }
     listen();
     deps.onChange();
@@ -280,6 +288,22 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     };
   });
 
+  /**
+   * Phones that must ask for sensor permission get the one-tap card until the player
+   * chooses; desktops default to the button flow. A motion run restored after a reload
+   * needs the tap again, or its bite could not be struck.
+   */
+  function offersEnable() {
+    const run = deps.getRun();
+    const motionRun = run?.mode === 'motion' ? run : null;
+    return (
+      !!(motionRun || (preference === 'motion' && !run)) &&
+      capability === 'unknown' &&
+      needsPermission() &&
+      window.matchMedia('(pointer: coarse)').matches &&
+      deps.canPlay()
+    );
+  }
   function active() {
     return preference === 'motion' && capability === 'ready';
   }
@@ -295,14 +319,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   function refresh() {
     const run = deps.getRun();
     const motionRun = run?.mode === 'motion' ? run : null;
-    // Only phones get the one-tap prompt; desktops default to the button flow. A motion
-    // run restored after a reload needs the tap again, or its bite could not be struck.
-    card.hidden =
-      !(motionRun || (preference === 'motion' && !run)) ||
-      capability !== 'unknown' ||
-      !needsPermission() ||
-      !window.matchMedia('(pointer: coarse)').matches ||
-      !deps.canPlay();
+    card.hidden = !offersEnable();
     toggle.textContent = active()
       ? '钓鱼操作：体感 ✓（点此改用按钮）'
       : capability === 'unsupported'
@@ -314,6 +331,15 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
             : '钓鱼操作：按钮（点此开启体感）';
     toggle.setAttribute('aria-pressed', String(active()));
     toggle.disabled = capability === 'unsupported';
+    // Button mode by choice or by failure: say so where the player casts, and offer the way back.
+    quick.hidden = active() || !!run || !deps.canPlay() || !card.hidden;
+    quick.disabled = capability === 'unsupported';
+    quick.textContent =
+      capability === 'unsupported'
+        ? '此设备或连接不支持体感'
+        : capability === 'denied'
+          ? '体感未获授权 · 点此重试'
+          : '改用体感钓鱼';
     // Leaving the water or starting a run abandons a calibration in progress.
     if (calibration && (motionRun || !active() || !deps.canPlay()))
       endCalibration();
@@ -396,7 +422,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   }
 
   refresh();
-  return { active, point, refresh };
+  return { active, offersEnable, point, refresh };
 }
 
 function readTuning(): RodTuning {
