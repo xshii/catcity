@@ -7,7 +7,7 @@ import {
   screenRates,
 } from '../../src/view/motion/calibrate';
 import { createRodGestures } from '../../src/view/motion/rod';
-import { createRodTip } from '../../src/view/motion/tip';
+import { centreOnPhase, createRodTip } from '../../src/view/motion/tip';
 
 const G = FISHING.motion.gesture;
 const C = G.calibration;
@@ -199,6 +199,14 @@ describe('one-tap flick calibration', () => {
     expect(result.peak).toBe(560);
   });
 
+  it('asks again when a wind-up spins nearly as fast as the flick', () => {
+    // Up at 600, down at 560: which way is the flick? Better to ask again.
+    const unclear = [0, 300, 600, 200, -300, -560, -200, 0];
+    expect(
+      calibrateSwing(on('pitch', [...unclear, ...quiet, ...unclear, ...quiet])),
+    ).toBeNull();
+  });
+
   it('asks again when the two strongest flicks disagree, or there are too few', () => {
     const disagree = [...flick(500), ...quiet, ...flick(-500), ...quiet];
     expect(calibrateSwing(on('pitch', disagree))).toBeNull();
@@ -270,5 +278,28 @@ describe('screen-frame rotation rates', () => {
       expect(screenRates(webkit, angle, 'webkit')).toEqual(
         screenRates(standard, angle, 'standard'),
       );
+  });
+});
+
+describe('rod tip centre on phase changes', () => {
+  const still = { x: 2, y: 15 };
+  const lifting = { x: 3, y: 40 };
+  it('centres the fight on the pose held at the bite, not the lift', () => {
+    const bite = centreOnPhase('hook', null, still);
+    expect(bite).toEqual({ held: still, centre: null });
+    expect(centreOnPhase('fight', bite.held, lifting)).toEqual({
+      held: null,
+      centre: still,
+    });
+  });
+  it('centres on the current pose when aiming or after a reload mid-fight', () => {
+    expect(centreOnPhase(null, still, lifting).centre).toBe('current');
+    expect(centreOnPhase('fight', null, lifting).centre).toBe('current');
+  });
+  it('forgets the bite pose in any other phase', () => {
+    expect(centreOnPhase('waiting', still, lifting)).toEqual({
+      held: null,
+      centre: null,
+    });
   });
 });

@@ -63,16 +63,26 @@ export function screenRates(
  * The flicks on one axis: each starts at a spin of at least `minFlickDegPerSec` and ends
  * after `quietMs` below the onset speed. Its sign is that of its fastest spin, the flick
  * itself: a wind-up before it, an overshoot, or a slower return that turns further
- * (all recorded on an iPhone) cannot flip it. `peak` is that fastest spin.
+ * (all recorded on an iPhone) cannot flip it. `peak` is that fastest spin. A flick whose
+ * opposite spin comes close to it is `unclear`: a wind-up faster than the flick would
+ * otherwise flip the rod.
  */
 function flicksOn(samples: SpinSample[], axis: RodTuning['axis']) {
-  const flicks: { sign: 1 | -1; peak: number }[] = [];
-  let current: { fastest: number; quietSince: number | null } | null = null;
+  const flicks: { sign: 1 | -1; peak: number; unclear: boolean }[] = [];
+  let current: {
+    up: number;
+    down: number;
+    quietSince: number | null;
+  } | null = null;
   const close = () => {
     if (!current) return;
+    const sign = current.up >= current.down ? 1 : -1;
+    const peak = Math.max(current.up, current.down);
+    const opposite = Math.min(current.up, current.down);
     flicks.push({
-      sign: current.fastest >= 0 ? 1 : -1,
-      peak: Math.abs(current.fastest),
+      sign,
+      peak,
+      unclear: opposite * 100 >= peak * C.oppositeMaxPercent,
     });
     current = null;
   };
@@ -80,9 +90,10 @@ function flicksOn(samples: SpinSample[], axis: RodTuning['axis']) {
     const rate = sample[axis];
     if (!current) {
       if (Math.abs(rate) < C.minFlickDegPerSec) continue;
-      current = { fastest: rate, quietSince: null };
+      current = { up: 0, down: 0, quietSince: null };
     }
-    if (Math.abs(rate) > Math.abs(current.fastest)) current.fastest = rate;
+    current.up = Math.max(current.up, rate);
+    current.down = Math.max(current.down, -rate);
     if (Math.abs(rate) >= G.onsetDegPerSec) current.quietSince = null;
     else current.quietSince ??= sample.t;
     if (
@@ -126,7 +137,9 @@ export function calibrateSwing(
     .slice(0, C.flicks);
   if (
     strongest.length < C.flicks ||
-    strongest.some((flick) => flick.sign !== strongest[0]!.sign)
+    strongest.some(
+      (flick) => flick.unclear || flick.sign !== strongest[0]!.sign,
+    )
   )
     return null;
   const peak = Math.round(Math.min(...strongest.map((flick) => flick.peak)));

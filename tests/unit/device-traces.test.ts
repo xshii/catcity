@@ -15,6 +15,7 @@ const down = (speed: number) => speed * G.pitchSign;
 
 /** A synthetic device log in the receiver's format: one JSON line per entry, 60 Hz. */
 function syntheticLog(
+  place: 'river' | 'city',
   build: (log: {
     entry: (kind: string, data: Record<string, unknown>) => void;
     hold: (ms: number, beta: number, rate?: number) => void;
@@ -29,6 +30,23 @@ function syntheticLog(
     );
   entry('device', { build: 'test', ua: 'synthetic' });
   entry('tuning', { ...DEFAULT_TUNING });
+  // The fishing view as logged: motion on and nothing cast yet.
+  entry('view', {
+    place,
+    toolsOpen: false,
+    pageHidden: false,
+    paused: true,
+    pressed: false,
+    runId: null,
+    motion: {
+      preference: 'motion',
+      capability: 'ready',
+      needsPermission: true,
+      coarsePointer: true,
+      calibrating: false,
+      notice: null,
+    },
+  });
   build({
     entry,
     now: () => t,
@@ -44,9 +62,10 @@ function syntheticLog(
 }
 
 describe('device traces', () => {
-  it('cuts a cast window from its re-centring and replays the power set by the pitch', () => {
+  /** A flick down after the rod re-centred and slow pitching set power 70. */
+  const flickLog = (place: 'river' | 'city') => {
     let from = 0;
-    const log = syntheticLog(({ entry, hold, now }) => {
+    const log = syntheticLog(place, ({ entry, hold, now }) => {
       hold(200, 10);
       // The rod re-centres on a pose, then pitching back 40% of the range sets power 70.
       entry('orientation', { a: 0, b: 40, g: 0, angle: 0 });
@@ -58,14 +77,20 @@ describe('device traces', () => {
       entry('gesture', { gesture: { kind: 'cast', power: 70 } });
       hold(200, 40 + G.powerRangeDeg * 0.4);
     });
-    const trace = extractDeviceTrace(log, {
+    return extractDeviceTrace(log, {
       session: 's',
       want: 'cast',
       from,
       to: from + 400,
     });
-    expect(trace.source.from).toBeLessThan(from);
-    expect(trace.readings.filter((reading) => reading.rebase)).toHaveLength(1);
+  };
+
+  it('cuts a cast window from its re-centring and replays the power set by the pitch', () => {
+    const trace = flickLog('river');
+    expect(trace.source.from).toBeLessThan(trace.readings.at(-1)!.t);
+    expect(
+      trace.readings.filter((reading) => 'rebase' in reading && reading.rebase),
+    ).toHaveLength(1);
     expect(trace.tuning).toEqual(DEFAULT_TUNING);
     expect(trace.device).toEqual({ build: 'test', ua: 'synthetic' });
     expect(trace.expect).toEqual({
@@ -74,9 +99,15 @@ describe('device traces', () => {
     expect(replayDeviceTrace(trace)).toEqual(trace.expect);
   });
 
+  it('replays nothing the game was not reading: the same flick in the city casts nothing', () => {
+    const trace = flickLog('city');
+    expect(trace.readings.some((reading) => 'off' in reading)).toBe(true);
+    expect(replayDeviceTrace(trace)).toEqual({ gestures: [] });
+  });
+
   it('replays a calibration window with the tuning it produced', () => {
     let from = 0;
-    const log = syntheticLog(({ entry, hold, now }) => {
+    const log = syntheticLog('river', ({ entry, hold, now }) => {
       from = now();
       for (let flick = 0; flick < 2; flick++) {
         hold(300, 0);

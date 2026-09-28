@@ -16,12 +16,12 @@ afterEach(async () => {
   cleanup = null;
 });
 
-async function receiver() {
+async function receiver(maxTotalBytes?: number) {
   const directory = await mkdtemp(join(tmpdir(), 'device-log-'));
-  const handle = createDeviceLogHandler(
-    directory,
-    () => new Date('2026-09-29T12:00:00Z'),
-  );
+  const handle = createDeviceLogHandler(directory, {
+    now: () => new Date('2026-09-29T12:00:00Z'),
+    ...(maxTotalBytes ? { maxTotalBytes } : {}),
+  });
   const server: Server = createServer((request, response) => {
     void handle(request, response);
   });
@@ -37,7 +37,7 @@ async function receiver() {
       (response) => response.status,
     );
   const lines = async () =>
-    (await readFile(join(directory, '2026-09-29', `${SESSION}.jsonl`), 'utf8'))
+    (await readFile(join(directory, `${SESSION}.jsonl`), 'utf8'))
       .trim()
       .split('\n')
       .map((line) => JSON.parse(line) as Record<string, unknown>);
@@ -98,4 +98,18 @@ it('is mounted by the preview server at the route the page posts to', () => {
     middlewares: { use: (route: string) => routes.push(route) },
   } as unknown as PreviewServer);
   expect(routes).toEqual(['/__device-log']);
+});
+
+it('stops the whole log folder at its limit, whatever the session', async () => {
+  // Each line is 63 bytes: two fit in 150, a third does not.
+  const { post, directory } = await receiver(150);
+  const batch = (session: string) =>
+    JSON.stringify({ session, entries: [{ kind: 'motion', b: 1 }] });
+  expect(await post(batch(SESSION))).toBe(204);
+  // A new session name does not get a new allowance.
+  expect(await post(batch('aaaaaaaa-0000-0000-0000-000000000000'))).toBe(204);
+  expect(await post(batch('bbbbbbbb-0000-0000-0000-000000000000'))).toBe(507);
+  expect((await readdir(directory)).sort()).toEqual(
+    [`${SESSION}.jsonl`, 'aaaaaaaa-0000-0000-0000-000000000000.jsonl'].sort(),
+  );
 });
