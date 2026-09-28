@@ -1,3 +1,4 @@
+import type { PlaceState, Tools } from '../shell/place';
 import { TIME_SCALE } from '../time-scale';
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
@@ -32,6 +33,7 @@ const REST = CARE.rest;
 
 export function mountAngling(
   session: GameSession,
+  place: PlaceState,
   notify: (text: string) => void,
   onNeedTravel: (spotId: SpotId) => void,
 ) {
@@ -43,7 +45,7 @@ export function mountAngling(
   const requestedSpot = () =>
     ((document.getElementById('fish-location') as HTMLSelectElement | null)
       ?.value as SpotId) || 'POND';
-  const stage = mountFishingStage(session, {
+  const stage = mountFishingStage(session, place, {
     canEnter: () => {
       const world = session.getSnapshot();
       return atShore(
@@ -318,7 +320,7 @@ export function mountAngling(
     get('direction-value').textContent =
       `${Number(direction.value) < 0 ? '左' : '右'} ${Math.abs(Number(direction.value))}°`;
   };
-  const layout = mountFishingLayout(session, () => {
+  const layout = mountFishingLayout(session, place, () => {
     paused = true;
     pressed = false;
     render();
@@ -551,7 +553,7 @@ export function mountAngling(
       !run ||
       paused ||
       document.hidden ||
-      !stage.stage.classList.contains('is-river') ||
+      place.get() !== 'river' ||
       layout?.isOpen()
     )
       return false;
@@ -577,6 +579,7 @@ export function mountAngling(
   render();
   return {
     enterAtSpot,
+    tools: { close: layout.close, openTalk: layout.openTalk } satisfies Tools,
     fishingClock: {
       setManual: (manual: boolean) => {
         manualClock = manual;

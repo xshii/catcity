@@ -1,3 +1,4 @@
+import type { PlaceState } from '../shell/place';
 import { CITY_START } from '../../content/city';
 import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
@@ -21,6 +22,7 @@ export class CityScene extends Phaser.Scene {
   private cameraMode = '';
   constructor(
     private readonly session: GameSession,
+    private readonly place: PlaceState,
     private readonly onMessage: (message: string) => void,
     private readonly cityActions: CityActions,
   ) {
@@ -30,13 +32,8 @@ export class CityScene extends Phaser.Scene {
   create() {
     this.graphics = this.add.graphics();
     this.river = new RiverView(this);
-    const stage = document.getElementById('fishing-stage')!;
     const repaint = () => this.paint();
-    const stageObserver = new MutationObserver(repaint);
-    stageObserver.observe(stage, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
+    const unsubscribePlace = this.place.subscribe(repaint);
     const overview = document.getElementById('city-overview')!;
     const toggleOverview = () => {
       this.overview = !this.overview;
@@ -58,7 +55,7 @@ export class CityScene extends Phaser.Scene {
     const unsubscribe = this.session.subscribe(repaint);
     const unsubscribeSelection = this.cityActions.subscribe(repaint);
     this.events.once('shutdown', () => {
-      stageObserver.disconnect();
+      unsubscribePlace();
       sizeObserver.disconnect();
       unsubscribe();
       unsubscribeSelection();
@@ -189,9 +186,7 @@ export class CityScene extends Phaser.Scene {
 
   private paint() {
     const world = this.session.getSnapshot();
-    this.riverMode = document
-      .getElementById('fishing-stage')!
-      .classList.contains('is-river');
+    this.riverMode = this.place.get() === 'river';
     this.river.root.setVisible(this.riverMode);
     document
       .querySelector('.map-card')!

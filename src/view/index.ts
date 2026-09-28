@@ -4,12 +4,14 @@ import type { Position } from '../core';
 import { CityScene } from './city/scene';
 import { MAP_VIEW } from './city/geometry';
 import { mountPanel } from './shell/panel';
+import { createPlace } from './shell/place';
 import './styles/base.css';
 
 /** Browser composition; the application owns the session, this layer owns rendering. */
 export function mountGameView(session: GameSession) {
-  const panel = mountPanel(session);
-  const scene = new CityScene(session, panel.notify, panel.cityActions);
+  const place = createPlace();
+  const panel = mountPanel(session, place);
+  const scene = new CityScene(session, place, panel.notify, panel.cityActions);
   new Phaser.Game({
     type: Phaser.AUTO,
     render: { antialias: true, roundPixels: false },

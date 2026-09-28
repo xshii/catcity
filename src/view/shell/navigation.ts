@@ -1,3 +1,4 @@
+import type { Place, PlaceState } from './place';
 const cityPanels = [
   ['build', '建设', '⌂'],
   ['cats', '猫咪', '♧'],
@@ -10,10 +11,9 @@ const riverPanels = [
   ['chat', '聊天', '♡'],
 ] as const;
 type Panel = (typeof cityPanels | typeof riverPanels)[number][0];
-type Place = 'city' | 'river';
 
 /** Scene-local menus share content without navigating or changing the world. */
-export function mountSceneNavigation(pause: () => void) {
+export function mountSceneNavigation(places: PlaceState, pause: () => void) {
   const get = (id: string) => document.getElementById(id)!;
   const shell = document.querySelector<HTMLElement>('.shell')!;
   const root = get('angling');
@@ -43,9 +43,7 @@ export function mountSceneNavigation(pause: () => void) {
   shade.setAttribute('aria-label', '收起面板，返回场景');
   shade.hidden = true;
   sheet.before(shade);
-  let place: Place = get('fishing-stage').classList.contains('is-river')
-    ? 'river'
-    : 'city';
+  let place: Place = places.get();
   let selected: Panel | null = null;
   const navs = (['city', 'river'] as const).map((scene) => {
     const entries = scene === 'city' ? cityPanels : riverPanels;
@@ -69,16 +67,8 @@ export function mountSceneNavigation(pause: () => void) {
     entries.forEach(([id]) => {
       get(`${scene}-tab-${id}`).addEventListener('click', () => {
         if (place !== scene) return;
-        selected = selected === id ? null : id;
-        if (selected) {
-          get('river-tools-title').textContent = entries.find(
-            ([key]) => key === selected,
-          )![1];
-          if (selected === 'atlas')
-            (get('fish-atlas') as HTMLDetailsElement).open = true;
-          pause();
-        }
-        refresh();
+        if (selected === id) close();
+        else open(id);
       });
     });
     const buttons = Array.from(nav.querySelectorAll('button'));
@@ -102,9 +92,7 @@ export function mountSceneNavigation(pause: () => void) {
     return { scene, nav, entries };
   });
   const refresh = () => {
-    const next: Place = get('fishing-stage').classList.contains('is-river')
-      ? 'river'
-      : 'city';
+    const next = places.get();
     if (next !== place) {
       selected = null;
       place = next;
@@ -149,10 +137,10 @@ export function mountSceneNavigation(pause: () => void) {
       if (roster) element.hidden = !river && selected !== 'cats';
     }
   };
-  const close = () => {
+  function close() {
     selected = null;
     refresh();
-  };
+  }
   const dismiss = () => {
     const previous = selected;
     close();
@@ -165,7 +153,19 @@ export function mountSceneNavigation(pause: () => void) {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && selected) dismiss();
   });
+  /** Show a panel of the current scene; opening pauses fishing input. */
+  function open(id: Panel) {
+    if (selected === id) return;
+    selected = id;
+    const entries = place === 'city' ? cityPanels : riverPanels;
+    get('river-tools-title').textContent =
+      entries.find(([key]) => key === id)?.[1] ?? '';
+    if (id === 'atlas') (get('fish-atlas') as HTMLDetailsElement).open = true;
+    pause();
+    refresh();
+  }
+  places.subscribe(refresh);
   mobile.addEventListener('change', refresh);
   refresh();
-  return { refresh, close, isOpen: () => selected !== null };
+  return { refresh, close, open, isOpen: () => selected !== null };
 }

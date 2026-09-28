@@ -1,3 +1,4 @@
+import type { Tools } from '../shell/place';
 import { STARTER_CAT_ID } from '../../content/cats';
 import type { GameSession } from '../../application';
 import { BUILDINGS } from '../../content/city';
@@ -27,6 +28,8 @@ export function mountCityGuide(
   session: GameSession,
   notify: (text: string) => void,
   cityActions: CityActions,
+  tools: Tools,
+  talk: (message: string) => void,
 ) {
   const get = (id: string) => document.getElementById(id)!;
   const action = get('city-action') as HTMLButtonElement;
@@ -86,7 +89,7 @@ export function mountCityGuide(
     const { world, cafe, earned, remembered } = read();
     if (!cafe) {
       const position = recommendedCafeSite(world);
-      get('river-tools-close').click();
+      tools.close();
       cityActions.clear();
       if (position) cityActions.selectTile(position);
       notify('点击地图空地选址，再在下方选择要建的建筑。');
@@ -104,14 +107,8 @@ export function mountCityGuide(
       cityActions.focusWaterway('POND');
     } else {
       session.select(STARTER_CAT_ID);
-      const chat = get('city-tab-chat');
-      if (chat.getAttribute('aria-selected') !== 'true') chat.click();
-      get('chat-tab-talk').click();
-      document
-        .querySelector<HTMLButtonElement>(
-          '[data-message="还记得我们钓鱼吗？"]',
-        )!
-        .click();
+      tools.openTalk();
+      talk('还记得我们钓鱼吗？');
     }
   });
   session.subscribe(render);
