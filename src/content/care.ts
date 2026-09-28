@@ -1,6 +1,7 @@
-/** Cat care tuning shared by rest, walking energy and relationship rules. */
+/** Cat care tuning shared by recovery, walking energy and relationship rules. */
 export const CARE = {
-  rest: { minutes: 60, tickMinutes: 10, recovery: 5, homeRecovery: 10 },
+  /** An idle cat (not fishing, not stepping) recovers each tick; faster beside its home. */
+  recovery: { tickMinutes: 10, idle: 5, home: 10 },
   walkEnergyPerTile: 1,
   /** Bond grows at most once per game hour across chat and gifts. */
   bondCooldownMinutes: 60,

@@ -136,7 +136,7 @@ describe('skill-based angling', () => {
       }).ok,
     ).toBe(false);
     expect(tired.save()).toBe(before);
-    tired.dispatch({ type: 'REST_CAT', catId: 'mochi' });
+    // An hour idle: the cat recovers by itself.
     advance(tired, 60);
     expect(tired.getSnapshot().cats[0]!.needs.energy).toBe(37);
     expect(

@@ -1,3 +1,4 @@
+import { CARE } from '../../src/content/care';
 import { enterRiver } from '../../harness/adapters/catcity/city-input';
 import { expect, test } from '@playwright/test';
 import { FISHING } from '../../src/content/fishing';
@@ -13,7 +14,7 @@ import {
   openGear,
 } from '../../harness/adapters/catcity/navigation';
 
-test('scene input aims at water, cat cards switch independent stamina, and the city clock completes rest', async ({
+test('scene input aims at water, cat cards switch independent stamina, and idle cats recover on the city clock', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -45,11 +46,8 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
     arrival.cats[0]!.needs.energy - 8,
   );
-  await page.locator('#fish-rest').click();
-  expect((await readWorld(page)).minute).toBe(arrival.minute);
-  await expect(page.locator('[data-cat-id="mochi"]')).toContainText(
-    '休息中 60 分钟',
-  );
+  // Nothing to press: an idle, tired cat shows that it is recovering.
+  await expect(page.locator('[data-cat-id="mochi"] .sleep-mark')).toBeVisible();
   await invitePepper(page);
   const pepper = (await readWorld(page)).cats[1]!;
   await page.locator(`[data-cat-id="${pepper.id}"]`).click();
@@ -60,11 +58,11 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   await page.locator('#fish-cancel').click();
   const pepperEnergy = pepperArrival.cats[1]!.needs.energy - 8;
   expect((await readWorld(page)).cats[1]!.needs.energy).toBe(pepperEnergy);
-  // The city clock (the browser's real-time adapter in play) completes the rest.
+  // The city clock (the browser's real-time adapter in play) recovers idle cats.
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
   expect((await readWorld(page)).cats.map((cat) => cat.needs.energy)).toEqual([
     100,
-    pepperEnergy,
+    Math.min(100, pepperEnergy + 6 * CARE.recovery.idle),
   ]);
   expect((await readWorld(page)).minute).toBe(pepperArrival.minute + 60);
   const before = await readWorld(page);
@@ -73,7 +71,7 @@ test('scene input aims at water, cat cards switch independent stamina, and the c
   expect(await readWorld(page)).toEqual(before);
   await enterRiver(page);
   await page.screenshot({
-    path: testInfo.outputPath('cat-rest-scene.png'),
+    path: testInfo.outputPath('cat-recovery-scene.png'),
     fullPage: true,
   });
   expect(
@@ -206,18 +204,20 @@ test('city clock updates preserve the focused cat card and render fixture names 
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(1));
   await expect(card).toBeFocused();
   expect(await mounted.evaluate((element) => element.isConnected)).toBe(true);
-  // A pond-shore spawn arrives at full energy; spend a cast so rest is available.
+  // A pond-shore spawn arrives at full energy; spend a cast so it has something to recover.
   await page.locator('#cast-start').click();
   await castOnce(page);
   await page.locator('#fish-cancel').click();
   const tired = (await readWorld(page)).cats[0]!.needs.energy;
   expect(tired).toBeLessThan(100);
-  await page.locator('#fish-rest').click();
   await card.focus();
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(10));
   await expect(card).toBeFocused();
-  await expect(card).toContainText('休息中 50 分钟');
-  await expect(card.locator('progress')).toHaveJSProperty('value', tired + 5);
+  await expect(card.locator('.sleep-mark')).toBeVisible();
+  await expect(card.locator('progress')).toHaveJSProperty(
+    'value',
+    tired + CARE.recovery.idle,
+  );
   const name = 'Mochi <b>你好</b>';
   await page.evaluate((catName) => {
     const save = JSON.parse(localStorage.getItem('cat-city.save.v1')!);
@@ -227,4 +227,26 @@ test('city clock updates preserve the focused cat card and render fixture names 
   await expect(card.locator('strong')).toHaveText(name);
   await expect(card.locator('strong b')).toHaveCount(0);
   expect(await mounted.evaluate((element) => element.isConnected)).toBe(true);
+});
+
+test('leaving the river gives up an uncast rod, but keeps a cast one to come back to', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await ready(page);
+  await enterRiver(page);
+  const arrival = await readWorld(page);
+  await page.locator('#cast-start').click();
+  expect((await readWorld(page)).fishing.active?.phase).toBe('charge');
+  await page.locator('#visit-city').click();
+  // Nothing was paid, and the cat is free to recover.
+  const left = await readWorld(page);
+  expect(left.fishing.active).toBeNull();
+  expect(left.cats[0]!.needs.energy).toBe(arrival.cats[0]!.needs.energy);
+  await enterRiver(page);
+  await page.locator('#cast-start').click();
+  await castOnce(page);
+  await page.locator('#visit-city').click();
+  expect((await readWorld(page)).fishing.active?.phase).not.toBe('charge');
+  expect((await readWorld(page)).fishing.active).not.toBeNull();
 });

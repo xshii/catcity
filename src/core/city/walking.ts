@@ -24,12 +24,7 @@ function reachedSpot(world: WorldState, cat: CatEntity): SpotId | null {
 }
 
 export function resumeWalk(world: WorldState, cat: CatEntity): void {
-  if (
-    !cat.walk ||
-    cat.rest ||
-    cat.needs.energy === 0 ||
-    cat.walk.nextStepMinute !== null
-  )
+  if (!cat.walk || cat.needs.energy === 0 || cat.walk.nextStepMinute !== null)
     return;
   const minute = world.minute + walkingMinutes(world, cat.walk.route[0]!);
   if (minute > WORLD_LIMIT) throw new CommandError('TIME_LIMIT');
@@ -44,7 +39,6 @@ export function queueWalk(
 ): GameEvent[] {
   const cat = world.cats.find((item) => item.id === catId);
   if (!cat) throw new CommandError('CAT_NOT_FOUND');
-  if (cat.rest) throw new CommandError('CAT_RESTING');
   if (world.fishing.active?.catId === catId) throw new CommandError('CAT_BUSY');
   if (samePosition(cat.position, destination))
     throw new CommandError('ALREADY_AT_DESTINATION');
@@ -92,7 +86,6 @@ export function advanceWalking(world: WorldState, events: GameEvent[]): void {
     const walk = cat.walk;
     if (
       !walk ||
-      cat.rest ||
       walk.nextStepMinute === null ||
       walk.nextStepMinute > world.minute
     )

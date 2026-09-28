@@ -93,7 +93,6 @@ export function applyAngling(
     if (fishing.active) throw new CommandError('ALREADY_FISHING');
     const cat = world.cats.find((cat) => cat.id === command.catId);
     if (!cat) throw new CommandError('CAT_NOT_FOUND');
-    if (cat.rest) throw new CommandError('CAT_RESTING');
     if (!spotOpen(command.spotId, fishing))
       throw new CommandError('SPOT_LOCKED');
     if (!atFishingShore(world, cat, command.spotId))

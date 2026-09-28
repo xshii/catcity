@@ -14,7 +14,6 @@ export function travelToFishingSpot(
   if (!cat) throw new CommandError('CAT_NOT_FOUND');
   if (world.fishing.active?.catId === cat.id)
     throw new CommandError('ALREADY_FISHING');
-  if (cat.rest) throw new CommandError('CAT_RESTING');
   if (!spotOpen(command.spotId, world.fishing))
     throw new CommandError('SPOT_LOCKED');
   if (atFishingShore(world, cat, command.spotId))

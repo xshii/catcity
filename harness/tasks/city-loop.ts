@@ -2,7 +2,7 @@ import type { HarnessTask } from '../runner/contract';
 
 export const cityLoopTask: HarnessTask = {
   id: 'm5-city-walk-fish',
-  goal: 'Buy land, connect and upgrade roads, build a home and cafe, move a building, walk a cat to the shore, fish and recall its memory, rest, reload and replay the exact world.',
+  goal: 'Buy land, connect and upgrade roads, build a home and cafe, move a building, walk a cat to the shore, fish and recall its memory, recover while idle, reload and replay the exact world.',
   acceptanceCriteria: [
     'initial-world',
     'land-and-road',
@@ -15,7 +15,7 @@ export const cityLoopTask: HarnessTask = {
     'dialogue',
     'shared-outing',
     'atlas-and-breed',
-    'cat-rest-clock',
+    'cat-recovery-clock',
     'save-reload',
     'replay',
   ],

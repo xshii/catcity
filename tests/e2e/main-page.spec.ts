@@ -242,15 +242,14 @@ test('tile cards explain disabled actions in words and offer road removal', asyn
   await expect(page.locator('#remove-road')).toBeDisabled();
   await expect(reason).toContainText('断开');
 
-  // Resting at full stamina is disabled with a reason, on the map and the cats page.
+  // Idle cats recover by themselves: no rest button on the map or the cats page.
   const cat = removed.cats[0]!;
   await clickTile(page, cat.position.x, cat.position.y);
-  await expect(page.locator('#city-rest-cat')).toBeDisabled();
-  await expect(reason).toContainText('体力已满');
+  await expect(page.locator('#city-cat-chat')).toBeVisible();
+  await expect(page.locator('#city-rest-cat')).toHaveCount(0);
   await expect(page.locator('#city-wait')).toHaveCount(0);
   await page.locator('#city-tab-cats').click();
-  await expect(page.locator('#fish-rest')).toBeDisabled();
-  await expect(page.locator('#fish-rest')).toContainText('体力已满');
+  await expect(page.locator('#fish-rest')).toHaveCount(0);
   await expect(page.locator('#invite-pepper')).toBeVisible();
   await expect(page.locator('#time-forward')).toHaveCount(0);
 });

@@ -54,7 +54,6 @@ const catSchema = z.strictObject({
   home: text.nullable(),
   position: positionSchema,
   lastBondMinute: integer.nullable(),
-  rest: z.strictObject({ startedAt: integer }).nullable(),
   fishingSpotId: spotIdSchema.nullable(),
   walk: z
     .strictObject({
@@ -103,7 +102,7 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 export const CONTENT_VERSION = 8;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
@@ -140,13 +139,6 @@ export function assertWorld(value: unknown): WorldState {
   }
   for (const cat of world.cats) {
     assertTemplate(cat, world.cats);
-    if (
-      cat.rest &&
-      (cat.rest.startedAt > world.minute ||
-        cat.rest.startedAt + CARE.rest.minutes <= world.minute ||
-        world.fishing.active?.catId === cat.id)
-    )
-      throw new Error('Invalid cat rest');
     if (cat.lastBondMinute !== null && cat.lastBondMinute > world.minute)
       throw new Error('Future bond');
     if (

@@ -40,9 +40,9 @@ V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runne
 ## 必须保持的回归
 
 - 同 seed/初始状态/命令得到同状态；拒绝不改变资源、RNG、ID 或半成品；一次结算/消费；无 NaN、重叠和无界事件循环。
-- 地形与路网有效，最短耗时路线、障碍重排、多猫碰撞、逐格体力与公寓休息；到真实岸边才能开钓。
+- 地形与路网有效，最短耗时路线、障碍重排、多猫碰撞、逐格体力、空闲恢复与公寓旁加速；到真实岸边才能开钓。
 - 每个鱼池、0–5 星、品种资格、体长范围/纪录、饵/力度、失败垃圾、补给、卖/赠、解锁和独立体力。
-- 当前存档精确往返，中途行走/休息/钓鱼可继续；旧/未来/损坏存档及伪装为当前格式的旧字段被拒绝，原数据保留直至明确重置。
+- 当前存档精确往返，中途行走/钓鱼可继续；旧/未来/损坏存档及伪装为当前格式的旧字段被拒绝，原数据保留直至明确重置。
 - 首钓与赠鱼来自 Core，聊天不能伪造事实；不同猫隔离；非法/超时/错误目标/过期 Provider 响应回退或拒绝。
 - 390×844、360×640 和桌面单屏，长对白与有内容的分页可达；导航/暂停不重置用户页面，水面和操作键阶段稳定。
 - 最后一次收线触摸抬起不得激活新准备键、再次扣 8 体力或奖励；新的指针/键盘输入能正常再开一竿。
@@ -54,7 +54,7 @@ V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runne
 
 任务声明 Goal、Acceptance Criteria、Commands、Expected State、Visual Evidence、Regression Tests。通用 runner 只负责执行、启动和证据；游戏 adapter 负责输入与断言，见 [Harness 导航](../harness/README.md)。
 
-当前任务 `m5-city-walk-fish` 使用真实输入购地、铺路升级、建公寓/入住、建造搬移猫咖、获取收入、猫咪步行、岸边钓鱼、图鉴/赠售、事实聊天、休息、保存/刷新和回放。具体预期以 [city-loop.ts](../harness/tasks/city-loop.ts) 为准，不在文档复制易漂移的最终金币公式。
+当前任务 `m5-city-walk-fish` 使用真实输入购地、铺路升级、建公寓/入住、建造搬移猫咖、获取收入、猫咪步行、岸边钓鱼、图鉴/赠售、事实聊天、空闲恢复、保存/刷新和回放。具体预期以 [city-loop.ts](../harness/tasks/city-loop.ts) 为准，不在文档复制易漂移的最终金币公式。
 
 每次运行保存：任务与通过/失败结果、命令日志、build/source 标识、seed、初始 save/fixture、操作轨迹、World 快照、截图、Console/pageerror 和 Playwright trace。失败保持非零并保留已取得的证据；截图/存档采集失败也记录，不能覆盖首个玩法错误。
 

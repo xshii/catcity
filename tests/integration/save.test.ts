@@ -3,7 +3,7 @@ import { advance, buildCafe, interact } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core';
 
-it('saves only facts: no RNG state, income remainder or rest end minute', () => {
+it('saves only facts: no RNG state, income remainder or recovery schedule', () => {
   const world = createWorld(42);
   buildCafe(world, { x: 4, y: 4 });
   advance(world, 25);
@@ -16,15 +16,15 @@ it('saves only facts: no RNG state, income remainder or rest end minute', () => 
     spotId: 'POND',
   });
   const runId = world.getSnapshot().fishing.active!.id;
-  // The cast spends stamina, so the cat has something to rest for.
+  // The cast spends stamina, so the cat has something to recover.
   world.dispatch({ type: 'FISH_CAST', runId, power: 50 });
   world.dispatch({ type: 'FISH_CANCEL', runId });
-  expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
   const save = JSON.parse(world.save());
   expect(save.saveVersion).toBe(SAVE_VERSION);
   expect(save.world).not.toHaveProperty('rngState');
   expect(save.world.buildings[0]).not.toHaveProperty('incomeProgress');
-  expect(save.world.cats[0].rest).toEqual({ startedAt: 25 });
+  // Recovery follows from the clock and what the cat is doing; nothing is stored.
+  expect(save.world.cats[0]).not.toHaveProperty('rest');
   // Write-only placeholders are not saved: no activity label, social need,
   // relationships, favourite places or daily routine.
   for (const field of [

@@ -1,4 +1,4 @@
-import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from './limits';
+import { MAX_CATS, WORLD_LIMIT } from './limits';
 import { CARE } from '../content/care';
 import { applyCity } from './city/building';
 import { queueWalk } from './city/walking';
@@ -29,24 +29,6 @@ export function applyCommand(
       return applyCity(world, command);
     case 'TRAVEL_TO_FISHING_SPOT':
       return travelToFishingSpot(world, command);
-    case 'REST_CAT': {
-      const cat = world.cats.find((item) => item.id === command.catId);
-      if (!cat) throw new CommandError('CAT_NOT_FOUND');
-      if (cat.rest) throw new CommandError('CAT_RESTING');
-      if (world.fishing.active?.catId === cat.id)
-        throw new CommandError('CAT_BUSY');
-      if (cat.needs.energy === MAX_STAT) throw new CommandError('STAMINA_FULL');
-      if (world.minute + CARE.rest.minutes > WORLD_LIMIT)
-        throw new CommandError('TIME_LIMIT');
-      cat.rest = { startedAt: world.minute };
-      if (cat.walk) cat.walk.nextStepMinute = null;
-      events.push({
-        type: 'CatRestStarted',
-        minute: world.minute,
-        entityId: cat.id,
-      });
-      break;
-    }
     case 'USE_CAN':
     case 'RECYCLE_TRASH':
     case 'FISH_BEGIN':
