@@ -3,6 +3,7 @@ import { RuleBasedDialogueProvider } from './providers/rule-dialogue';
 import { BrowserSaveRepository, SAVE_KEY } from './platform/storage';
 import { STARTER_CAT_ID } from './content/cats';
 import { mountGameView } from './view';
+import { startDeviceLog } from './platform/device-log';
 
 const initialSeed =
   import.meta.env.MODE === 'test'
@@ -20,7 +21,28 @@ session.select(STARTER_CAT_ID);
 window.addEventListener('storage', (event) => {
   if (event.key === SAVE_KEY) session.externalSaveChanged();
 });
-const view = mountGameView(session);
+const trace = startDeviceLog(__BUILD_VERSION__);
+if (trace) {
+  // Each command notifies once; the per-tick fishing controls only when they change play.
+  let logged = -1;
+  session.subscribe(() => {
+    const entry = session.lastCommand();
+    if (!entry || entry.sequence === logged) return;
+    logged = entry.sequence;
+    const { command, result } = entry;
+    const tick =
+      command.type === 'FISH_CONTROL' || command.type === 'FISH_MOTION_CONTROL';
+    if (tick && result.ok && !result.events.length) return;
+    trace('command', {
+      command: tick ? command.type : command,
+      ...(result.ok
+        ? { ok: true, events: result.events }
+        : { ok: false, error: result.error }),
+      run: session.getSnapshot().fishing.active,
+    });
+  });
+}
+const view = mountGameView(session, trace ?? (() => {}));
 
 if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
   void import('./debug/bridge').then(({ installDebugBridge }) =>

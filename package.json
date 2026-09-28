@@ -23,6 +23,7 @@
     "check": "npm run typecheck && npm run lint && npm run test:coverage && npm run build && npm run test:e2e",
     "harness": "tsx harness/run.ts",
     "replay": "tsx harness/adapters/catcity/replay.ts",
+    "device-trace": "tsx harness/adapters/catcity/device-trace-cli.ts",
     "lint:code": "eslint .",
     "lint:unused": "knip",
     "test:coverage": "vitest run --coverage",

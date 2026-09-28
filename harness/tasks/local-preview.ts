@@ -10,6 +10,8 @@ export const localPreview: LocalPublicationConfig = {
     args: [
       'node_modules/vite/bin/vite.js',
       'preview',
+      '--mode',
+      'device-log',
       '--outDir',
       '{site}',
       '--host',

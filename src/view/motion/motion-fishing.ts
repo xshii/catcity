@@ -9,6 +9,7 @@ import {
 import { FISHING } from '../../content/fishing';
 import { WATER_VIEW } from '../art/water-view';
 import type { FishingScreen } from '../fishing/screen';
+import type { Trace } from '../../platform/device-log';
 import {
   canPlay,
   motionActive,
@@ -62,6 +63,8 @@ export interface MotionFishingDeps {
   cast: (direction: number, power: number) => boolean;
   strike: () => void;
   vibrate: (pattern: number | number[]) => void;
+  /** Debug log of gestures and calibration; raw sensor readings are logged by the log itself. */
+  trace: Trace;
 }
 
 /**
@@ -75,6 +78,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   const tracker = new OrientationTracker();
   let tuning = readTuning();
   let gestures = createRodGestures(tuning);
+  deps.trace('tuning', { ...tuning });
   /** Spin samples while calibrating; the view state says whether calibration is on. */
   let calibration: SpinSample[] | null = null;
   let noticeTimer = 0;
@@ -186,6 +190,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     if (rebase) {
       tip.calibrate(next);
       rebase = false;
+      // Replays need the pose the rod tip is measured from.
+      deps.trace('rebase', { t: event.timeStamp });
     }
     if (active() && playable() && !deps.getRun()) {
       power = tip.power(next);
@@ -223,6 +229,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       { t: event.timeStamp, pitchRate: rate, power },
       want,
     );
+    if (gesture) deps.trace('gesture', { t: event.timeStamp, gesture });
     if (gesture?.kind === 'cast') {
       // Without orientation readings the cast goes straight ahead.
       if (deps.cast(tilt ? tip.aim(tilt) : 0, gesture.power)) deps.vibrate(20);
@@ -263,6 +270,10 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     gestures.reset();
     calibrationTimer = window.setTimeout(() => {
       const result = calibrateSwing(calibration ?? []);
+      deps.trace('calibration', {
+        samples: calibration?.length ?? 0,
+        result,
+      });
       endCalibration();
       view.dispatch({ type: 'calibrating', on: false });
       if (result) {

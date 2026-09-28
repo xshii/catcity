@@ -213,6 +213,11 @@ export class GameSession {
       expectedWorld: this.world.getSnapshot(),
     });
   }
+  /** The latest recorded command and its outcome; null after a reset or checkpoint. */
+  lastCommand(): TraceEntry | null {
+    const entry = this.entries.at(-1);
+    return entry ? structuredClone(entry) : null;
+  }
   getDiagnostics() {
     return {
       storageError: this.storageError,

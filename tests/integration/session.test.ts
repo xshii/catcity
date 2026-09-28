@@ -135,3 +135,20 @@ it('tells a resumed save from a new game', () => {
   session.execute({ type: 'ADVANCE_TIME', minutes: 1 });
   expect(createTestSession({ repository: storage }).resumed).toBe(true);
 });
+
+it('reports the latest command and its outcome, as a copy', () => {
+  const session = createTestSession();
+  expect(session.lastCommand()).toBeNull();
+  session.execute({ type: 'RECYCLE_TRASH' });
+  session.execute({ type: 'REST_CAT', catId: 'ghost' });
+  const last = session.lastCommand()!;
+  expect(last).toMatchObject({
+    sequence: 1,
+    command: { type: 'REST_CAT', catId: 'ghost' },
+    result: { ok: false },
+  });
+  last.sequence = 99;
+  expect(session.lastCommand()!.sequence).toBe(1);
+  session.resetDemo();
+  expect(session.lastCommand()).toBeNull();
+});

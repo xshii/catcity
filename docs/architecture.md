@@ -12,7 +12,7 @@
 | `src/content/`                           | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`、`cats`；与实例分离 |
 | `src/minigames/angling.ts`               | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界                |
 | `src/application/`                       | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验        |
-| `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存和新世界种子适配                                     |
+| `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                   |
 | `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼交互、面板与只读状态呈现                                             |
 | `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                             |
 | `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                    |
