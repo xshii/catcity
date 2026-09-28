@@ -3,6 +3,7 @@ import { restMinutesLeft } from '../shell/model';
 import { CARE } from '../../content/care';
 import type { GameSession } from '../../application';
 import {
+  BUILDING_IDS,
   BUILDINGS,
   CITY_COSTS,
   CITY_TIME,
@@ -31,8 +32,7 @@ export interface CityActions {
   subscribe(listener: () => void): () => void;
 }
 
-const coordinate = (position: Position) =>
-  `${String.fromCharCode(65 + position.y)}${position.x + 1}`;
+const ROAD_NAMES = { DIRT: '土路', STONE: '石路' } as const;
 
 /** Local map selection and command input. Core owns routes, costs and placement. */
 export function mountCityActions(
@@ -48,14 +48,18 @@ export function mountCityActions(
   card.setAttribute('aria-label', '地图操作');
   card.hidden = true;
   card.innerHTML =
-    '<div class="city-action-heading"><strong id="city-selection-label"></strong><button id="cancel-city-action" class="quiet" aria-label="取消地图选择">取消</button></div><p id="city-action-detail"></p><div id="city-action-buttons"></div>';
+    '<div class="city-action-heading"><strong id="city-selection-label"></strong><button id="cancel-city-action" class="quiet" aria-label="取消地图选择">取消</button></div><p id="city-action-detail"></p><div id="city-action-buttons"></div><p id="city-action-reason" hidden></p>';
   stage.after(card);
   const title = card.querySelector<HTMLElement>('#city-selection-label')!;
   const detail = card.querySelector<HTMLElement>('#city-action-detail')!;
   const actions = card.querySelector<HTMLElement>('#city-action-buttons')!;
+  const reasonLine = card.querySelector<HTMLElement>('#city-action-reason')!;
   const listeners = new Set<() => void>();
   let selection: CitySelection = null;
   let movingBuilding: string | null = null;
+  /** The cat picked on the map; tile cards offer to walk it there. */
+  let walker: string | null = null;
+  let reasons: string[] = [];
   const announce = () => {
     render();
     listeners.forEach((listener) => listener());
@@ -73,17 +77,27 @@ export function mountCityActions(
     notify(result.ok ? success : ERROR_MESSAGES[result.error]);
     return result.ok;
   };
+  /** Why Core would reject this now, in the player's words; null when it would pass. */
+  const blocked = (input: GameCommand) => {
+    const result = session.check(input);
+    return result.ok ? null : ERROR_MESSAGES[result.error];
+  };
   const button = (
     id: string,
     text: string,
     action: () => void,
-    disabled = false,
+    reason: string | null = null,
   ) => {
     const element = document.createElement('button');
     element.id = id;
     element.className = 'quiet';
     element.textContent = text;
-    element.disabled = disabled;
+    element.disabled = reason !== null;
+    if (reason !== null) {
+      element.title = reason;
+      element.setAttribute('aria-describedby', reasonLine.id);
+      if (!reasons.includes(reason)) reasons.push(reason);
+    }
     element.addEventListener('click', action);
     actions.append(element);
     return element;
@@ -101,21 +115,26 @@ export function mountCityActions(
     if (cat.walk && cat.needs.energy === 0)
       return '体力耗尽，路线已暂停；让这只猫休息后继续。';
     if (cat.walk)
-      return `正走向 ${coordinate(cat.walk.destination)} · 还剩 ${cat.walk.route.length} 格 · 每格 ${CARE.walkEnergyPerTile} 体力`;
-    return `位于 ${coordinate(cat.position)} · 点目标地块步行，再点这只猫取消选择`;
+      return `正在走路 · 还剩 ${cat.walk.route.length} 格 · 每格 ${CARE.walkEnergyPerTile} 体力`;
+    return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。`;
   };
   const render = () => {
     card.hidden = !selection || place.get() === 'river';
-    if (!selection) return;
-    const world = session.getSnapshot();
     actions.replaceChildren();
+    reasons = [];
+    if (selection) renderSelection(selection);
+    reasonLine.textContent = reasons.join(' · ');
+    reasonLine.hidden = !reasons.length;
+  };
+  const renderSelection = (selected: NonNullable<CitySelection>) => {
+    const world = session.getSnapshot();
     if (movingBuilding) {
       title.textContent = '选择搬迁位置';
       detail.textContent = '点击已拥有的空地确认搬迁。位置不合法时可继续选择。';
       return;
     }
-    if (selection.kind === 'cat') {
-      const catId = selection.catId;
+    if (selected.kind === 'cat') {
+      const catId = selected.catId;
       const cat = world.cats.find((item) => item.id === catId);
       if (!cat) return clear();
       title.textContent = `${cat.name} · 体力 ${cat.needs.energy}/100`;
@@ -129,21 +148,22 @@ export function mountCityActions(
             { type: 'REST_CAT', catId: cat.id },
             `${cat.name} 开始休息，城市时间继续流动。`,
           ),
-        !!cat.rest,
+        blocked({ type: 'REST_CAT', catId: cat.id }),
       );
       if (cat.walk || cat.rest) wait();
       return;
     }
-    if (selection.kind === 'water') {
-      const spotId = selection.spotId;
+    if (selected.kind === 'water') {
+      const spotId = selected.spotId;
       const spot = SPOTS[spotId];
       const cat = currentCat();
       const unlocked = spotOpen(spotId, world.fishing);
       const arrived =
         unlocked && !cat.walk && onShore(world.map, spotId, cat.position);
+      const condition = `需钓技 ${spot.level} 级与 ${spot.species} 种图鉴。`;
       title.textContent = `${spot.name} · ${cat.name} ${cat.needs.energy}/100`;
       detail.textContent = !unlocked
-        ? `需钓技 ${spot.level} 级与 ${spot.species} 种图鉴。猫只能在草地岸边钓鱼。`
+        ? `${condition}猫只能在草地岸边钓鱼。`
         : arrived
           ? `${cat.name} 已到岸边，进入钓点选好落点，再准备抛竿。`
           : cat.walk
@@ -154,32 +174,44 @@ export function mountCityActions(
           'begin-fishing',
           world.fishing.active ? '返回当前钓鱼' : '进入钓点',
           () => enterFishing(spotId, cat.id),
-          !!cat.rest,
+          cat.rest ? ERROR_MESSAGES.CAT_RESTING : null,
         );
       } else {
+        const travel = {
+          type: 'TRAVEL_TO_FISHING_SPOT',
+          catId: cat.id,
+          spotId,
+        } as const;
         button(
           'walk-to-waterway',
           cat.walk?.spotId === spotId
             ? '正在走向岸边'
             : `让 ${cat.name} 走到岸边`,
           () =>
-            command(
-              { type: 'TRAVEL_TO_FISHING_SPOT', catId: cat.id, spotId },
-              `${cat.name} 出发了，可以看着它沿路线走到岸边。`,
-            ),
-          !unlocked || cat.walk?.spotId === spotId,
+            command(travel, `${cat.name} 出发了，可以看着它沿路线走到岸边。`),
+          !unlocked
+            ? condition
+            : cat.walk?.spotId === spotId
+              ? `${cat.name} 已经在路上了。`
+              : blocked(travel),
         );
       }
       if (cat.walk || cat.rest) wait();
       return;
     }
-    const position = selection.position;
+    const position = selected.position;
     const tile = tileAt(world.map, position);
     if (!tile) return clear();
     const building = world.buildings.find((item) =>
       samePosition(item.position, position),
     );
-    title.textContent = `${coordinate(position)} · ${building ? BUILDINGS[building.type].name : !tile.owned ? '待购买土地' : tile.road ? (tile.road === 'DIRT' ? '土路' : '石路') : '已拥有空地'}`;
+    title.textContent = building
+      ? BUILDINGS[building.type].name
+      : !tile.owned
+        ? '待购买土地'
+        : tile.road
+          ? ROAD_NAMES[tile.road]
+          : '已拥有空地';
     if (building) {
       const residents = world.cats.filter((cat) => cat.home === building.id);
       detail.textContent =
@@ -190,21 +222,43 @@ export function mountCityActions(
         movingBuilding = building.id;
         announce();
       });
-      if (building.type === 'CAT_APARTMENT') {
-        const cat = currentCat();
-        button(
-          'assign-home',
-          `让 ${cat.name} 入住`,
-          () =>
-            command(
-              { type: 'ASSIGN_HOME', catId: cat.id, buildingId: building.id },
-              `${cat.name} 有了自己的住处。`,
-            ),
-          cat.home === building.id ||
-            residents.length >= BUILDINGS.CAT_APARTMENT.homeCapacity,
-        );
-      }
-    } else if (!tile.owned) {
+      if (building.type === 'CAT_APARTMENT')
+        for (const cat of world.cats) {
+          const home = {
+            type: 'ASSIGN_HOME',
+            catId: cat.id,
+            buildingId: building.id,
+          } as const;
+          button(
+            `assign-home-${cat.id}`,
+            `${cat.name} 入住`,
+            () => command(home, `${cat.name} 有了自己的住处。`),
+            blocked(home),
+          );
+        }
+      return;
+    }
+    const walkHere = () => {
+      const cat = world.cats.find((item) => item.id === walker);
+      if (!cat) return;
+      const walk = {
+        type: 'WALK_CAT',
+        catId: cat.id,
+        destination: position,
+      } as const;
+      button(
+        'walk-here',
+        `让 ${cat.name} 走到这里`,
+        () => {
+          if (command(walk, `${cat.name} 出发了，沿路线走过去。`)) {
+            selection = { kind: 'cat', catId: cat.id };
+            announce();
+          }
+        },
+        blocked(walk),
+      );
+    };
+    if (!tile.owned) {
       detail.textContent = '先购买土地，再选择猫咖、公寓或道路。';
       button(
         'buy-land',
@@ -214,7 +268,7 @@ export function mountCityActions(
             { type: 'BUY_LAND', position },
             '土地买好了，现在选择要建什么。',
           ),
-        world.coins < CITY_COSTS.buyLand,
+        blocked({ type: 'BUY_LAND', position }),
       );
     } else if (tile.road) {
       detail.textContent =
@@ -230,21 +284,33 @@ export function mountCityActions(
               { type: 'UPGRADE_ROAD', position },
               '道路升级了，猫咪可以更快地走过。',
             ),
-          world.coins < CITY_COSTS.upgradeRoad,
+          blocked({ type: 'UPGRADE_ROAD', position }),
         );
+      const refund = CITY_COSTS.roadRefund[tile.road];
+      button(
+        'remove-road',
+        `拆除道路 · 退 ${refund} 金币`,
+        () =>
+          command(
+            { type: 'REMOVE_ROAD', position },
+            `道路拆除了，退回 ${refund} 金币；这块地可以重新建设。`,
+          ),
+        blocked({ type: 'REMOVE_ROAD', position }),
+      );
     } else {
       detail.textContent = '选择建筑；会在已拥有的土地内连接道路。';
-      for (const type of ['CAT_CAFE', 'CAT_APARTMENT'] as const) {
+      for (const type of BUILDING_IDS) {
         const definition = BUILDINGS[type];
+        const build = {
+          type: 'BUILD_BUILDING',
+          buildingType: type,
+          position,
+        } as const;
         const element = button(
           `build-${type.toLowerCase()}`,
           `${definition.name} · ${definition.cost}`,
-          () =>
-            command(
-              { type: 'BUILD_BUILDING', buildingType: type, position },
-              `${definition.name} 建好了。`,
-            ),
-          world.coins < definition.cost,
+          () => command(build, `${definition.name} 建好了。`),
+          blocked(build),
         );
         element.dataset.buildType = type;
       }
@@ -252,13 +318,15 @@ export function mountCityActions(
         'place-road',
         `土路 · ${CITY_COSTS.placeRoad}`,
         () => command({ type: 'PLACE_ROAD', position }, '土路铺好了。'),
-        world.coins < CITY_COSTS.placeRoad,
+        blocked({ type: 'PLACE_ROAD', position }),
       );
     }
+    walkHere();
   };
   function clear() {
     selection = null;
     movingBuilding = null;
+    walker = null;
     announce();
   }
   const selectTile = (position: Position) => {
@@ -277,13 +345,9 @@ export function mountCityActions(
       }
     } else {
       const spotId = spotAt(world.map, position);
-      if (spotId) selection = { kind: 'water', spotId, position };
-      else if (selection?.kind === 'cat')
-        command(
-          { type: 'WALK_CAT', catId: selection.catId, destination: position },
-          '路线已安排，猫咪开始向目标前进。',
-        );
-      else selection = { kind: 'tile', position };
+      selection = spotId
+        ? { kind: 'water', spotId, position }
+        : { kind: 'tile', position };
     }
     announce();
   };
@@ -294,8 +358,9 @@ export function mountCityActions(
       return;
     }
     closeTools();
-    if (selection?.kind === 'cat' && selection.catId === catId) clear();
+    if (walker === catId) clear();
     else {
+      walker = catId;
       selection = { kind: 'cat', catId };
       session.select(catId);
       announce();
@@ -326,8 +391,7 @@ export function mountCityActions(
     focusWaterway,
     clear,
     getSelection: () => selection,
-    isSelected: (catId) =>
-      selection?.kind === 'cat' && selection.catId === catId,
+    isSelected: (catId) => walker === catId,
     subscribe: (listener) => {
       listeners.add(listener);
       return () => {
