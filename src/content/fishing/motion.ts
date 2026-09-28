@@ -126,6 +126,11 @@ export const MOTION = {
       flick: { percent: 50, min: 180, max: 400 },
       lift: { percent: 60, min: 150, max: 450 },
       /**
+       * A flick whose opposite spin reaches this share of it is unclear and asks again
+       * (recorded iPhone flicks: wind-up or return at most 69% of the flick).
+       */
+      oppositeMaxPercent: 85,
+      /**
        * After calibrating, the rod ignores flicks this long and then waits for it to slow
        * down: players keep flicking past the window (recorded: a third flick 20 ms after
        * it closed, and one flick straddling its end), and that must not cast.

@@ -88,10 +88,11 @@
   }
 }
 /* The fish: a small shadow under the water that the player's ring must cover. */
+/* A share of the plane, so even the smallest ring (a 5★ fish's) can cover it. */
 .motion-fish {
   position: absolute;
-  width: 44px;
-  height: 25px;
+  width: 9%;
+  aspect-ratio: 140 / 80;
   transform: translate(-50%, -50%);
   opacity: 0.85;
 }

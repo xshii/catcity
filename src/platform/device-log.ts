@@ -6,8 +6,11 @@ const FLAG_KEY = 'cat-city.debug-log';
 /** Served by the phone try-out preview only (harness/runner/device-log.ts). */
 const ENDPOINT = './__device-log';
 const FLUSH_MS = 2000;
-/** About a minute of sensor readings; older unsent entries are dropped and counted. */
-const MAX_PENDING = 8000;
+/**
+ * About 45 s of sensor readings, and under the receiver's request limit when full; older
+ * unsent entries are dropped and counted.
+ */
+const MAX_PENDING = 6000;
 /** Browsers refuse larger keepalive requests. */
 const KEEPALIVE_BYTES = 60_000;
 
@@ -31,6 +34,10 @@ export function createLogBatch(limit: number) {
       }
       entries.push(entry);
     },
+    /** Entries that were taken but never arrived (a failed send). */
+    lost(count: number) {
+      dropped += count;
+    },
     take() {
       const batch = { entries, dropped };
       entries = [];
@@ -44,6 +51,16 @@ const round = (value: number | null | undefined) =>
   typeof value === 'number' && Number.isFinite(value)
     ? Math.round(value * 100) / 100
     : null;
+/** Times in the log, rounded alike so entries of one event match exactly. */
+export const logTime = (ms: number) => round(ms);
+
+/** A page-session id; `crypto.randomUUID` needs a secure context, this does not. */
+export function sessionId(random: (bytes: Uint8Array) => Uint8Array) {
+  const hex = Array.from(random(new Uint8Array(16)), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 /**
  * Device debug log (spec 015 step 3). Off unless this device opted in; then it records
@@ -62,10 +79,10 @@ export function startDeviceLog(build: string): Trace | null {
   }
   if (!debugLogWanted(location.search, stored)) return null;
 
-  const session = crypto.randomUUID();
+  const session = sessionId((bytes) => crypto.getRandomValues(bytes));
   const batch = createLogBatch(MAX_PENDING);
   const trace: Trace = (kind, data = {}) =>
-    batch.push({ t: round(performance.now()), kind, ...data });
+    batch.push({ t: logTime(performance.now()), kind, ...data });
   let sent = 0;
   let failed = 0;
   const badge = document.createElement('div');
@@ -99,10 +116,14 @@ export function startDeviceLog(build: string): Trace | null {
       keepalive: next.json.length < KEEPALIVE_BYTES,
     })
       .then((response) => {
-        if (response.ok) sent += next.count;
-        else failed++;
+        if (!response.ok) throw new Error(String(response.status));
+        sent += next.count;
       })
-      .catch(() => failed++)
+      .catch(() => {
+        // The next batch says how much never arrived, so gaps are not read as calm.
+        failed++;
+        batch.lost(next.count);
+      })
       .finally(show);
   };
   window.setInterval(flush, FLUSH_MS);
@@ -116,7 +137,7 @@ export function startDeviceLog(build: string): Trace | null {
   window.addEventListener('devicemotion', (event) => {
     const rate = event.rotationRate;
     trace('motion', {
-      t: round(event.timeStamp),
+      t: logTime(event.timeStamp),
       a: round(rate?.alpha),
       b: round(rate?.beta),
       g: round(rate?.gamma),
@@ -125,7 +146,7 @@ export function startDeviceLog(build: string): Trace | null {
   });
   window.addEventListener('deviceorientation', (event) => {
     trace('orientation', {
-      t: round(event.timeStamp),
+      t: logTime(event.timeStamp),
       a: round(event.alpha),
       b: round(event.beta),
       g: round(event.gamma),
@@ -152,6 +173,7 @@ export function startDeviceLog(build: string): Trace | null {
     screen: `${screen.width}x${screen.height}`,
     dpr: window.devicePixelRatio,
     angle: angle(),
+    touchPoints: navigator.maxTouchPoints,
     secure: window.isSecureContext,
   });
   return trace;

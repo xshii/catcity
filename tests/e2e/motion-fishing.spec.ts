@@ -129,6 +129,16 @@ test(
       }
       await page.mouse.move(centre.x, centre.y);
       await step(page, 1);
+      if ((await readWorld(page)).fishing.active?.phase === 'fight') {
+        // The ring is the player's: it sits on the rod tip, here the finger.
+        const ring = (await page.locator('#motion-ring').boundingBox())!;
+        expect(
+          Math.abs(ring.x + ring.width / 2 - centre.x),
+        ).toBeLessThanOrEqual(plane.width / 100 + 1);
+        expect(
+          Math.abs(ring.y + ring.height / 2 - centre.y),
+        ).toBeLessThanOrEqual(plane.height / 100 + 1);
+      }
       if (!shot && run.phaseTick > FISHING.motion.fight.graceTicks) {
         await expect(page.locator('#motion-ring')).toHaveClass(/inside/);
         await page.screenshot({

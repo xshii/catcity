@@ -50,3 +50,20 @@ export function createRodTip() {
     },
   };
 }
+
+/**
+ * Where the rod tip is centred when a run's phase changes. Aiming (no run) centres on
+ * the current pose. The fight centres on the pose held at the bite: the current one is
+ * mid-lift (recorded on an iPhone: 25° and rising to 58°, back to the 15° held before),
+ * which would skew the whole fight. A fight restored without a bite pose uses the current.
+ */
+export function centreOnPhase(
+  phase: string | null,
+  held: Tilt | null,
+  pose: Tilt | null,
+): { held: Tilt | null; centre: 'current' | Tilt | null } {
+  if (phase === null) return { held: null, centre: 'current' };
+  if (phase === 'hook') return { held: pose, centre: null };
+  if (phase === 'fight') return { held: null, centre: held ?? 'current' };
+  return { held: null, centre: null };
+}

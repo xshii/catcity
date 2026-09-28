@@ -10,7 +10,7 @@ import { FISHING } from '../../content/fishing';
 import { fishShadow } from '../art/illustrations';
 import { WATER_VIEW } from '../art/water-view';
 import type { FishingScreen } from '../fishing/screen';
-import type { Trace } from '../../platform/device-log';
+import { logTime, type Trace } from '../../platform/device-log';
 import {
   canPlay,
   motionActive,
@@ -26,7 +26,7 @@ import {
   type SpinSample,
 } from './calibrate';
 import { createRodGestures, DEFAULT_TUNING, type RodTuning } from './rod';
-import { createRodTip } from './tip';
+import { centreOnPhase, createRodTip } from './tip';
 
 /** Per-device choice; never part of the world or a save. */
 const PREFERENCE_KEY = 'cat-city.fishing-input';
@@ -90,6 +90,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   let noticeTimer = 0;
   const tip = createRodTip();
   let tilt: { x: number; y: number } | null = null;
+  /** The smoothed rod tip, advanced once per orientation reading. */
+  let rodPoint: { x: number; y: number } | null = null;
   let rebase = true;
   /** The pose held when the fish bit, before the lift that strikes it. */
   let bitePose: { x: number; y: number } | null = null;
@@ -201,8 +203,10 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       tip.calibrate(next);
       rebase = false;
       // Replays need the pose the rod tip is measured from.
-      deps.trace('rebase', { t: event.timeStamp });
+      deps.trace('rebase', { t: logTime(event.timeStamp) });
     }
+    // One smoothing step per reading: ticks and drawing read the same point.
+    rodPoint = tip.point(next);
     if (active() && playable() && !deps.getRun()) {
       power = tip.power(next);
       const preview = { direction: tip.aim(next), power };
@@ -241,7 +245,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       { t: event.timeStamp, pitchRate: rate, power },
       want,
     );
-    if (gesture) deps.trace('gesture', { t: event.timeStamp, gesture });
+    if (gesture)
+      deps.trace('gesture', { t: logTime(event.timeStamp), gesture });
     if (gesture?.kind === 'cast') {
       // Without orientation readings the cast goes straight ahead.
       if (deps.cast(tilt ? tip.aim(tilt) : 0, gesture.power)) deps.vibrate(20);
@@ -338,7 +343,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         x: Math.min(100, Math.max(0, finger.x)),
         y: Math.min(100, Math.max(0, finger.y)),
       };
-    return tilt ? tip.point(tilt) : null;
+    return rodPoint;
   }
 
   /** Applies the screen model; decides nothing itself. */
@@ -358,16 +363,17 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       (motionRun?.id ?? null) !== lastRun ||
       (motionRun?.phase ?? '') !== lastPhase
     ) {
-      // Aiming centres the rod tip on the current pose. The fight centres it on the pose
-      // held at the bite: the current one is mid-lift (recorded on an iPhone: 25° and
-      // rising to 58°, then back to the 15° held before), which skews the whole fight.
-      if (motionRun?.phase === 'hook') bitePose = tilt;
-      if (motionRun?.phase === 'fight' && bitePose) {
-        tip.calibrate(bitePose);
-        deps.trace('rebase', { pose: bitePose });
-      } else if (motionRun?.phase === 'fight' || !motionRun) rebase = true;
-      if (motionRun?.phase !== 'hook' && motionRun?.phase !== 'fight')
-        bitePose = null;
+      const change = centreOnPhase(motionRun?.phase ?? null, bitePose, tilt);
+      bitePose = change.held;
+      if (change.centre === 'current') rebase = true;
+      else if (change.centre) {
+        tip.calibrate(change.centre);
+        rodPoint = tilt ? tip.point(tilt) : null;
+        deps.trace('rebase', { pose: change.centre });
+      }
+      // A new fish starts facing right, whichever way the last one swam.
+      if (motionRun?.phase === 'fight')
+        $('motion-fish').classList.remove('left');
       lastRun = motionRun?.id ?? null;
       lastPhase = motionRun?.phase ?? '';
       cuedNibble = -1;
@@ -405,7 +411,9 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     const before = fishPoint(next, next.phaseTick - 1);
     const radius = ringRadius(next);
     const rod = point() ?? { x: 50, y: 50 };
-    const inside = (rod.x - fish.x) ** 2 + (rod.y - fish.y) ** 2 <= radius ** 2;
+    // Colour the ring as Core judges: its hit test is a little wider than the drawing.
+    const reach = radius + FISHING.motion.fight.toleranceUnits;
+    const inside = (rod.x - fish.x) ** 2 + (rod.y - fish.y) ** 2 <= reach ** 2;
     // The player's ring follows the rod tip and must cover the fish; Core tests the
     // same distance. The overlay is the square 100×100 water plane; sizes are percent.
     ring.style.left = `${rod.x}%`;
