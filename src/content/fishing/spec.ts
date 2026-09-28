@@ -107,5 +107,26 @@ export const FISHING = {
     /** Inside earns `insideGain`, outside loses `outsideLoss` (half-ticks, so 0.5×). */
     hold: { insideGain: 2, outsideLoss: 1 },
     fightLimitTicks: [400, 440, 480, 520, 560, 600],
+    /**
+     * Phone-as-rod gestures, read from gyroscope rotation rate (°/s) and orientation.
+     * `pitchSign` flips the tip-up direction if a browser reports the opposite sign;
+     * confirm it on real devices (spec 020).
+     */
+    gesture: {
+      pitchSign: 1,
+      backswingDegPerSec: 120,
+      forwardDegPerSec: 250,
+      fullPowerDegPerSec: 900,
+      minPower: 20,
+      swingWindowMs: 700,
+      liftDegPerSec: 300,
+      liftCooldownMs: 400,
+      /** Tilting ±`tiltRangeDeg` from the calibrated pose spans the water plane. */
+      tiltRangeDeg: 30,
+      /** Exponential smoothing of the rod tip; 1 means no smoothing. */
+      smoothing: 0.3,
+      /** Roll that maps to the full ±`input.maxDirection` aim. */
+      aimRangeDeg: 30,
+    },
   },
 } as const;
