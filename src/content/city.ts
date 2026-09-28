@@ -17,10 +17,12 @@ export const BUILDINGS = {
     homeCapacity: 2,
   },
 } as const;
+/** Roads cost a real share of land (spec 014); removal refunds half of what was paid. */
 export const CITY_COSTS = {
   buyLand: 50,
-  placeRoad: 10,
-  upgradeRoad: 20,
+  placeRoad: 30,
+  upgradeRoad: 40,
+  roadRefund: { DIRT: 15, STONE: 35 },
 } as const;
 export const WALK_MINUTES = { GRASS: 10, DIRT: 5, STONE: 3 } as const;
 /** Player time shortcuts: wait on the action card, fast-forward the whole city. */

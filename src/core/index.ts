@@ -2,5 +2,10 @@
 export { createWorld, loadWorld, World } from './world';
 export { commandSchema } from './commands';
 export { MAX_TEXT } from './limits';
-export type { GameCommand, CommandResult, ErrorCode } from './commands';
+export type {
+  GameCommand,
+  CommandResult,
+  CheckResult,
+  ErrorCode,
+} from './commands';
 export type { WorldState, CatEntity, BuildingEntity, Position } from './schema';

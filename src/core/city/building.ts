@@ -1,7 +1,12 @@
 import { MAX_BUILDINGS } from '../limits';
-import { BUILDINGS, CITY_COSTS } from '../../content/city';
+import { BUILDINGS, CITY_COSTS, CITY_START } from '../../content/city';
 import { samePosition, tileAt } from './map';
-import { isWalkable, roadConnectionPath } from './path';
+import {
+  connectedRoads,
+  isWalkable,
+  neighbors,
+  roadConnectionPath,
+} from './path';
 import { replanWalk } from './walking';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { WorldState } from '../schema';
@@ -15,6 +20,7 @@ type CityCommand = Extract<
       | 'MOVE_BUILDING'
       | 'PLACE_ROAD'
       | 'UPGRADE_ROAD'
+      | 'REMOVE_ROAD'
       | 'ASSIGN_HOME';
   }
 >;
@@ -61,7 +67,28 @@ export function applyCity(
     tile.owned = true;
   } else {
     if (!tile.owned) throw new CommandError('LAND_NOT_OWNED');
-    if (command.type === 'PLACE_ROAD' || command.type === 'UPGRADE_ROAD') {
+    if (command.type === 'REMOVE_ROAD') {
+      if (!tile.road) throw new CommandError('NO_ROAD');
+      // The crossroads roots the network; every building must stay connected to it.
+      if (samePosition(command.position, CITY_START.crossroads))
+        throw new CommandError('ROAD_IN_USE');
+      const refund = CITY_COSTS.roadRefund[tile.road];
+      tile.road = null;
+      const connected = connectedRoads(world);
+      if (
+        world.buildings.some(
+          (building) =>
+            !neighbors(building.position).some((position) =>
+              connected.some((road) => samePosition(road, position)),
+            ),
+        )
+      )
+        throw new CommandError('ROAD_IN_USE');
+      world.coins += refund;
+    } else if (
+      command.type === 'PLACE_ROAD' ||
+      command.type === 'UPGRADE_ROAD'
+    ) {
       if (
         world.buildings.some((building) =>
           samePosition(building.position, command.position),

@@ -160,3 +160,24 @@ it('keeps time running when cafe income reaches the coin limit', () => {
     coins: WORLD_LIMIT,
   });
 });
+
+it('checks a command without applying it: same outcome as dispatch, world unchanged', () => {
+  const world = createWorld(42);
+  const before = world.save();
+  const build = {
+    type: 'BUILD_BUILDING',
+    buildingType: 'CAT_CAFE',
+    position: { x: 4, y: 4 },
+  } as const;
+  expect(world.check(build)).toEqual({ ok: true });
+  expect(world.check({ ...build, position: { x: 4, y: 2 } })).toEqual({
+    ok: false,
+    error: 'LAND_NOT_OWNED',
+  });
+  expect(world.check({ type: 'NOT_A_COMMAND' })).toEqual({
+    ok: false,
+    error: 'INVALID_COMMAND',
+  });
+  expect(world.save()).toBe(before);
+  expect(world.dispatch(build).ok).toBe(true);
+});

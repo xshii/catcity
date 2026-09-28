@@ -165,9 +165,9 @@ it('lays and upgrades owned roads once, with no world mutation on rejected repea
   const world = createWorld(42);
   const position = { x: 3, y: 3 };
   expect(world.dispatch({ type: 'PLACE_ROAD', position }).ok).toBe(true);
-  expect(world.getSnapshot().coins).toBe(990);
-  expect(world.dispatch({ type: 'UPGRADE_ROAD', position }).ok).toBe(true);
   expect(world.getSnapshot().coins).toBe(970);
+  expect(world.dispatch({ type: 'UPGRADE_ROAD', position }).ok).toBe(true);
+  expect(world.getSnapshot().coins).toBe(930);
   const before = world.save();
   for (const command of [
     { type: 'PLACE_ROAD', position },

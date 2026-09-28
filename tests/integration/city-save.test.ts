@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core';
 import { replayWorld } from '../../harness/adapters/catcity/replay-world';
 
-it('replays purchase, roads, building movement and partial walking across reload', () => {
+it('replays purchase, roads, road removal, building movement and partial walking across reload', () => {
   let saved: string | null = null;
   const session = createTestSession({
     repository: {
@@ -23,6 +23,7 @@ it('replays purchase, roads, building movement and partial walking across reload
     },
     { type: 'ASSIGN_HOME', catId: 'mochi', buildingId: 'building-1' },
     { type: 'UPGRADE_ROAD', position: { x: 6, y: 5 } },
+    { type: 'REMOVE_ROAD', position: { x: 3, y: 5 } },
     { type: 'WALK_CAT', catId: 'mochi', destination: { x: 6, y: 6 } },
     { type: 'ADVANCE_TIME', minutes: 4 },
   ] as const)
