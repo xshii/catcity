@@ -30,8 +30,8 @@ import {
   ANGLING_MARKUP,
   BUTTON_PHASE_INSTRUCTIONS,
   BUTTON_PHASE_NAMES,
-  FISHING_ERRORS,
 } from './template';
+import { ERROR_MESSAGES } from '../shell/errors';
 
 const CAST_COST = FISHING.cast.staminaCost;
 const REST = CARE.rest;
@@ -99,10 +99,7 @@ export function mountAngling(
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
-  ) =>
-    notify(
-      result.ok ? success : (FISHING_ERRORS[result.error] ?? result.error),
-    );
+  ) => notify(result.ok ? success : ERROR_MESSAGES[result.error]);
   const render = () => {
     const world = session.getSnapshot();
     const f = world.fishing;

@@ -12,6 +12,7 @@ import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
 import { onShore, samePosition, spotAt, tileAt } from '../../core/city';
 import type { GameCommand } from '../../core';
 import type { CatEntity, Position } from '../../core';
+import { ERROR_MESSAGES } from '../shell/errors';
 import './actions.css';
 
 export type CitySelection =
@@ -69,7 +70,7 @@ export function mountCityActions(
   };
   const command = (input: GameCommand, success: string) => {
     const result = session.execute(input);
-    notify(result.ok ? success : `暂时无法操作：${result.error}`);
+    notify(result.ok ? success : ERROR_MESSAGES[result.error]);
     return result.ok;
   };
   const button = (

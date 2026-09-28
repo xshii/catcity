@@ -1,6 +1,5 @@
 import { BAITS, FISHING } from '../../content/fishing';
 import type { AnglingRun } from '../../minigames/angling';
-import type { ErrorCode } from '../../core';
 
 const CAST_COST = FISHING.cast.staminaCost;
 
@@ -27,21 +26,6 @@ export const ANGLING_MARKUP = `
     <details id="fish-bag" open><summary>鱼篓 <span id="bag-count"></span> · 卖鱼或送给伙伴</summary><p id="fish-tastes"></p><div id="fish-inventory"></div></details>
     <details id="fish-supply-detail" open><summary>钓获补给与垃圾</summary><p id="fish-supplies"></p><div class="fishing-actions"><button id="use-can">吃罐头 · +${FISHING.supplies.canEnergy} 体力</button><button id="recycle-trash">回收垃圾 · +${FISHING.supplies.trashCoins} 金币</button></div><p class="fishing-clue">0–${FISHING.trash.maxStars} 星鱼局失败时有概率钓到垃圾；主动收竿不会获得。面包饵轻抛可钓到罐头或金币袋。</p></details>
     </section><section id="river-panel-atlas" role="tabpanel" aria-labelledby="river-tab-atlas" hidden><details id="fish-atlas"><summary>鱼类图鉴 <span id="atlas-count"></span> · 星级、习性与线索</summary><div id="atlas-list" class="atlas-list"></div></details></section><section id="river-panel-chat" role="tabpanel" aria-labelledby="river-tab-chat" hidden><p class="desktop-chat-hint">伙伴就在右侧，和它聊聊今天的收获吧。</p></section></div><p id="fish-result" class="fish-result river-live-result" role="status"></p>`;
-
-/** Player-facing text for the Core errors the fishing panel can hit. */
-export const FISHING_ERRORS: Partial<Record<ErrorCode, string>> = {
-  CAT_RESTING: '这只猫正在休息，换个伙伴或快进城市时间吧。',
-  CAT_BUSY: '先收好这只猫的鱼竿再休息。',
-  STAMINA_FULL: '这只猫现在体力充足。',
-  SPOT_LOCKED: '这个钓点还没解锁，看看下面的条件。',
-  TRAVEL_REQUIRED: '先在城市地图让这只猫走到水域岸边。',
-  ALREADY_AT_SPOT: '已经在这个钓点了。',
-  LOW_STAMINA: '体力不足，休息一小时再来吧。',
-  NO_BAIT: '鱼饵用完了，可以补充或换成免费面包。',
-  BAG_FULL: '鱼篓满了，卖出或送出几条鱼再来吧。',
-  ALREADY_FISHING: '先完成或收起这一竿。',
-  INSUFFICIENT_COINS: '金币不足，先卖鱼或使用免费面包吧。',
-};
 
 /** Button-flow phase titles and instructions (frozen flow, spec 030). */
 export const BUTTON_PHASE_NAMES: Record<AnglingRun['phase'], string> = {

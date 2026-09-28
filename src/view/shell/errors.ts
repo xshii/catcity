@@ -1,0 +1,48 @@
+import type { ErrorCode } from '../../core';
+
+/**
+ * Player-facing text for every Core rejection. Exhaustive on purpose: a new
+ * error code does not type-check until it has a message here.
+ */
+export const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  INVALID_COMMAND: '这个操作无法完成，请再试一次。',
+  WORLD_LIMIT: '数值已到上限，这个操作暂时无法完成。',
+  TIME_LIMIT: '小城时间已到上限，无法继续推进。',
+  INSUFFICIENT_COINS: '金币不足，经营或卖鱼攒一些再来吧。',
+  CAT_NOT_FOUND: '找不到这只猫了。',
+  CAT_LIMIT: '小城的猫已经住满了。',
+  CAT_RESTING: '这只猫正在休息，换个伙伴或等它休息好吧。',
+  CAT_BUSY: '这只猫正在钓鱼，先收好鱼竿再安排。',
+  STAMINA_FULL: '体力已满，不需要休息。',
+  LOW_STAMINA: '体力不足，休息一小时再来吧。',
+  INVALID_PLACEMENT: '这里放不下：需要一块没有猫和建筑的草地。',
+  NO_WALK_ROUTE: '走不过去：没有能到达那里的路线。',
+  ALREADY_AT_DESTINATION: '猫已经在这里了。',
+  LAND_ALREADY_OWNED: '这块地已经买下了。',
+  LAND_NOT_OWNED: '先买下这块土地。',
+  ROAD_EXISTS: '这里已经有路了。',
+  ROAD_NOT_CONNECTED: '连不上城中心的路网：先买下通往道路的相邻土地。',
+  DIRT_ROAD_REQUIRED: '只有土路可以升级成石路。',
+  NO_ROAD: '这里没有道路可拆。',
+  ROAD_IN_USE: '这段路连着建筑或城中心路口，拆了会断开路网。',
+  BUILDING_NOT_FOUND: '找不到这座建筑了。',
+  BUILDING_LIMIT: '建筑数量已到上限。',
+  HOME_NOT_FOUND: '这里不是猫公寓。',
+  HOME_FULL: '公寓已经住满了。',
+  ALREADY_HOME: '已经住在这里了。',
+  SPOT_LOCKED: '这个钓点还没解锁，看看解锁条件。',
+  TRAVEL_REQUIRED: '先在城市地图让这只猫走到水域岸边。',
+  ALREADY_AT_SPOT: '已经在这个钓点了。',
+  ALREADY_FISHING: '先完成或收起这一竿。',
+  RUN_NOT_FOUND: '这一竿已经结束了。',
+  CAST_NOT_READY: '现在还不能抛竿。',
+  MOTION_NOT_READY: '体感操作还没准备好，稍后再试。',
+  STRIKE_NOT_READY: '还没到提竿的时候。',
+  WRONG_INPUT_MODE: '这一竿用的是另一种操作方式。',
+  NO_BAIT: '鱼饵用完了，可以补充或换成免费面包。',
+  BAIT_LIMIT: '鱼饵已经带满了，用掉一些再买。',
+  BAG_FULL: '鱼篓满了，卖出或送出几条鱼再来吧。',
+  FISH_NOT_FOUND: '鱼篓里找不到这条鱼了。',
+  NO_SUPPLIES: '没有可以用的补给。',
+  ALREADY_INVITED: 'Pepper 已经来小城了。',
+};

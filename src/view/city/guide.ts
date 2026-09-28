@@ -5,6 +5,7 @@ import { BUILDINGS } from '../../content/city';
 import type { Position, WorldState } from '../../core';
 import { tileAt } from '../../core/city';
 import type { CityActions } from './actions';
+import { ERROR_MESSAGES } from '../shell/errors';
 
 const { CAT_CAFE } = BUILDINGS;
 
@@ -101,7 +102,7 @@ export function mountCityGuide(
       notify(
         result.ok
           ? `第一家猫咖的营业收入到账：+${CAT_CAFE.income} 金币。接下来邀请 Mochi 一起出游吧。`
-          : result.error,
+          : ERROR_MESSAGES[result.error],
       );
     } else if (!remembered) {
       cityActions.focusWaterway('POND');

@@ -7,6 +7,9 @@ import { mountCityGuide } from '../city/guide';
 import { mountCityActions } from '../city/actions';
 import { mountCompanionship } from '../companion/journal';
 import { toViewModel } from './model';
+import { ERROR_MESSAGES } from './errors';
+
+const TALK_RETRY = '暂时没能完成对话，请再试一次。';
 
 export function mountPanel(session: GameSession, place: PlaceState) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -83,7 +86,11 @@ export function mountPanel(session: GameSession, place: PlaceState) {
       type: 'ADVANCE_TIME',
       minutes: CITY_TIME.fastForwardMinutes,
     });
-    notify(result.ok ? '一小时过去了，阳光落在小城的另一边。' : result.error);
+    notify(
+      result.ok
+        ? '一小时过去了，阳光落在小城的另一边。'
+        : ERROR_MESSAGES[result.error],
+    );
   });
   const talk = async (message: string) => {
     const catId = session.selectedEntity;
@@ -98,9 +105,15 @@ export function mountPanel(session: GameSession, place: PlaceState) {
           session.getSnapshot().cats.find((cat) => cat.id === catId)?.name ??
           '小猫';
         notify(`${name} 轻轻动了动耳朵，回应了你。`);
-      } else notify(result.error);
+      } else
+        notify(
+          result.error === 'INVALID_INTERACTION' ||
+            result.error === 'STALE_DIALOGUE'
+            ? TALK_RETRY
+            : ERROR_MESSAGES[result.error],
+        );
     } catch {
-      notify('暂时没能完成对话，请再试一次。');
+      notify(TALK_RETRY);
     } finally {
       send.disabled = false;
     }
