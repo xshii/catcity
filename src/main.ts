@@ -32,7 +32,14 @@ if (trace) {
     const { command, result } = entry;
     const tick =
       command.type === 'FISH_CONTROL' || command.type === 'FISH_MOTION_CONTROL';
-    if (tick && result.ok && !result.events.length) return;
+    // Every tick reports a 'control' change; only phase changes matter here.
+    const phaseChange = result.ok
+      ? result.events.some(
+          (event) =>
+            event.type !== 'FishingChanged' || event.action !== 'control',
+        )
+      : true;
+    if (tick && !phaseChange) return;
     trace('command', {
       command: tick ? command.type : command,
       ...(result.ok

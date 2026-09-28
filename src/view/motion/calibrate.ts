@@ -14,6 +14,27 @@ export interface SpinSample {
 }
 
 /**
+ * How a browser fills `rotationRate`. The standard puts rotation about the device's z, x
+ * and y axes in alpha, beta and gamma; WebKit on iOS puts x, y and z there (recorded on
+ * an iPhone: a flick down turns the tilt's beta by 40° while only rate alpha spins).
+ */
+export type RateAxes = 'standard' | 'webkit';
+
+/**
+ * Every iOS browser is WebKit. iPadOS reports a Mac, but a touch one. (The permission
+ * API is no sign: current Chromium has it too.)
+ */
+export function rateAxesFor(
+  userAgent: string,
+  maxTouchPoints: number,
+): RateAxes {
+  return /iPhone|iPad|iPod/.test(userAgent) ||
+    (/Macintosh/.test(userAgent) && maxTouchPoints > 1)
+    ? 'webkit'
+    : 'standard';
+}
+
+/**
  * Device rotation rates turned into the screen's axes, like the tilt: pitch tips the top
  * toward or away from the player, roll tilts it sideways, yaw turns it flat.
  */
@@ -24,49 +45,44 @@ export function screenRates(
     gamma: number | null;
   } | null,
   screenAngle: number,
+  axes: RateAxes = 'standard',
 ): Omit<SpinSample, 't'> {
   const radians = (screenAngle * Math.PI) / 180;
-  const beta = rate?.beta ?? 0;
-  const gamma = rate?.gamma ?? 0;
+  const webkit = axes === 'webkit';
+  const x = (webkit ? rate?.alpha : rate?.beta) ?? 0;
+  const y = (webkit ? rate?.beta : rate?.gamma) ?? 0;
+  const z = (webkit ? rate?.gamma : rate?.alpha) ?? 0;
   return {
-    pitch: beta * Math.cos(radians) + gamma * Math.sin(radians),
-    roll: gamma * Math.cos(radians) - beta * Math.sin(radians),
-    yaw: rate?.alpha ?? 0,
+    pitch: x * Math.cos(radians) + y * Math.sin(radians),
+    roll: y * Math.cos(radians) - x * Math.sin(radians),
+    yaw: z,
   };
 }
 
 /**
  * The flicks on one axis: each starts at a spin of at least `minFlickDegPerSec` and ends
- * after `quietMs` below the onset speed. Its sign is its net turn, so a lean back before
- * it or an overshoot after it cannot flip it; `peak` is the fastest spin that way.
+ * after `quietMs` below the onset speed. Its sign is that of its fastest spin, the flick
+ * itself: a wind-up before it, an overshoot, or a slower return that turns further
+ * (all recorded on an iPhone) cannot flip it. `peak` is that fastest spin.
  */
 function flicksOn(samples: SpinSample[], axis: RodTuning['axis']) {
   const flicks: { sign: 1 | -1; peak: number }[] = [];
-  let current: {
-    rates: number[];
-    turn: number;
-    quietSince: number | null;
-  } | null = null;
-  let previous: number | null = null;
+  let current: { fastest: number; quietSince: number | null } | null = null;
   const close = () => {
     if (!current) return;
-    const sign = current.turn >= 0 ? 1 : -1;
     flicks.push({
-      sign,
-      peak: Math.max(...current.rates.map((rate) => rate * sign)),
+      sign: current.fastest >= 0 ? 1 : -1,
+      peak: Math.abs(current.fastest),
     });
     current = null;
   };
   for (const sample of samples) {
     const rate = sample[axis];
-    const dt = previous === null ? 0 : sample.t - previous;
-    previous = sample.t;
     if (!current) {
       if (Math.abs(rate) < C.minFlickDegPerSec) continue;
-      current = { rates: [], turn: 0, quietSince: null };
+      current = { fastest: rate, quietSince: null };
     }
-    current.rates.push(rate);
-    current.turn += rate * Math.max(dt, 1);
+    if (Math.abs(rate) > Math.abs(current.fastest)) current.fastest = rate;
     if (Math.abs(rate) >= G.onsetDegPerSec) current.quietSince = null;
     else current.quietSince ??= sample.t;
     if (
