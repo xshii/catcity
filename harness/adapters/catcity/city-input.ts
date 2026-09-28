@@ -2,10 +2,21 @@ import { expect, type Page } from '@playwright/test';
 import type { SpotId } from '../../../src/content/fishing';
 import { shoreTiles, samePosition, spotAt } from '../../../src/core/city';
 import type { WorldState } from '../../../src/core';
-import { MAP_VIEW, tileCenter } from '../../../src/view/city/geometry';
+import {
+  boardSize,
+  frameMap,
+  MAP_VIEW,
+  tileCenter,
+} from '../../../src/view/city/geometry';
 
 /** Read-only observation works in test and in a production build without its bridge. */
 async function observeWorld(page: Page): Promise<WorldState> {
+  // A production page saves on its first clock tick; wait for something to observe.
+  await page.waitForFunction(
+    () =>
+      window.CAT_CITY_DEBUG !== undefined ||
+      localStorage.getItem('cat-city.save.v1') !== null,
+  );
   return page.evaluate(() => {
     if (window.CAT_CITY_DEBUG) return window.CAT_CITY_DEBUG.getWorldState();
     const save = localStorage.getItem('cat-city.save.v1');
@@ -14,30 +25,73 @@ async function observeWorld(page: Page): Promise<WorldState> {
   });
 }
 
-export async function clickTile(page: Page, x: number, y: number) {
-  const close = page.locator('#river-tools-close');
-  if (await close.isVisible()) await close.click();
-  const overview = page.locator('#city-overview');
-  if ((await overview.getAttribute('aria-pressed')) !== 'true')
-    await overview.click();
-  // Scene switches and camera changes apply on the next rendered frames; read
-  // the canvas only after they settle, or a busy machine clicks a stale layout.
-  await page.evaluate(
+const settle = (page: Page) =>
+  page.evaluate(
     () =>
       new Promise((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(resolve)),
       ),
   );
-  const canvas = page.locator('canvas');
-  const bounds = await canvas.boundingBox();
-  if (!bounds) throw new Error('Canvas must have bounds');
-  const center = tileCenter(x, y);
-  await canvas.click({
-    position: {
-      x: (center.x * bounds.width) / MAP_VIEW.size,
-      y: (center.y * bounds.height) / MAP_VIEW.size,
-    },
-  });
+
+/**
+ * Click a tile the way a player would: open a fresh overview (centred on the board), and
+ * drag the map first when the tile lies outside the frame. Positions come from the same
+ * framing rule the scene uses, so this works in production builds without the bridge.
+ */
+export async function clickTile(page: Page, x: number, y: number) {
+  const close = page.locator('#river-tools-close');
+  if (await close.isVisible()) await close.click();
+  const overview = page.locator('#city-overview');
+  if ((await overview.getAttribute('aria-pressed')) === 'true')
+    await overview.click();
+  await overview.click();
+  // Scene switches and camera changes apply on the next rendered frames; read
+  // the canvas only after they settle, or a busy machine clicks a stale layout.
+  await settle(page);
+  const { map } = await observeWorld(page);
+  const bounds = await page.locator('#game').boundingBox();
+  if (!bounds) throw new Error('Map frame must have bounds');
+  const board = boardSize(map);
+  let focus = { x: board.width / 2, y: board.height / 2 };
+  const tile = tileCenter(x, y);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { scale, center } = frameMap(bounds, map, false, focus);
+    const point = {
+      x: bounds.width / 2 + (tile.x - center.x) * scale,
+      y: bounds.height / 2 + (tile.y - center.y) * scale,
+    };
+    const margin = (MAP_VIEW.tile * scale) / 2;
+    const inside = (value: number, size: number) =>
+      value >= margin && value <= size - margin;
+    if (inside(point.x, bounds.width) && inside(point.y, bounds.height)) {
+      await page.mouse.click(bounds.x + point.x, bounds.y + point.y);
+      return;
+    }
+    // Drag within the frame towards the tile; the scene clamps the pan to the board.
+    const reach = (value: number, size: number) =>
+      Math.max(
+        margin - size / 2,
+        Math.min(size / 2 - margin, size / 2 - value),
+      );
+    const shift = {
+      x: reach(point.x, bounds.width),
+      y: reach(point.y, bounds.height),
+    };
+    const start = {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2,
+    };
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + shift.x, start.y + shift.y, { steps: 6 });
+    await page.mouse.up();
+    focus = frameMap(bounds, map, false, {
+      x: center.x - shift.x / scale,
+      y: center.y - shift.y / scale,
+    }).center;
+    await settle(page);
+  }
+  throw new Error(`Tile ${x},${y} never came into view`);
 }
 
 /** All movement and elapsed time use visible player controls, including production smoke. */

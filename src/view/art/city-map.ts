@@ -4,7 +4,7 @@ import { SPOTS, type SpotId } from '../../content/fishing';
 import { shoreTiles, spotAt } from '../../core/city';
 import type { WorldState } from '../../core';
 import type { CitySelection } from '../city/actions';
-import { MAP_VIEW, tileCenter } from '../city/geometry';
+import { boardSize, MAP_VIEW, tileCenter } from '../city/geometry';
 
 type Label = (
   x: number,
@@ -29,12 +29,13 @@ export function drawCityMap(
   selection: CitySelection,
   label: Label,
 ) {
-  g.fillStyle(0xf9f7ef).fillRoundedRect(25, 24, 590, 590, 26);
+  const board = boardSize(world.map);
+  g.fillStyle(0xf9f7ef).fillRoundedRect(0, 0, board.width, board.height, 26);
   const named = new Set<SpotId>();
   for (const tile of world.map.tiles) {
     const { x, y } = tile.position;
-    const left = MAP_VIEW.origin + x * MAP_VIEW.tile;
-    const top = MAP_VIEW.origin + y * MAP_VIEW.tile;
+    const left = MAP_VIEW.padding + x * MAP_VIEW.tile;
+    const top = MAP_VIEW.padding + y * MAP_VIEW.tile;
     g.fillStyle(terrainColor[tile.terrain]).fillRoundedRect(
       left + 1,
       top + 1,
@@ -121,10 +122,6 @@ export function drawCityMap(
       g.fillStyle(0xfff4da).fillCircle(next.x, next.y, 3);
       previous = next;
     }
-  }
-  for (let i = 0; i < 10; i++) {
-    label(86 + i * 52, 43, String(i + 1), 10, '#98a28b');
-    label(42, 86 + i * 52, String.fromCharCode(65 + i), 10, '#98a28b');
   }
   for (const building of world.buildings) {
     const { x, y } = tileCenter(building.position.x, building.position.y);
