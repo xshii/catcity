@@ -1,11 +1,11 @@
-/* Motion fishing overlay: the 100×100 plane covers the river art's open water, so the
-   fish ring never swims onto the bank. */
 #motion-fishing {
+  /* Placed in JS as a square over the canvas's open water. */
   position: absolute;
-  inset: 20% 3% 10% 33%;
   pointer-events: none;
   touch-action: none;
 }
+#motion-fishing[data-phase='waiting'],
+#motion-fishing[data-phase='hook'],
 #motion-fishing[data-phase='fight'] {
   pointer-events: auto;
 }

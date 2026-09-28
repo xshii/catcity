@@ -15,6 +15,11 @@ type Capability = 'unknown' | 'ready' | 'denied' | 'unsupported';
 type Preference = 'motion' | 'buttons';
 /** Per-device choice; never part of the world or a save. */
 const PREFERENCE_KEY = 'cat-city.fishing-input';
+/**
+ * Open water in the river art (x 210–609, y 134–558 of the 640 canvas), as shares of the
+ * square canvas: a square as large as the water allows, spilling a little onto the west bank.
+ */
+const WATER = { left: 0.35, top: 0.2, side: 0.6 };
 
 interface PermissionApi {
   requestPermission?: () => Promise<'granted' | 'denied'>;
@@ -28,6 +33,10 @@ export interface MotionFishingDeps {
   getRun: () => AnglingRun | null;
   /** River on screen, no tools open, page focused. */
   canPlay: () => boolean;
+  /** A paused run ignores gestures until the player resumes it. */
+  isPaused: () => boolean;
+  /** Live aim while no run exists, so the water preview follows the tilt. */
+  previewAim: (direction: number) => void;
   /** Starts a motion run and casts it at once; false if Core rejected it. */
   cast: (direction: number, power: number) => boolean;
   strike: () => void;
@@ -52,6 +61,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   let lastRun: string | null = null;
   let lastPhase = '';
   let cuedNibble = -1;
+  let lastAim: number | null = null;
 
   const overlay = document.createElement('div');
   overlay.id = 'motion-fishing';
@@ -110,6 +120,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         capability = 'denied';
         return deps.onChange();
       }
+      // Granted: the first sensor sample marks the device ready.
+      capability = 'unknown';
     }
     listen();
     deps.onChange();
@@ -142,6 +154,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       tip.calibrate(next);
       rebase = false;
     }
+    if (active() && deps.canPlay() && !deps.getRun()) {
+      const aim = tip.aim(next);
+      if (aim !== lastAim) deps.previewAim(aim);
+      lastAim = aim;
+    }
   }
   function onMotion(event: DeviceMotionEvent) {
     const rate = event.rotationRate?.beta;
@@ -152,21 +169,46 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     }
     if (!active() || !deps.canPlay()) return gestures.reset();
     const run = deps.getRun();
-    const want =
-      !run && tilt
-        ? 'cast'
-        : run?.phase === 'waiting' || run?.phase === 'hook'
-          ? 'lift'
-          : null;
+    if (run && deps.isPaused()) return gestures.reset();
+    const want = !run
+      ? 'cast'
+      : run.phase === 'waiting' || run.phase === 'hook'
+        ? 'lift'
+        : null;
     if (!want) return gestures.reset();
     const gesture = gestures.push(
       { t: event.timeStamp, pitchRate: rate },
       want,
     );
-    if (gesture?.kind === 'cast' && tilt) {
-      if (deps.cast(tip.aim(tilt), gesture.power)) deps.vibrate(20);
+    if (gesture?.kind === 'cast') {
+      // Without orientation readings the cast goes straight ahead.
+      if (deps.cast(tilt ? tip.aim(tilt) : 0, gesture.power)) deps.vibrate(20);
     } else if (gesture?.kind === 'lift') deps.strike();
   }
+
+  // Tapping the water strikes too, so a lost sensor stream never strands a bite.
+  overlay.addEventListener('click', () => {
+    const run = deps.getRun();
+    if (
+      run?.mode === 'motion' &&
+      !deps.isPaused() &&
+      (run.phase === 'waiting' || run.phase === 'hook')
+    )
+      deps.strike();
+  });
+
+  /** Keep the plane square over the canvas's open water, so drawing matches Core. */
+  const place = () => {
+    const canvas = deps.plane.querySelector('canvas');
+    if (!canvas) return;
+    const box = deps.plane.getBoundingClientRect();
+    const art = canvas.getBoundingClientRect();
+    const side = art.width * WATER.side;
+    overlay.style.left = `${art.left - box.left + art.width * WATER.left}px`;
+    overlay.style.top = `${art.top - box.top + art.height * WATER.top}px`;
+    overlay.style.width = overlay.style.height = `${side}px`;
+  };
+  new ResizeObserver(place).observe(deps.plane);
 
   // Finger fallback for the fight: dragging on the water moves the rod tip.
   overlay.addEventListener('pointermove', (event) => {
@@ -194,24 +236,32 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   function refresh() {
     const run = deps.getRun();
     const motionRun = run?.mode === 'motion' ? run : null;
-    // Only phones get the one-tap prompt; desktops default to the button flow.
+    // Only phones get the one-tap prompt; desktops default to the button flow. A motion
+    // run restored after a reload needs the tap again, or its bite could not be struck.
     card.hidden =
-      preference === 'buttons' ||
+      !(motionRun || (preference === 'motion' && !run)) ||
       capability !== 'unknown' ||
       !needsPermission() ||
       !window.matchMedia('(pointer: coarse)').matches ||
-      !deps.canPlay() ||
-      !!run;
+      !deps.canPlay();
     toggle.textContent = active()
       ? '钓鱼操作：体感 ✓（点此改用按钮）'
-      : preference === 'motion'
-        ? '开启体感钓鱼'
-        : '钓鱼操作：按钮（点此开启体感）';
+      : capability === 'unsupported'
+        ? '此设备或连接不支持体感（需 HTTPS 与陀螺仪）'
+        : capability === 'denied'
+          ? '体感未获授权（点此重试）'
+          : preference === 'motion'
+            ? '开启体感钓鱼'
+            : '钓鱼操作：按钮（点此开启体感）';
     toggle.setAttribute('aria-pressed', String(active()));
     toggle.disabled = capability === 'unsupported';
     overlay.hidden = !(active() || motionRun) || !deps.canPlay();
     if (overlay.hidden) return;
-    if (motionRun?.id !== lastRun || motionRun?.phase !== lastPhase) {
+    place();
+    if (
+      (motionRun?.id ?? null) !== lastRun ||
+      (motionRun?.phase ?? '') !== lastPhase
+    ) {
       // A new run or phase re-centres the rod tip on the current pose.
       if (motionRun?.phase === 'fight' || !motionRun) rebase = true;
       lastRun = motionRun?.id ?? null;
@@ -221,15 +271,17 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     const phase = motionRun?.phase ?? 'aim';
     overlay.dataset.phase = phase;
     $('motion-fishing-hint').textContent =
-      phase === 'aim'
-        ? '左右倾斜瞄准，后扬再前压甩竿'
-        : phase === 'waiting'
-          ? '拿稳鱼竿，等"！"再上扬'
-          : phase === 'hook'
-            ? '快速上扬提竿！'
-            : phase === 'fight'
-              ? '倾斜手机，让竿尖追住鱼圈'
-              : '';
+      motionRun && deps.isPaused()
+        ? '已暂停 · 点「继续钓鱼」再继续'
+        : phase === 'aim'
+          ? '左右倾斜瞄准，后扬再前压甩竿'
+          : phase === 'waiting'
+            ? '拿稳鱼竿，等"！"再上扬'
+            : phase === 'hook'
+              ? '快速上扬提竿！'
+              : phase === 'fight'
+                ? '倾斜手机，让竿尖追住鱼圈'
+                : '';
     $('motion-bite').hidden = phase !== 'hook';
     if (motionRun?.phase === 'waiting') {
       const nibble = motionSchedule(motionRun).nibbles.findIndex(
