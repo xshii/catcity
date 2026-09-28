@@ -32,7 +32,6 @@ export const FISH = [
     minWeight: 80,
     maxWeight: 200,
     behavior: '平稳巡游',
-    color: '#a7cbd4',
     clue: `池塘或河湾，${LEFT}`,
   },
   {
@@ -46,7 +45,6 @@ export const FISH = [
     minWeight: 200,
     maxWeight: 600,
     behavior: '缓缓摆动',
-    color: '#bcaa86',
     clue: '池塘或河湾的中央与右侧；月光湖用面包饵',
   },
   {
@@ -60,7 +58,6 @@ export const FISH = [
     minWeight: 400,
     maxWeight: 1200,
     behavior: '来回冲刺',
-    color: '#829e72',
     clue: '芦苇河湾用蚯蚓饵；月光湖的常见鱼',
   },
   {
@@ -74,7 +71,6 @@ export const FISH = [
     minWeight: 600,
     maxWeight: 2000,
     behavior: '深水拉扯',
-    color: '#8799af',
     clue: `芦苇河湾${RIGHT}，虾饵，力度至少 ${encounter.strongPower}%`,
   },
   {
@@ -88,7 +84,6 @@ export const FISH = [
     minWeight: 500,
     maxWeight: 1800,
     behavior: '突然转向',
-    color: '#e59777',
     clue: '月光湖左侧配蚯蚓饵',
   },
   {
@@ -102,7 +97,6 @@ export const FISH = [
     minWeight: 800,
     maxWeight: 2500,
     behavior: '连续变向',
-    color: '#a497ce',
     clue: `月光湖${RIGHT}，虾饵，力度至少 ${encounter.moonCarpPower}% 时有机会`,
   },
   {
@@ -116,7 +110,6 @@ export const FISH = [
     minWeight: 250,
     maxWeight: 1400,
     behavior: '沿浪巡游',
-    color: '#6598ae',
     clue: '潮汐海岸的常见鱼',
   },
   {
@@ -130,7 +123,6 @@ export const FISH = [
     minWeight: 400,
     maxWeight: 2400,
     behavior: '贴礁拉扯',
-    color: '#d5969e',
     clue: `潮汐海岸${RIGHT}，虾饵，力度至少 ${encounter.strongPower}%`,
   },
 ] as const;

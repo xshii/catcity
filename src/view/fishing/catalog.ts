@@ -10,7 +10,7 @@ import {
 } from '../../content/fishing';
 import type { GameCommand } from '../../core';
 import type { CatEntity, WorldState } from '../../core';
-import { fishIllustration } from './stage';
+import { fishIllustration } from '../art/illustrations';
 
 type FishAction = Extract<GameCommand, { type: 'SELL_FISH' | 'GIFT_FISH' }>;
 
@@ -77,7 +77,7 @@ export function renderFishingCatalog(
       card.dataset.species = fish.id;
       card.dataset.stars = String(fish.stars);
       card.dataset.discovered = String(record.count > 0);
-      card.innerHTML = `<span class="fish-silhouette" aria-hidden="true">${fishIllustration(fish.color)}</span><strong>${fishStars(fish.stars)} ${record.count ? fish.name : '未发现的鱼影'}</strong><span>${fish.price} 金币 · ${fish.behavior}</span><p>出没：${fishHabitats(
+      card.innerHTML = `<span class="fish-silhouette" aria-hidden="true">${fishIllustration(fish.id)}</span><strong>${fishStars(fish.stars)} ${record.count ? fish.name : '未发现的鱼影'}</strong><span>${fish.price} 金币 · ${fish.behavior}</span><p>出没：${fishHabitats(
         fish.id,
       )
         .map((id) => SPOTS[id].name)

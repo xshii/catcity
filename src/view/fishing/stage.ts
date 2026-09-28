@@ -10,21 +10,14 @@ import {
 } from '../../content/fishing';
 import type { CatEntity, WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
-
-export function fishIllustration(color: string): string {
-  return `<svg viewBox="0 0 180 90" aria-hidden="true"><ellipse cx="92" cy="76" rx="54" ry="5" fill="#456a5c" opacity=".12"/><path d="M52 43L16 18Q24 43 16 68L52 48" fill="${color}"/><path d="M77 28L100 9L119 32M89 58L110 78L122 53" fill="${color}"/><ellipse cx="99" cy="44" rx="53" ry="27" fill="${color}"/><path d="M60 47Q96 76 141 48" fill="#fff" opacity=".3"/><path d="M112 25Q96 44 112 65" stroke="#43584e" opacity=".3" fill="none" stroke-width="3"/><circle cx="131" cy="36" r="4" fill="#334b46"/><circle cx="132" cy="35" r="1.3" fill="#fff"/></svg>`;
-}
-function portrait(coat: 'cream' | 'gray'): string {
-  const color = coat === 'cream' ? '#efdbb2' : '#bbc3c7';
-  return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 31L10 9l17 12h10L54 9l-2 22" fill="${color}"/><ellipse cx="32" cy="35" rx="23" ry="20" fill="${color}"/><path d="M15 26l-2-12 10 9M41 23l10-9-2 12" fill="#d7aba0"/><circle cx="23" cy="34" r="2" fill="#506054"/><circle cx="41" cy="34" r="2" fill="#506054"/><path d="M29 40h6l-3 4z" fill="#af857a"/><path d="M28 47l4-3 4 3" stroke="#8c8070" fill="none"/></svg>`;
-}
+import { catPortrait, fishIllustration } from '../art/illustrations';
 
 function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   const button = document.createElement('button');
   button.className = 'energy-cat';
   button.dataset.catId = cat.id;
   let coat = cat.appearance.coat;
-  button.innerHTML = portrait(coat);
+  button.innerHTML = catPortrait(coat);
   const text = document.createElement('span');
   const name = document.createElement('strong');
   const energy = document.createElement('small');
@@ -43,7 +36,7 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
       if (coat !== cat.appearance.coat) {
         coat = cat.appearance.coat;
         button.querySelector('svg')!.remove();
-        button.insertAdjacentHTML('afterbegin', portrait(coat));
+        button.insertAdjacentHTML('afterbegin', catPortrait(coat));
       }
       button.setAttribute('aria-pressed', String(cat.id === selected));
       button.disabled = fishing;
@@ -163,7 +156,7 @@ export function mountFishingStage(
         resultKey = JSON.stringify(result);
         if (result.caught && result.speciesId) {
           const fish = fishById(result.speciesId);
-          reveal.innerHTML = `<small>这次的收获</small>${fishIllustration(fish.color)}<strong>${fishStars(fish.stars)} ${fish.name}</strong><span>${(result.lengthMm / 10).toFixed(1)} cm · ${result.weight} g</span><span class="catch-price">${fish.price} 金币 · 已放入鱼篓</span>`;
+          reveal.innerHTML = `<small>这次的收获</small>${fishIllustration(fish.id)}<strong>${fishStars(fish.stars)} ${fish.name}</strong><span>${(result.lengthMm / 10).toFixed(1)} cm · ${result.weight} g</span><span class="catch-price">${fish.price} 金币 · 已放入鱼篓</span>`;
         } else {
           const title = result.trashAmount
             ? '鱼溜走了，钓到一件垃圾'

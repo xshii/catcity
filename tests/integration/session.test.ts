@@ -4,7 +4,7 @@ import {
 } from '../helpers/session';
 import { expect, it, vi } from 'vitest';
 import { createWorld } from '../../src/core';
-import { MockDialogueProvider } from '../../src/providers/mock-dialogue';
+import { MockDialogueProvider } from '../helpers/mock-dialogue';
 import { RuleBasedDialogueProvider } from '../../src/providers/rule-dialogue';
 import { resolveDialogue } from '../../src/application/dialogue';
 

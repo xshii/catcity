@@ -23,9 +23,9 @@
 
 ## 3 目录归位
 
-- [ ] 体感 → `src/view/motion/`
-- [ ] 美工 → `src/view/art/`（城市/河景/猫绘图与调色板）
-- [ ] `MockDialogueProvider` → `tests/helpers/`
+- [x] 体感 → `src/view/motion/`（8 个文件）
+- [x] 美工 → `src/view/art/`：`city-map.ts`、`river.ts`、`cat.ts`、`illustrations.ts`（鱼 SVG 与配色从 content 移出、猫头像）。CSS 颜色仍在各样式文件：统一成设计 token 需要美术命名，留作后续
+- [x] `MockDialogueProvider` → `tests/helpers/mock-dialogue.ts`。证据：lint/typecheck/187 测试/构建通过，E2E 冒烟 6/6，截图 `initial-pond-shore.png`、`fishing-scene.png` 已查看
 
 ## 4 存档冗余字段（saveVersion 11）
 

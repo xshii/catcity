@@ -22,7 +22,7 @@ import { mountFishingStage } from './stage';
 import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
-import { mountFishingMotion } from './motion';
+import { mountFishingMotion } from '../motion/motion';
 import { onShore } from '../../core/city';
 
 const CAST_COST = FISHING.cast.staminaCost;

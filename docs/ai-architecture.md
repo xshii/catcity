@@ -6,7 +6,7 @@
 
 World 快照 → 有限 `DialogueContext` → `DialogueProvider` → 未知提案 → 运行时校验 → `INTERACT` 命令 → Core 再校验并更新状态。
 
-当前只有 `RuleBasedDialogueProvider` 与 `MockDialogueProvider`，没有真实模型、SDK 或网络调用。对话端口定义在 `application/ports.ts`，具体主 Provider 与 fallback 由装配入口注入，Application 不创建具体实现。Application 负责超时、无效提案、目标错误和异常的回退；世界重置后旧异步回答不能落入新世界。Provider 接收上下文副本，不持有世界引用。
+当前只有 `RuleBasedDialogueProvider`（测试另用 `tests/helpers/mock-dialogue.ts`），没有真实模型、SDK 或网络调用。对话端口定义在 `application/ports.ts`，具体主 Provider 与 fallback 由装配入口注入，Application 不创建具体实现。Application 负责超时、无效提案、目标错误和异常的回退；世界重置后旧异步回答不能落入新世界。Provider 接收上下文副本，不持有世界引用。
 
 上下文明确提供猫的身份/个性/偏好、玩家文本、近期聊天、首钓记忆、最近赠鱼和鱼类喜好。没有某项经历时使用 `null`，不从玩家陈述、聊天文本或缺省字段推断出活动事实。
 

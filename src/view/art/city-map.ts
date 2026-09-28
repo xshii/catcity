@@ -3,8 +3,8 @@ import { BUILDINGS } from '../../content/city';
 import { SPOTS, type SpotId } from '../../content/fishing';
 import { shoreTiles, spotAt } from '../../core/city';
 import type { WorldState } from '../../core';
-import type { CitySelection } from './actions';
-import { MAP_VIEW, tileCenter } from './geometry';
+import type { CitySelection } from '../city/actions';
+import { MAP_VIEW, tileCenter } from '../city/geometry';
 
 type Label = (
   x: number,

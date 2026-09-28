@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import type { WorldState } from '../../core';
-import { catArt } from '../companion/art';
+import { catArt } from './cat';
 
 export class RiverView {
   readonly root: Phaser.GameObjects.Container;

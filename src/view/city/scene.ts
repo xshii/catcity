@@ -2,10 +2,10 @@ import Phaser from 'phaser';
 import type { GameSession } from '../../application';
 import type { SpotId } from '../../content/fishing';
 import type { Position } from '../../core';
-import { catArt } from '../companion/art';
+import { catArt } from '../art/cat';
 import type { CityActions } from './actions';
-import { drawCityMap } from './map-art';
-import { RiverView } from '../fishing/river';
+import { drawCityMap } from '../art/city-map';
+import { RiverView } from '../art/river';
 import { MAP_VIEW, tileCenter } from './geometry';
 
 export class CityScene extends Phaser.Scene {

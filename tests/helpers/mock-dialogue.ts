@@ -1,4 +1,7 @@
-import type { DialogueContext, DialogueProvider } from '../application/ports';
+import type {
+  DialogueContext,
+  DialogueProvider,
+} from '../../src/application/ports';
 
 export class MockDialogueProvider implements DialogueProvider {
   constructor(

@@ -9,12 +9,14 @@
 | `src/core/`                              | World、命令/状态 schema、统一时钟、RNG、模拟与关系规则；纯 TypeScript   |
 | `src/core/city/`                         | 地图、建设、寻路、行走、城市状态校验                                    |
 | `src/core/fishing/`                      | 钓鱼命令、旅行资格、结果结算、持久状态与校验                            |
-| `src/content/`                           | 猫、品种、建筑、鱼、鱼饵和水域定义；与实例分离                          |
+| `src/content/`                           | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`；与实例分离  |
 | `src/minigames/angling.ts`               | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界         |
 | `src/application/`                       | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验 |
 | `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存和新世界种子适配                              |
-| `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼画面、输入、只读状态呈现                                      |
-| `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；猫咪绘图和事实回忆                      |
+| `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼交互、面板与只读状态呈现                                      |
+| `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                      |
+| `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色             |
+| `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                |
 | `src/view/styles/base.css`               | 共用视觉基础；玩法布局样式留在对应 View 模块                            |
 | `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                 |
 | `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`           |
