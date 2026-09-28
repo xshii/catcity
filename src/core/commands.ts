@@ -146,45 +146,43 @@ export type GameEvent =
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
   | { type: 'DebugChanged'; minute: number };
 
-const ERROR_CODES = [
-  'INVALID_COMMAND',
-  'WORLD_LIMIT',
-  'TIME_LIMIT',
-  'INSUFFICIENT_COINS',
-  'CAT_NOT_FOUND',
-  'CAT_LIMIT',
-  'CAT_RESTING',
-  'CAT_BUSY',
-  'STAMINA_FULL',
-  'LOW_STAMINA',
-  'INVALID_PLACEMENT',
-  'NO_WALK_ROUTE',
-  'ALREADY_AT_DESTINATION',
-  'LAND_ALREADY_OWNED',
-  'LAND_NOT_OWNED',
-  'ROAD_EXISTS',
-  'ROAD_NOT_CONNECTED',
-  'DIRT_ROAD_REQUIRED',
-  'BUILDING_NOT_FOUND',
-  'BUILDING_LIMIT',
-  'HOME_NOT_FOUND',
-  'HOME_FULL',
-  'ALREADY_HOME',
-  'SPOT_LOCKED',
-  'TRAVEL_REQUIRED',
-  'ALREADY_AT_SPOT',
-  'ALREADY_FISHING',
-  'RUN_NOT_FOUND',
-  'CAST_NOT_READY',
-  'MOTION_NOT_READY',
-  'NO_BAIT',
-  'BAIT_LIMIT',
-  'BAG_FULL',
-  'FISH_NOT_FOUND',
-  'NO_SUPPLIES',
-  'ALREADY_INVITED',
-] as const;
-export type ErrorCode = (typeof ERROR_CODES)[number];
+export type ErrorCode =
+  | 'INVALID_COMMAND'
+  | 'WORLD_LIMIT'
+  | 'TIME_LIMIT'
+  | 'INSUFFICIENT_COINS'
+  | 'CAT_NOT_FOUND'
+  | 'CAT_LIMIT'
+  | 'CAT_RESTING'
+  | 'CAT_BUSY'
+  | 'STAMINA_FULL'
+  | 'LOW_STAMINA'
+  | 'INVALID_PLACEMENT'
+  | 'NO_WALK_ROUTE'
+  | 'ALREADY_AT_DESTINATION'
+  | 'LAND_ALREADY_OWNED'
+  | 'LAND_NOT_OWNED'
+  | 'ROAD_EXISTS'
+  | 'ROAD_NOT_CONNECTED'
+  | 'DIRT_ROAD_REQUIRED'
+  | 'BUILDING_NOT_FOUND'
+  | 'BUILDING_LIMIT'
+  | 'HOME_NOT_FOUND'
+  | 'HOME_FULL'
+  | 'ALREADY_HOME'
+  | 'SPOT_LOCKED'
+  | 'TRAVEL_REQUIRED'
+  | 'ALREADY_AT_SPOT'
+  | 'ALREADY_FISHING'
+  | 'RUN_NOT_FOUND'
+  | 'CAST_NOT_READY'
+  | 'MOTION_NOT_READY'
+  | 'NO_BAIT'
+  | 'BAIT_LIMIT'
+  | 'BAG_FULL'
+  | 'FISH_NOT_FOUND'
+  | 'NO_SUPPLIES'
+  | 'ALREADY_INVITED';
 export type CommandResult =
   { ok: true; events: GameEvent[] } | { ok: false; error: ErrorCode };
 
