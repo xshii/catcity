@@ -189,12 +189,17 @@ test('city clock updates preserve the focused cat card and render fixture names 
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(1));
   await expect(card).toBeFocused();
   expect(await mounted.evaluate((element) => element.isConnected)).toBe(true);
+  // A pond-shore spawn arrives at full energy; spend a cast so rest is available.
+  await page.locator('#cast-start').click();
+  await page.locator('#fish-cancel').click();
+  const tired = (await readWorld(page)).cats[0]!.needs.energy;
+  expect(tired).toBeLessThan(100);
   await page.locator('#fish-rest').click();
   await card.focus();
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(10));
   await expect(card).toBeFocused();
   await expect(card).toContainText('休息中 50 分钟');
-  await expect(card.locator('progress')).toHaveJSProperty('value', 100);
+  await expect(card.locator('progress')).toHaveJSProperty('value', tired + 5);
   const name = 'Mochi <b>你好</b>';
   await page.evaluate((catName) => {
     const save = JSON.parse(localStorage.getItem('cat-city.save.v1')!);
