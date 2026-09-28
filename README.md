@@ -49,3 +49,7 @@ npm run replay -- artifacts/<run-id>/commands.json
 | AI 开发约定        | [AGENTS.md](AGENTS.md)                                                                            |
 
 代码按 [src 导航](src/README.md) 逐层阅读：Core、Application、Provider/Platform 与 View 分开，纯小游戏位于 `src/minigames`。自动化见 [Harness 导航](harness/README.md)，验证层级见 [tests 导航](tests/README.md)。生成证据位于忽略提交的 `artifacts/`。
+
+## 许可证
+
+[AGPL-3.0-only](LICENSE)。允许商用，但修改后分发或通过网络提供给他人使用（例如部署为网站）时，必须以同一许可证公开完整源码。
