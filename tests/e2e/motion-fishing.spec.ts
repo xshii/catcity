@@ -105,16 +105,31 @@ test(
     expect(canvas.width).toBeGreaterThan(390 * 0.85);
     expect(plane.width).toBeGreaterThan(390 * 0.55);
     let shot = false;
+    let checked = 0;
     for (let i = 0; i < 800; i++) {
       const run = (await readWorld(page)).fishing.active;
       if (!run) break;
-      const fish = fishPoint(run, run.phaseTick + 1);
-      await page.mouse.move(
-        plane.x + (fish.x / 100) * plane.width,
-        plane.y + (fish.y / 100) * plane.height,
-      );
+      // Aim at the ring as drawn; it must sit where Core judges the next tick.
+      const ring = (await page.locator('#motion-ring').boundingBox())!;
+      const centre = {
+        x: ring.x + ring.width / 2,
+        y: ring.y + ring.height / 2,
+      };
+      if (run.phase === 'fight') {
+        const judged = fishPoint(run, run.phaseTick + 1);
+        expect(centre.x).toBeCloseTo(
+          plane.x + (judged.x / 100) * plane.width,
+          0,
+        );
+        expect(centre.y).toBeCloseTo(
+          plane.y + (judged.y / 100) * plane.height,
+          0,
+        );
+        checked++;
+      }
+      await page.mouse.move(centre.x, centre.y);
       await step(page, 1);
-      if (!shot && run.phaseTick > 20) {
+      if (!shot && run.phaseTick > FISHING.motion.fight.graceTicks) {
         await expect(page.locator('#motion-ring')).toHaveClass(/inside/);
         await page.screenshot({
           path: testInfo.outputPath('motion-fight.png'),
@@ -122,6 +137,7 @@ test(
         shot = true;
       }
     }
+    expect(checked).toBeGreaterThan(FISHING.motion.fight.graceTicks);
     const result = (await readWorld(page)).fishing.lastResult!;
     expect(result.caught).toBe(true);
     await expect(page.locator('#fish-result')).toContainText('钓到了');

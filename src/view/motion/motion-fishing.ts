@@ -302,8 +302,10 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     $('motion-tip').hidden = !fighting;
     $('motion-hold').hidden = !fighting;
     if (!fighting || !motionRun) return;
-    const fish = fishPoint(motionRun, motionRun.phaseTick);
-    const radius = ringRadius(motionRun);
+    // Draw the tick Core judges next: it steps first, then tests the rod tip.
+    const next = { ...motionRun, phaseTick: motionRun.phaseTick + 1 };
+    const fish = fishPoint(next, next.phaseTick);
+    const radius = ringRadius(next);
     const rod = point() ?? { x: 50, y: 50 };
     const inside = (rod.x - fish.x) ** 2 + (rod.y - fish.y) ** 2 <= radius ** 2;
     // The overlay is the square 100×100 water plane; sizes are percentages of it.
