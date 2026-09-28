@@ -1,5 +1,11 @@
+import { CARE } from '../../content/care';
 import type { GameSession } from '../../application';
-import { BUILDINGS, CITY_COSTS, WALK_MINUTES } from '../../content/city';
+import {
+  BUILDINGS,
+  CITY_COSTS,
+  CITY_TIME,
+  WALK_MINUTES,
+} from '../../content/city';
 import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
 import { onShore, samePosition, spotAt, tileAt } from '../../core/city';
 import type { GameCommand } from '../../core';
@@ -81,10 +87,10 @@ export function mountCityActions(
     return element;
   };
   const wait = () =>
-    button('city-wait', '等 10 分钟', () =>
+    button('city-wait', `等 ${CITY_TIME.waitMinutes} 分钟`, () =>
       command(
-        { type: 'ADVANCE_TIME', minutes: 10 },
-        '城市时间前进了 10 分钟。',
+        { type: 'ADVANCE_TIME', minutes: CITY_TIME.waitMinutes },
+        `城市时间前进了 ${CITY_TIME.waitMinutes} 分钟。`,
       ),
     );
   const walking = (cat: CatEntity) => {
@@ -93,7 +99,7 @@ export function mountCityActions(
     if (cat.walk && cat.needs.energy === 0)
       return '体力耗尽，路线已暂停；让这只猫休息后继续。';
     if (cat.walk)
-      return `正走向 ${coordinate(cat.walk.destination)} · 还剩 ${cat.walk.route.length} 格 · 每格 1 体力`;
+      return `正走向 ${coordinate(cat.walk.destination)} · 还剩 ${cat.walk.route.length} 格 · 每格 ${CARE.walkEnergyPerTile} 体力`;
     return `位于 ${coordinate(cat.position)} · 点目标地块步行，再点这只猫取消选择`;
   };
   const render = () => {
@@ -119,7 +125,7 @@ export function mountCityActions(
       });
       button(
         'city-rest-cat',
-        cat.rest ? '正在休息' : '休息 1 小时',
+        cat.rest ? '正在休息' : `休息 ${CARE.rest.minutes / 60} 小时`,
         () =>
           command(
             { type: 'REST_CAT', catId: cat.id },
@@ -216,7 +222,7 @@ export function mountCityActions(
       detail.textContent =
         tile.road === 'DIRT'
           ? `土路每格 ${WALK_MINUTES.DIRT} 分钟；升级石路后每格 ${WALK_MINUTES.STONE} 分钟。`
-          : `石路每格 ${WALK_MINUTES.STONE} 分钟；每走一格消耗 1 体力。`;
+          : `石路每格 ${WALK_MINUTES.STONE} 分钟；每走一格消耗 ${CARE.walkEnergyPerTile} 体力。`;
       if (tile.road === 'DIRT')
         button(
           'upgrade-road',

@@ -89,11 +89,7 @@ test('bridge mutations are validated and snapshots cannot mutate the world', asy
   const rejected = await page.evaluate(() => {
     const bridge = window.CAT_CITY_DEBUG!;
     bridge.getWorldState().coins = 0;
-    return [
-      bridge.addCoins(-1),
-      bridge.spawnCat({ x: 20, y: 20 }),
-      bridge.advanceTime(-10),
-    ];
+    return [bridge.spawnCat({ x: 20, y: 20 }), bridge.advanceTime(-10)];
   });
   expect(rejected.every((result) => !result.ok)).toBe(true);
   expect(await readWorld(page)).toEqual(before);

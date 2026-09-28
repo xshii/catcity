@@ -1,4 +1,10 @@
-import { MAX_BUILDINGS, MAX_CATS, MAX_STAT, WORLD_LIMIT } from './limits';
+import {
+  MAX_BUILDINGS,
+  MAX_CATS,
+  MAX_STAT,
+  MAX_TEXT,
+  WORLD_LIMIT,
+} from './limits';
 import { CARE } from '../content/care';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
@@ -16,7 +22,7 @@ import { assertFishing } from './fishing/validation';
 const integer = z.number().int().min(0).max(WORLD_LIMIT);
 export const positionSchema = z.strictObject({ x: integer, y: integer });
 const percent = z.number().int().min(0).max(MAX_STAT);
-const text = z.string().min(1).max(500);
+const text = z.string().min(1).max(MAX_TEXT);
 const memorySchema = z.strictObject({
   id: text,
   kind: z.literal('conversation'),

@@ -87,10 +87,6 @@ export function applyCommand(
       });
       break;
     }
-    case 'DEBUG_ADD_COINS':
-      world.coins += command.amount;
-      events.push({ type: 'DebugChanged', minute: world.minute });
-      break;
     case 'DEBUG_SPAWN_CAT':
       if (world.cats.length >= MAX_CATS) throw new CommandError('CAT_LIMIT');
       if (!isWalkable(world, command.position))

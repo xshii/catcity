@@ -2,6 +2,7 @@ import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
 import {
   discoveredSpecies,
+  FISHING,
   BAITS,
   BAIT_IDS,
   fishById,
@@ -14,6 +15,8 @@ import {
   type SpotId,
 } from '../../content/fishing';
 import { greenZone } from '../../minigames/angling';
+import { CARE } from '../../content/care';
+import type { ErrorCode } from '../../core';
 import { mountFishingFeedback } from './feedback';
 import { mountFishingStage } from './stage';
 import { renderFishingCatalog } from './catalog';
@@ -21,6 +24,9 @@ import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
 import { mountFishingMotion } from './motion';
 import { onShore } from '../../core/city';
+
+const CAST_COST = FISHING.cast.staminaCost;
+const REST = CARE.rest;
 
 export function mountAngling(
   session: GameSession,
@@ -59,20 +65,20 @@ export function mountAngling(
     <div class="fishing-settings"><p id="fishing-resources"></p><button id="haptics-toggle" aria-pressed="false">震动</button></div>
     <div id="bait-tray" class="bait-tray"><button data-bait="BREAD">🍞<span>面包<small>常见鱼 · 无限</small></span></button><button data-bait="WORM">🪱<span>蚯蚓<small>鲈鱼 / 锦鲤</small></span></button><button data-bait="SHRIMP">🦐<span>虾饵<small>鲶鱼 / 月光鲤</small></span></button></div>
     <div class="fishing-prep"><label>钓点<select id="fish-location"></select></label><label>同行伙伴<select id="fish-companion"></select></label><label class="bait-select">鱼饵<select id="fish-bait"></select></label></div>
-    <label class="direction-label">抛投方向 <output id="direction-value"></output><input type="range" id="fish-direction" min="-45" max="45" step="5" value="-30" aria-label="抛投方向"></label>
+    <label class="direction-label">抛投方向 <output id="direction-value"></output><input type="range" id="fish-direction" min="-${FISHING.input.maxDirection}" max="${FISHING.input.maxDirection}" step="5" value="-30" aria-label="抛投方向"></label>
     <label class="direction-label depth-label">近远落点 <output id="depth-value"></output><input type="range" id="fish-depth" min="0" max="100" step="5" value="50" aria-label="近远落点"></label>
     <p id="companion-specialty" class="fishing-clue"></p><p id="spot-hint" class="fishing-clue"></p><div id="spot-unlocks" class="spot-unlocks"></div>
-    <div class="fishing-actions"><button id="cast-start" class="primary">准备抛竿 ↗ · 8 体力</button><button id="fish-rest">让这只猫休息</button><button id="invite-pepper">邀请 Pepper</button></div>
+    <div class="fishing-actions"><button id="cast-start" class="primary">准备抛竿 ↗ · ${CAST_COST} 体力</button><button id="fish-rest">让这只猫休息</button><button id="invite-pepper">邀请 Pepper</button></div>
     <div id="angling-live" class="scene-console" hidden><div class="bar-heading"><strong id="angling-phase"></strong><span id="angling-status"></span></div><p id="angling-instruction"></p>
       <div id="angling-bar" class="angling-bar" role="meter" aria-label="钓鱼操作条" aria-valuemin="0" aria-valuemax="100"><span id="angling-green" class="angling-green"></span><i id="angling-cursor" class="angling-cursor"></i></div>
       <div class="fight-meters"><label>收线 <progress id="fish-progress" max="100" value="0"></progress></label><label>鱼线 <progress id="line-health" max="100" value="100"></progress></label></div>
       <button id="fish-control" class="primary fish-control" aria-label="钓鱼操作"><span class="reel-icon" aria-hidden="true">◎</span><span id="control-label">按住蓄力，松开抛竿</span></button>
       <div class="fishing-actions"><button id="fish-pause">暂停</button><button id="fish-cancel">收竿离开</button></div>
     </div>
-    <details class="bait-shop"><summary>补充鱼饵</summary><div class="fishing-actions"><button data-buy-bait="WORM">买蚯蚓 · 6 金币</button><button data-buy-bait="SHRIMP">买虾饵 · 12 金币</button></div><p>面包无限供应。星级表示鱼种难度；售价按鱼种固定，重量记录个人最佳。</p></details></section>
+    <details class="bait-shop"><summary>补充鱼饵</summary><div class="fishing-actions"><button data-buy-bait="WORM">买蚯蚓 · ${BAITS.WORM.price} 金币</button><button data-buy-bait="SHRIMP">买虾饵 · ${BAITS.SHRIMP.price} 金币</button></div><p>面包无限供应。星级表示鱼种难度；售价按鱼种固定，重量记录个人最佳。</p></details></section>
     <section id="river-panel-bag" role="tabpanel" aria-labelledby="river-tab-bag" hidden>
     <details id="fish-bag" open><summary>鱼篓 <span id="bag-count"></span> · 卖鱼或送给伙伴</summary><p id="fish-tastes"></p><div id="fish-inventory"></div></details>
-    <details id="fish-supply-detail" open><summary>钓获补给与垃圾</summary><p id="fish-supplies"></p><div class="fishing-actions"><button id="use-can">吃罐头 · +20 体力</button><button id="recycle-trash">回收垃圾 · +3 金币</button></div><p class="fishing-clue">0–2 星鱼局失败时有概率钓到垃圾；主动收竿不会获得。面包饵轻抛可钓到罐头或金币袋。</p></details>
+    <details id="fish-supply-detail" open><summary>钓获补给与垃圾</summary><p id="fish-supplies"></p><div class="fishing-actions"><button id="use-can">吃罐头 · +${FISHING.supplies.canEnergy} 体力</button><button id="recycle-trash">回收垃圾 · +${FISHING.supplies.trashCoins} 金币</button></div><p class="fishing-clue">0–${FISHING.trash.maxStars} 星鱼局失败时有概率钓到垃圾；主动收竿不会获得。面包饵轻抛可钓到罐头或金币袋。</p></details>
     </section><section id="river-panel-atlas" role="tabpanel" aria-labelledby="river-tab-atlas" hidden><details id="fish-atlas"><summary>鱼类图鉴 <span id="atlas-count"></span> · 星级、习性与线索</summary><div id="atlas-list" class="atlas-list"></div></details></section><section id="river-panel-chat" role="tabpanel" aria-labelledby="river-tab-chat" hidden><p class="desktop-chat-hint">伙伴就在右侧，和它聊聊今天的收获吧。</p></section></div><p id="fish-result" class="fish-result river-live-result" role="status"></p>`;
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T;
@@ -101,7 +107,7 @@ export function mountAngling(
   let paused = true;
   let detailsKey = '';
   let previousRun: string | undefined;
-  const errors: Record<string, string> = {
+  const errors: Partial<Record<ErrorCode, string>> = {
     CAT_RESTING: '这只猫正在休息，换个伙伴或快进城市时间吧。',
     CAT_BUSY: '先收好这只猫的鱼竿再休息。',
     STAMINA_FULL: '这只猫现在体力充足。',
@@ -136,17 +142,17 @@ export function mountAngling(
     const energy = selectedCat.needs.energy;
     get('scene-ready').hidden = active;
     get<HTMLButtonElement>('cast-start').disabled =
-      active || !!selectedCat.rest || energy < 8;
+      active || !!selectedCat.rest || energy < CAST_COST;
     get<HTMLButtonElement>('fish-rest').disabled =
       !!selectedCat.rest || energy === 100 || run?.catId === selectedCat.id;
     get('fish-rest').textContent = selectedCat.rest
       ? `${selectedCat.name} 休息中 · 剩 ${selectedCat.rest.until - world.minute} 分钟`
-      : '休息 1 小时 · +30 体力';
+      : `休息 ${REST.minutes / 60} 小时 · +${(REST.minutes / REST.tickMinutes) * REST.recovery} 体力`;
     for (const field of [location, companion, bait, direction, depth])
       field.disabled = active;
 
     get<HTMLButtonElement>('fishing').disabled =
-      active || !!selectedCat.rest || energy < 8;
+      active || !!selectedCat.rest || energy < CAST_COST;
     get('fishing').textContent = active
       ? '正在一起钓鱼…'
       : `邀请 ${world.cats.find((cat) => cat.id === session.selectedEntity)?.name ?? 'Mochi'} 去钓鱼 ↗`;
@@ -286,8 +292,8 @@ export function mountAngling(
     get('travel-duration').textContent = atDestination
       ? `已在${SPOTS[destination].name}`
       : selectedCat.walk
-        ? `步行中 · 剩 ${selectedCat.walk.route.length} 格 · 每格消耗 1 体力`
-        : '需要先走到岸边 · 耗时取决于道路 · 每格消耗 1 体力';
+        ? `步行中 · 剩 ${selectedCat.walk.route.length} 格 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`
+        : `需要先走到岸边 · 耗时取决于道路 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`;
     get<HTMLButtonElement>('travel-to-spot').disabled =
       active || !!selectedCat.rest || atDestination;
     get('travel-to-spot').textContent = atDestination
@@ -295,7 +301,7 @@ export function mountAngling(
       : '出发去钓点 →';
     get<HTMLButtonElement>('cast-start').disabled ||= !atDestination;
     get('cast-start').textContent = atDestination
-      ? '准备抛竿 ↗ · 8 体力'
+      ? `准备抛竿 ↗ · ${CAST_COST} 体力`
       : '先在地图走到岸边';
     root
       .querySelectorAll<HTMLButtonElement>('[data-bait]')
@@ -434,13 +440,13 @@ export function mountAngling(
   get('use-can').addEventListener('click', () =>
     report(
       session.execute({ type: 'USE_CAN', catId: companion.value }),
-      '吃了罐头，恢复最多 20 体力。',
+      `吃了罐头，恢复最多 ${FISHING.supplies.canEnergy} 体力。`,
     ),
   );
   get('recycle-trash').addEventListener('click', () =>
     report(
       session.execute({ type: 'RECYCLE_TRASH' }),
-      '回收了一件垃圾，获得 3 金币。',
+      `回收了一件垃圾，获得 ${FISHING.supplies.trashCoins} 金币。`,
     ),
   );
   get('invite-pepper').addEventListener('click', () =>
@@ -452,7 +458,7 @@ export function mountAngling(
   get('fish-rest').addEventListener('click', () =>
     report(
       session.execute({ type: 'REST_CAT', catId: companion.value }),
-      '伙伴开始休息。城市每过去 10 分钟恢复 5 体力，可以换只猫继续钓鱼。',
+      `伙伴开始休息。城市每过去 ${REST.tickMinutes} 分钟恢复 ${REST.recovery} 体力，可以换只猫继续钓鱼。`,
     ),
   );
   root

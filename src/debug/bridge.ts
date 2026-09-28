@@ -31,8 +31,6 @@ function createBridge(session: GameSession, view?: ViewObserver) {
       ),
     spawnCat: (position: Position) =>
       session.execute({ type: 'DEBUG_SPAWN_CAT', position }),
-    addCoins: (amount: number) =>
-      session.execute({ type: 'DEBUG_ADD_COINS', amount }),
     getSelectedEntity: () => session.selectedEntity,
     getDiagnostics: () => session.getDiagnostics(),
     getReplay: () => session.getReplay(),

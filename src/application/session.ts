@@ -2,12 +2,20 @@ import {
   commandSchema,
   createWorld,
   loadWorld,
+  MAX_TEXT,
   type World,
   type CommandResult,
   type GameCommand,
 } from '../core';
 import { resolveDialogue } from './dialogue';
 import type { DialogueProvider, SaveRepository } from './ports';
+
+/** Commands kept per replay window before rolling to a fresh checkpoint. */
+const REPLAY_WINDOW = 1000;
+/** Chat outcomes that fail before a command reaches Core. */
+export type TalkResult =
+  | CommandResult
+  | { ok: false; error: 'INVALID_INTERACTION' | 'STALE_DIALOGUE' };
 
 export interface GameSessionOptions {
   repository: SaveRepository;
@@ -82,7 +90,7 @@ export class GameSession {
     const parsed = commandSchema.safeParse(command);
     if (!parsed.success) return { ok: false, error: 'INVALID_COMMAND' };
     // Keep a bounded replay window, with an exact checkpoint rather than a truncated trace.
-    if (this.entries.length >= 1000) {
+    if (this.entries.length >= REPLAY_WINDOW) {
       this.initialSave = this.world.save();
       this.entries = [];
     }
@@ -125,9 +133,9 @@ export class GameSession {
     this.notify();
   }
 
-  async talk(catId: string, message: string): Promise<CommandResult> {
+  async talk(catId: string, message: string): Promise<TalkResult> {
     const cat = this.world.getSnapshot().cats.find((item) => item.id === catId);
-    if (!cat || !message.trim() || message.length > 500)
+    if (!cat || !message.trim() || message.length > MAX_TEXT)
       return { ok: false, error: 'INVALID_INTERACTION' };
     const epoch = this.epoch;
     const { proposal, usedFallback } = await resolveDialogue(

@@ -1,3 +1,4 @@
+import { BUILDINGS, CITY_TIME } from '../../content/city';
 import type { GameSession } from '../../application';
 import { mountAngling } from '../fishing/panel';
 import { mountCityGuide } from '../city/guide';
@@ -24,7 +25,7 @@ export function mountPanel(session: GameSession) {
         <button id="fishing" class="primary"></button><p class="activity-note">按住蓄力，绿色区提竿，再慢慢收线。一起发现新钓点。</p></section>
         <section class="card journal"><div class="journal-heading"><p class="eyebrow">OUR LITTLE MEMORIES</p><span>✧</span></div><h2>一起经历的事</h2><p id="journal-count" class="journal-count"></p><p id="memory-empty">第一次一起去的地方，<br>会成为故事的第一页。</p><article id="memory-card" hidden><div class="memory-art" aria-hidden="true">☀<span>≈ 𓆝 ≈</span></div><small id="memory-date"></small><strong id="memory-fact"></strong><p id="memory-caption"></p></article></section>
         </aside></div>
-      <div class="city-tools"><section class="card build-card"><div><p class="eyebrow">A PLACE TO MEET AGAIN</p><h2>给小城一扇亮着灯的窗</h2><p>猫咖 · 建造 300 金币 · 每游戏小时收入 10 金币</p></div><div id="build-status" class="build-status"></div></section><button id="rest" class="rest">全城快进一小时 <span>营业与猫咪休息同时推进 →</span></button></div>
+      <div class="city-tools"><section class="card build-card"><div><p class="eyebrow">A PLACE TO MEET AGAIN</p><h2>给小城一扇亮着灯的窗</h2><p>猫咖 · 建造 ${BUILDINGS.CAT_CAFE.cost} 金币 · 每游戏小时收入 ${BUILDINGS.CAT_CAFE.income} 金币</p></div><div id="build-status" class="build-status"></div></section><button id="rest" class="rest">全城快进一小时 <span>营业与猫咪休息同时推进 →</span></button></div>
       <div id="notice" role="status">欢迎回来。这里有一只猫，正在慢慢认识你。</div>
       <footer><span>BUILD A CITY. MAKE A FRIEND.</span><details><summary>关于这次体验</summary><p>这是情感玩法的离线 Demo，使用规则对话，尚未接入生成式 AI。重要共同回忆与进度保存在当前浏览器，暂无跨设备同步。</p></details></footer>
     </main>`;
@@ -74,7 +75,10 @@ export function mountPanel(session: GameSession) {
     render();
   });
   get('rest').addEventListener('click', () => {
-    const result = session.execute({ type: 'ADVANCE_TIME', minutes: 60 });
+    const result = session.execute({
+      type: 'ADVANCE_TIME',
+      minutes: CITY_TIME.fastForwardMinutes,
+    });
     notify(result.ok ? '一小时过去了，阳光落在小城的另一边。' : result.error);
   });
   const talk = async (message: string) => {

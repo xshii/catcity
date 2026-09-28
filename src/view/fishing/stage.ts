@@ -1,6 +1,13 @@
+import { CITY_TIME } from '../../content/city';
 import type { GameSession } from '../../application';
 import { CAT_BREEDS } from '../../content/breeds';
-import { fishById, fishStars, SPOTS, type SpotId } from '../../content/fishing';
+import {
+  FISHING,
+  fishById,
+  fishStars,
+  SPOTS,
+  type SpotId,
+} from '../../content/fishing';
 import type { CatEntity, WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
 
@@ -76,11 +83,12 @@ export function mountFishingStage(
   roster.innerHTML =
     '<div id="cat-energy-cards" class="cat-energy-cards"></div><div class="clock-actions"><span>所有猫共享城市时间</span><button id="time-forward">全城快进 1 小时 ⏱</button></div>';
   stage.before(roster);
-  document
-    .getElementById('time-forward')!
-    .addEventListener('click', () =>
-      session.execute({ type: 'ADVANCE_TIME', minutes: 60 }),
-    );
+  document.getElementById('time-forward')!.addEventListener('click', () =>
+    session.execute({
+      type: 'ADVANCE_TIME',
+      minutes: CITY_TIME.fastForwardMinutes,
+    }),
+  );
   const cards = new Map<string, ReturnType<typeof createEnergyCard>>();
   const cardContainer = document.getElementById('cat-energy-cards')!;
   let resultKey = '';
@@ -164,7 +172,7 @@ export function mountFishingStage(
               : result.catchKind === 'can'
                 ? '钓到密封猫罐头'
                 : `钓到金币袋 · +${result.lootAmount}`;
-          reveal.innerHTML = `<span class="loot-art" aria-hidden="true">${result.trashAmount ? '🥾' : !result.caught ? '≈' : result.catchKind === 'can' ? '🥫' : '💰'}</span><strong>${title}</strong><small>${result.trashAmount ? '已收进鱼篓补给 · 可回收 +3 金币' : '调整落点，再试一竿吧'}</small>`;
+          reveal.innerHTML = `<span class="loot-art" aria-hidden="true">${result.trashAmount ? '🥾' : !result.caught ? '≈' : result.catchKind === 'can' ? '🥫' : '💰'}</span><strong>${title}</strong><small>${result.trashAmount ? `已收进鱼篓补给 · 可回收 +${FISHING.supplies.trashCoins} 金币` : '调整落点，再试一竿吧'}</small>`;
         }
       }
     },

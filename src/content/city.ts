@@ -23,3 +23,5 @@ export const CITY_COSTS = {
   upgradeRoad: 20,
 } as const;
 export const WALK_MINUTES = { GRASS: 10, DIRT: 5, STONE: 3 } as const;
+/** Player time shortcuts: wait on the action card, fast-forward the whole city. */
+export const CITY_TIME = { waitMinutes: 10, fastForwardMinutes: 60 } as const;

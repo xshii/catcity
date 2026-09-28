@@ -38,7 +38,7 @@ export class World {
       return { ok: true, events };
     } catch (error) {
       if (error instanceof CommandError)
-        return { ok: false, error: error.message };
+        return { ok: false, error: error.code };
       // Overflow is a rejected command; unexpected implementation errors remain visible.
       if (next.coins > WORLD_LIMIT || next.nextId > WORLD_LIMIT)
         return { ok: false, error: 'WORLD_LIMIT' };
