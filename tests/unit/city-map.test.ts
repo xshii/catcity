@@ -1,3 +1,5 @@
+import { CITY_START } from '../../src/content/city';
+import { isWalkable } from '../../src/core/city/path';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 import {
@@ -98,5 +100,23 @@ it('starts Mochi on an unowned pond shore with immediate fishing access for ever
         aimDepth: 50,
       }).ok,
     ).toBe(true);
+  }
+});
+
+it('invites Pepper on the free walkable tile nearest the starter crossroads', () => {
+  const { crossroads } = CITY_START;
+  const distance = (position: { x: number; y: number }) =>
+    Math.abs(position.x - crossroads.x) + Math.abs(position.y - crossroads.y);
+  for (const seed of [0, 1, 42, 99]) {
+    const world = createWorld(seed);
+    expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+    const state = world.getSnapshot();
+    const pepper = state.cats.find((cat) => cat.definitionId === 'PEPPER')!;
+    const closer = state.map.tiles.filter(
+      (tile) =>
+        isWalkable(state, tile.position) &&
+        distance(tile.position) < distance(pepper.position),
+    );
+    expect(closer).toEqual([]);
   }
 });

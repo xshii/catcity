@@ -506,6 +506,8 @@ export function mountAngling(
     pressed = false;
     render();
   };
+  // Holding the rod button must not open the long-press context menu.
+  control.addEventListener('contextmenu', (event) => event.preventDefault());
   control.addEventListener('pointerdown', (event) => {
     event.preventDefault();
     control.focus({ preventScroll: true });

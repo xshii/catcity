@@ -10,9 +10,10 @@ export function travelToFishingSpot(
   world: WorldState,
   command: Extract<GameCommand, { type: 'TRAVEL_TO_FISHING_SPOT' }>,
 ): GameEvent[] {
-  if (world.fishing.active) throw new CommandError('ALREADY_FISHING');
   const cat = world.cats.find((cat) => cat.id === command.catId);
   if (!cat) throw new CommandError('CAT_NOT_FOUND');
+  if (world.fishing.active?.catId === cat.id)
+    throw new CommandError('ALREADY_FISHING');
   if (cat.rest) throw new CommandError('CAT_RESTING');
   if (!spotOpen(command.spotId, world.fishing))
     throw new CommandError('SPOT_LOCKED');

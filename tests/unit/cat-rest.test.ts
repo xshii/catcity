@@ -177,3 +177,26 @@ it('rejects an unfinishable rest at the clock limit without changing cat energy 
   expect(boundary.getSnapshot().cats[0]!.needs.energy).toBe(80);
   expect(boundary.getSnapshot().cats[0]!.rest).toBeNull();
 });
+
+it('reports energy recovery only when energy actually rises', () => {
+  const world = createWorld(42);
+  world.dispatch({
+    type: 'FISH_BEGIN',
+    catId: 'mochi',
+    spotId: 'POND',
+    baitId: 'BREAD',
+    direction: 0,
+    aimDepth: 50,
+  });
+  const runId = world.getSnapshot().fishing.active!.id;
+  world.dispatch({ type: 'FISH_CANCEL', runId });
+  expect(world.getSnapshot().cats[0]!.needs.energy).toBe(92);
+  expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
+  const result = world.dispatch({ type: 'ADVANCE_TIME', minutes: 60 });
+  if (!result.ok) throw new Error(result.error);
+  // 92 → 97 → 100; the remaining rest ticks change nothing and stay silent.
+  expect(
+    result.events.filter((event) => event.type === 'EnergyRecovered'),
+  ).toHaveLength(2);
+  expect(world.getSnapshot().cats[0]!.needs.energy).toBe(100);
+});
