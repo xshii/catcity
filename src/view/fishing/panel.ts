@@ -40,6 +40,8 @@ import {
 import { ERROR_MESSAGES } from '../shell/errors';
 
 const CAST_COST = FISHING.cast.staminaCost;
+/** A render that triggers more than this many re-renders is a state loop, not UI. */
+const MAX_RENDER_PASSES = 5;
 const REST = CARE.rest;
 
 export function mountAngling(
@@ -108,7 +110,28 @@ export function mountAngling(
     result: ReturnType<GameSession['execute']>,
     success: string,
   ) => notify(result.ok ? success : ERROR_MESSAGES[result.error]);
+  // Rendering applies state and never changes it; a change during a render (a listener
+  // reacting to it) queues another pass, so the last pass always shows the latest state.
+  let rendering = false;
+  let again = false;
   const render = () => {
+    if (rendering) {
+      again = true;
+      return;
+    }
+    rendering = true;
+    try {
+      for (let pass = 0; pass === 0 || again; pass++) {
+        if (pass === MAX_RENDER_PASSES)
+          throw new Error('Fishing render keeps changing its own state');
+        again = false;
+        renderOnce();
+      }
+    } finally {
+      rendering = false;
+    }
+  };
+  const renderOnce = () => {
     const world = session.getSnapshot();
     const f = world.fishing;
     const run = f.active;
@@ -493,6 +516,7 @@ export function mountAngling(
   });
   // A world change or a view change: either way, one render applies the screen.
   session.subscribe(() => {
+    stage.follow(session.getSnapshot());
     const runId = session.getSnapshot().fishing.active?.id ?? null;
     if (runId && runId !== view.get().runId) root.hidden = false;
     const before = view.get();
@@ -501,6 +525,8 @@ export function mountAngling(
   });
   view.subscribe(() => render());
   root.hidden = !session.getSnapshot().fishing.active;
+  // A run restored from the save takes the scene to the river before the first render.
+  stage.follow(session.getSnapshot());
   render();
   return {
     enterAtSpot,
