@@ -21,12 +21,22 @@ session.select(STARTER_CAT_ID);
 window.addEventListener('storage', (event) => {
   if (event.key === SAVE_KEY) session.externalSaveChanged();
 });
-const trace = startDeviceLog(__BUILD_VERSION__);
+/** Debugging must never stop the game: a log that fails to start stays off. */
+function deviceLog() {
+  try {
+    return startDeviceLog(__BUILD_VERSION__);
+  } catch {
+    return null;
+  }
+}
+const trace = deviceLog();
 if (trace) {
   // Each command notifies once; the per-tick fishing controls only when they change play.
   let logged = -1;
   session.subscribe(() => {
     const entry = session.lastCommand();
+    // A reset or checkpoint empties the record; its next command is sequence 0 again.
+    if (!entry) logged = -1;
     if (!entry || entry.sequence === logged) return;
     logged = entry.sequence;
     const { command, result } = entry;
@@ -41,7 +51,12 @@ if (trace) {
       : true;
     if (tick && !phaseChange) return;
     trace('command', {
-      command: tick ? command.type : command,
+      // Chat text stays on the device; the log keeps only who was talked to.
+      command: tick
+        ? command.type
+        : command.type === 'INTERACT'
+          ? { type: command.type, catId: command.catId }
+          : command,
       ...(result.ok
         ? { ok: true, events: result.events }
         : { ok: false, error: result.error }),

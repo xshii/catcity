@@ -12,7 +12,7 @@ if (
   !Number.isFinite(Number(to))
 )
   throw new Error(
-    'Usage: npm run device-trace -- artifacts/device-logs/<date>/<session>.jsonl <fixture-name> <cast|lift|calibrate> <from-ms> <to-ms>',
+    'Usage: npm run device-trace -- artifacts/device-logs/<session>.jsonl <fixture-name> <cast|lift|calibrate> <from-ms> <to-ms>',
   );
 const trace = extractDeviceTrace(await readFile(path, 'utf8'), {
   session: basename(path, '.jsonl'),
