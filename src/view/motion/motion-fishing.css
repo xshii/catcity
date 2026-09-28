@@ -1,11 +1,8 @@
-/* Motion fishing overlay: a square water plane over the river canvas. */
+/* Motion fishing overlay: the 100×100 plane covers the river art's open water, so the
+   fish ring never swims onto the bank. */
 #motion-fishing {
   position: absolute;
-  inset: 0;
-  margin: auto;
-  aspect-ratio: 1;
-  max-width: 100%;
-  max-height: 100%;
+  inset: 20% 3% 10% 33%;
   pointer-events: none;
   touch-action: none;
 }
@@ -41,6 +38,7 @@
 }
 .motion-ring {
   position: absolute;
+  aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   border: 6px solid #d9644c;
@@ -69,7 +67,9 @@
 }
 .motion-onboarding {
   position: absolute;
-  inset: auto 12px 12px;
+  /* Top of the river, clear of the prepare button and the float. */
+  inset: 48px 12px auto;
+  z-index: 5;
   padding: 12px;
   border-radius: 14px;
   background: #fffdf4;
@@ -97,9 +97,15 @@
 .game-screen.motion-play #fishing-stage.is-river #game {
   bottom: 64px;
 }
+.scene-console[data-mode='motion'] .bar-heading,
 .scene-console[data-mode='motion'] #angling-bar,
 .scene-console[data-mode='motion'] .fight-meters,
 .scene-console[data-mode='motion'] #fish-control,
 .scene-console[data-mode='motion'] #angling-instruction {
   display: none;
+}
+.game-screen #angling-live.scene-console[data-mode='motion'] {
+  height: auto;
+  padding: 6px 12px;
+  background: #fffcf0cc;
 }

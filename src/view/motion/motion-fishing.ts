@@ -123,7 +123,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     deps.onChange();
   });
   toggle.addEventListener('click', () => {
-    if (preference === 'motion') {
+    if (active()) {
       preference = 'buttons';
       savePreference(preference);
       deps.onChange();
@@ -194,15 +194,20 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   function refresh() {
     const run = deps.getRun();
     const motionRun = run?.mode === 'motion' ? run : null;
+    // Only phones get the one-tap prompt; desktops default to the button flow.
     card.hidden =
       preference === 'buttons' ||
       capability !== 'unknown' ||
       !needsPermission() ||
+      !window.matchMedia('(pointer: coarse)').matches ||
       !deps.canPlay() ||
       !!run;
-    toggle.textContent =
-      preference === 'motion' ? '钓鱼操作：体感 ✓' : '钓鱼操作：按钮';
-    toggle.setAttribute('aria-pressed', String(preference === 'motion'));
+    toggle.textContent = active()
+      ? '钓鱼操作：体感 ✓（点此改用按钮）'
+      : preference === 'motion'
+        ? '开启体感钓鱼'
+        : '钓鱼操作：按钮（点此开启体感）';
+    toggle.setAttribute('aria-pressed', String(active()));
     toggle.disabled = capability === 'unsupported';
     overlay.hidden = !(active() || motionRun) || !deps.canPlay();
     if (overlay.hidden) return;
@@ -250,7 +255,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     // The overlay is the square 100×100 water plane; sizes are percentages of it.
     ring.style.left = `${fish.x}%`;
     ring.style.top = `${fish.y}%`;
-    ring.style.width = ring.style.height = `${radius * 2}%`;
+    ring.style.width = `${radius * 2}%`;
     ring.classList.toggle('inside', inside);
     const tipDot = $('motion-tip');
     tipDot.style.left = `${rod.x}%`;
