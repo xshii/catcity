@@ -7,6 +7,7 @@ import {
   fishById,
   skillLevel,
   spotOpen,
+  type BaitId,
 } from '../../content/fishing';
 import { instantiateCat } from '../cats';
 import {
@@ -14,10 +15,12 @@ import {
   initialAngling,
   stepAngling,
   stepMotionAngling,
+  type AnglingRun,
 } from '../../minigames/angling';
+import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
 import { rewardBond } from '../bond';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
-import type { Position, WorldState } from '../schema';
+import type { CatEntity, Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
 import { failureTrash } from './rewards';
 import { runSeed } from '../random';
@@ -38,6 +41,11 @@ export function applyAngling(
       action,
       entityId,
     });
+  // Checked by the caller first; spends stamina and one bait (bread is free).
+  const payForCast = (cat: CatEntity, baitId: BaitId) => {
+    cat.needs.energy -= CAST.staminaCost;
+    if (baitId !== 'BREAD') fishing.baits[baitId]--;
+  };
   if (command.type === 'USE_CAN' || command.type === 'RECYCLE_TRASH') {
     const key = command.type === 'USE_CAN' ? 'cans' : 'trash';
     if (!fishing.supplies[key]) throw new CommandError('NO_SUPPLIES');
@@ -90,11 +98,11 @@ export function applyAngling(
       throw new CommandError('LOW_STAMINA');
     if (fishing.inventory.length >= FISHING.bag.capacity)
       throw new CommandError('BAG_FULL');
-    if (command.baitId !== 'BREAD') {
-      if (fishing.baits[command.baitId] === 0)
-        throw new CommandError('NO_BAIT');
-      fishing.baits[command.baitId]--;
-    }
+    if (command.baitId !== 'BREAD' && fishing.baits[command.baitId] === 0)
+      throw new CommandError('NO_BAIT');
+    const mode = command.mode ?? 'buttons';
+    // Buttons pay when preparing; motion pays at the swing (FISH_CAST).
+    if (mode === 'buttons') payForCast(cat, command.baitId);
     cat.fishingSpotId = command.spotId;
     const serial = world.nextId++;
     fishing.active = initialAngling({
@@ -107,13 +115,14 @@ export function applyAngling(
       id: `angling-${serial}`,
       seed: runSeed(world.seed, serial),
       skillLevel: skillLevel(fishing.xp),
+      mode,
     });
-    cat.needs.energy -= CAST.staminaCost;
     emit('started', fishing.active.id);
   } else if (
     command.type === 'FISH_CAST' ||
     command.type === 'FISH_CONTROL' ||
     command.type === 'FISH_MOTION_CONTROL' ||
+    command.type === 'FISH_STRIKE' ||
     command.type === 'FISH_CANCEL'
   ) {
     const run = fishing.active;
@@ -126,16 +135,19 @@ export function applyAngling(
     }
     if (command.type === 'FISH_CAST') {
       if (run.phase !== 'charge') throw new CommandError('CAST_NOT_READY');
+      if (run.mode === 'motion') {
+        const cat = world.cats.find((cat) => cat.id === run.catId)!;
+        if (cat.needs.energy < CAST.staminaCost)
+          throw new CommandError('LOW_STAMINA');
+        if (run.baitId !== 'BREAD' && fishing.baits[run.baitId] === 0)
+          throw new CommandError('NO_BAIT');
+        payForCast(cat, run.baitId);
+      }
       fishing.active = castAngling(run, command.power);
       emit('waiting', run.id);
       return events;
     }
-    if (command.type === 'FISH_MOTION_CONTROL' && run.phase !== 'hook')
-      throw new CommandError('MOTION_NOT_READY');
-    const next =
-      command.type === 'FISH_MOTION_CONTROL'
-        ? stepMotionAngling(run, command.x, command.y, command.ticks)
-        : stepAngling(run, command.pressed, command.ticks);
+    const next = advanceRun(run, command);
     fishing.active = next;
     emit(next.phase === run.phase ? 'control' : next.phase, run.id);
     if (next.phase === 'caught' || next.phase === 'escaped') {
@@ -223,4 +235,32 @@ export function applyAngling(
     fishing.inventory.splice(index, 1);
   }
   return events;
+}
+
+/** Routes rod input to the frozen button model or the motion model of spec 030. */
+function advanceRun(
+  run: AnglingRun,
+  command: Extract<
+    GameCommand,
+    { type: 'FISH_CONTROL' | 'FISH_MOTION_CONTROL' | 'FISH_STRIKE' }
+  >,
+): AnglingRun {
+  if (run.mode === 'motion') {
+    if (command.type === 'FISH_STRIKE') {
+      if (run.phase !== 'waiting' && run.phase !== 'hook')
+        throw new CommandError('STRIKE_NOT_READY');
+      return strikeMotionRun(run);
+    }
+    if (command.type !== 'FISH_MOTION_CONTROL')
+      throw new CommandError('WRONG_INPUT_MODE');
+    if (run.phase === 'charge') throw new CommandError('CAST_NOT_READY');
+    return stepMotionRun(run, { x: command.x, y: command.y }, command.ticks);
+  }
+  if (command.type === 'FISH_STRIKE')
+    throw new CommandError('WRONG_INPUT_MODE');
+  if (command.type === 'FISH_MOTION_CONTROL') {
+    if (run.phase !== 'hook') throw new CommandError('MOTION_NOT_READY');
+    return stepMotionAngling(run, command.x, command.y, command.ticks);
+  }
+  return stepAngling(run, command.pressed, command.ticks);
 }

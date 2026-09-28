@@ -47,6 +47,12 @@ export interface AnglingRun {
   progress: number;
   lineHealth: number;
   reason: 'none' | 'missed-hook' | 'line-break' | 'escaped';
+  /** Buttons keep the frozen tension fight; motion runs use angling-motion.ts. */
+  mode: 'buttons' | 'motion';
+  /** Motion runs: lift quality, a spooked nibble, and hold earned inside the ring. */
+  strike: 'none' | 'perfect' | 'good';
+  spooked: boolean;
+  hold: number;
 }
 export function initialAngling(
   input: Pick<
@@ -60,6 +66,7 @@ export function initialAngling(
     | 'spotId'
     | 'catBreed'
     | 'aimDepth'
+    | 'mode'
   >,
 ): AnglingRun {
   return {
@@ -82,6 +89,9 @@ export function initialAngling(
     progress: 0,
     lineHealth: 100,
     reason: 'none',
+    strike: 'none',
+    spooked: false,
+    hold: 0,
   };
 }
 const triangle = (tick: number, period: number) =>

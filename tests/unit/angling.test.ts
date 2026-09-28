@@ -199,6 +199,7 @@ describe('skill-based angling', () => {
 
   it('makes rare fish harder and records failed hooks without giving a fish', () => {
     const basic = initialAngling({
+      mode: 'buttons',
       catBreed: 'RAGDOLL',
       spotId: 'POND',
       aimDepth: 50,
@@ -316,6 +317,7 @@ it('does not award fish for timeout, extreme tension, cancellation or replayed f
   ).toBe(false);
   expect(world.save()).toBe(before);
   let run = initialAngling({
+    mode: 'buttons',
     catBreed: 'RAGDOLL',
     spotId: 'POND',
     aimDepth: 50,

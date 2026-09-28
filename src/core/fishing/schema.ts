@@ -51,6 +51,10 @@ const anglingSchema = z.strictObject({
   progress: pct,
   lineHealth: pct,
   reason: z.enum(['none', 'missed-hook', 'line-break', 'escaped']),
+  mode: z.enum(['buttons', 'motion']),
+  strike: z.enum(['none', 'perfect', 'good']),
+  spooked: z.boolean(),
+  hold: count,
 });
 export const fishingSchema = z.strictObject({
   supplies: z.strictObject({ trash: count, cans: count, coinBags: count }),

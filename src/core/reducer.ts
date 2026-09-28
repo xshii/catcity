@@ -52,6 +52,7 @@ export function applyCommand(
     case 'FISH_CAST':
     case 'FISH_CONTROL':
     case 'FISH_MOTION_CONTROL':
+    case 'FISH_STRIKE':
     case 'FISH_CANCEL':
     case 'SELL_FISH':
     case 'GIFT_FISH':

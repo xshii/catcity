@@ -63,4 +63,49 @@ export const FISHING = {
   bait: { max: 999, initial: { WORM: 6, SHRIMP: 3 } },
   skill: { baseXp: 10, xpPerStar: 5, xpPerLevel: 40, maxLevel: 10 },
   companion: { catchMood: 3, giftMood: 3, favoriteGiftMood: 8, giftHunger: 10 },
+  /**
+   * Motion fishing (spec 030): the phone is the rod. Per-star tables are indexed by the
+   * fish's stars (0–5); times are ticks at `ticksPerSecond`, positions use a 100×100
+   * water plane. The button mode above stays unchanged.
+   */
+  motion: {
+    /** Fake nibbles before the real bite: [min, max] per star. */
+    nibbles: [
+      [0, 1],
+      [1, 1],
+      [1, 2],
+      [2, 2],
+      [2, 3],
+      [3, 3],
+    ],
+    nibbleTicks: 6,
+    firstNibble: { baseTicks: 20, jitterTicks: 20 },
+    betweenNibbles: { baseTicks: 15, jitterTicks: 15 },
+    biteAfterNibbles: { baseTicks: 15, jitterTicks: 20 },
+    /** Lifting during a nibble spooks the fish: the bite comes later, the window shrinks. */
+    spook: { delayTicks: 20, windowPenaltyTicks: 3 },
+    strikeWindowTicks: [18, 16, 14, 12, 10, 9],
+    /** A lift within this share of the window is perfect and pre-fills the hold. */
+    perfect: { windowPercent: 33, holdBonusPercent: 15 },
+    fishSpeed: [12, 16, 20, 26, 32, 40],
+    turnTicks: [40, 32, 26, 20, 16, 12],
+    burstPercent: [0, 5, 10, 15, 20, 25],
+    radius: [
+      { start: 22, min: 14 },
+      { start: 20, min: 12 },
+      { start: 18, min: 11 },
+      { start: 16, min: 10 },
+      { start: 15, min: 9 },
+      { start: 14, min: 8 },
+    ],
+    /** The ring breathes by ±`amplitude` over `periodTicks` while shrinking overall. */
+    breathe: { amplitude: 2, periodTicks: 40 },
+    /** The hit test is this much wider than the drawn ring to absorb tilt noise. */
+    toleranceUnits: 1,
+    precisionRadiusBonus: 1,
+    holdTicks: [60, 80, 100, 120, 140, 160],
+    /** Inside earns `insideGain`, outside loses `outsideLoss` (half-ticks, so 0.5×). */
+    hold: { insideGain: 2, outsideLoss: 1 },
+    fightLimitTicks: [400, 440, 480, 520, 560, 600],
+  },
 } as const;

@@ -301,6 +301,7 @@ it('uses distinct freshwater and sea pools with seeded lengths and earns sea cat
       for (const direction of [-30, 30]) {
         const encounter = () => {
           let run = initialAngling({
+            mode: 'buttons',
             aimDepth: 50,
 
             id: 'angling-1',

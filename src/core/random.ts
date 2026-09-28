@@ -1,5 +1,10 @@
 /** Salts that split one world seed into independent deterministic streams. */
-const STREAM_SALT = { map: 0xa17c9e33, trash: 0x85ebca6b } as const;
+const STREAM_SALT = {
+  map: 0xa17c9e33,
+  trash: 0x85ebca6b,
+  bite: 0x27d4eb2f,
+  fish: 0x165667b1,
+} as const;
 const RUN_SEED_MULTIPLIER = 2246822519;
 export const streamSeed = (seed: number, stream: keyof typeof STREAM_SALT) =>
   (seed ^ STREAM_SALT[stream]) >>> 0;

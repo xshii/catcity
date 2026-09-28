@@ -12,6 +12,7 @@ import {
 function hook(): AnglingRun {
   return {
     ...initialAngling({
+      mode: 'buttons',
       id: 'angling-1',
       catId: 'mochi',
       catBreed: 'RAGDOLL',

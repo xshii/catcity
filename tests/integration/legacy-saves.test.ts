@@ -13,12 +13,27 @@ import v8 from '../fixtures/save-v8.json';
 import v9 from '../fixtures/save-v9.json';
 import v10 from '../fixtures/save-v10.json';
 import v11 from '../fixtures/save-v11.json';
+import v12 from '../fixtures/save-v12.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
   saveVersion: SAVE_VERSION + 1,
 };
-const incompatible = { v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, future };
+const incompatible = {
+  v1,
+  v2,
+  v3,
+  v4,
+  v5,
+  v6,
+  v7,
+  v8,
+  v9,
+  v10,
+  v11,
+  v12,
+  future,
+};
 
 it.each(Object.entries(incompatible))(
   '%s is rejected without migration and kept until an explicit reset',

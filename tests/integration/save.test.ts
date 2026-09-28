@@ -1,3 +1,4 @@
+import { SAVE_VERSION } from '../../src/core/schema';
 import { advance, buildCafe, interact } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core';
@@ -18,7 +19,7 @@ it('saves only facts: no RNG state, income remainder or rest end minute', () => 
   world.dispatch({ type: 'FISH_CANCEL', runId });
   expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
   const save = JSON.parse(world.save());
-  expect(save.saveVersion).toBe(12);
+  expect(save.saveVersion).toBe(SAVE_VERSION);
   expect(save.world).not.toHaveProperty('rngState');
   expect(save.world.buildings[0]).not.toHaveProperty('incomeProgress');
   expect(save.world.cats[0].rest).toEqual({ startedAt: 25 });

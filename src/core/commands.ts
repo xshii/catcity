@@ -56,6 +56,8 @@ export const commandSchema = z.discriminatedUnion('type', [
     direction: z.number().int().min(-maxDirection).max(maxDirection),
     aimDepth: z.number().int().min(0).max(maxDepth),
     spotId: spotIdSchema,
+    /** Buttons (frozen) or motion (spec 030); omitted means buttons. */
+    mode: z.enum(['buttons', 'motion']).optional(),
   }),
   z.strictObject({
     type: z.literal('FISH_CAST'),
@@ -75,6 +77,7 @@ export const commandSchema = z.discriminatedUnion('type', [
     y: z.number().int().min(0).max(100),
     ticks,
   }),
+  z.strictObject({ type: z.literal('FISH_STRIKE'), runId: id }),
   z.strictObject({
     type: z.literal('FISH_CANCEL'),
     runId: id,
@@ -177,6 +180,8 @@ export type ErrorCode =
   | 'RUN_NOT_FOUND'
   | 'CAST_NOT_READY'
   | 'MOTION_NOT_READY'
+  | 'STRIKE_NOT_READY'
+  | 'WRONG_INPUT_MODE'
   | 'NO_BAIT'
   | 'BAIT_LIMIT'
   | 'BAG_FULL'
