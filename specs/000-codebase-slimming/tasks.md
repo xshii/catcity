@@ -37,7 +37,7 @@
 - [x] 旧存档拒绝用例合并为 `tests/integration/legacy-saves.test.ts`（v1–v10 + 未来版本，11 例），删除 6 个分散用例
 - [ ] 体感模式映射下沉到单元测试，E2E 每条路径保留一例
 - [ ] `game.spec.ts` 解锁用例从预制存档起步
-- [ ] Playwright 并行；去掉重复构建
+- [ ] Playwright 并行：试过 4 workers（5.3 分钟），但两个依赖真实时间的用例（`fishing-hook-motion.spec.ts:222` 暂停竞态、`game.spec.ts:21` 遛鱼循环）在负载下失败，串行重跑通过 → 已撤回。前置条件：把这些用例改为确定性推进后再并行。重复构建仅 2.3 秒，不改
 
 ## 6 收尾
 
