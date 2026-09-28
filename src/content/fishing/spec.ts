@@ -5,6 +5,8 @@
 export const FISHING = {
   /** Player aim and cast input ranges (integers). */
   input: { maxDirection: 45, maxDepth: 100, maxPower: 100, maxTicks: 4 },
+  /** The View submits one fishing tick per interval while a run is live. */
+  ticksPerSecond: 20,
   cast: { staminaCost: 8, precisionPower: { min: 55, max: 80 } },
   /** Power bar and hook cursor sweep 0→100→0 over this many ticks. */
   oscillationTicks: 64,

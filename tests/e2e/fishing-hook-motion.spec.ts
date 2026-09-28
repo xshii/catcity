@@ -1,5 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { catchFish } from '../../harness/adapters/catcity/angling-input';
+import {
+  catchFish,
+  fishingClock,
+  reelIn,
+} from '../../harness/adapters/catcity/angling-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { reachWaterway } from '../../harness/adapters/catcity/city-input';
 
@@ -45,9 +49,24 @@ async function startAtShore(page: Page) {
   await ready(page);
   await reachWaterway(page);
   await page.locator('#begin-fishing').click();
+  // Hook timing is asserted tick by tick; the test owns the fishing clock.
+  await fishingClock(page);
   await page.locator('#motion-quick-toggle').click();
   await tilt(page, 0, 0);
   await flick(page, 0);
+}
+
+/** Step fishing ticks until the run reaches `phase`. */
+async function step(page: Page, phase: string, maxTicks: number) {
+  const clock = await fishingClock(page);
+  await clock.until(
+    async () => (await readWorld(page)).fishing.active?.phase === phase,
+    maxTicks,
+  );
+}
+
+async function ticks(page: Page, count: number) {
+  await (await fishingClock(page)).advance(count);
 }
 
 async function castToPausedHook(page: Page) {
@@ -58,12 +77,11 @@ async function castToPausedHook(page: Page) {
   );
   await flick(page, 0);
   await flick(page, -10);
+  // The flick casts on its own sensor timer; waiting ticks then pass by step.
   await expect
-    .poll(async () => (await readWorld(page)).fishing.active?.phase, {
-      intervals: [25],
-      timeout: 5000,
-    })
-    .toBe('hook');
+    .poll(async () => (await readWorld(page)).fishing.active?.phase)
+    .toBe('waiting');
+  await step(page, 'hook', 100);
   await page.locator('#fish-pause').click();
   await expect(page.locator('#fish-pause')).toHaveText('继续钓鱼');
 }
@@ -81,27 +99,17 @@ async function finishFight(page: Page) {
     await page.locator('#fish-pause').click();
   await control.focus();
   let held = false;
+  const hold = async (next: boolean) => {
+    if (next === held) return;
+    if (next) await page.keyboard.down('Space');
+    else await page.keyboard.up('Space');
+    held = next;
+  };
   try {
-    for (let step = 0; step < 280; step++) {
-      if (!(await page.locator('#angling-live').isVisible())) break;
-      const meter = await page.locator('#angling-bar').evaluate((element) => ({
-        value: Number(element.getAttribute('aria-valuenow')),
-        low: Number(element.dataset.low),
-        high: Number(element.dataset.high),
-      }));
-      const next = meter.value < (meter.low + meter.high) / 2;
-      if (next !== held) {
-        if (next) await page.keyboard.down('Space');
-        else await page.keyboard.up('Space');
-        held = next;
-      }
-      await page.waitForTimeout(75);
-    }
+    await reelIn(page, await fishingClock(page), hold);
   } finally {
-    if (held) await page.keyboard.up('Space');
+    await hold(false);
   }
-  await expect(page.locator('#angling-live')).toBeHidden();
-  await expect(page.locator('#fish-result')).toContainText('钓到了');
 }
 
 for (const viewport of [
@@ -119,11 +127,7 @@ for (const viewport of [
       const canvas = await page.locator('canvas').boundingBox();
       await castToPausedHook(page);
       await page.locator('#fish-pause').click();
-      await expect
-        .poll(async () => (await readWorld(page)).fishing.active?.phaseTick, {
-          intervals: [25],
-        })
-        .toBeGreaterThanOrEqual(8);
+      await ticks(page, 8);
       await page.locator('#fish-pause').click();
       const paused = await readWorld(page);
       expect(paused.fishing.active!.phase).toBe('hook');
@@ -163,12 +167,7 @@ for (const viewport of [
         path: testInfo.outputPath('hook-circle-aligned.png'),
       });
       await page.locator('#fish-pause').click();
-      await expect
-        .poll(async () => (await readWorld(page)).fishing.active?.phase, {
-          intervals: [25],
-          timeout: 2000,
-        })
-        .toBe('fight');
+      await step(page, 'fight', 40);
       await page.locator('#fish-pause').click();
       await expect(page.locator('#motion-hook-guide')).toBeHidden();
       const fought = await readWorld(page);
@@ -227,14 +226,8 @@ test('the manual hook button takes over from the circle for the rest of the phas
   await expect(page.locator('#motion-hook-guide')).toBeVisible();
   await tilt(page, -23, 23);
   await page.locator('#fish-pause').click();
-  await expect
-    .poll(
-      async () => (await readWorld(page)).fishing.active?.motionStableTicks,
-      {
-        intervals: [10],
-      },
-    )
-    .toBeGreaterThan(0);
+  // Fewer stable ticks than any fish needs (6 + 2 × stars), so the hook stays open.
+  await ticks(page, 2);
   await page.locator('#fish-pause').click();
   const paused = await readWorld(page);
   expect(paused.fishing.active!.phase).toBe('hook');
@@ -252,13 +245,16 @@ test('the manual hook button takes over from the circle for the rest of the phas
   );
   await page.locator('#fish-pause').click();
   await catchFish(page, 'keyboard', async (phase) => {
-    if (phase === 'hook')
+    if (phase === 'hook') {
+      // One manual-control tick clears the circle's stable count.
+      await ticks(page, 1);
       await expect
         .poll(
           async () => (await readWorld(page)).fishing.active?.motionStableTicks,
           { intervals: [10] },
         )
         .toBe(0);
+    }
     if (phase !== 'fight') return;
     await expect(page.locator('#motion-hook-guide')).toBeHidden();
     await expect(page.locator('#motion-quick-toggle')).toHaveAttribute(

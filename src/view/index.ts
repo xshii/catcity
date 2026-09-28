@@ -25,5 +25,6 @@ export function mountGameView(session: GameSession) {
   return {
     tileScreenPosition: (position: Position) =>
       scene.getTileScreenPosition(position),
+    fishingClock: panel.fishingClock,
   };
 }

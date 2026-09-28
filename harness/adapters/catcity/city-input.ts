@@ -20,6 +20,14 @@ export async function clickTile(page: Page, x: number, y: number) {
   const overview = page.locator('#city-overview');
   if ((await overview.getAttribute('aria-pressed')) !== 'true')
     await overview.click();
+  // Scene switches and camera changes apply on the next rendered frames; read
+  // the canvas only after they settle, or a busy machine clicks a stale layout.
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
   const canvas = page.locator('canvas');
   const bounds = await canvas.boundingBox();
   if (!bounds) throw new Error('Canvas must have bounds');

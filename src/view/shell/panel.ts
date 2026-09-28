@@ -122,5 +122,5 @@ export function mountPanel(session: GameSession) {
   );
   mountCityGuide(session, notify, cityActions);
   render();
-  return { notify, cityActions };
+  return { notify, cityActions, fishingClock: angling.fishingClock };
 }

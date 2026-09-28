@@ -541,7 +541,8 @@ export function mountAngling(
       up();
     }
   });
-  window.setInterval(() => {
+  /** One fishing tick from the current real inputs; false when play is paused. */
+  const tick = (): boolean => {
     const run = session.getSnapshot().fishing.active;
     if (
       !run ||
@@ -550,18 +551,37 @@ export function mountAngling(
       !stage.stage.classList.contains('is-river') ||
       layout?.isOpen()
     )
-      return;
+      return false;
     const point = motion.controlPoint();
     session.execute(
       run.phase === 'hook' && point
         ? { type: 'FISH_MOTION_CONTROL', runId: run.id, ...point, ticks: 1 }
         : { type: 'FISH_CONTROL', runId: run.id, pressed, ticks: 1 },
     );
-  }, 50);
+    return true;
+  };
+  // Browser time drives ticks; tests may take over the clock like ADVANCE_TIME.
+  let manualClock = false;
+  window.setInterval(() => {
+    if (!manualClock) tick();
+  }, 1000 / FISHING.ticksPerSecond);
   session.subscribe(() => {
     render();
   });
   root.hidden = !session.getSnapshot().fishing.active;
   render();
-  return { enterAtSpot };
+  return {
+    enterAtSpot,
+    fishingClock: {
+      setManual: (manual: boolean) => {
+        manualClock = manual;
+      },
+      /** Runs the same tick as the interval; returns how many ticks applied. */
+      step: (ticks: number) => {
+        let applied = 0;
+        for (let i = 0; i < ticks; i++) if (tick()) applied++;
+        return applied;
+      },
+    },
+  };
 }

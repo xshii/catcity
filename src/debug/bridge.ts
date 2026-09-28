@@ -4,7 +4,13 @@ import type { Position } from '../core';
 
 interface ViewObserver {
   tileScreenPosition: (position: Position) => Position | null;
+  fishingClock: {
+    setManual: (manual: boolean) => void;
+    step: (ticks: number) => number;
+  };
 }
+/** Largest single step; one fishing run never needs more ticks than this. */
+const MAX_STEP_TICKS = 1000;
 
 function createBridge(session: GameSession, view?: ViewObserver) {
   return {
@@ -31,6 +37,13 @@ function createBridge(session: GameSession, view?: ViewObserver) {
       ),
     spawnCat: (position: Position) =>
       session.execute({ type: 'DEBUG_SPAWN_CAT', position }),
+    /** Test-build clock control: ticks advance only via stepFishing, inputs stay real. */
+    useManualFishingClock: (manual: boolean) =>
+      view?.fishingClock.setManual(manual === true),
+    stepFishing: (ticks: number) =>
+      Number.isInteger(ticks) && ticks >= 1 && ticks <= MAX_STEP_TICKS
+        ? (view?.fishingClock.step(ticks) ?? 0)
+        : 0,
     getSelectedEntity: () => session.selectedEntity,
     getDiagnostics: () => session.getDiagnostics(),
     getReplay: () => session.getReplay(),
