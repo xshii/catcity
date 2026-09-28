@@ -201,7 +201,7 @@ export function createCatCityAdapter(): GameAdapter {
           resting.cats[0]!.needs.energy,
           before.cats[0]!.needs.energy,
         );
-        assert.equal(resting.cats[0]!.rest!.until, before.minute + 60);
+        assert.equal(resting.cats[0]!.rest!.startedAt, before.minute);
         await page.locator('#time-forward').click();
         const recovered = await readWorld(page);
         assert.equal(recovered.minute, before.minute + 60);

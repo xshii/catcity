@@ -32,7 +32,6 @@ function play(world: ReturnType<typeof createWorld>, chargeTicks = 23) {
 describe('skill-based angling', () => {
   it('derives a real catch from control inputs, fills the atlas, then sells exactly once', () => {
     const world = createWorld(42);
-    const rng = world.getSnapshot().rngState;
     expect(
       world.dispatch({
         spotId: 'POND',
@@ -53,7 +52,6 @@ describe('skill-based angling', () => {
     const fish = state.fishing.inventory[0]!;
     expect(state.fishing.atlas[fish.speciesId].count).toBe(1);
     expect(state.cats[0]!.fishingMemory!.speciesId).toBe(fish.speciesId);
-    expect(state.rngState).toBe(rng);
     expect(world.dispatch({ type: 'SELL_FISH', fishId: fish.id }).ok).toBe(
       true,
     );

@@ -1,3 +1,4 @@
+import { SAVE_VERSION } from '../../src/core/schema';
 import {
   enterRiver,
   reachWaterway,
@@ -338,7 +339,7 @@ test('old demo saves require an explicit reset; atlas shows all tiers, lengths a
     await page.evaluate(
       () => JSON.parse(localStorage.getItem('cat-city.save.v1')!).saveVersion,
     ),
-  ).toBe(10);
+  ).toBe(SAVE_VERSION);
   await enterRiver(page);
   for (const [stars, species] of [
     [0, 'SILVER'],

@@ -49,7 +49,7 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 | 003 | [钓鱼小游戏](003-fishing/requirements.md)                      | 验证中 | 到岸开钓、8 鱼 4 水域、饵/落点/力度、收集与出售赠送         |
 | 004 | [体感瞄准、甩竿与提竿](004-motion-input/requirements.md)       | 验证中 | 可选倾斜与甩竿、二维提竿、全手动降级；未实机验证            |
 | 005 | [伙伴关系与规则对话](005-companion-dialogue/requirements.md)   | 验证中 | Mochi/Pepper、事实记忆、离线规则对话与回退                  |
-| 006 | [存档、回放与旧档拒绝](006-save-replay/requirements.md)        | 验证中 | v10 精确往返、旧档拒绝与显式重置、确定性回放                |
+| 006 | [存档、回放与旧档拒绝](006-save-replay/requirements.md)        | 验证中 | v11 精确往返、旧档拒绝与显式重置、确定性回放                |
 | 007 | [手机单屏界面与导航](007-mobile-ui/requirements.md)            | 验证中 | 单屏、按地点的四入口、触摸与键盘                            |
 | 008 | [Harness、CI 与本地发布](008-harness-delivery/requirements.md) | 进行中 | 证据链、本机发布、PR 门禁、禁止推 main、AGPL                |
 

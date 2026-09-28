@@ -215,7 +215,6 @@ it('rejects travel during rest or an active fishing run and rejects clock overfl
   );
   const fixture = JSON.parse(unlocked().save());
   fixture.world.minute = 1_000_000_000 - duration + 1;
-  fixture.world.buildings[0].incomeProgress = fixture.world.minute % 60;
   const limit = loadWorld(JSON.stringify(fixture));
   const before = limit.save();
   expect(
@@ -227,7 +226,6 @@ it('rejects travel during rest or an active fishing run and rejects clock overfl
   ).toEqual({ ok: false, error: 'TIME_LIMIT' });
   expect(limit.save()).toBe(before);
   fixture.world.minute--;
-  fixture.world.buildings[0].incomeProgress = fixture.world.minute % 60;
   const boundary = loadWorld(JSON.stringify(fixture));
   expect(
     boundary.dispatch({
@@ -241,7 +239,6 @@ it('rejects travel during rest or an active fishing run and rejects clock overfl
   const richFixture = JSON.parse(unlocked().save());
   richFixture.world.coins = 1_000_000_000;
   richFixture.world.minute = 59;
-  richFixture.world.buildings[0].incomeProgress = 59;
   const rich = loadWorld(JSON.stringify(richFixture));
   const richBefore = rich.save();
   expect(

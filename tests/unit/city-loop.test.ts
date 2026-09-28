@@ -53,7 +53,6 @@ it('buys land before building, connects a cafe to dirt roads and preserves incom
   expect(world.getSnapshot().buildings[0]).toMatchObject({
     id: building.id,
     builtAtMinute: 0,
-    incomeProgress: 55,
     position: { x: 6, y: 4 },
   });
   expect(world.getSnapshot().coins).toBe(650);

@@ -1,5 +1,12 @@
 import { CAT_BREEDS } from '../../content/breeds';
-import type { WorldState } from '../../core';
+import { CARE } from '../../content/care';
+import type { CatEntity, WorldState } from '../../core';
+
+/** Minutes left in a cat's rest; saves store only the start minute. */
+export const restMinutesLeft = (
+  rest: NonNullable<CatEntity['rest']>,
+  minute: number,
+) => rest.startedAt + CARE.rest.minutes - minute;
 
 export function toViewModel(world: WorldState, selected: string | null) {
   const cat = world.cats.find((item) => item.id === selected);

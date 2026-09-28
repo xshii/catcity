@@ -3,7 +3,6 @@ import { generateCityMap, shoreTiles, tileAt } from './city/map';
 import { initialFishing } from './fishing/schema';
 import { instantiateMochi } from '../content/definitions';
 import { commandSchema, CommandError, type CommandResult } from './commands';
-import { RandomService } from './random';
 import { applyCommand } from './reducer';
 import {
   assertWorld,
@@ -56,7 +55,6 @@ export class World {
 }
 
 export function createWorld(seed: number): World {
-  const rng = new RandomService(seed);
   const map = generateCityMap(seed);
   const distanceFromStarterRoad = (position: Position) =>
     Math.abs(position.x - 5) + Math.abs(position.y - 5);
@@ -73,7 +71,6 @@ export function createWorld(seed: number): World {
   mochi.fishingSpotId = 'POND';
   return new World({
     seed,
-    rngState: rng.state,
     minute: 0,
     coins: 1000,
     nextId: 1,

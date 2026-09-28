@@ -58,7 +58,7 @@ const catSchema = z.strictObject({
   currentActivity: z.enum(['resting', 'wandering', 'chatting']),
   position: positionSchema,
   lastBondMinute: integer.nullable(),
-  rest: z.strictObject({ startedAt: integer, until: integer }).nullable(),
+  rest: z.strictObject({ startedAt: integer }).nullable(),
   fishingSpotId: spotIdSchema.nullable(),
   walk: z
     .strictObject({
@@ -78,11 +78,9 @@ const buildingSchema = z.strictObject({
   type: z.enum(BUILDING_IDS),
   position: positionSchema,
   builtAtMinute: integer,
-  incomeProgress: z.number().int().min(0).max(59),
 });
 const worldSchema = z.strictObject({
   seed: z.number().int().min(0).max(0xffffffff),
-  rngState: z.number().int().min(0).max(0xffffffff),
   minute: integer,
   coins: integer,
   nextId: integer.min(1),
@@ -109,7 +107,7 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 export const CONTENT_VERSION = 5;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
@@ -141,18 +139,14 @@ export function assertWorld(value: unknown): WorldState {
   if (!world.cats.some((cat) => cat.id === 'mochi'))
     throw new Error('Mochi must persist');
   for (const building of world.buildings) {
-    if (
-      building.builtAtMinute > world.minute ||
-      building.incomeProgress !== (world.minute - building.builtAtMinute) % 60
-    )
+    if (building.builtAtMinute > world.minute)
       throw new Error('Invalid income clock');
   }
   for (const cat of world.cats) {
     if (
       cat.rest &&
       (cat.rest.startedAt > world.minute ||
-        cat.rest.until !== cat.rest.startedAt + CARE.rest.minutes ||
-        cat.rest.until <= world.minute ||
+        cat.rest.startedAt + CARE.rest.minutes <= world.minute ||
         world.fishing.active?.catId === cat.id)
     )
       throw new Error('Invalid cat rest');

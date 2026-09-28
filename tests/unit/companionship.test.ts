@@ -24,7 +24,6 @@ const start = (world: ReturnType<typeof createWorld>, catId = 'mochi') => {
 describe('shared fishing experiences through current rod inputs', () => {
   it('validates actions, derives rewards, records a factual first catch and settles exactly once', () => {
     const world = createWorld(42);
-    const rng = world.getSnapshot().rngState;
     const run = start(world);
     const before = world.save();
     for (const command of [
@@ -51,7 +50,6 @@ describe('shared fishing experiences through current rod inputs', () => {
     finishFishing(world);
     const state = world.getSnapshot();
     expect(state.coins).toBe(1000);
-    expect(state.rngState).toBe(rng);
     expect(state.fishing).toMatchObject({
       active: null,
       lastResult: { caught: true, speciesId: 'SILVER', catId: 'mochi' },

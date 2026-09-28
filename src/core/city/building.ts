@@ -113,7 +113,6 @@ export function applyCity(
           type,
           position: command.position,
           builtAtMinute: world.minute,
-          incomeProgress: 0,
         };
         world.buildings.push(building);
         events.push({

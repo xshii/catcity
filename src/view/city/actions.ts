@@ -1,3 +1,4 @@
+import { restMinutesLeft } from '../shell/model';
 import { CARE } from '../../content/care';
 import type { GameSession } from '../../application';
 import {
@@ -95,7 +96,7 @@ export function mountCityActions(
     );
   const walking = (cat: CatEntity) => {
     if (cat.rest)
-      return `休息中 · 还需 ${cat.rest.until - session.getSnapshot().minute} 分钟${cat.walk ? ' · 路线已暂停' : ''}`;
+      return `休息中 · 还需 ${restMinutesLeft(cat.rest, session.getSnapshot().minute)} 分钟${cat.walk ? ' · 路线已暂停' : ''}`;
     if (cat.walk && cat.needs.energy === 0)
       return '体力耗尽，路线已暂停；让这只猫休息后继续。';
     if (cat.walk)

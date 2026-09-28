@@ -44,7 +44,7 @@ export function mountCityGuide(
     return { world, cafe, earned, remembered };
   };
   const render = () => {
-    const { cafe, earned, remembered } = read();
+    const { world, cafe, earned, remembered } = read();
     const complete = [!!cafe, earned > 0, remembered];
     document
       .querySelectorAll<HTMLElement>('[data-city-step]')
@@ -79,7 +79,7 @@ export function mountCityGuide(
           : '和 Mochi 聊聊共同回忆';
     get('cafe-income').hidden = !cafe;
     get('cafe-income').textContent =
-      `第一家猫咖 · 累计赚取 ${earned} 金币 · 距离下笔收入 ${CAT_CAFE.intervalMinutes - (cafe?.incomeProgress ?? 0)} 游戏分钟`;
+      `第一家猫咖 · 累计赚取 ${earned} 金币 · 距离下笔收入 ${CAT_CAFE.intervalMinutes - (cafe ? (world.minute - cafe.builtAtMinute) % CAT_CAFE.intervalMinutes : 0)} 游戏分钟`;
   };
   action.addEventListener('click', () => {
     const { world, cafe, earned, remembered } = read();

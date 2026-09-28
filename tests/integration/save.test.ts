@@ -1,10 +1,27 @@
 import { advance, buildCafe, interact } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core';
-import legacySave from '../fixtures/save-v1.json';
 
-it('rejects old demo saves now that compatibility is explicitly out of scope', () => {
-  expect(() => loadWorld(JSON.stringify(legacySave))).toThrow();
+it('saves only facts: no RNG state, income remainder or rest end minute', () => {
+  const world = createWorld(42);
+  buildCafe(world, { x: 4, y: 4 });
+  advance(world, 25);
+  world.dispatch({
+    type: 'FISH_BEGIN',
+    catId: 'mochi',
+    baitId: 'BREAD',
+    direction: 0,
+    aimDepth: 50,
+    spotId: 'POND',
+  });
+  const runId = world.getSnapshot().fishing.active!.id;
+  world.dispatch({ type: 'FISH_CANCEL', runId });
+  expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);
+  const save = JSON.parse(world.save());
+  expect(save.saveVersion).toBe(11);
+  expect(save.world).not.toHaveProperty('rngState');
+  expect(save.world.buildings[0]).not.toHaveProperty('incomeProgress');
+  expect(save.world.cats[0].rest).toEqual({ startedAt: 25 });
 });
 
 it('round-trips all state and deterministically continues movement, income and memories', () => {

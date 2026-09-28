@@ -29,12 +29,12 @@
 
 ## 4 存档冗余字段（saveVersion 11）
 
-- [ ] 先写测试：v10 存档被拒绝；v11 精确往返
-- [ ] 删除 `rngState` 与可推导字段，校验改为推导
+- [x] 先写测试：v10 fixture（由旧代码生成）被拒绝；新存档不含 `rngState`/`incomeProgress`/`rest.until` — 先失败后通过
+- [x] 删除上述三个字段，收入与休息结束改为推导，saveVersion 11。保留进行中一竿的 `catBreed`/`skillLevel`/`seed`：纯钓鱼模拟不访问世界，它们是模拟输入。192 测试通过
 
 ## 5 测试瘦身与提速
 
-- [ ] 旧存档拒绝用例合并为表驱动测试
+- [x] 旧存档拒绝用例合并为 `tests/integration/legacy-saves.test.ts`（v1–v10 + 未来版本，11 例），删除 6 个分散用例
 - [ ] 体感模式映射下沉到单元测试，E2E 每条路径保留一例
 - [ ] `game.spec.ts` 解锁用例从预制存档起步
 - [ ] Playwright 并行；去掉重复构建

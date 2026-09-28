@@ -21,6 +21,7 @@ import { mountFishingFeedback } from './feedback';
 import { mountFishingStage } from './stage';
 import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
+import { restMinutesLeft } from '../shell/model';
 import { mountFishingCollections } from './collections';
 import { mountFishingMotion } from '../motion/motion';
 import { onShore } from '../../core/city';
@@ -146,7 +147,7 @@ export function mountAngling(
     get<HTMLButtonElement>('fish-rest').disabled =
       !!selectedCat.rest || energy === 100 || run?.catId === selectedCat.id;
     get('fish-rest').textContent = selectedCat.rest
-      ? `${selectedCat.name} 休息中 · 剩 ${selectedCat.rest.until - world.minute} 分钟`
+      ? `${selectedCat.name} 休息中 · 剩 ${restMinutesLeft(selectedCat.rest, world.minute)} 分钟`
       : `休息 ${REST.minutes / 60} 小时 · +${(REST.minutes / REST.tickMinutes) * REST.recovery} 体力`;
     for (const field of [location, companion, bait, direction, depth])
       field.disabled = active;

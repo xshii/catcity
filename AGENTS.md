@@ -8,7 +8,7 @@ Read README.md and docs/architecture.md before changing architecture. This is a 
 - Definitions and instances are separate. Keep modules small; add abstractions only when used. No generic GameManager or Utils dumping ground.
 - AI must be optional. The current prototype uses rule-based/mock dialogue only; no actual LLM. Validate proposals before commands; validate commands again in Core.
 - Saves are versioned and runtime-validated. The user permits breaking old saves during this prototype phase: reject incompatible saves and offer an explicit reset, without silently replacing old/corrupt/future-version data. Keep old fixtures as rejection cases; migrations and legacy gameplay command aliases are out of scope. Maintain only the current gameplay path; unsupported sensor/browser fallback is still required.
-- Gameplay randomness is separate from narrative/generative randomness. Seed, RNG state, simulation counters and ID allocation must survive save/load.
+- Gameplay randomness is separate from narrative/generative randomness. Seed, simulation counters and ID allocation must survive save/load; RNG streams derive from them, and derivable values are not saved.
 - Debug Bridge exists only in dev/test builds. Harness runner must remain game-agnostic; game semantics belong in the adapter.
 - Use the documented public layer entries. Application owns dependency ports; main injects storage and dialogue implementations. No dependency injection container or unused interfaces.
 - Write behavior tests before Core changes. Unit/simulation tests carry most logic coverage; E2E checks actual inputs, bridge state, persistence and console errors.

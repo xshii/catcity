@@ -1,31 +1,8 @@
 import { advance, buildCafe } from '../helpers/world';
 import { createTestSession } from '../helpers/session';
 import { expect, it } from 'vitest';
-import oldSave from '../fixtures/save-v7.json';
 import { createWorld, loadWorld } from '../../src/core';
 import { replayWorld } from '../../harness/adapters/catcity/replay-world';
-
-it('preserves v7 until explicit reset and starts a seeded v10 city', () => {
-  let saved = JSON.stringify(oldSave);
-  const original = saved;
-  const session = createTestSession({
-    repository: {
-      read: () => saved,
-      write: (next) => {
-        saved = next;
-      },
-    },
-  });
-  expect(session.storageError).not.toBeNull();
-  session.execute({ type: 'BUY_LAND', position: { x: 4, y: 2 } });
-  expect(saved).toBe(original);
-  session.resetDemo();
-  expect(JSON.parse(saved)).toMatchObject({
-    saveVersion: 10,
-    contentVersion: 5,
-  });
-  expect(loadWorld(saved).getSnapshot().map.tiles).toHaveLength(100);
-});
 
 it('replays purchase, roads, building movement and partial walking across reload', () => {
   let saved: string | null = null;

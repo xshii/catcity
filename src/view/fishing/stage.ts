@@ -9,7 +9,7 @@ import {
   type SpotId,
 } from '../../content/fishing';
 import type { CatEntity, WorldState } from '../../core';
-import { toViewModel } from '../shell/model';
+import { restMinutesLeft, toViewModel } from '../shell/model';
 import { catPortrait, fishIllustration } from '../art/illustrations';
 
 function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
@@ -45,7 +45,7 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
       progress.value = cat.needs.energy;
       progress.setAttribute('aria-label', `${cat.name} 体力`);
       activity.textContent = cat.rest
-        ? `休息中 ${cat.rest.until - minute} 分钟`
+        ? `休息中 ${restMinutesLeft(cat.rest, minute)} 分钟`
         : cat.walk
           ? `步行中 · 剩 ${cat.walk.route.length} 格`
           : `位置 ${cat.position.x + 1},${cat.position.y + 1}`;

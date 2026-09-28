@@ -4,7 +4,6 @@ import { greenZone, motionTarget } from '../../src/minigames/angling';
 import { replayWorld } from '../../harness/adapters/catcity/replay-world';
 import { createTestSession } from '../helpers/session';
 import { fishingFixture } from '../unit/fishing-fixture';
-import v9 from '../fixtures/save-v9.json';
 
 function partialHook() {
   const world = fishingFixture(42);
@@ -39,29 +38,6 @@ function partialHook() {
   });
   return world;
 }
-
-it('preserves v9 without migration or automatic overwrite until an explicit reset', () => {
-  expect(() => loadWorld(JSON.stringify(v9))).toThrow();
-  let data = JSON.stringify(v9);
-  const original = data;
-  const session = createTestSession({
-    repository: {
-      read: () => data,
-      write: (save) => {
-        data = save;
-      },
-    },
-  });
-  expect(session.storageError).not.toBeNull();
-  session.execute({ type: 'ADVANCE_TIME', minutes: 1 });
-  expect(data).toBe(original);
-  session.resetDemo();
-  expect(JSON.parse(data)).toMatchObject({
-    saveVersion: 10,
-    contentVersion: 5,
-  });
-  expect(loadWorld(data).save()).toBe(data);
-});
 
 it('round-trips a partial hold and replays the exact point inputs through a catch', () => {
   let data = partialHook().save();

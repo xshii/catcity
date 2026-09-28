@@ -37,10 +37,7 @@ export function applyCommand(
       if (cat.needs.energy === MAX_STAT) throw new CommandError('STAMINA_FULL');
       if (world.minute + CARE.rest.minutes > WORLD_LIMIT)
         throw new CommandError('TIME_LIMIT');
-      cat.rest = {
-        startedAt: world.minute,
-        until: world.minute + CARE.rest.minutes,
-      };
+      cat.rest = { startedAt: world.minute };
       cat.currentActivity = 'resting';
       if (cat.walk) cat.walk.nextStepMinute = null;
       events.push({

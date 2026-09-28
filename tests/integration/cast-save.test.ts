@@ -7,29 +7,6 @@ import { expect, it } from 'vitest';
 import { loadWorld } from '../../src/core';
 import { greenZone } from '../../src/minigames/angling';
 import { replayWorld } from '../../harness/adapters/catcity/replay-world';
-import oldSave from '../fixtures/save-v6.json';
-
-it('preserves an incompatible v6 save until explicit reset to v10', () => {
-  expect(() => loadWorld(JSON.stringify(oldSave))).toThrow();
-  let data = JSON.stringify(oldSave);
-  const original = data;
-  const session = createTestSession({
-    repository: {
-      read: () => data,
-      write: (next) => {
-        data = next;
-      },
-    },
-  });
-  expect(session.storageError).not.toBeNull();
-  session.execute({ type: 'ADVANCE_TIME', minutes: 10 });
-  expect(data).toBe(original);
-  session.resetDemo();
-  expect(JSON.parse(data)).toMatchObject({
-    saveVersion: 10,
-    contentVersion: 5,
-  });
-});
 
 it('persists aim and cast power and rejects missing or impossible saved aim', () => {
   const world = createWorld(42);

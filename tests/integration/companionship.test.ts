@@ -5,12 +5,10 @@ import {
   finishFishing,
 } from '../unit/fishing-fixture';
 import { expect, it } from 'vitest';
-import legacy from '../fixtures/save-v1.json';
-import previous from '../fixtures/save-v8.json';
 import { loadWorld } from '../../src/core';
 import { fishById, SPOTS } from '../../src/content/fishing';
 
-it('starts with empty factual memories and rejects prior/future save formats', () => {
+it('starts with empty factual memories that survive a save round trip', () => {
   const world = createWorld(42);
   expect(world.getSnapshot().cats[0]!.fishingMemory).toBeNull();
   expect(world.getSnapshot().cats[0]!.fishGift).toBeNull();
@@ -19,14 +17,7 @@ it('starts with empty factual memories and rejects prior/future save formats', (
     lastResult: null,
     inventory: [],
   });
-  expect(JSON.parse(world.save()).saveVersion).toBe(10);
   expect(loadWorld(world.save()).getSnapshot()).toEqual(world.getSnapshot());
-  for (const save of [
-    legacy,
-    previous,
-    { ...JSON.parse(world.save()), saveVersion: 99 },
-  ])
-    expect(() => loadWorld(JSON.stringify(save))).toThrow();
 });
 
 it('rejects impossible fishing and first-memory records when loading saves', () => {
@@ -102,26 +93,4 @@ it('recalls only real shared catches after reload with the offline provider', as
   expect(restored.getSnapshot().cats[0]!.memories.at(-1)!.reply).toContain(
     '歇一会',
   );
-});
-
-it('preserves incompatible v8 data until explicit reset to the single current fishing schema', () => {
-  let saved = JSON.stringify(previous);
-  const original = saved;
-  const session = createTestSession({
-    repository: {
-      read: () => saved,
-      write: (next) => {
-        saved = next;
-      },
-    },
-  });
-  expect(session.storageError).not.toBeNull();
-  session.execute({ type: 'ADVANCE_TIME', minutes: 30 });
-  expect(saved).toBe(original);
-  session.resetDemo();
-  expect(JSON.parse(saved)).toMatchObject({
-    saveVersion: 10,
-    contentVersion: 5,
-  });
-  expect(loadWorld(saved).getSnapshot()).not.toHaveProperty('outings');
 });

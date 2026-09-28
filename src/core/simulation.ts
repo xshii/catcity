@@ -15,9 +15,9 @@ export function simulate(
     const minute = ++world.minute;
     for (const building of world.buildings) {
       const definition = BUILDINGS[building.type];
-      building.incomeProgress++;
-      if (building.incomeProgress === definition.intervalMinutes) {
-        building.incomeProgress = 0;
+      // Income derives from build time; moving a building keeps its clock.
+      const elapsed = minute - building.builtAtMinute;
+      if (elapsed % definition.intervalMinutes === 0) {
         if (definition.income) {
           world.coins += definition.income;
           events.push({
@@ -48,7 +48,7 @@ export function simulate(
         );
         events.push({ type: 'EnergyRecovered', minute, entityId: cat.id });
       }
-      if (minute === cat.rest.until) {
+      if (minute === cat.rest.startedAt + CARE.rest.minutes) {
         cat.rest = null;
         events.push({ type: 'CatRestFinished', minute, entityId: cat.id });
         resumeWalk(world, cat);
