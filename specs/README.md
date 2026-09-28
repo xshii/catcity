@@ -61,7 +61,7 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 | 000 | [代码瘦身与规格集中](000-codebase-slimming/requirements.md) | 进行中 | 规格集中、配置逻辑分离、目录归位、存档瘦身、测试提速   |
 | 010 | [存档安全缺陷](010-save-safety/requirements.md)             | 完成   | 写失败误显重置、多标签覆盖、伪造进行中一竿、猫身份校验 |
 | 011 | [手机性能](011-mobile-performance/requirements.md)          | 提出   | 每秒约 200 次深拷贝、20 次存储写入、传感器整页重绘     |
-| 012 | [View 结构整理](012-view-structure/requirements.md)         | 提出   | DOM 事件总线、钓鱼面板拆分、卸载与 tween 泄漏          |
+| 012 | [View 结构整理](012-view-structure/requirements.md)         | 验证中 | 瞄准状态替代 DOM 事件总线、钓鱼面板拆分、tween 泄漏    |
 | 013 | [规则与平台小缺陷](013-minor-defects/requirements.md)       | 完成   | Pepper 出生点、活动状态、iOS 安全区等 8 项             |
 
 ### 后续需求

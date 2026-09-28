@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { FISHING, fishById } from '../../src/content/fishing';
+import { FISH_IDS, FISHING, fishById } from '../../src/content/fishing';
 import { castAngling, initialAngling } from '../../src/minigames/angling';
 import {
+  fishPath,
   fishPoint,
   motionSchedule,
   ringRadius,
@@ -86,72 +87,128 @@ describe('motion bite schedule', () => {
   });
 });
 
-describe('fish circle fight', () => {
+describe('fish ring fight', () => {
+  const F = M.fight;
+  const W = M.walk;
   const fight = (seed: number) => strikeMotionRun(toBite(cast(seed)));
-
-  it('keeps the fish on the water and moves it no faster than its star speed', () => {
-    const run = fight(11);
-    const perTick = M.fishSpeed[stars(run)] / FISHING.ticksPerSecond;
-    let previous = fishPoint(run, 0);
-    for (let tick = 1; tick <= M.fightLimitTicks[stars(run)]; tick++) {
-      const point = fishPoint(run, tick);
-      for (const value of [point.x, point.y]) {
-        expect(value).toBeGreaterThanOrEqual(0);
-        expect(value).toBeLessThanOrEqual(100);
-      }
-      // Bursts double the speed; rounding to whole units adds up to one unit.
-      expect(
-        Math.hypot(point.x - previous.x, point.y - previous.y),
-      ).toBeLessThanOrEqual(perTick * 2 + 1.5);
-      previous = point;
-    }
-    expect(fishPoint(run, 50)).toEqual(fishPoint(fight(11), 50));
+  const ofStars = (run: AnglingRun, want: number): AnglingRun => ({
+    ...run,
+    speciesId: FISH_IDS.find((id) => fishById(id).stars === want)!,
   });
-
-  it('breathes the ring around a shrinking size that never drops below its minimum', () => {
-    const run = fight(11);
-    const size = M.radius[stars(run)];
-    expect(ringRadius(run, 0)).toBe(size.start);
-    for (let tick = 0; tick <= M.fightLimitTicks[stars(run)]; tick++)
-      expect(ringRadius(run, tick)).toBeGreaterThanOrEqual(size.min);
-    expect(ringRadius(run, M.fightLimitTicks[stars(run)])).toBeLessThan(
-      size.start,
+  /** Steps through settling in with the rod tip away from the water. */
+  const settle = (run: AnglingRun) =>
+    Array.from({ length: F.graceTicks }).reduce<AnglingRun>(
+      (next) => stepMotionRun(next, null, 1),
+      run,
     );
+  const follow = (run: AnglingRun) =>
+    stepMotionRun(run, fishPoint(run, run.phaseTick + 1), 1);
+  const far = (run: AnglingRun) => {
+    const fish = fishPoint(run, run.phaseTick + 1);
+    return { x: fish.x > 50 ? 0 : 100, y: fish.y > 50 ? 0 : 100 };
+  };
+
+  it('holds the fish still and freezes the hold while the player settles in', () => {
+    const run = fight(11);
+    const still = F.graceTicks - F.rampTicks;
+    expect(fishPoint(run, still)).toMatchObject({ x: 50, y: 50 });
+    const settled = settle(run);
+    expect(settled).toMatchObject({ phase: 'fight', hold: run.hold });
   });
 
-  it('lands the fish after enough time inside the ring', () => {
-    let run = fight(11);
-    const need = M.holdTicks[stars(run)];
-    for (let tick = 0; tick < 2 * need && run.phase === 'fight'; tick++)
-      run = stepMotionRun(run, fishPoint(run, run.phaseTick + 1), 1);
+  it('keeps the ring on the water and moves no faster than its pace', () => {
+    for (let star = 0; star <= 5; star++)
+      for (let seed = 1; seed <= 10; seed++) {
+        const run = ofStars(fight(seed), star);
+        const margin = F.radius[star]!.start + F.breathe.amplitude;
+        const cruise =
+          (W.speed[star]! * (100 + W.speedJitterPercent[star]!)) /
+          100 /
+          FISHING.ticksPerSecond;
+        const dash =
+          (W.speed[star]! * W.dash.speedPercent) / 100 / FISHING.ticksPerSecond;
+        const path = fishPath(run, F.graceTicks + F.limitTicks);
+        expect(path[80]).toEqual(fishPoint(run, 80));
+        let previous = path[0]!;
+        for (const point of path.slice(1)) {
+          for (const value of [point.x, point.y]) {
+            expect(value).toBeGreaterThanOrEqual(margin - 1);
+            expect(value).toBeLessThanOrEqual(100 - margin + 1);
+          }
+          // Whole-unit rounding adds up to about one unit per axis.
+          expect(
+            Math.hypot(point.x - previous.x, point.y - previous.y),
+          ).toBeLessThanOrEqual((point.dashing ? dash : cruise) + 1.5);
+          previous = point;
+        }
+      }
+    expect(fishPoint(fight(11), 120)).toEqual(fishPoint(fight(11), 120));
+  });
+
+  it('announces every dash before it starts', () => {
+    let dashes = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const path = fishPath(
+        ofStars(fight(seed), 5),
+        F.graceTicks + F.limitTicks,
+      );
+      for (let tick = 1; tick < path.length; tick++) {
+        const now = path[tick]!;
+        const before = path[tick - 1]!;
+        if (now.dashing && !before.dashing) {
+          dashes++;
+          expect(before.warning).toBe(true);
+        }
+      }
+    }
+    expect(dashes).toBeGreaterThan(0);
+  });
+
+  it('shrinks the ring as the hold fills and grows it back as the hold drains', () => {
+    const run = settle(fight(11));
+    const size = F.radius[stars(run)];
+    const target = F.holdTicks[stars(run)];
+    const at = (hold: number) => ringRadius({ ...run, hold });
+    expect(at(target / 2)).toBeLessThan(at(0));
+    expect(at(target - 1)).toBeLessThan(at(target / 2));
+    expect(at(target - 1)).toBeGreaterThanOrEqual(size.min);
+    expect(at(0)).toBeLessThanOrEqual(size.start + F.breathe.amplitude);
+  });
+
+  it('lands the fish after enough time inside, counted after settling in', () => {
+    let run = settle(fight(11));
+    const need = F.holdTicks[stars(run)];
+    for (let i = 0; i < 2 * need && run.phase === 'fight'; i++)
+      run = follow(run);
     expect(run.phase).toBe('caught');
-    expect(run.phaseTick).toBeLessThanOrEqual(need);
+    expect(run.phaseTick).toBeLessThanOrEqual(F.graceTicks + need);
   });
 
-  it('decays time outside the ring and lets the fish escape at the limit', () => {
-    let run = fight(11);
-    const limit = M.fightLimitTicks[stars(run)];
-    run = stepMotionRun(run, fishPoint(run, 1), 1);
-    run = stepMotionRun(run, fishPoint(run, 2), 1);
+  it('loses twice what staying earns and lets the fish escape at the limit', () => {
+    let run = follow(follow(settle(fight(11))));
     const held = run.hold;
-    const far = (at: number) => {
-      const fish = fishPoint(run, at);
-      return { x: fish.x > 50 ? 0 : 100, y: fish.y > 50 ? 0 : 100 };
-    };
-    run = stepMotionRun(run, far(3), 1);
-    expect(run.hold).toBe(held - M.hold.outsideLoss);
-    while (run.phase === 'fight')
-      run = stepMotionRun(run, far(run.phaseTick + 1), 1);
+    run = stepMotionRun(run, far(run), 1);
+    expect(run.hold).toBe(held - F.hold.outsideLoss);
+    while (run.phase === 'fight') run = stepMotionRun(run, far(run), 1);
     expect(run).toMatchObject({ phase: 'escaped', reason: 'escaped' });
-    expect(run.phaseTick).toBe(limit);
+    expect(run.phaseTick).toBe(F.graceTicks + F.limitTicks);
+  });
+
+  it('never lands a fish that drifts in and out of the ring half the time', () => {
+    let run = settle(fight(11));
+    const start = run.hold;
+    for (let i = 0; i < 60 && run.phase === 'fight'; i++)
+      run = i % 2 ? stepMotionRun(run, far(run), 1) : follow(run);
+    expect(run.phase).toBe('fight');
+    expect(run.hold).toBeLessThanOrEqual(start);
   });
 
   it('gives the same state for chunked and single ticks', () => {
     const start = fight(11);
     let single = start;
     let chunked = start;
-    for (let i = 0; i < 20; i++) {
-      const point = { x: 40 + i, y: 50 };
+    for (let i = 0; i < 40; i++) {
+      const point = { x: 40 + (i % 20), y: 50 };
       single = stepMotionRun(stepMotionRun(single, point, 1), point, 1);
       chunked = stepMotionRun(chunked, point, 2);
     }

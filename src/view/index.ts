@@ -11,7 +11,13 @@ import './styles/base.css';
 export function mountGameView(session: GameSession) {
   const place = createPlace();
   const panel = mountPanel(session, place);
-  const scene = new CityScene(session, place, panel.notify, panel.cityActions);
+  const scene = new CityScene(
+    session,
+    place,
+    panel.notify,
+    panel.cityActions,
+    panel.aim,
+  );
   new Phaser.Game({
     type: Phaser.AUTO,
     render: { antialias: true, roundPixels: false },

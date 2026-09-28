@@ -1,3 +1,5 @@
+import type { SpotId } from '../../content/fishing';
+
 /** Which scene is on screen. View-local: it never enters the world or a save. */
 export type Place = 'city' | 'river';
 
@@ -23,4 +25,17 @@ export type PlaceState = ReturnType<typeof createPlace>;
 export interface Tools {
   close: () => void;
   openTalk: () => void;
+}
+
+/** The cast being lined up before a run. Owned by the fishing panel; the river previews it. */
+export interface Aim {
+  spotId: SpotId;
+  direction: number;
+  depth: number;
+}
+export interface AimControl {
+  get: () => Aim;
+  /** Aiming on the water or by tilt; callers keep values within `FISHING.input`. */
+  set: (next: Partial<Pick<Aim, 'direction' | 'depth'>>) => void;
+  subscribe: (listener: () => void) => () => void;
 }

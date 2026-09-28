@@ -1,5 +1,4 @@
-import type { PlaceState, Tools } from '../shell/place';
-import { TIME_SCALE } from '../time-scale';
+import type { Aim, AimControl, PlaceState, Tools } from '../shell/place';
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
 import {
@@ -18,7 +17,6 @@ import {
 } from '../../content/fishing';
 import { greenZone } from '../../minigames/angling';
 import { CARE } from '../../content/care';
-import type { ErrorCode } from '../../core';
 import { mountFishingFeedback } from './feedback';
 import { mountFishingStage } from './stage';
 import { renderFishingCatalog } from './catalog';
@@ -27,6 +25,13 @@ import { restMinutesLeft } from '../shell/model';
 import { mountFishingCollections } from './collections';
 import { mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
+import { mountFishingControls } from './controls';
+import {
+  ANGLING_MARKUP,
+  BUTTON_PHASE_INSTRUCTIONS,
+  BUTTON_PHASE_NAMES,
+  FISHING_ERRORS,
+} from './template';
 
 const CAST_COST = FISHING.cast.staminaCost;
 const REST = CARE.rest;
@@ -62,28 +67,7 @@ export function mountAngling(
   root.className = 'angling';
   root.hidden = true;
   stage.stage.after(root);
-  root.innerHTML = `
-    <div id="river-tools" hidden><div class="river-tools-heading"><h2 id="river-tools-title"></h2><button id="river-tools-close" aria-label="返回钓鱼">返回钓鱼 ↓</button></div>
-    <section id="river-panel-gear" role="tabpanel" aria-labelledby="river-tab-gear" hidden>
-    <div class="angling-title"><div><p class="eyebrow">ONE MORE CAST, TOGETHER</p><h2>钓具与鱼篓</h2></div><span id="fishing-level"></span></div>
-    <div class="fishing-settings"><p id="fishing-resources"></p><button id="haptics-toggle" aria-pressed="false">震动</button></div>
-    <div id="bait-tray" class="bait-tray"><button data-bait="BREAD">🍞<span>面包<small>常见鱼 · 无限</small></span></button><button data-bait="WORM">🪱<span>蚯蚓<small>鲈鱼 / 锦鲤</small></span></button><button data-bait="SHRIMP">🦐<span>虾饵<small>鲶鱼 / 月光鲤</small></span></button></div>
-    <div class="fishing-prep"><label>钓点<select id="fish-location"></select></label><label>同行伙伴<select id="fish-companion"></select></label><label class="bait-select">鱼饵<select id="fish-bait"></select></label></div>
-    <label class="direction-label">抛投方向 <output id="direction-value"></output><input type="range" id="fish-direction" min="-${FISHING.input.maxDirection}" max="${FISHING.input.maxDirection}" step="5" value="-30" aria-label="抛投方向"></label>
-    <label class="direction-label depth-label">近远落点 <output id="depth-value"></output><input type="range" id="fish-depth" min="0" max="100" step="5" value="50" aria-label="近远落点"></label>
-    <p id="companion-specialty" class="fishing-clue"></p><p id="spot-hint" class="fishing-clue"></p><div id="spot-unlocks" class="spot-unlocks"></div>
-    <div class="fishing-actions"><button id="cast-start" class="primary">准备抛竿 ↗ · ${CAST_COST} 体力</button><button id="fish-rest">让这只猫休息</button><button id="invite-pepper">邀请 Pepper</button></div>
-    <div id="angling-live" class="scene-console" hidden><div class="bar-heading"><strong id="angling-phase"></strong><span id="angling-status"></span></div><p id="angling-instruction"></p>
-      <div id="angling-bar" class="angling-bar" role="meter" aria-label="钓鱼操作条" aria-valuemin="0" aria-valuemax="100"><span id="angling-green" class="angling-green"></span><i id="angling-cursor" class="angling-cursor"></i></div>
-      <div class="fight-meters"><label>收线 <progress id="fish-progress" max="100" value="0"></progress></label><label>鱼线 <progress id="line-health" max="100" value="100"></progress></label></div>
-      <button id="fish-control" class="primary fish-control" aria-label="钓鱼操作"><span class="reel-icon" aria-hidden="true">◎</span><span id="control-label">按住蓄力，松开抛竿</span></button>
-      <div class="fishing-actions"><button id="fish-pause">暂停</button><button id="fish-cancel">收竿离开</button></div>
-    </div>
-    <details class="bait-shop"><summary>补充鱼饵</summary><div class="fishing-actions"><button data-buy-bait="WORM">买蚯蚓 · ${BAITS.WORM.price} 金币</button><button data-buy-bait="SHRIMP">买虾饵 · ${BAITS.SHRIMP.price} 金币</button></div><p>面包无限供应。星级表示鱼种难度；售价按鱼种固定，重量记录个人最佳。</p></details></section>
-    <section id="river-panel-bag" role="tabpanel" aria-labelledby="river-tab-bag" hidden>
-    <details id="fish-bag" open><summary>鱼篓 <span id="bag-count"></span> · 卖鱼或送给伙伴</summary><p id="fish-tastes"></p><div id="fish-inventory"></div></details>
-    <details id="fish-supply-detail" open><summary>钓获补给与垃圾</summary><p id="fish-supplies"></p><div class="fishing-actions"><button id="use-can">吃罐头 · +${FISHING.supplies.canEnergy} 体力</button><button id="recycle-trash">回收垃圾 · +${FISHING.supplies.trashCoins} 金币</button></div><p class="fishing-clue">0–${FISHING.trash.maxStars} 星鱼局失败时有概率钓到垃圾；主动收竿不会获得。面包饵轻抛可钓到罐头或金币袋。</p></details>
-    </section><section id="river-panel-atlas" role="tabpanel" aria-labelledby="river-tab-atlas" hidden><details id="fish-atlas"><summary>鱼类图鉴 <span id="atlas-count"></span> · 星级、习性与线索</summary><div id="atlas-list" class="atlas-list"></div></details></section><section id="river-panel-chat" role="tabpanel" aria-labelledby="river-tab-chat" hidden><p class="desktop-chat-hint">伙伴就在右侧，和它聊聊今天的收获吧。</p></section></div><p id="fish-result" class="fish-result river-live-result" role="status"></p>`;
+  root.innerHTML = ANGLING_MARKUP;
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T;
   stage.stage.append(get('angling-live'));
@@ -107,34 +91,23 @@ export function mountAngling(
   const direction = get<HTMLInputElement>('fish-direction');
   const depth = get<HTMLInputElement>('fish-depth');
   const control = get<HTMLButtonElement>('fish-control');
-  let pressed = false;
-  let paused = true;
   let detailsKey = '';
+  let aimKey = '';
+  const aimListeners = new Set<() => void>();
   let previousRun: string | undefined;
-  const errors: Partial<Record<ErrorCode, string>> = {
-    CAT_RESTING: '这只猫正在休息，换个伙伴或快进城市时间吧。',
-    CAT_BUSY: '先收好这只猫的鱼竿再休息。',
-    STAMINA_FULL: '这只猫现在体力充足。',
-    SPOT_LOCKED: '这个钓点还没解锁，看看下面的条件。',
-    TRAVEL_REQUIRED: '先在城市地图让这只猫走到水域岸边。',
-    ALREADY_AT_SPOT: '已经在这个钓点了。',
-    LOW_STAMINA: '体力不足，休息一小时再来吧。',
-    NO_BAIT: '鱼饵用完了，可以补充或换成免费面包。',
-    BAG_FULL: '鱼篓满了，卖出或送出几条鱼再来吧。',
-    ALREADY_FISHING: '先完成或收起这一竿。',
-    INSUFFICIENT_COINS: '金币不足，先卖鱼或使用免费面包吧。',
-  };
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
-  ) => notify(result.ok ? success : (errors[result.error] ?? result.error));
+  ) =>
+    notify(
+      result.ok ? success : (FISHING_ERRORS[result.error] ?? result.error),
+    );
   const render = () => {
     const world = session.getSnapshot();
     const f = world.fishing;
     const run = f.active;
     if (run?.id !== previousRun) {
-      paused = true;
-      pressed = false;
+      controls.pause();
       previousRun = run?.id;
       if (run) root.hidden = false;
     }
@@ -251,29 +224,14 @@ export function mountAngling(
       );
     }
     if (run) {
-      const names = {
-        charge: '① 蓄力抛投',
-        waiting: '② 等待咬钩',
-        hook: '③ 绿色区提竿',
-        fight: '④ 控制张力',
-        caught: '钓到了',
-        escaped: '鱼溜走了',
-      };
-      const instructions = {
-        charge: '按住蓄力、松开抛投。绿色区落竿，会让这一竿更容易控制。',
-        waiting: '浮漂动了就准备提竿，现在先松开。',
-        hook: '白色游标进入绿色区间时，按一下！',
-        fight: '按住增加张力，松开降低。跟着绿色区间，收线进度满就能钓上来。',
-        caught: '',
-        escaped: '',
-      };
-      get('angling-phase').textContent = names[run.phase];
-      get('angling-status').textContent = paused
+      get('angling-phase').textContent = BUTTON_PHASE_NAMES[run.phase];
+      get('angling-status').textContent = controls.paused()
         ? '已暂停 · 按操作键继续'
         : run.speciesId && run.phase === 'fight'
           ? `${fishStars(fishById(run.speciesId).stars)} ${fishById(run.speciesId).behavior}`
           : `${run.power}% 力度`;
-      get('angling-instruction').textContent = instructions[run.phase];
+      get('angling-instruction').textContent =
+        BUTTON_PHASE_INSTRUCTIONS[run.phase];
       const zone = greenZone(run);
       const value =
         run.phase === 'fight'
@@ -290,8 +248,8 @@ export function mountAngling(
       get('angling-bar').dataset.high = String(zone.high);
       get<HTMLProgressElement>('fish-progress').value = run.progress;
       get<HTMLProgressElement>('line-health').value = run.lineHealth;
-      control.setAttribute('aria-pressed', String(pressed));
-      get('fish-pause').textContent = paused ? '继续钓鱼' : '暂停';
+      control.setAttribute('aria-pressed', String(controls.pressed()));
+      get('fish-pause').textContent = controls.paused() ? '继续钓鱼' : '暂停';
     }
     stage.render(world, selectedCat.id, (location.value || 'POND') as SpotId);
     layout?.refresh();
@@ -325,10 +283,42 @@ export function mountAngling(
     get('depth-value').textContent = `近 ← ${depth.value}% → 远`;
     get('direction-value').textContent =
       `${Number(direction.value) < 0 ? '左' : '右'} ${Math.abs(Number(direction.value))}°`;
+    const nextAim = JSON.stringify(currentAim());
+    if (nextAim !== aimKey) {
+      aimKey = nextAim;
+      for (const listener of aimListeners) listener();
+    }
   };
+  const currentAim = (): Aim => ({
+    spotId: (location.value || 'POND') as SpotId,
+    direction: Number(direction.value),
+    depth: Number(depth.value),
+  });
+  const aim: AimControl = {
+    get: currentAim,
+    set(next) {
+      if (next.direction !== undefined)
+        direction.value = String(next.direction);
+      if (next.depth !== undefined) depth.value = String(next.depth);
+      render();
+    },
+    subscribe(listener) {
+      aimListeners.add(listener);
+      return () => aimListeners.delete(listener);
+    },
+  };
+  const controls = mountFishingControls({
+    session,
+    place,
+    control,
+    castStart: get<HTMLButtonElement>('cast-start'),
+    toolsOpen: () => layout.isOpen(),
+    rodTip: () => motion.point(),
+    onCastStart: () => begin(),
+    onChange: () => render(),
+  });
   const layout = mountFishingLayout(session, place, () => {
-    paused = true;
-    pressed = false;
+    controls.pause();
     render();
   });
   const collections = mountFishingCollections();
@@ -339,12 +329,8 @@ export function mountAngling(
     getRun: () => session.getSnapshot().fishing.active,
     canPlay: () =>
       place.get() === 'river' && !layout.isOpen() && !document.hidden,
-    isPaused: () => paused,
-    previewAim: (aim) => {
-      direction.value = String(aim);
-      // The same input event a slider drag sends: labels and the preview follow.
-      direction.dispatchEvent(new Event('input'));
-    },
+    isPaused: () => controls.paused(),
+    previewAim: (swingDirection) => aim.set({ direction: swingDirection }),
     // One swing starts and casts a motion run: nothing is spent before it.
     cast: (swingDirection, power) => {
       if (session.getSnapshot().fishing.active) return false;
@@ -372,7 +358,8 @@ export function mountAngling(
         runId: run.id,
         power,
       });
-      paused = !result.ok;
+      if (result.ok) controls.resume();
+      else controls.pause();
       report(result, `甩竿力度 ${power}% · 拿稳鱼竿，等"！"再上扬。`);
       render();
       return result.ok;
@@ -419,22 +406,6 @@ export function mountAngling(
   get('fishing').addEventListener('click', () =>
     enterAtSpot(location.value as SpotId, companion.value),
   );
-  const castStart = get<HTMLButtonElement>('cast-start');
-  let freshCastPress = false;
-  document.addEventListener('pointerdown', (event) => {
-    freshCastPress =
-      event.target instanceof Node && castStart.contains(event.target);
-  });
-  document.addEventListener('pointercancel', () => {
-    freshCastPress = false;
-  });
-  castStart.addEventListener('click', (event) => {
-    // A landing can hide the held reel button before touchend. Its synthesized
-    // click must not activate the newly revealed cast button underneath it.
-    const intentional = event.detail === 0 || freshCastPress;
-    freshCastPress = false;
-    if (intentional) begin();
-  });
   get('travel-to-spot').addEventListener('click', () => {
     const spotId = location.value as SpotId;
     const result = session.execute({
@@ -458,14 +429,13 @@ export function mountAngling(
   get('visit-city').addEventListener('click', () => {
     layout?.close();
     root.hidden = true;
-    paused = true;
-    pressed = false;
+    controls.pause();
     render();
   });
   root.querySelectorAll<HTMLButtonElement>('[data-bait]').forEach((button) =>
     button.addEventListener('click', () => {
       bait.value = button.dataset.bait!;
-      bait.dispatchEvent(new Event('change'));
+      render();
     }),
   );
   direction.addEventListener('input', render);
@@ -518,8 +488,7 @@ export function mountAngling(
       ),
     );
   get('fish-pause').addEventListener('click', () => {
-    paused = !paused;
-    pressed = false;
+    controls.togglePause();
     render();
   });
   get('fish-cancel').addEventListener('click', () => {
@@ -530,87 +499,6 @@ export function mountAngling(
         '收好鱼竿，稍后再来。体力和已用鱼饵不退回。',
       );
   });
-  const down = () => {
-    if (layout?.isOpen()) return;
-    if (session.getSnapshot().fishing.active?.mode === 'buttons') {
-      paused = false;
-      pressed = true;
-      render();
-    }
-  };
-  const up = () => {
-    pressed = false;
-    render();
-  };
-  // Holding the rod button must not open the long-press context menu.
-  control.addEventListener('contextmenu', (event) => event.preventDefault());
-  control.addEventListener('pointerdown', (event) => {
-    event.preventDefault();
-    control.focus({ preventScroll: true });
-    control.setPointerCapture(event.pointerId);
-    down();
-  });
-  control.addEventListener('pointerup', up);
-  control.addEventListener('pointercancel', () => {
-    paused = true;
-    up();
-  });
-  control.addEventListener('lostpointercapture', up);
-  control.addEventListener('keydown', (event) => {
-    if (event.code === 'Space' || event.code === 'Enter') {
-      event.preventDefault();
-      if (!event.repeat) down();
-    }
-  });
-  control.addEventListener('keyup', (event) => {
-    if (event.code === 'Space' || event.code === 'Enter') {
-      event.preventDefault();
-      up();
-    }
-  });
-  window.addEventListener('blur', () => {
-    freshCastPress = false;
-    paused = true;
-    up();
-  });
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      freshCastPress = false;
-      paused = true;
-      up();
-    }
-  });
-  /** Fishing ticks from the current real inputs; false when play is paused. */
-  const tick = (scale: number): boolean => {
-    const run = session.getSnapshot().fishing.active;
-    if (
-      !run ||
-      paused ||
-      document.hidden ||
-      place.get() !== 'river' ||
-      layout?.isOpen()
-    )
-      return false;
-    // Only the bite wait is sped up; hook and fight need a timely player reaction.
-    const ticks = run.phase === 'waiting' ? scale : 1;
-    if (run.mode === 'motion') {
-      if (run.phase === 'charge') return false;
-      const point = motion.point() ?? { x: 50, y: 50 };
-      session.execute({
-        type: 'FISH_MOTION_CONTROL',
-        runId: run.id,
-        ...point,
-        ticks,
-      });
-    } else
-      session.execute({ type: 'FISH_CONTROL', runId: run.id, pressed, ticks });
-    return true;
-  };
-  // Browser time drives ticks; tests may take over the clock like ADVANCE_TIME.
-  let manualClock = false;
-  window.setInterval(() => {
-    if (!manualClock) tick(TIME_SCALE);
-  }, 1000 / FISHING.ticksPerSecond);
   session.subscribe(() => {
     render();
   });
@@ -619,16 +507,7 @@ export function mountAngling(
   return {
     enterAtSpot,
     tools: { close: layout.close, openTalk: layout.openTalk } satisfies Tools,
-    fishingClock: {
-      setManual: (manual: boolean) => {
-        manualClock = manual;
-      },
-      /** Runs the same tick as the interval; returns how many ticks applied. */
-      step: (ticks: number) => {
-        let applied = 0;
-        for (let i = 0; i < ticks; i++) if (tick(1)) applied++;
-        return applied;
-      },
-    },
+    aim,
+    fishingClock: controls.clock,
   };
 }

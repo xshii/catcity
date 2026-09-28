@@ -134,5 +134,10 @@ export function mountPanel(session: GameSession, place: PlaceState) {
     void talk(message);
   });
   render();
-  return { notify, cityActions, fishingClock: angling.fishingClock };
+  return {
+    notify,
+    cityActions,
+    aim: angling.aim,
+    fishingClock: angling.fishingClock,
+  };
 }
