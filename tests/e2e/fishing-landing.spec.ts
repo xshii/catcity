@@ -46,10 +46,11 @@ test('releasing a held touch after landing cannot click through into a second ca
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   try {
-    await page.addInitScript(
-      (save) => localStorage.setItem('cat-city.save.v1', save),
-      landingSave(),
-    );
+    // This phone plays the button flow; without a choice it would be offered motion.
+    await page.addInitScript((save) => {
+      localStorage.setItem('cat-city.save.v1', save);
+      localStorage.setItem('cat-city.fishing-input', 'buttons');
+    }, landingSave());
     await page.goto('http://127.0.0.1:4173');
     await ready(page);
     const before = await readWorld(page);
@@ -87,8 +88,9 @@ test('releasing a held touch after landing cannot click through into a second ca
     // A new, intentional touch still starts exactly one next cast.
     await page.locator('#cast-start').tap();
     expect((await readWorld(page)).fishing.active!.phase).toBe('charge');
+    // Preparing is free; stamina is paid when the cast is released.
     expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
-      landed.cats[0]!.needs.energy - 8,
+      landed.cats[0]!.needs.energy,
     );
     expect(errors).toEqual([]);
   } finally {

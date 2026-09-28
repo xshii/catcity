@@ -62,7 +62,8 @@ export async function productionSmoke(publication: LocalPublication) {
     await page.locator('#cast-start').click();
     const prepared = await fishingResources();
     expect(prepared.active?.phase).toBe('charge');
-    expect(prepared.energy).toBe(arrived.energy - 8);
+    // Preparing is free; stamina is paid when the cast is released.
+    expect(prepared.energy).toBe(arrived.energy);
     expect(prepared.baits).toEqual(arrived.baits);
     await page.locator('#fishing-stage').screenshot({
       path: join(publication.evidence, 'fishing-scene.png'),

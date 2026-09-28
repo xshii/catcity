@@ -78,6 +78,25 @@ export async function fishingClock(page: Page, requestManual = true) {
   };
 }
 
+/** Charge briefly with the keyboard and release: one real cast, which pays its stamina. */
+export async function castOnce(page: Page) {
+  await page.locator('#fish-control').focus();
+  const clock = await fishingClock(page);
+  await page.keyboard.down('Space');
+  await clock.advance(10);
+  await page.keyboard.up('Space');
+  await clock.until(
+    () =>
+      page.evaluate(
+        () =>
+          window.CAT_CITY_DEBUG!.getWorldState().fishing.active?.phase !==
+          'charge',
+      ),
+    4,
+  );
+  await clock.release();
+}
+
 /** Hold/release against the visible tension meter until the fight settles. */
 async function reelIn(
   page: Page,

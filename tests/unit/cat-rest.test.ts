@@ -19,10 +19,10 @@ it('charges only the fishing cat and restores only a resting cat on the shared c
       baitId: 'BREAD',
       direction: 0,
     });
-    world.dispatch({
-      type: 'FISH_CANCEL',
-      runId: world.getSnapshot().fishing.active!.id,
-    });
+    const runId = world.getSnapshot().fishing.active!.id;
+    // Casting is what costs stamina; preparing is free.
+    world.dispatch({ type: 'FISH_CAST', runId, power: 50 });
+    world.dispatch({ type: 'FISH_CANCEL', runId });
   }
   expect(world.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     92, 92,
@@ -92,8 +92,9 @@ it('allows another cat to fish while a companion rests; rejects invalid and dupl
   expect(game.dispatch({ type: 'REST_CAT', catId: pepper.id }).ok).toBe(false);
   expect(game.save()).toBe(fishing);
   advance(game, 60);
+  // Pepper is still preparing: nothing is paid until the cast.
   expect(game.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
-    70, 92,
+    70, 100,
   ]);
   const corrupt = JSON.parse(game.save());
   corrupt.world.cats[0].rest = { startedAt: 0, until: 600 };
@@ -154,8 +155,9 @@ it('keeps fishing input ticks separate from the shared clock and stops recovery 
   });
   expect(world.getSnapshot().cats[0]!.rest).toBeNull();
   advance(world, 60);
+  // Pepper is still charging: nothing is paid until the cast.
   expect(world.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
-    50, 92,
+    50, 100,
   ]);
 });
 
@@ -189,6 +191,7 @@ it('reports energy recovery only when energy actually rises', () => {
     aimDepth: 50,
   });
   const runId = world.getSnapshot().fishing.active!.id;
+  world.dispatch({ type: 'FISH_CAST', runId, power: 50 });
   world.dispatch({ type: 'FISH_CANCEL', runId });
   expect(world.getSnapshot().cats[0]!.needs.energy).toBe(92);
   expect(world.dispatch({ type: 'REST_CAT', catId: 'mochi' }).ok).toBe(true);

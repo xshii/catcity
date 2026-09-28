@@ -21,8 +21,9 @@ it('accepts two-dimensional aim and explicit power while spending energy and bai
     }).ok,
   ).toBe(true);
   const before = world.getSnapshot();
-  expect(before.cats[0]!.needs.energy).toBe(92);
-  expect(before.fishing.baits.WORM).toBe(5);
+  // Preparing is free; the cast pays below.
+  expect(before.cats[0]!.needs.energy).toBe(100);
+  expect(before.fishing.baits.WORM).toBe(6);
   const runId = before.fishing.active!.id;
   expect(world.dispatch({ type: 'FISH_CAST', runId, power: 72 }).ok).toBe(true);
   const after = world.getSnapshot();
@@ -38,7 +39,7 @@ it('accepts two-dimensional aim and explicit power while spending energy and bai
     precision: true,
   });
   expect(after.cats[0]!.needs.energy).toBe(92);
-  expect(after.fishing.baits).toEqual(before.fishing.baits);
+  expect(after.fishing.baits.WORM).toBe(5);
   expect(after.minute).toBe(0);
   expect(after.nextId).toBe(before.nextId);
   const cast = world.save();
