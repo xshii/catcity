@@ -14,7 +14,6 @@ import {
   castAngling,
   initialAngling,
   stepAngling,
-  stepMotionAngling,
   type AnglingRun,
 } from '../../minigames/angling';
 import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
@@ -256,11 +255,7 @@ function advanceRun(
     if (run.phase === 'charge') throw new CommandError('CAST_NOT_READY');
     return stepMotionRun(run, { x: command.x, y: command.y }, command.ticks);
   }
-  if (command.type === 'FISH_STRIKE')
+  if (command.type !== 'FISH_CONTROL')
     throw new CommandError('WRONG_INPUT_MODE');
-  if (command.type === 'FISH_MOTION_CONTROL') {
-    if (run.phase !== 'hook') throw new CommandError('MOTION_NOT_READY');
-    return stepMotionAngling(run, command.x, command.y, command.ticks);
-  }
   return stepAngling(run, command.pressed, command.ticks);
 }

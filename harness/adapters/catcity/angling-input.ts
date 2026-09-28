@@ -79,7 +79,7 @@ export async function fishingClock(page: Page, requestManual = true) {
 }
 
 /** Hold/release against the visible tension meter until the fight settles. */
-export async function reelIn(
+async function reelIn(
   page: Page,
   clock: Awaited<ReturnType<typeof fishingClock>>,
   hold: (next: boolean) => Promise<void>,

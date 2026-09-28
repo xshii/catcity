@@ -39,7 +39,6 @@ const anglingSchema = z.strictObject({
   phase: z.enum(['charge', 'waiting', 'hook', 'fight', 'caught', 'escaped']),
   tick: count,
   phaseTick: count,
-  motionStableTicks: count.max(15),
   power: pct,
   cursor: pct,
   pressed: z.boolean(),

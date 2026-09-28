@@ -11,7 +11,6 @@ import { failureTrash } from './rewards';
 import {
   castAngling,
   initialAngling,
-  motionTarget,
   type AnglingRun,
 } from '../../minigames/angling';
 import { runSeed } from '../random';
@@ -113,14 +112,9 @@ export function assertFishing(
       run.strike !== 'none' ||
       run.spooked ||
       run.hold !== 0 ||
-      (run.phase === 'hook'
-        ? run.phaseTick >= FISHING.hook.deadlineTicks ||
-          run.motionStableTicks >= motionTarget(run).holdTicks ||
-          run.motionStableTicks > run.phaseTick ||
-          (run.motionStableTicks > 0 && run.pressed)
-        : run.motionStableTicks !== 0)
+      (run.phase === 'hook' && run.phaseTick >= FISHING.hook.deadlineTicks)
     )
-      throw new Error('Invalid motion hook state');
+      throw new Error('Invalid button fishing state');
   }
 
   const result = f.lastResult;
@@ -215,7 +209,6 @@ function assertMotionRun(run: AnglingRun): void {
   const bounds = motionBounds(run);
   const fight = run.phase === 'fight';
   if (
-    run.motionStableTicks !== 0 ||
     run.pressed ||
     (fight ? run.strike === 'none' : run.strike !== 'none' || run.hold !== 0) ||
     (run.phase === 'waiting' && run.phaseTick >= bounds.bite) ||

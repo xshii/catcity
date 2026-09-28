@@ -1,0 +1,105 @@
+/* Motion fishing overlay: a square water plane over the river canvas. */
+#motion-fishing {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  aspect-ratio: 1;
+  max-width: 100%;
+  max-height: 100%;
+  pointer-events: none;
+  touch-action: none;
+}
+#motion-fishing[data-phase='fight'] {
+  pointer-events: auto;
+}
+.motion-fishing-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 253, 244, 0.92);
+  color: #45613f;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#motion-fishing.nibble .motion-fishing-hint {
+  animation: motion-nibble 0.3s ease-in-out;
+}
+.motion-bite {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(72px, 30vmin, 180px);
+  line-height: 1;
+  color: #d9644c;
+  text-shadow: 0 2px 0 #fff;
+}
+.motion-ring {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 6px solid #d9644c;
+  box-shadow: 0 0 0 3px #e9c46a;
+  transition: border-color 0.15s;
+}
+.motion-ring.inside {
+  border-color: #5f9c5a;
+}
+.motion-tip {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fffdf4;
+  border: 4px solid #45613f;
+  box-shadow: 0 2px 6px rgba(40, 60, 40, 0.35);
+}
+.motion-hold {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 4%;
+  width: 80%;
+}
+.motion-onboarding {
+  position: absolute;
+  inset: auto 12px 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #fffdf4;
+  box-shadow: 0 6px 20px rgba(60, 80, 50, 0.18);
+  display: grid;
+  gap: 8px;
+}
+.motion-onboarding p {
+  margin: 0;
+  font-size: 13px;
+  color: #45613f;
+}
+@keyframes motion-nibble {
+  50% {
+    transform: translateX(-50%) translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #motion-fishing.nibble .motion-fishing-hint {
+    animation: none;
+  }
+}
+
+/* Motion play: only pause/cancel remain below the river, so the canvas grows. */
+.game-screen.motion-play #fishing-stage.is-river #game {
+  bottom: 64px;
+}
+.scene-console[data-mode='motion'] #angling-bar,
+.scene-console[data-mode='motion'] .fight-meters,
+.scene-console[data-mode='motion'] #fish-control,
+.scene-console[data-mode='motion'] #angling-instruction {
+  display: none;
+}
