@@ -7,7 +7,11 @@ import {
 } from '../../content/fishing';
 import type { WorldState } from '../schema';
 import { failureTrash } from './rewards';
-import { motionTarget } from '../../minigames/angling';
+import {
+  castAngling,
+  initialAngling,
+  motionTarget,
+} from '../../minigames/angling';
 import { runSeed } from '../random';
 
 const serialOf = (runId: string) => Number(runId.slice('angling-'.length));
@@ -88,6 +92,18 @@ export function assertFishing(
       assertCatch(run);
       if (run.speciesId && !canCatchFish(run.speciesId, run.catBreed))
         throw new Error('Invalid breed encounter');
+      // The encounter follows from the saved seed and cast inputs; a save cannot pick it.
+      const expected = castAngling(initialAngling(run), run.power);
+      for (const key of [
+        'speciesId',
+        'catchKind',
+        'lootAmount',
+        'weight',
+        'lengthMm',
+        'precision',
+      ] as const)
+        if (expected[key] !== run[key])
+          throw new Error('Invalid fishing encounter');
     }
     if (
       run.phase === 'hook'

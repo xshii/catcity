@@ -60,7 +60,7 @@ export function mountPanel(session: GameSession, place: PlaceState) {
       get('traits').textContent = model.cat.personalityLabel;
     }
     get('save-recovery').hidden = !session.storageError;
-    get('reset-demo').hidden = !session.storageError;
+    get('reset-demo').hidden = !session.saveRejected;
     get('storage-error').hidden = !session.storageError;
     get('storage-error').textContent = session.storageError ?? '';
   };

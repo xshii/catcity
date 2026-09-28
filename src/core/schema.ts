@@ -1,5 +1,9 @@
 import { CITY_START } from '../content/city';
-import { CAT_DEFINITION_IDS, STARTER_CAT_ID } from '../content/cats';
+import {
+  CAT_DEFINITION_IDS,
+  CAT_DEFINITIONS,
+  STARTER_CAT_ID,
+} from '../content/cats';
 import {
   MAX_BUILDINGS,
   MAX_CATS,
@@ -135,6 +139,7 @@ export function assertWorld(value: unknown): WorldState {
       throw new Error('Invalid income clock');
   }
   for (const cat of world.cats) {
+    assertTemplate(cat, world.cats);
     if (
       cat.rest &&
       (cat.rest.startedAt > world.minute ||
@@ -160,4 +165,27 @@ export function assertWorld(value: unknown): WorldState {
   assertCity(world);
   assertFishing(world, uniqueId);
   return world;
+}
+
+const sameList = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((item, index) => item === b[index]);
+
+/** Identity and tastes come from the template; only the name is free text. */
+function assertTemplate(cat: CatEntity, cats: readonly CatEntity[]) {
+  const definition = CAT_DEFINITIONS[cat.definitionId];
+  if (
+    cat.breedId !== definition.breedId ||
+    cat.appearance.coat !== definition.coat ||
+    !sameList(cat.personality, definition.personality) ||
+    !sameList(cat.traits, definition.traits) ||
+    !sameList(cat.preferences.likes, definition.likes) ||
+    !sameList(cat.preferences.dislikes, definition.dislikes) ||
+    !sameList(cat.favoriteFish, definition.favoriteFish)
+  )
+    throw new Error('Cat does not match its template');
+  if (
+    definition.unique &&
+    cats.filter((other) => other.definitionId === cat.definitionId).length > 1
+  )
+    throw new Error('Duplicate unique resident');
 }

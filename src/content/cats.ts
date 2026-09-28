@@ -21,6 +21,8 @@ export const CAT_DEFINITIONS: Record<
     likes: readonly string[];
     dislikes: readonly string[];
     favoriteFish: readonly FishId[];
+    /** At most one resident of this template (debug spawns may copy Mochi). */
+    unique: boolean;
   }
 > = {
   MOCHI: {
@@ -33,6 +35,7 @@ export const CAT_DEFINITIONS: Record<
     likes: ['fish', 'quiet', 'windows'],
     dislikes: ['noise', 'crowds'],
     favoriteFish: ['SILVER', 'CRUCIAN'],
+    unique: false,
   },
   PEPPER: {
     breedId: 'BRITISH_SHORTHAIR',
@@ -44,6 +47,7 @@ export const CAT_DEFINITIONS: Record<
     likes: ['fish', 'exploring'],
     dislikes: ['waiting'],
     favoriteFish: ['PERCH', 'CATFISH'],
+    unique: true,
   },
 };
 
