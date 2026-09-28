@@ -1,0 +1,734 @@
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+body {
+  overflow: hidden;
+}
+.game-screen.shell {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  height: 100dvh;
+  margin: auto;
+  padding: 10px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.game-screen .topbar {
+  flex: 0 0 35px;
+  min-height: 35px;
+  padding: 0 0 7px;
+}
+.game-screen .brand {
+  font-size: 18px;
+  gap: 10px;
+}
+.game-screen .brand-mark {
+  width: 28px;
+  height: 28px;
+  font-size: 20px;
+}
+.game-screen .brand small,
+.game-screen .intro,
+.game-screen footer,
+.game-screen .city-tools,
+.game-screen .map-footer,
+.game-screen .clock-actions,
+.game-screen .river-clock {
+  display: none;
+}
+.game-screen .top-actions #save {
+  min-height: 30px;
+  padding: 6px 13px;
+  font-size: 10px;
+}
+.game-screen .layout {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: stretch;
+}
+.game-screen .map-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+.game-screen .map-heading {
+  flex: 0 0 42px;
+  min-height: 42px;
+  padding: 5px 12px;
+  gap: 8px;
+}
+.game-screen .scene-tabs {
+  padding: 3px;
+}
+.game-screen .scene-tabs button {
+  padding: 5px 14px;
+  font-size: 11px;
+}
+.river-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+}
+#river-coins {
+  color: #9b7d43;
+  white-space: nowrap;
+}
+.game-screen #notice {
+  flex: 0 0 auto;
+  margin: 0;
+  min-height: 15px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.game-screen #save-recovery:not([hidden]) {
+  position: absolute;
+  top: 55px;
+  left: 12px;
+  right: 12px;
+  z-index: 45;
+  box-shadow: 0 10px 40px #344b432b;
+}
+.game-screen #river-roster {
+  flex: 0 0 auto;
+  padding: 3px 10px 7px;
+}
+.game-screen .cat-energy-cards {
+  gap: 6px;
+  padding: 2px;
+  overflow: visible;
+}
+.game-screen .energy-cat {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  gap: 7px;
+  padding: 5px 9px;
+  border-radius: 11px;
+}
+.game-screen .energy-cat svg {
+  width: 30px;
+}
+.game-screen .energy-cat strong {
+  font-size: 12px;
+}
+.game-screen .energy-cat small {
+  font-size: 9px;
+  margin-top: 1px;
+}
+.game-screen .energy-cat progress {
+  height: 5px;
+  margin-top: 3px;
+}
+.game-screen .cat-rest-actions {
+  margin-top: 5px;
+  gap: 5px;
+}
+.game-screen .cat-rest-actions button {
+  flex: 1;
+  min-height: 30px;
+  padding: 5px;
+  font-size: 10px;
+}
+.game-screen .cat-rest-actions #invite-pepper {
+  flex: 0 0 auto;
+}
+.game-screen #fishing-stage,
+.game-screen #fishing-stage.is-river,
+.game-screen #fishing-stage.is-river[data-phase='ready'] {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.game-screen #game {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  aspect-ratio: auto;
+}
+.game-screen #fishing-stage.is-river #game {
+  bottom: 196px;
+  height: auto;
+}
+.game-screen .river-caption {
+  top: 7px;
+  left: 12px;
+}
+.game-screen .river-caption .eyebrow,
+.game-screen .river-caption p {
+  display: none;
+}
+.game-screen .river-caption h2 {
+  margin: 0;
+  font-size: 13px;
+  background: #ecf1dfc9;
+  padding: 5px 8px;
+  border-radius: 9px;
+}
+.game-screen .scene-ready {
+  left: 12%;
+  right: 12%;
+  bottom: 50px;
+}
+.game-screen .scene-ready .primary {
+  min-height: 44px;
+  padding: 11px;
+  font-size: 12px;
+}
+.game-screen #angling-live.scene-console {
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  margin: 0;
+  height: 182px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+.game-screen .scene-console .bar-heading {
+  font-size: 11px;
+  line-height: 16px;
+  flex-wrap: nowrap;
+}
+.game-screen .scene-console #angling-status {
+  font-size: 9px;
+}
+.game-screen .scene-console #angling-instruction {
+  display: none;
+}
+.game-screen .scene-console .angling-bar {
+  height: 22px;
+  margin: 10px 4px;
+}
+.game-screen .scene-console .fight-meters {
+  display: flex;
+  height: 24px;
+  margin: 2px 0;
+  font-size: 9px;
+}
+.game-screen #fishing-stage[data-phase='waiting'] .fight-meters,
+.game-screen #fishing-stage[data-phase='charge'] .fight-meters,
+.game-screen #fishing-stage[data-phase='hook'] .fight-meters {
+  display: flex;
+  visibility: hidden;
+}
+.game-screen .scene-console progress {
+  height: 5px;
+  margin-top: 3px;
+}
+.game-screen .scene-console .fish-control {
+  min-height: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 8px;
+  font-size: 13px;
+}
+.game-screen .scene-console .reel-icon {
+  font-size: 27px;
+}
+.game-screen .scene-console .fishing-actions {
+  margin: 5px 0 0;
+  gap: 16px;
+}
+.game-screen .scene-console .fishing-actions button {
+  min-height: 25px;
+  padding: 4px 9px;
+  font-size: 10px;
+}
+.game-screen .catch-reveal {
+  top: 9%;
+  left: 25%;
+  width: 50%;
+  padding: 12px;
+  border-radius: 14px;
+}
+.game-screen .catch-reveal svg {
+  width: 120px;
+  height: 64px;
+}
+.game-screen .catch-reveal strong {
+  font-size: 14px;
+  margin: 3px 0 6px;
+}
+.game-screen .catch-reveal span,
+.game-screen .catch-reveal small {
+  font-size: 10px;
+}
+.game-screen .catch-reveal .loot-art {
+  font-size: 36px;
+  padding: 4px;
+}
+.game-screen .angling {
+  position: static;
+  flex: 0 0 auto;
+  padding: 0;
+}
+.scene-tools-nav {
+  position: relative;
+  z-index: 32;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 5px 8px max(5px, env(safe-area-inset-bottom));
+  gap: 5px;
+  background: #f7f6e9;
+  border-top: 1px solid #dce3cf;
+}
+.game-screen .scene-tools-nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 5px;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+}
+.scene-tools-nav button > span {
+  font-size: 22px;
+  line-height: 1;
+}
+.scene-tools-nav button[aria-selected='true'] {
+  color: #3e603b;
+  background: #e1eacf;
+  box-shadow: inset 0 0 0 1px #cad8b5;
+}
+.game-screen #river-tools {
+  position: absolute;
+  z-index: 31;
+  inset: 45px 10px 64px;
+  padding: 0 16px 12px;
+  border: 1px solid #cad6ba;
+  border-radius: 15px;
+  background: #faf9ef;
+  box-shadow: 0 8px 40px #304b392b;
+}
+.river-tools-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  height: 47px;
+  border-bottom: 1px solid #e0e5d2;
+}
+.game-screen .river-tools-heading h2 {
+  font-size: 17px;
+  margin: 0;
+}
+.game-screen .river-tools-heading #river-tools-close {
+  min-height: 31px;
+  padding: 6px 10px;
+  font-size: 10px;
+}
+#river-tools > [role='tabpanel'] {
+  height: calc(100% - 47px);
+  min-height: 0;
+}
+.tool-subtabs {
+  display: flex;
+  gap: 5px;
+  padding: 10px 0;
+}
+.game-screen .tool-subtabs button {
+  flex: 1;
+  min-height: 32px;
+  padding: 6px;
+  font-size: 11px;
+}
+.tool-subtabs button[aria-selected='true'] {
+  background: #e0e9ce;
+  color: #46623d;
+  border-color: #a9be90;
+}
+.tool-page {
+  min-height: 0;
+}
+.game-screen .angling-title {
+  justify-content: flex-end;
+}
+.game-screen .angling-title > div {
+  display: none;
+}
+.game-screen #fishing-level {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+.game-screen .fishing-prep {
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.game-screen .fishing-prep .bait-select {
+  grid-column: 1 / -1;
+}
+.game-screen .fishing-prep label,
+.game-screen .direction-label {
+  font-size: 11px;
+}
+.game-screen .fishing-prep select {
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 6px;
+}
+.game-screen .direction-label {
+  margin-top: 9px;
+}
+.game-screen .direction-label input {
+  min-height: 28px;
+}
+.travel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  margin-top: 10px;
+}
+.travel-controls span {
+  font-size: 10px;
+  line-height: 1.5;
+}
+.game-screen .travel-controls button {
+  flex-shrink: 0;
+  min-height: 32px;
+  font-size: 10px;
+  padding: 6px 9px;
+}
+.game-screen .bait-tray {
+  margin: 4px 0 12px;
+}
+.game-screen .bait-tray button {
+  min-height: 41px;
+  padding: 5px;
+  font-size: 11px;
+}
+.game-screen .bait-tray small {
+  font-size: 8px;
+}
+.game-screen #fishing-resources,
+.game-screen .fishing-clue,
+.game-screen .spot-unlocks,
+.game-screen #fish-tastes {
+  font-size: 11px;
+  line-height: 1.65;
+  margin: 9px 0;
+}
+.game-screen .angling details {
+  padding: 9px 0;
+}
+.game-screen .angling summary {
+  font-size: 12px;
+}
+.game-screen .angling details > p {
+  font-size: 11px;
+  line-height: 1.7;
+}
+.game-screen .fishing-actions:empty {
+  display: none;
+}
+.game-screen .river-live-result {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+#river-tools-shade {
+  display: none;
+}
+.desktop-chat-hint {
+  color: #728268;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.game-screen aside {
+  display: block;
+  min-height: 0;
+}
+.game-screen .cat-card {
+  padding: 17px;
+}
+.game-screen .cat-card > .eyebrow,
+.game-screen .cat-card > .activity-note,
+.game-screen #reunion,
+.game-screen #bond {
+  display: none;
+}
+.game-screen .cat-heading {
+  gap: 10px;
+}
+.game-screen .cat-avatar {
+  width: 44px;
+  height: 44px;
+}
+.game-screen .cat-avatar svg {
+  width: 40px;
+}
+.game-screen .cat-heading h2 {
+  font-size: 17px;
+}
+.game-screen .cat-heading .pill {
+  font-size: 10px;
+  margin-top: 3px;
+}
+.game-screen .traits {
+  margin: 10px 0;
+  font-size: 10px;
+}
+.game-screen .speech {
+  min-height: 58px;
+  margin: 8px 0;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.game-screen .quick-talk {
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.game-screen .quick-talk button {
+  min-height: 28px;
+  font-size: 9px;
+  padding: 5px 7px;
+}
+.game-screen #dialogue-form label {
+  font-size: 11px;
+}
+.game-screen #message {
+  min-height: 37px;
+  padding: 9px;
+  font-size: 11px;
+}
+.game-screen #send {
+  min-height: 37px;
+}
+.game-screen #fishing {
+  min-height: 36px;
+  padding: 9px;
+  margin-top: 11px;
+  font-size: 11px;
+}
+.reply-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0 7px;
+  font-size: 10px;
+}
+.game-screen .reply-pages button {
+  min-height: 25px;
+  padding: 3px 9px;
+}
+.game-screen #chat-page-memory .journal {
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.game-screen .journal-heading .eyebrow {
+  font-size: 9px;
+  margin: 3px 0 9px;
+}
+.game-screen .journal h2 {
+  font-size: 16px;
+}
+.game-screen #memory-card {
+  transform: none;
+}
+.game-screen .memory-art {
+  height: 58px;
+  padding: 6px 12px;
+}
+.game-screen #memory-date,
+.game-screen #memory-caption {
+  font-size: 10px;
+}
+.game-screen #memory-fact {
+  font-size: 12px;
+}
+.game-screen .city-guide {
+  flex: 0 0 auto;
+  margin: 0 10px 5px;
+  padding: 9px 11px;
+  border-radius: 10px;
+}
+.game-screen .city-steps {
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.game-screen .city-steps li {
+  font-size: 9px;
+}
+.game-screen .city-guide h2 {
+  font-size: 13px;
+  margin: 0;
+}
+.game-screen .city-guide p {
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 4px 0;
+}
+.game-screen .city-guide .primary {
+  min-height: 33px;
+  margin-top: 5px;
+  padding: 8px;
+  font-size: 11px;
+}
+.game-screen .city-guide .cafe-income {
+  font-size: 9px;
+}
+#city-clock-actions {
+  padding: 0 10px 4px;
+  text-align: right;
+}
+.game-screen #city-clock-actions .rest {
+  min-height: 27px;
+  width: auto;
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 10px;
+}
+.river-screen #city-clock-actions {
+  display: none;
+}
+@media (max-width: 760px) {
+  .game-screen #message,
+  .game-screen .fishing-prep select,
+  .game-screen .atlas-picker select {
+    font-size: 16px;
+  }
+  .game-screen.shell {
+    padding: 7px 8px;
+    gap: 6px;
+  }
+  .game-screen .offline {
+    display: none;
+  }
+  .game-screen .layout {
+    display: flex;
+  }
+  .game-screen .map-card {
+    width: 100%;
+  }
+  .game-screen aside {
+    display: none;
+  }
+  .game-screen .map-heading {
+    padding: 4px 8px;
+  }
+  .game-screen .scene-tabs button {
+    padding: 5px 11px;
+  }
+  .game-screen .river-status {
+    font-size: 9px;
+    gap: 7px;
+  }
+  .game-screen .scene-tools-nav button {
+    flex-direction: column;
+    gap: 0;
+    min-height: 40px;
+    font-size: 9px;
+  }
+  .game-screen #river-tools {
+    position: fixed;
+    top: 49px;
+    left: 8px;
+    right: 8px;
+    bottom: calc(83px + env(safe-area-inset-bottom));
+    padding: 0 12px 10px;
+  }
+  #river-tools-shade:not([hidden]) {
+    display: block;
+    position: fixed;
+    z-index: 30;
+    inset: 0;
+    border: none;
+    border-radius: 0;
+    background: #314b454f;
+  }
+  #chat-page-talk .cat-card {
+    border: 0;
+    box-shadow: none;
+    padding: 5px 0 0;
+    background: transparent;
+  }
+  #chat-page-talk .desktop-chat-hint {
+    display: none;
+  }
+  .game-screen .catch-reveal {
+    left: 20%;
+    width: 60%;
+  }
+}
+@media (max-height: 700px) {
+  .game-screen .cat-rest-actions button {
+    font-size: 9px;
+  }
+  .game-screen .energy-cat svg {
+    width: 26px;
+  }
+  .game-screen .energy-cat small {
+    font-size: 8px;
+  }
+  .game-screen .scene-console .bar-heading {
+    font-size: 10px;
+  }
+  .game-screen .city-guide {
+    padding: 7px 10px;
+  }
+  .game-screen .city-guide p {
+    font-size: 9px;
+  }
+  .game-screen .tool-subtabs {
+    padding: 7px 0;
+  }
+  .game-screen .speech {
+    min-height: 45px;
+    padding: 9px;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+  .game-screen .cat-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  .game-screen .cat-avatar svg {
+    width: 34px;
+  }
+  .game-screen .traits {
+    margin: 7px 0;
+  }
+  .game-screen .bait-tray {
+    margin-bottom: 8px;
+  }
+}
+
+.game-screen #city-panel-build .city-guide {
+  margin: 12px 0;
+}
+#city-panel-build,
+#city-panel-cats {
+  display: flow-root;
+}
+.game-screen #city-panel-cats #river-roster {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 12px;
+}

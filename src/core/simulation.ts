@@ -1,34 +1,8 @@
-import { CAT_CAFE } from '../content/definitions';
+import { BUILDINGS } from '../content/city';
 import { GameClock } from './clock';
 import type { GameEvent } from './commands';
-import { RandomService } from './random';
-import type { Position, WorldState } from './schema';
-
-export function isAvailable(
-  world: WorldState,
-  position: Position,
-  excludingCat?: string,
-): boolean {
-  const { x, y } = position;
-  return (
-    x >= 0 &&
-    y >= 0 &&
-    x < world.map.width &&
-    y < world.map.height &&
-    !world.buildings.some(
-      (item) => item.position.x === x && item.position.y === y,
-    ) &&
-    !world.cats.some(
-      (item) =>
-        item.id !== excludingCat &&
-        item.position.x === x &&
-        item.position.y === y,
-    )
-  );
-}
-
-const distance = (a: Position, b: Position) =>
-  Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+import type { WorldState } from './schema';
+import { advanceWalking, resumeWalk } from './city/walking';
 
 export function simulate(
   world: WorldState,
@@ -36,53 +10,48 @@ export function simulate(
   events: GameEvent[],
 ): void {
   const clock = new GameClock(world.minute);
-  const rng = new RandomService(world.rngState);
   clock.advance(minutes, (minute) => {
     world.minute = minute;
     for (const building of world.buildings) {
+      const definition = BUILDINGS[building.type];
       building.incomeProgress++;
-      if (building.incomeProgress === CAT_CAFE.intervalMinutes) {
+      if (building.incomeProgress === definition.intervalMinutes) {
         building.incomeProgress = 0;
-        world.coins += CAT_CAFE.income;
-        events.push({
-          type: 'IncomeGenerated',
-          minute,
-          entityId: building.id,
-          amount: CAT_CAFE.income,
-        });
+        if (definition.income) {
+          world.coins += definition.income;
+          events.push({
+            type: 'IncomeGenerated',
+            minute,
+            entityId: building.id,
+            amount: definition.income,
+          });
+        }
       }
     }
-    if (minute % 10 !== 0) return;
     for (const cat of world.cats) {
-      const { x, y } = cat.position;
-      let candidates = [
-        { x, y: y - 1 },
-        { x: x + 1, y },
-        { x, y: y + 1 },
-        { x: x - 1, y },
-        { x, y },
-      ].filter((position) => isAvailable(world, position, cat.id));
-      const cafe = world.buildings[0];
-      if (cafe) {
-        const currentDistance = distance(cat.position, cafe.position);
-        const preferred = candidates.filter(
-          (position) =>
-            distance(position, cafe.position) <=
-            Math.max(2, currentDistance - 1),
+      if (!cat.rest) continue;
+      if ((minute - cat.rest.startedAt) % 10 === 0) {
+        const home = world.buildings.find(
+          (building) =>
+            building.id === cat.home && building.type === 'CAT_APARTMENT',
         );
-        if (preferred.length) candidates = preferred;
+        const nearHome =
+          home &&
+          Math.abs(cat.position.x - home.position.x) +
+            Math.abs(cat.position.y - home.position.y) ===
+            1;
+        cat.needs.energy = Math.min(
+          100,
+          cat.needs.energy + (nearHome ? 10 : 5),
+        );
+        events.push({ type: 'EnergyRecovered', minute, entityId: cat.id });
       }
-      const target = candidates[rng.nextInt(candidates.length)]!;
-      cat.currentActivity =
-        target.x === x && target.y === y ? 'resting' : 'wandering';
-      cat.position = target;
-      events.push({
-        type: 'CatMoved',
-        minute,
-        entityId: cat.id,
-        reason: cafe ? 'near-cafe' : 'exploring',
-      });
+      if (minute === cat.rest.until) {
+        cat.rest = null;
+        events.push({ type: 'CatRestFinished', minute, entityId: cat.id });
+        resumeWalk(world, cat);
+      }
     }
+    advanceWalking(world, events);
   });
-  world.rngState = rng.state;
 }

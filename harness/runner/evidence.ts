@@ -14,6 +14,7 @@ export async function sourceIdentity() {
     'dist-test',
     'test-results',
     'playwright-report',
+    'coverage',
   ]);
   async function visit(directory: string) {
     const entries = await readdir(directory, { withFileTypes: true });

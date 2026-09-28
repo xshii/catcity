@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { loadWorld } from '../../../src/core/world';
-import type { ReplayRecord } from '../../../src/application/session';
+import { loadWorld } from '../../../src/core';
+import type { ReplayRecord } from '../../../src/application';
 
 export function replayWorld(record: ReplayRecord) {
   assert.equal(record.version, 1, 'Unsupported replay version');

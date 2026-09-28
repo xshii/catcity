@@ -1,9 +1,33 @@
-# AI and offline providers
+# AI 与离线路径
 
-Game Core is truth. AI is optional expression.
+情感交流是产品核心；AI 是可选的表达增强。没有网络、API Key、可用服务或玩家关闭 AI 时，规则模式必须能完成同一关系与经营循环。
 
-World snapshot → limited DialogueContext → DialogueProvider → unknown proposal → runtime validator → Interact command → Core validation → state.
+## 当前调用边界
 
-M0 implements RuleBasedDialogueProvider and MockDialogueProvider only. A proposal contains the intended cat ID and bounded dialogue text. It cannot specify money, bond amounts, memory writes or arbitrary actions. Application handles rejection, timeout and fallback. Player text is bounded and treated as data; displayed via textContent.
+World 快照 → 有限 `DialogueContext` → `DialogueProvider` → 未知提案 → 运行时校验 → `INTERACT` 命令 → Core 再校验并更新状态。
 
-Core derives memory and bond effects from game rules, independent of provider wording. Future external providers must add cancellation, disclosure/consent, privacy limits and captured validated outputs for reproducible playback before enabling network traffic. Gameplay RNG is never supplied to generative providers.
+当前只有 `RuleBasedDialogueProvider` 与 `MockDialogueProvider`，没有真实模型、SDK 或网络调用。对话端口定义在 `application/ports.ts`，具体主 Provider 与 fallback 由装配入口注入，Application 不创建具体实现。Application 负责超时、无效提案、目标错误和异常的回退；世界重置后旧异步回答不能落入新世界。Provider 接收上下文副本，不持有世界引用。
+
+上下文明确提供猫的身份/个性/偏好、玩家文本、近期聊天、首钓记忆、最近赠鱼和鱼类喜好。没有某项经历时使用 `null`，不从玩家陈述、聊天文本或缺省字段推断出活动事实。
+
+提案仅允许目标 catId 与有界文本，不能指定奖励、资源、亲密增量或任意行动。文本通过 `textContent` 展示。聊天写入对话记录；关系变化由 Core 规则派生，文字不能变成鱼获或共同活动证明。
+
+## 记忆权限
+
+| 信息                         | 当前来源与权限                                            |
+| ---------------------------- | --------------------------------------------------------- |
+| 身份、品种、位置、需求、资源 | Core 定义/实例与验证后的命令；Provider 只读               |
+| 第一条共同钓获               | Core 记录参与猫、鱼种、水域、分钟和 runId，独立于聊天窗口 |
+| 最近赠鱼                     | Core 记录实际鱼种、时间、是否符合该猫喜好                 |
+| 最近聊天                     | 每猫最多 50 条；仅代表说过什么，不证明说到的行动发生过    |
+| 玩家个人偏好笔记             | 尚未实现；需明确同意、可查看/修改/删除及角色可见范围      |
+
+规则回应优先回答明确提及的赠鱼，普通回忆引用首钓或已有赠鱼；不同猫不能读取彼此私有经历。记忆卡片直接展示结构化事实。更多生活与长期记忆需求见[路线图](roadmap.md)。
+
+## 真实 AI 接入的前置条件
+
+结构校验不能证明任意生成文字为真。接入时须评测错记、串猫、虚构活动及个性漂移，保留事实模板和规则兜底。仅在玩家互动或有限事件触发时请求，不为所有猫每帧调用模型。
+
+新增 Provider 应有取消、超时、同意与数据最小化、延迟/错误/用量观测，以及已验证输出和事实引用的回放记录。游戏 RNG 不交给生成服务。聊天可用性和世界决定不能依赖模型响应。
+
+自动测试和共享证据只使用合成对话；真实玩家聊天不进入 CI 产物。个人记忆与外部服务的数据保留策略必须在上线前明确。验收包含无 AI、服务失败、非法提案、错误目标和陈述不改变事实，见[测试策略](testing.md)。

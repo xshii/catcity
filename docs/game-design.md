@@ -1,13 +1,40 @@
-# Milestone 0 rules
+# 需求与核心玩法
 
-- A new world has a 10×10 map, 1000 integer coins and Mochi at (5, 5).
-- One 1×1 Cat Cafe costs 300 coins. Placement must be within the map, unoccupied by a building or cat, and affordable. Only one cafe is allowed in M0.
-- Each cafe earns 10 coins per 60 simulation minutes since its construction, retaining partial progress in its instance.
-- Simulation time is integer minutes. Every ten minutes Mochi considers a legal neighboring tile, preferring distance ≤2 from the cafe when present. Stable candidate order plus seeded RNG determines movement.
-- The browser advances one game minute per real second while visible. Hidden/background time earns nothing in M0. Tests control simulation time directly.
-- Mochi is shy, food-loving and slow to warm up; likes fish, quiet and windows. Mood, needs, appearance, traits, preferences, player bond and structured memories persist.
-- Talking records a bounded structured interaction memory and increases bond by one at most once per simulation hour. Text alone cannot grant coins, items or other effects.
-- Last 50 memories are retained in M0. Long-term summarization/archival is deferred and must be designed before expanding story content.
-- Save after successful changes and on explicit Save. Reload restores exact saved state. Corrupt saves are preserved and require user action to replace outside M0.
+产品定位见[愿景](vision.md)。本文件区分当前可玩范围与长期需求；具体数值只在对应玩法文档维护。
 
-No offline earnings, needs decay, relationships simulation, construction queues, mini-games or real AI providers are implemented in M0. Home/routine/relationship fields reserve simple data only.
+## 相互支持的两个循环
+
+关系循环：认识一只猫 → 交流或陪伴 → 共同活动 → 形成可信记忆 → 再次相遇时得到具体回应。
+
+经营循环：活动与营业获得资源 → 购买土地、建设和改善道路 → 居民有地方生活 → 发现新水域与收藏 → 继续经营。
+
+玩家可以连续玩小游戏、建设、聊天或观察，不要求每局输入一段文字。金币和聊天次数不直接等于感情。主线只教操作，每次新增设施配少量提示，避免复杂剧情与强制日常。
+
+## 当前可玩范围
+
+| 范围       | 玩家能力与状态                                                                                       |
+| ---------- | ---------------------------------------------------------------------------------------------------- |
+| 城市       | 种子生成的 10×10 地图、初始 1000 金币；购买土地，建造/搬移多座猫咖和公寓，铺土路、升级石路、安排住所 |
+| 居民       | Mochi（布偶）与可邀请的 Pepper（英短）；独立坐标、体力、休息、品种、喜好和记忆                       |
+| 移动       | 选择猫并指定目的地；按道路耗时逐格步行、逐格扣体力；水域是真实地图区域，猫到岸才可钓鱼               |
+| 钓鱼       | 蓄力、两轴预瞄、鱼饵、绿区提竿、张力控制；八种鱼覆盖 0–5 星，四处逐步解锁的水域                      |
+| 收集与经营 | 鱼获出售/赠送、鱼种长度纪录、图鉴、补给、失败垃圾、钓技；猫咖按游戏时间产生收入                      |
+| 关系       | 离线规则聊天；首条共同钓获、最近赠鱼及最近 50 条聊天分别保存，回应读取真实个体事实                   |
+| 保存       | 成功操作自动保存，支持显式保存；当前存档刷新后精确恢复，包括中途钓鱼、路线和休息                     |
+
+城市细则见[城市与步行](city-world.md)，钓鱼细则见[钓鱼设计](fishing-design.md)。教程由状态推导：建猫咖 → 取得营业收入 → 留下共同钓鱼记忆，不另发奖励。收入引导展示第一家猫咖的收益。
+
+## 必须持续成立的体验要求
+
+- 同一只猫始终是独立、持久的实体；品种、外观、性格倾向与实际个体经历分开。
+- 城市/钓点菜单跟随地点；手机单屏操作，不靠翻动网页寻找主要控件。
+- 触摸与键盘可完成完整玩法；体感、震动可选，拒绝权限或硬件不支持时保留手动操作。
+- 收线结束的手指抬起不能穿透到新出现的“准备抛竿”按钮，不能自动再扣 8 体力；下一竿需要新操作。
+- 失败和取消不会重复奖励。聊天与 AI 输出不能直接创建资源、活动事实或另一只猫的记忆。
+- 原型不向后兼容。旧、损坏、未来版本存档明确拒绝并保留原数据；玩家显式重置后才创建新世界，不做静默迁移。
+
+## 后续需求边界
+
+多品种选择、个性行为、撸猫/梳毛、猫草、流浪猫安居、医院、领养、更多设施和可选真实 AI 都需要分小切片实现。种植园与猫屎咖啡延后，具体顺序见[路线图](roadmap.md)。当前没有离线收益、自动日程、天气、复杂医疗、云存档或真实模型服务。
+
+完成标准同时包含可玩结果与工程证据：需求可观察、拒绝操作不污染状态、当前存档往返一致、确定性回放一致、完整 Gate 与 Harness 通过并查看截图。感情表达是否自然仍需实际试玩，不能用测试数量替代。

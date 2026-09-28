@@ -1,9 +1,13 @@
+import { generateCityMap, shoreTiles, tileAt } from './city/map';
+import { initialFishing } from './fishing/schema';
 import { instantiateMochi } from '../content/definitions';
 import { commandSchema, CommandError, type CommandResult } from './commands';
 import { RandomService } from './random';
 import { applyCommand } from './reducer';
 import {
   assertWorld,
+  SAVE_VERSION,
+  CONTENT_VERSION,
   saveSchema,
   type Position,
   type WorldState,
@@ -42,7 +46,11 @@ export class World {
   }
 
   build(position: Position): CommandResult {
-    return this.dispatch({ type: 'BUILD_CAFE', position });
+    return this.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_CAFE',
+      position,
+    });
   }
   advanceTime(minutes: number): CommandResult {
     return this.dispatch({ type: 'ADVANCE_TIME', minutes });
@@ -52,8 +60,8 @@ export class World {
   }
   save(): string {
     return JSON.stringify({
-      saveVersion: 1,
-      contentVersion: 1,
+      saveVersion: SAVE_VERSION,
+      contentVersion: CONTENT_VERSION,
       world: this.state,
     });
   }
@@ -61,15 +69,30 @@ export class World {
 
 export function createWorld(seed: number): World {
   const rng = new RandomService(seed);
+  const map = generateCityMap(seed);
+  const distanceFromStarterRoad = (position: Position) =>
+    Math.abs(position.x - 5) + Math.abs(position.y - 5);
+  const start = shoreTiles(map, 'POND')
+    .filter((position) => !tileAt(map, position)?.owned)
+    .sort(
+      (a, b) =>
+        distanceFromStarterRoad(a) - distanceFromStarterRoad(b) ||
+        a.y - b.y ||
+        a.x - b.x,
+    )[0];
+  if (!start) throw new Error('Missing unowned pond shore');
+  const mochi = instantiateMochi('mochi', start);
+  mochi.fishingSpotId = 'POND';
   return new World({
     seed,
     rngState: rng.state,
     minute: 0,
     coins: 1000,
     nextId: 1,
-    map: { width: 10, height: 10 },
+    map,
     buildings: [],
-    cats: [instantiateMochi('mochi', { x: 5, y: 5 })],
+    cats: [mochi],
+    fishing: initialFishing(),
   });
 }
 

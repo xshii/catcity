@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import type { ReplayRecord } from '../../../src/application/session';
+import type { ReplayRecord } from '../../../src/application';
 import { replayWorld } from './replay-world';
 
 const path = process.argv[2];

@@ -4,7 +4,12 @@ export interface HarnessTask {
   id: string;
   goal: string;
   acceptanceCriteria: string[];
-  commands: { name: string; executable: string; args: string[] }[];
+  commands: {
+    name: string;
+    executable: string;
+    args: string[];
+    timeoutMs?: number;
+  }[];
   expectedState: Record<string, unknown>;
   visualEvidence: string[];
   regressionTests: string[];

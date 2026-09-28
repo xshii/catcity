@@ -1,0 +1,144 @@
+.collection-segments,
+.collection-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.collection-segments {
+  margin-bottom: 8px;
+}
+.collection-segments button {
+  flex: 1;
+}
+.collection-segments button[aria-pressed='true'] {
+  background: #e0eacc;
+  border-color: #8ea574;
+}
+.collection-pager {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #718161;
+}
+.angling .collection-pager button,
+.angling .collection-segments button {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+.river-screen #river-panel-bag #fish-inventory {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+.river-screen #river-panel-bag .fish-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: space-between;
+  border: 1px solid #d8e1c9;
+  background: #fffdf1;
+  border-radius: 12px;
+  padding: 8px;
+  margin: 0;
+  gap: 6px;
+  min-height: 98px;
+}
+.river-screen #river-panel-bag .fish-item > span {
+  grid-column: 1 / -1;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.river-screen #river-panel-bag .fish-item button {
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px;
+  font-size: 10px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.river-screen #river-panel-bag #fish-tastes {
+  margin: 5px 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.river-screen #river-panel-bag details,
+.river-screen #river-panel-atlas details {
+  padding: 8px 0 0;
+}
+.river-screen #river-panel-bag summary,
+.river-screen #river-panel-atlas summary {
+  font-size: 11px;
+}
+.river-screen #river-panel-atlas .atlas-list {
+  display: block;
+  padding-top: 8px;
+}
+.river-screen #river-panel-atlas .fish-entry {
+  display: grid;
+  grid-template-columns: 75px minmax(0, 1fr);
+  column-gap: 10px;
+  padding: 10px;
+  font-size: 11px;
+}
+.river-screen #river-panel-atlas .fish-entry > * {
+  grid-column: 2;
+  margin: 0 0 6px;
+}
+.river-screen #river-panel-atlas .fish-entry p {
+  line-height: 1.45;
+}
+.river-screen #river-panel-atlas .fish-entry strong {
+  font-size: 13px;
+}
+.river-screen #river-panel-atlas .fish-entry small {
+  font-size: 10px;
+}
+.river-screen #river-panel-atlas .fish-silhouette {
+  grid-column: 1;
+  grid-row: 1 / 8;
+  align-self: center;
+}
+.river-screen #river-panel-atlas .fish-silhouette svg {
+  width: 75px;
+  height: 60px;
+}
+.atlas-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+}
+.atlas-picker select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #d6dfc6;
+  border-radius: 8px;
+  background: #fffdf1;
+  color: #4c6547;
+  font: inherit;
+  min-height: 34px;
+  padding: 4px 8px;
+}
+@media (max-height: 700px) {
+  .river-screen #river-panel-bag .fish-item {
+    min-height: 80px;
+    padding: 6px;
+    gap: 3px;
+  }
+  .river-screen #river-panel-bag #fish-tastes {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .river-screen #river-panel-atlas .fish-entry {
+    padding: 7px;
+    font-size: 10px;
+    column-gap: 6px;
+  }
+  .river-screen #river-panel-atlas .fish-entry > * {
+    margin-bottom: 4px;
+  }
+}

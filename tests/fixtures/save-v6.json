@@ -1,0 +1,156 @@
+{
+  "saveVersion": 6,
+  "contentVersion": 4,
+  "world": {
+    "seed": 42,
+    "rngState": 42,
+    "minute": 0,
+    "coins": 700,
+    "nextId": 3,
+    "map": {
+      "width": 10,
+      "height": 10
+    },
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_CAFE",
+        "position": {
+          "x": 4,
+          "y": 4
+        },
+        "builtAtMinute": 0,
+        "incomeProgress": 0
+      }
+    ],
+    "cats": [
+      {
+        "id": "mochi",
+        "definitionId": "MOCHI",
+        "name": "Mochi",
+        "appearance": {
+          "coat": "cream"
+        },
+        "personality": ["shy", "food-loving", "slow-to-warm"],
+        "traits": ["gentle"],
+        "preferences": {
+          "likes": ["fish", "quiet", "windows"],
+          "dislikes": ["noise", "crowds"]
+        },
+        "mood": 70,
+        "needs": {
+          "hunger": 30,
+          "energy": 92,
+          "social": 50
+        },
+        "relationships": [],
+        "memories": [],
+        "playerBond": 0,
+        "home": null,
+        "favoritePlaces": [],
+        "dailyRoutine": [],
+        "currentActivity": "resting",
+        "position": {
+          "x": 5,
+          "y": 5
+        },
+        "lastBondMinute": null,
+        "keepsakes": [],
+        "rest": null,
+        "fishingSpotId": "POND",
+        "breedId": "RAGDOLL",
+        "favoriteFish": ["SILVER", "CRUCIAN"],
+        "fishingMemory": null,
+        "fishGift": null
+      }
+    ],
+    "outings": {
+      "active": null,
+      "completed": 0,
+      "lastResult": null
+    },
+    "fishing": {
+      "supplies": {
+        "trash": 0,
+        "cans": 0,
+        "coinBags": 0
+      },
+      "xp": 0,
+      "baits": {
+        "WORM": 5,
+        "SHRIMP": 3
+      },
+      "active": {
+        "id": "angling-2",
+        "catId": "mochi",
+        "catBreed": "RAGDOLL",
+        "catchKind": "fish",
+        "lengthMm": 105,
+        "lootAmount": 0,
+        "seed": 198677700,
+        "baitId": "WORM",
+        "spotId": "POND",
+        "direction": -30,
+        "skillLevel": 1,
+        "phase": "waiting",
+        "tick": 24,
+        "phaseTick": 0,
+        "power": 72,
+        "cursor": 0,
+        "pressed": false,
+        "hasHeld": true,
+        "speciesId": "SILVER",
+        "weight": 111,
+        "precision": true,
+        "tension": 50,
+        "progress": 0,
+        "lineHealth": 100,
+        "reason": "none"
+      },
+      "inventory": [],
+      "atlas": {
+        "SILVER": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "CRUCIAN": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "PERCH": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "CATFISH": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "KOI": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "MOON_CARP": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "MACKEREL": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        },
+        "SEA_BREAM": {
+          "count": 0,
+          "bestWeight": 0,
+          "bestLengthMm": 0
+        }
+      },
+      "lastResult": null
+    }
+  }
+}

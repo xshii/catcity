@@ -1,0 +1,17 @@
+# Headless Core
+
+外部消费者从 [index.ts](index.ts) 使用 World、命令与状态类型；只读地图查询从 [city/index.ts](city/index.ts) 进入。
+
+| 主题       | 实现入口                                                                     |
+| ---------- | ---------------------------------------------------------------------------- |
+| 世界与存档 | [world.ts](world.ts)、[schema.ts](schema.ts)                                 |
+| 命令分发   | [commands.ts](commands.ts)、[reducer.ts](reducer.ts)                         |
+| 城市       | [city/](city/)：地图、建设、路径、步行和语义校验                             |
+| 钓鱼       | [fishing/](fishing/)：资格、命令、结算、持久状态校验                         |
+| 时间与随机 | [simulation.ts](simulation.ts)、[clock.ts](clock.ts)、[random.ts](random.ts) |
+| 关系       | [bond.ts](bond.ts)，个体事实保存在严格状态 schema                            |
+
+所有修改经过验证命令，拒绝保持整个世界不变；快照只读、存档精确往返。
+同初始状态与命令应复现相同结果；不得引用 Phaser、DOM、网络、真实时钟或不可控随机。
+新增规则先写行为测试，不在 Core 填充旧命令别名或旧档迁移默认值。
+需求见[城市](../../docs/city-world.md)/[钓鱼](../../docs/fishing-design.md)，验证见[测试](../../docs/testing.md)。

@@ -1,15 +1,19 @@
 import {
   commandSchema,
+  createWorld,
+  loadWorld,
+  type World,
   type CommandResult,
   type GameCommand,
-} from '../core/commands';
-import { createWorld, loadWorld, type World } from '../core/world';
-import { RuleBasedDialogueProvider } from '../providers/rule-dialogue';
-import { resolveDialogue, type DialogueProvider } from './dialogue';
+} from '../core';
+import { resolveDialogue } from './dialogue';
+import type { DialogueProvider, SaveRepository } from './ports';
 
-export interface SaveRepository {
-  read(): string | null;
-  write(save: string): void;
+export interface GameSessionOptions {
+  repository: SaveRepository;
+  dialogue: DialogueProvider;
+  fallbackDialogue: DialogueProvider;
+  seed: number;
 }
 export interface TraceEntry {
   sequence: number;
@@ -25,6 +29,9 @@ export interface ReplayRecord {
 
 export class GameSession {
   private world: World;
+  private readonly repository: SaveRepository;
+  private readonly provider: DialogueProvider;
+  private readonly fallback: DialogueProvider;
   private initialSave: string;
   private entries: TraceEntry[] = [];
   private epoch = 0;
@@ -34,14 +41,24 @@ export class GameSession {
   storageError: string | null = null;
   lastDialogueFallback = false;
 
-  constructor(
-    private readonly repository: SaveRepository,
-    seed = 42,
-    private readonly provider: DialogueProvider = new RuleBasedDialogueProvider(),
-  ) {
-    this.world = createWorld(seed);
+  constructor(options: GameSessionOptions) {
+    if (
+      !options ||
+      typeof options.repository?.read !== 'function' ||
+      typeof options.repository?.write !== 'function' ||
+      typeof options.dialogue?.generate !== 'function' ||
+      typeof options.fallbackDialogue?.generate !== 'function' ||
+      !Number.isInteger(options.seed)
+    )
+      throw new TypeError(
+        'GameSession requires repository, dialogue, fallbackDialogue and seed',
+      );
+    this.repository = options.repository;
+    this.provider = options.dialogue;
+    this.fallback = options.fallbackDialogue;
+    this.world = createWorld(options.seed);
     try {
-      const save = repository.read();
+      const save = this.repository.read();
       if (save !== null) this.world = loadWorld(save);
     } catch {
       this.blockedSave = true;
@@ -92,6 +109,17 @@ export class GameSession {
     }
   }
 
+  resetDemo() {
+    this.world = createWorld(this.world.getSnapshot().seed);
+    this.epoch++;
+    this.initialSave = this.world.save();
+    this.entries = [];
+    this.selectedEntity = 'mochi';
+    this.blockedSave = false;
+    this.save();
+    this.notify();
+  }
+
   select(id: string | null) {
     this.selectedEntity = id;
     this.notify();
@@ -104,7 +132,7 @@ export class GameSession {
     const epoch = this.epoch;
     const { proposal, usedFallback } = await resolveDialogue(
       this.provider,
-      new RuleBasedDialogueProvider(),
+      this.fallback,
       {
         cat: {
           id: cat.id,
@@ -115,6 +143,9 @@ export class GameSession {
         },
         message,
         recentMemories: cat.memories.slice(-5),
+        fishingMemory: cat.fishingMemory,
+        fishGift: cat.fishGift,
+        favoriteFish: cat.favoriteFish,
       },
     );
     if (epoch !== this.epoch) return { ok: false, error: 'STALE_DIALOGUE' };

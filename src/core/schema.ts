@@ -1,6 +1,17 @@
 import { z } from 'zod';
+import { BUILDING_IDS } from '../content/city';
+import { assertCity } from './city/validation';
+import {
+  fishingSchema,
+  fishingMemorySchema,
+  giftSchema,
+  fishIdSchema,
+  catBreedSchema,
+  spotIdSchema,
+} from './fishing/schema';
+import { assertFishing } from './fishing/validation';
 
-export const integer = z.number().int().min(0).max(1_000_000_000);
+const integer = z.number().int().min(0).max(1_000_000_000);
 export const positionSchema = z.strictObject({ x: integer, y: integer });
 const percent = z.number().int().min(0).max(100);
 const text = z.string().min(1).max(500);
@@ -11,11 +22,11 @@ const memorySchema = z.strictObject({
   message: text,
   reply: text,
 });
-export const catSchema = z.strictObject({
+const catSchema = z.strictObject({
   id: text,
-  definitionId: z.literal('MOCHI'),
+  definitionId: z.enum(['MOCHI', 'PEPPER']),
   name: text,
-  appearance: z.strictObject({ coat: z.literal('cream') }),
+  appearance: z.strictObject({ coat: z.enum(['cream', 'gray']) }),
   personality: z.array(text).max(10),
   traits: z.array(text).max(10),
   preferences: z.strictObject({
@@ -39,31 +50,62 @@ export const catSchema = z.strictObject({
   currentActivity: z.enum(['resting', 'wandering', 'chatting']),
   position: positionSchema,
   lastBondMinute: integer.nullable(),
+  rest: z.strictObject({ startedAt: integer, until: integer }).nullable(),
+  fishingSpotId: spotIdSchema.nullable(),
+  walk: z
+    .strictObject({
+      destination: positionSchema,
+      route: z.array(positionSchema).min(1).max(100),
+      nextStepMinute: integer.nullable(),
+      spotId: spotIdSchema.nullable(),
+    })
+    .nullable(),
+  breedId: catBreedSchema,
+  favoriteFish: z.array(fishIdSchema).min(1).max(6),
+  fishingMemory: fishingMemorySchema.nullable(),
+  fishGift: giftSchema.nullable(),
 });
-export const buildingSchema = z.strictObject({
+const buildingSchema = z.strictObject({
   id: text,
-  type: z.literal('CAT_CAFE'),
+  type: z.enum(BUILDING_IDS),
   position: positionSchema,
   builtAtMinute: integer,
   incomeProgress: z.number().int().min(0).max(59),
 });
-export const worldSchema = z.strictObject({
+const worldSchema = z.strictObject({
   seed: z.number().int().min(0).max(0xffffffff),
   rngState: z.number().int().min(0).max(0xffffffff),
   minute: integer,
   coins: integer,
   nextId: integer.min(1),
-  map: z.strictObject({ width: z.literal(10), height: z.literal(10) }),
-  buildings: z.array(buildingSchema).max(1),
+  map: z.strictObject({
+    width: z.literal(10),
+    height: z.literal(10),
+    generationVersion: z.literal(1),
+    tiles: z
+      .array(
+        z.strictObject({
+          position: positionSchema,
+          terrain: z.enum(['GRASS', 'POND', 'RIVER', 'LAKE', 'SEA']),
+          owned: z.boolean(),
+          road: z.enum(['DIRT', 'STONE']).nullable(),
+        }),
+      )
+      .length(100),
+  }),
+  buildings: z.array(buildingSchema).max(100),
   cats: z.array(catSchema).min(1).max(16),
+  fishing: fishingSchema,
 });
 export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
+export const SAVE_VERSION = 10;
+export const CONTENT_VERSION = 5;
 export const saveSchema = z.strictObject({
-  saveVersion: z.literal(1),
-  contentVersion: z.literal(1),
+  saveVersion: z.literal(SAVE_VERSION),
+  contentVersion: z.literal(CONTENT_VERSION),
   world: worldSchema,
 });
 
@@ -75,7 +117,7 @@ export function assertWorld(value: unknown): WorldState {
     if (ids.has(id)) throw new Error(`Duplicate entity/memory ID: ${id}`);
     ids.add(id);
     if (id !== 'mochi') {
-      const match = /^(building|cat|memory)-(\d+)$/.exec(id);
+      const match = /^(building|cat|memory|angling|fish)-(\d+)$/.exec(id);
       if (!match || Number(match[2]) >= world.nextId)
         throw new Error('Invalid ID allocation');
     }
@@ -98,6 +140,14 @@ export function assertWorld(value: unknown): WorldState {
       throw new Error('Invalid income clock');
   }
   for (const cat of world.cats) {
+    if (
+      cat.rest &&
+      (cat.rest.startedAt > world.minute ||
+        cat.rest.until !== cat.rest.startedAt + 60 ||
+        cat.rest.until <= world.minute ||
+        world.fishing.active?.catId === cat.id)
+    )
+      throw new Error('Invalid cat rest');
     if (cat.lastBondMinute !== null && cat.lastBondMinute > world.minute)
       throw new Error('Future bond');
     if (
@@ -127,5 +177,7 @@ export function assertWorld(value: unknown): WorldState {
       previousMinute = memory.minute;
     }
   }
+  assertCity(world);
+  assertFishing(world, uniqueId);
   return world;
 }

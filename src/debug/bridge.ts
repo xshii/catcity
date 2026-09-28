@@ -1,8 +1,12 @@
-import type { GameSession } from '../application/session';
-import { createWorld } from '../core/world';
-import type { Position } from '../core/schema';
+import type { GameSession } from '../application';
+import { createWorld } from '../core';
+import type { Position } from '../core';
 
-function createBridge(session: GameSession) {
+interface ViewObserver {
+  tileScreenPosition: (position: Position) => Position | null;
+}
+
+function createBridge(session: GameSession, view?: ViewObserver) {
   return {
     version: 1,
     buildVersion: __BUILD_VERSION__,
@@ -15,6 +19,10 @@ function createBridge(session: GameSession) {
       );
     },
     getCurrentSeed: () => session.getSnapshot().seed,
+    getTileScreenPosition: (position: Position) =>
+      Number.isInteger(position.x) && Number.isInteger(position.y)
+        ? (view?.tileScreenPosition(position) ?? null)
+        : null,
     advanceTime: (minutes: number) =>
       session.execute({ type: 'ADVANCE_TIME', minutes }),
     loadFixture: (fixture: { seed: number } | { save: string }) =>
@@ -31,9 +39,9 @@ function createBridge(session: GameSession) {
   };
 }
 
-export function installDebugBridge(session: GameSession) {
+export function installDebugBridge(session: GameSession, view?: ViewObserver) {
   Object.defineProperty(window, 'CAT_CITY_DEBUG', {
-    value: Object.freeze(createBridge(session)),
+    value: Object.freeze(createBridge(session, view)),
     configurable: false,
   });
 }

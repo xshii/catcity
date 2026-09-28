@@ -11,6 +11,7 @@ export default tseslint.config(
       'artifacts/**',
       'test-results/**',
       'playwright-report/**',
+      'coverage/**',
       '.npm-cache/**',
     ],
   },
@@ -18,7 +19,88 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   { languageOptions: { globals: { ...globals.node, ...globals.browser } } },
   {
-    files: ['src/core/**/*.ts', 'src/content/**/*.ts'],
+    files: ['**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+    },
+  },
+  {
+    files: ['harness/runner/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '**/adapters',
+                '**/adapters/**',
+                '**/tasks',
+                '**/tasks/**',
+                '**/src',
+                '**/src/**',
+              ],
+              message:
+                'Keep game-specific composition in harness/run.ts; the runner uses injected contracts.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/application/**/*.ts', 'src/providers/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            'phaser',
+            '**/view',
+            '**/view/**',
+            '**/platform',
+            '**/platform/**',
+            '**/debug',
+            '**/debug/**',
+          ],
+        },
+      ],
+      'no-restricted-globals': ['error', 'window', 'document', 'localStorage'],
+    },
+  },
+  {
+    files: ['src/application/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            'phaser',
+            '**/view',
+            '**/view/**',
+            '**/platform',
+            '**/platform/**',
+            '**/debug',
+            '**/debug/**',
+            '**/providers',
+            '**/providers/**',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/core/**/*.ts', 'src/content/**/*.ts', 'src/minigames/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -26,10 +108,15 @@ export default tseslint.config(
           patterns: [
             'phaser',
             'node:*',
+            '**/view',
             '**/view/**',
+            '**/platform',
             '**/platform/**',
+            '**/application',
             '**/application/**',
+            '**/providers',
             '**/providers/**',
+            '**/debug',
             '**/debug/**',
           ],
         },

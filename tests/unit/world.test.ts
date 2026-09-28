@@ -55,7 +55,7 @@ describe('headless world', () => {
     save.world.coins = 299;
     const world = loadWorld(JSON.stringify(save));
     const before = world.save();
-    expect(world.build({ x: 0, y: 0 })).toMatchObject({
+    expect(world.build({ x: 3, y: 3 })).toMatchObject({
       ok: false,
       error: 'INSUFFICIENT_COINS',
     });
@@ -65,7 +65,7 @@ describe('headless world', () => {
   it('counts income from construction, including partial hours', () => {
     const world = createWorld(42);
     world.advanceTime(25);
-    world.build({ x: 0, y: 0 });
+    world.build({ x: 3, y: 3 });
     world.advanceTime(59);
     expect(world.getSnapshot().coins).toBe(700);
     world.advanceTime(1);
@@ -133,7 +133,7 @@ describe('headless world', () => {
 
   it('emits causally useful events without putting diagnostics in save state', () => {
     const world = createWorld(1);
-    expect(world.build({ x: 0, y: 0 })).toMatchObject({
+    expect(world.build({ x: 3, y: 3 })).toMatchObject({
       ok: true,
       events: [{ type: 'BuildingBuilt', cost: 300 }],
     });

@@ -1,0 +1,1480 @@
+:root {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  color: #364839;
+  background: #f5f2e9;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #b38559;
+  outline-offset: 3px;
+}
+[hidden] {
+  display: none !important;
+}
+.shell {
+  max-width: 1192px;
+  margin: 0 auto;
+  padding: 26px 36px 18px;
+}
+.topbar,
+.top-actions,
+.intro,
+.wallet,
+.map-heading,
+.map-footer,
+.cat-heading,
+footer,
+.building-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar {
+  border-bottom: 1px solid #deded1;
+  padding-bottom: 23px;
+}
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  letter-spacing: 2px;
+  color: inherit;
+  text-decoration: none;
+}
+.brand-mark {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  background: #455b43;
+  color: #f7f1dd;
+  border-radius: 13px 13px 18px 18px;
+  font-size: 28px;
+}
+.brand small {
+  display: block;
+  font-family: sans-serif;
+  font-size: 8px;
+  letter-spacing: 2px;
+  margin-top: 4px;
+  color: #7d8774;
+}
+.top-actions {
+  gap: 24px;
+  font-size: 12px;
+}
+.offline {
+  color: #7d8674;
+}
+.offline i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #859c70;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.quiet {
+  padding: 9px 17px;
+  border: 1px solid #d6dacb;
+  border-radius: 8px;
+  background: transparent;
+  color: #506048;
+}
+.intro {
+  padding: 35px 0 28px;
+}
+.eyebrow {
+  color: #92977e;
+  letter-spacing: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  margin: 0 0 11px;
+}
+h1 {
+  font-family: Georgia, 'Songti SC', serif;
+  font-size: 33px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  margin: 0 0 12px;
+}
+.subtitle {
+  color: #828979;
+  margin: 0;
+  font-size: 13px;
+}
+.wallet {
+  gap: 13px;
+  border: 1px solid #e1dfce;
+  border-radius: 14px;
+  padding: 15px 24px;
+  background: #fbf8ef;
+  min-width: 150px;
+}
+.coin {
+  color: #d1ab62;
+  background: #f4e7be;
+  border: 2px solid #dfc080;
+  border-radius: 50%;
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+.wallet small {
+  display: block;
+  font-size: 10px;
+  color: #92917b;
+  margin-bottom: 3px;
+}
+.wallet strong {
+  font-family: Georgia, serif;
+  font-size: 25px;
+  font-weight: 500;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 325px;
+  gap: 25px;
+  align-items: start;
+}
+.map-card {
+  background: #eceee0;
+  border-radius: 18px;
+  border: 1px solid #dfe3d3;
+  overflow: hidden;
+}
+.map-heading {
+  padding: 20px 24px 0;
+  font-size: 12px;
+  color: #68775a;
+}
+.map-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.sun {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #d7ba6e;
+  display: inline-block;
+  box-shadow: 0 0 0 3px #e8dfb7;
+}
+#clock {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+#game {
+  width: 100%;
+  aspect-ratio: 1;
+}
+canvas {
+  display: block;
+}
+.map-footer {
+  font-size: 11px;
+  padding: 0 24px 20px;
+  color: #7d886d;
+}
+aside {
+  display: grid;
+  gap: 17px;
+}
+.card {
+  border: 1px solid #e3e1d4;
+  background: #fcfaf3;
+  border-radius: 15px;
+  padding: 23px;
+}
+h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+.card > p:not(.eyebrow) {
+  line-height: 1.9;
+  font-size: 12px;
+  color: #87907e;
+  margin: 13px 0;
+}
+.building-summary {
+  gap: 12px;
+  margin: 23px 0 16px;
+}
+.mini-house {
+  color: #a97852;
+  font-size: 35px;
+  width: 47px;
+  height: 47px;
+  background: #f0e8d4;
+  border-radius: 12px;
+  text-align: center;
+  line-height: 45px;
+}
+.building-summary div {
+  flex: 1;
+}
+.building-summary strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.building-summary small {
+  display: block;
+  font-size: 10px;
+  color: #929882;
+  margin-top: 7px;
+}
+.building-summary b {
+  font-size: 15px;
+  font-family: Georgia, serif;
+  color: #a48750;
+}
+.build-status {
+  background: #e7eddc;
+  color: #637956;
+  text-align: center;
+  font-size: 12px;
+  padding: 12px 5px;
+  border-radius: 8px;
+}
+.pill {
+  background: #eef0e2;
+  color: #87966f;
+  padding: 5px 8px;
+  font-size: 10px;
+  border-radius: 20px;
+}
+.traits {
+  color: #8b907d;
+  margin-top: 14px;
+  font-size: 12px;
+}
+.bond {
+  color: #a1967c;
+  font-size: 10px;
+  margin: 10px 0;
+}
+.speech {
+  background: #f0eee3;
+  border-radius: 3px 12px 12px 12px;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 15px 0;
+  color: #717b66;
+}
+label {
+  display: block;
+  font-size: 11px;
+  color: #8c947f;
+  margin-bottom: 8px;
+}
+.input-row {
+  display: flex;
+  gap: 7px;
+}
+input {
+  min-width: 0;
+  width: 100%;
+  background: #fffdf7;
+  border: 1px solid #dedfcf;
+  border-radius: 7px;
+  padding: 10px;
+  color: #596a50;
+  font-size: 12px;
+}
+input::placeholder {
+  color: #b0b49e;
+}
+#send {
+  border: none;
+  border-radius: 7px;
+  background: #708564;
+  color: white;
+  width: 39px;
+  flex-shrink: 0;
+  font-size: 19px;
+}
+#send:disabled {
+  opacity: 0.5;
+}
+.rest {
+  border: 1px solid #daddcd;
+  border-radius: 11px;
+  background: transparent;
+  padding: 15px;
+  color: #6c7a60;
+  font-size: 12px;
+  text-align: left;
+}
+.rest span {
+  float: right;
+  font-size: 10px;
+  color: #939b85;
+}
+#notice {
+  font-size: 12px;
+  color: #7c886f;
+  padding: 20px 0;
+  min-height: 55px;
+}
+#storage-error {
+  background: #f5dfc5;
+  color: #88573a;
+  padding: 12px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+footer {
+  border-top: 1px solid #deded1;
+  padding-top: 17px;
+  font-size: 9px;
+  color: #9da28d;
+  letter-spacing: 1.6px;
+}
+@media (max-width: 800px) {
+  .shell {
+    padding: 20px 18px;
+  }
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  aside {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rest {
+    grid-column: 1 / -1;
+  }
+  .offline {
+    display: none;
+  }
+  h1 {
+    font-size: 26px;
+  }
+  .wallet {
+    padding: 12px;
+    min-width: auto;
+  }
+}
+@media (max-width: 520px) {
+  aside {
+    grid-template-columns: 1fr;
+  }
+  .intro {
+    gap: 10px;
+  }
+  .subtitle {
+    font-size: 11px;
+    max-width: 220px;
+    line-height: 1.8;
+  }
+  .wallet {
+    padding: 10px;
+    gap: 7px;
+  }
+  .wallet strong {
+    font-size: 20px;
+  }
+  .coin {
+    display: none;
+  }
+  .map-heading,
+  .map-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+/* The relationship demo keeps the city and companion in one quiet space. */
+aside {
+  grid-template-columns: 1fr;
+}
+.intro {
+  padding: 27px 0 24px;
+}
+.layout {
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 24px;
+}
+.map-card {
+  background: #e9eddd;
+}
+.scene-tabs {
+  display: flex;
+  gap: 5px;
+  background: #dce3ce;
+  padding: 4px;
+  border-radius: 30px;
+}
+.scene-tabs button {
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  padding: 7px 20px;
+  color: #778469;
+  font-size: 12px;
+}
+.scene-tabs button[aria-pressed='true'] {
+  background: #faf9f0;
+  color: #4e694e;
+  box-shadow: 0 2px 6px #4d674a12;
+}
+.cat-heading {
+  justify-content: flex-start;
+  gap: 14px;
+}
+.cat-avatar {
+  width: 61px;
+  height: 61px;
+  border-radius: 50%;
+  background: #eee2c8;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  color: #a78b63;
+}
+.cat-avatar svg {
+  display: inline-block;
+  animation: breathe 3s ease-in-out infinite;
+}
+.cat-heading .pill {
+  display: inline-block;
+  margin-top: 6px;
+}
+.tiny-heart {
+  margin-left: auto;
+  color: #bc9b86;
+  font-size: 23px;
+}
+.traits {
+  margin: 17px 0 12px;
+  letter-spacing: 1px;
+}
+.reunion {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #7b866b;
+  margin: 0 0 10px;
+}
+.speech {
+  min-height: 78px;
+  background: #edf0e2;
+  margin: 13px 0;
+  color: #5c7157;
+  font-size: 13px;
+}
+.quick-talk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 17px;
+}
+.quick-talk button {
+  border: 1px solid #e0e2d3;
+  border-radius: 20px;
+  background: #faf9f0;
+  color: #829073;
+  padding: 6px 9px;
+  font-size: 10px;
+}
+.primary {
+  width: 100%;
+  background: #637d59;
+  border: none;
+  color: #fffbee;
+  padding: 14px 18px;
+  margin-top: 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.primary:hover {
+  background: #516c48;
+  transform: translateY(-1px);
+}
+.primary:disabled {
+  opacity: 0.65;
+  cursor: default;
+  transform: none;
+}
+.card > .activity-note {
+  text-align: center;
+  margin: 8px 0 0;
+  font-size: 10px;
+  color: #9b9e86;
+}
+.journal {
+  background: #faf7eb;
+}
+.journal-heading {
+  display: flex;
+  justify-content: space-between;
+  color: #bcaa76;
+}
+.journal-count {
+  font-size: 10px !important;
+  color: #a2997b !important;
+  margin: 8px 0 15px !important;
+}
+#memory-empty {
+  font-family: Georgia, 'Songti SC', serif;
+  line-height: 2.1;
+}
+#memory-card {
+  padding: 9px 9px 0;
+  background: #fffdf5;
+  border: 1px solid #e9e4d1;
+  transform: rotate(-1.5deg);
+  box-shadow: 0 4px 14px #766b4210;
+}
+.memory-art {
+  height: 82px;
+  padding: 10px 18px;
+  color: #d0b878;
+  background: linear-gradient(
+    155deg,
+    #dfebd1 0 40%,
+    #afd2c5 40% 75%,
+    #d6daba 75%
+  );
+  font-size: 22px;
+}
+.memory-art span {
+  display: block;
+  text-align: center;
+  font-size: 20px;
+  color: #648e7e;
+}
+#memory-date {
+  display: block;
+  margin-top: 11px;
+  font-size: 10px;
+  color: #b1a383;
+}
+#memory-fact {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #796f52;
+}
+#memory-caption {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #a1967d;
+}
+.city-tools {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 24px;
+  margin-top: 22px;
+}
+.city-tools .build-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 23px;
+  background: #f7f5e9;
+}
+.city-tools .eyebrow {
+  margin-bottom: 7px;
+  font-size: 8px;
+}
+.city-tools h2 {
+  font-size: 14px;
+}
+.city-tools p:not(.eyebrow) {
+  font-size: 10px;
+  color: #93977d;
+  margin-bottom: 0;
+  line-height: 1.8;
+}
+.city-tools .build-status {
+  margin-left: auto;
+  min-width: 133px;
+  font-size: 10px;
+  padding: 11px;
+}
+.rest {
+  align-self: center;
+}
+footer {
+  align-items: flex-start;
+  gap: 20px;
+}
+footer details {
+  max-width: 350px;
+  text-align: right;
+  letter-spacing: 0.2px;
+}
+footer summary {
+  cursor: pointer;
+}
+footer details p {
+  font-size: 11px;
+  line-height: 1.8;
+}
+@keyframes breathe {
+  50% {
+    transform: translateY(-2px) rotate(3deg);
+  }
+}
+@media (max-width: 900px) {
+  .city-tools .build-card {
+    flex-wrap: wrap;
+  }
+  .shell {
+    padding: 22px 20px;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 16px;
+  }
+  .card {
+    padding: 18px;
+  }
+  .city-tools {
+    grid-template-columns: 1fr 310px;
+    gap: 16px;
+  }
+}
+@media (max-width: 760px) {
+  .layout,
+  .city-tools {
+    grid-template-columns: 1fr;
+  }
+  aside {
+    grid-template-columns: 1fr;
+  }
+  .shell {
+    padding: 18px 15px;
+  }
+  .intro {
+    align-items: flex-start;
+  }
+  h1 {
+    font-size: 24px;
+    letter-spacing: 0;
+  }
+  .wallet {
+    padding: 10px;
+  }
+  .wallet strong {
+    font-size: 20px;
+  }
+  .wallet .coin {
+    display: none;
+  }
+  .brand {
+    font-size: 20px;
+  }
+  .map-heading {
+    padding: 16px 16px 0;
+  }
+  .map-footer {
+    padding: 0 16px 18px;
+    font-size: 9px;
+    gap: 8px;
+  }
+  .scene-tabs button {
+    padding: 6px 15px;
+  }
+  .city-tools .build-card {
+    flex-wrap: wrap;
+  }
+  .city-tools .build-status {
+    margin: 0;
+  }
+  footer {
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+.city-guide {
+  margin: 18px 24px 0;
+  padding: 18px 20px;
+  background: #faf9ed;
+  border: 1px solid #dbe1cb;
+  border-radius: 13px;
+}
+.city-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  counter-reset: city-step;
+}
+.city-steps li {
+  counter-increment: city-step;
+  color: #969e86;
+  font-size: 11px;
+}
+.city-steps li::before {
+  content: counter(city-step) ' · ';
+}
+.city-steps li[data-complete='true'] {
+  color: #5f7c56;
+}
+.city-steps li[data-complete='true']::before {
+  content: '✓ ';
+}
+.city-guide h2 {
+  font-size: 17px;
+  line-height: 1.5;
+}
+.city-guide p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #7c886e;
+  margin: 8px 0 0;
+}
+.city-guide .primary {
+  margin-top: 12px;
+}
+.city-guide .cafe-income {
+  font-size: 10px;
+  color: #968964;
+}
+@media (max-width: 760px) {
+  .city-guide {
+    margin: 16px 16px 0;
+    padding: 15px;
+  }
+  .city-guide h2 {
+    font-size: 16px;
+  }
+}
+
+/* Angling: real controls and readable collection cards on touch screens. */
+.angling {
+  padding: 24px;
+  border-top: 1px solid #dfe3d2;
+  background: #faf9ef;
+}
+.angling h2 {
+  font-size: 22px;
+  margin: 4px 0;
+}
+.angling-title,
+.bar-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+#fishing-level {
+  border-radius: 24px;
+  background: #dfe9cf;
+  padding: 9px 14px;
+  white-space: nowrap;
+}
+#fishing-resources,
+.fishing-clue,
+.spot-unlocks,
+#fish-tastes {
+  font-size: 13px;
+  color: #65745c;
+  line-height: 1.8;
+}
+.fishing-prep {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.fishing-prep label,
+.direction-label {
+  font-size: 12px;
+  color: #6a785f;
+}
+.fishing-prep select {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 5px;
+  border: 1px solid #d5dfc7;
+  border-radius: 10px;
+  background: #fffef8;
+  color: #47563f;
+  padding: 8px;
+  font: inherit;
+}
+.direction-label {
+  display: block;
+  margin-top: 14px;
+}
+.direction-label input {
+  display: block;
+  width: 100%;
+  min-height: 35px;
+  accent-color: #749465;
+}
+.direction-label output {
+  float: right;
+}
+.fishing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.angling button {
+  min-height: 44px;
+}
+.angling .primary {
+  width: auto;
+  margin: 0;
+}
+#angling-live {
+  padding: 20px;
+  margin: 18px 0;
+  border: 1px solid #ccdabb;
+  border-radius: 16px;
+  background: #f0f4e5;
+}
+#angling-status {
+  font-size: 12px;
+  color: #64785b;
+}
+#angling-instruction {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.angling-bar {
+  position: relative;
+  height: 36px;
+  margin: 16px 8px;
+  background: linear-gradient(
+    90deg,
+    #dab89c,
+    #ebd5a0 25%,
+    #ebd5a0 75%,
+    #dab89c
+  );
+  border-radius: 12px;
+  border: 2px solid #d0c6a8;
+}
+.angling-green {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #80aa70;
+  border-radius: 8px;
+}
+.angling-cursor {
+  position: absolute;
+  top: -7px;
+  bottom: -7px;
+  width: 6px;
+  transform: translateX(-50%);
+  background: #fffdf4;
+  border: 1px solid #59664e;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px #56614433;
+}
+.fight-meters {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  margin: 16px 0;
+}
+.fight-meters label {
+  flex: 1;
+  min-width: 0;
+}
+.fight-meters progress {
+  display: block;
+  width: 100%;
+  accent-color: #749a64;
+  margin-top: 6px;
+}
+.angling .fish-control {
+  width: 100%;
+  min-height: 64px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-size: 17px;
+}
+.fish-control[aria-pressed='true'] {
+  background: #496c3f;
+  transform: translateY(2px);
+}
+.fish-result {
+  font-size: 15px;
+  color: #617a4e;
+  line-height: 1.8;
+}
+.angling details {
+  border-top: 1px solid #dce4ce;
+  padding: 14px 0;
+}
+.angling summary {
+  cursor: pointer;
+  font-size: 14px;
+}
+.fish-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  margin-top: 10px;
+}
+.fish-item span {
+  flex: 1;
+  min-width: 140px;
+  font-size: 14px;
+}
+.fish-item button {
+  font-size: 12px;
+}
+.atlas-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 15px;
+}
+.fish-entry {
+  border: 1px solid #dce3d0;
+  background: #fffef5;
+  border-radius: 12px;
+  padding: 15px;
+  font-size: 12px;
+}
+.fish-entry strong,
+.fish-entry span {
+  display: block;
+  margin-bottom: 8px;
+}
+.fish-entry p {
+  line-height: 1.7;
+}
+.fish-silhouette {
+  color: var(--fish-color);
+  font-size: 30px;
+}
+.fish-entry[data-discovered='false'] .fish-silhouette {
+  color: #abb4a4;
+}
+.gray-cat {
+  filter: grayscale(1);
+}
+.river-mode #game {
+  max-width: 460px;
+  margin: auto;
+}
+@media (max-width: 600px) {
+  .angling {
+    padding: 16px;
+  }
+  .angling-title {
+    align-items: flex-start;
+  }
+  .angling h2 {
+    font-size: 18px;
+  }
+  .fishing-prep {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fishing-prep label:last-child {
+    grid-column: 1 / -1;
+  }
+  #angling-live {
+    padding: 14px;
+  }
+  .bar-heading {
+    flex-wrap: wrap;
+  }
+}
+.angling button:not(.primary) {
+  border: 1px solid #d0dcc4;
+  border-radius: 10px;
+  background: #f4f7ed;
+  color: #566b4b;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.angling button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.direction-label input {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.save-recovery {
+  padding: 16px;
+  margin-bottom: 20px;
+  background: #f9ead1;
+  border: 1px solid #e1c49d;
+  border-radius: 12px;
+}
+.save-recovery button {
+  margin-top: 10px;
+  padding: 12px 16px;
+  border: 1px solid #ba9a70;
+  border-radius: 10px;
+  background: #fff8e9;
+  color: #66503a;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Play in the scene: canvas scenery and accessible touch controls share one stage. */
+#fishing-stage {
+  position: relative;
+  isolation: isolate;
+}
+#fishing-stage.is-river {
+  min-height: 580px;
+  background: #dce6cd;
+  scroll-margin-top: 12px;
+}
+.river-mode #game {
+  max-width: none;
+}
+#river-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.river-caption {
+  position: absolute;
+  left: 7%;
+  top: 5%;
+}
+.river-caption h2 {
+  font-size: 22px;
+  margin: 2px 0 6px;
+}
+.river-caption .eyebrow {
+  font-size: 9px;
+  margin-bottom: 6px;
+}
+.river-caption p {
+  font-size: 12px;
+  color: #667d62;
+  margin: 0;
+}
+.river-clock {
+  position: absolute;
+  top: 5%;
+  right: 5%;
+  font-size: 11px;
+  background: #fffbeddf;
+  border: 1px solid #d3ddc0;
+  padding: 8px 10px;
+  border-radius: 18px;
+}
+#river-roster {
+  padding: 16px 20px 10px;
+  background: #f5f5e9;
+}
+.cat-energy-cards {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px;
+}
+.energy-cat {
+  position: relative;
+  display: flex;
+  flex: 1 0 145px;
+  max-width: 240px;
+  align-items: center;
+  text-align: left;
+  background: #fffef4;
+  color: #4b604a;
+  border: 1px solid #d8dfc9;
+  border-radius: 14px;
+  padding: 10px;
+  gap: 8px;
+}
+.energy-cat[aria-pressed='true'] {
+  border-color: #77955e;
+  box-shadow: 0 0 0 2px #a3ba8133;
+}
+.energy-cat svg {
+  width: 48px;
+  flex-shrink: 0;
+}
+.energy-cat span {
+  flex: 1;
+}
+.energy-cat strong,
+.energy-cat small {
+  display: block;
+}
+.energy-cat small {
+  font-size: 10px;
+  color: #7a866e;
+  margin-top: 4px;
+}
+.energy-cat progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  accent-color: #7f9e65;
+  margin-top: 6px;
+}
+.sleep-mark {
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  color: #8097ac;
+  font:
+    italic 14px Georgia,
+    serif;
+}
+.clock-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 10px;
+  color: #8b9480;
+}
+.clock-actions button {
+  border: 1px solid #d6ddc6;
+  background: #fffdef;
+  color: #647854;
+  border-radius: 9px;
+  padding: 10px;
+  font-size: 12px;
+  min-height: 40px;
+}
+#fishing-stage:not(.is-river) .scene-ready {
+  display: none;
+}
+.scene-ready {
+  position: absolute;
+  bottom: 24px;
+  left: 20%;
+  right: 20%;
+  text-align: center;
+}
+.scene-ready .primary {
+  margin: 0;
+  min-height: 56px;
+  box-shadow:
+    0 6px 0 #456c4533,
+    0 12px 30px #40644026;
+}
+#angling-live.scene-console {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 18px;
+  margin: 0;
+  padding: 14px 18px;
+  background: #fffcf0f5;
+  border: 1px solid #c7d2ad;
+  box-shadow: 0 8px 30px #41644c22;
+}
+.scene-console .bar-heading {
+  font-size: 13px;
+}
+.scene-console #angling-instruction {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 7px 0;
+}
+.scene-console .angling-bar {
+  height: 26px;
+  margin: 12px 4px;
+}
+.scene-console .fight-meters {
+  margin: 6px 0 10px;
+  font-size: 10px;
+  gap: 14px;
+}
+.scene-console .fishing-actions {
+  justify-content: center;
+  margin: 8px 0 0;
+  gap: 20px;
+}
+.scene-console .fishing-actions button {
+  border: 0;
+  background: none;
+  color: #82906f;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+.scene-console .fish-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  margin: 0;
+  font-size: 15px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.reel-icon {
+  display: inline-block;
+  font-size: 32px;
+  line-height: 1;
+}
+.fish-control[aria-pressed='true'] .reel-icon {
+  animation: reel-turn 0.7s linear infinite;
+}
+@keyframes reel-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+#fishing-stage[data-phase='waiting'] .fight-meters,
+#fishing-stage[data-phase='charge'] .fight-meters,
+#fishing-stage[data-phase='hook'] .fight-meters {
+  display: none;
+}
+#fishing-stage[data-phase='hook'] .scene-console {
+  border-color: #d4ab56;
+  box-shadow: 0 0 0 3px #e6c36744;
+}
+.catch-reveal {
+  position: absolute;
+  top: 25%;
+  left: 25%;
+  width: 50%;
+  background: #fffcf1f2;
+  border: 1px solid #e0d8b5;
+  border-radius: 20px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 12px 30px #47624b26;
+  animation: catch-pop 0.35s ease-out;
+}
+.catch-reveal svg {
+  display: block;
+  width: 150px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.catch-reveal strong,
+.catch-reveal span,
+.catch-reveal small {
+  display: block;
+}
+.catch-reveal strong {
+  font-size: 18px;
+  margin: 4px 0 8px;
+}
+.catch-reveal span,
+.catch-reveal small {
+  font-size: 12px;
+  color: #8a916e;
+}
+.catch-reveal .catch-price {
+  color: #aa8751;
+  margin-top: 8px;
+}
+.catch-reveal .loot-art {
+  font-size: 56px;
+  padding: 8px;
+}
+@keyframes catch-pop {
+  from {
+    transform: translateY(15px) scale(0.93);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.bait-tray {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0;
+}
+.bait-tray button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.bait-tray button[aria-pressed='true'] {
+  border-color: #83a365;
+  background: #e3eccf;
+}
+.bait-tray small {
+  display: block;
+  font-size: 9px;
+  margin-top: 3px;
+  color: #839072;
+}
+.fish-silhouette svg {
+  display: block;
+  width: 125px;
+  margin: auto;
+}
+.fish-entry[data-discovered='false'] .fish-silhouette {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+@media (max-width: 600px) {
+  #fishing-stage.is-river {
+    min-height: 520px;
+  }
+  #river-roster {
+    padding: 12px;
+  }
+  .river-caption {
+    left: 7%;
+    top: 4%;
+  }
+  .river-caption h2 {
+    font-size: 18px;
+  }
+  .river-caption p {
+    max-width: 200px;
+    font-size: 11px;
+  }
+  .river-clock {
+    top: 3%;
+    right: 4%;
+    font-size: 9px;
+    padding: 5px 7px;
+  }
+  .river-caption .eyebrow {
+    visibility: hidden;
+    margin-bottom: 4px;
+  }
+  #angling-live.scene-console {
+    left: 4%;
+    right: 4%;
+    padding: 12px;
+    bottom: 12px;
+  }
+  .scene-console .bar-heading {
+    flex-wrap: nowrap;
+    font-size: 12px;
+  }
+  .scene-console #angling-status {
+    font-size: 10px;
+  }
+  .scene-ready {
+    left: 12%;
+    right: 12%;
+    bottom: 28px;
+  }
+  .catch-reveal {
+    top: 25%;
+    left: 17%;
+    width: 66%;
+  }
+  .catch-reveal strong {
+    font-size: 16px;
+  }
+  .bait-tray {
+    gap: 5px;
+  }
+  .angling .bait-tray button {
+    padding: 7px 5px;
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catch-reveal,
+  .fish-control[aria-pressed='true'] .reel-icon {
+    animation: none;
+  }
+}
+.fishing-settings {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fishing-settings #fishing-resources {
+  font-size: 11px;
+}
+.fishing-settings #haptics-toggle {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+#fishing-stage[data-feedback='bite'] #game {
+  filter: brightness(1.08);
+}
+#fishing-stage[data-feedback='hook'] .scene-console {
+  box-shadow: 0 0 0 4px #a4bf7044;
+}
+#fishing-stage[data-feedback='missed'] .scene-console {
+  border-color: #c18c73;
+}
+.cat-rest-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.cat-rest-actions button {
+  padding: 10px;
+  min-height: 42px;
+  border: 1px solid #d6ddc6;
+  border-radius: 10px;
+  background: #fffdef;
+  font-size: 11px;
+  color: #647854;
+}
+.cat-rest-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (max-width: 600px) {
+  #fishing-stage.is-river[data-phase='ready'] {
+    min-height: 430px;
+  }
+  .energy-cat svg {
+    width: 40px;
+  }
+  .energy-cat {
+    padding: 9px;
+    gap: 6px;
+  }
+  .energy-cat small {
+    font-size: 9px;
+  }
+}
