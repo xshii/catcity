@@ -283,6 +283,10 @@ for (const viewport of [
     await onScreen(page.getByLabel('和 Mochi 说句话'));
     await onScreen(page.getByRole('button', { name: '发送', exact: true }));
     await singleScreen(page);
+    await page.screenshot({
+      path: testInfo.outputPath('panel-phone.png'),
+      fullPage: true,
+    });
     await openChat(page, 'memory');
     await onScreen(page.locator('.journal'));
     await singleScreen(page);
