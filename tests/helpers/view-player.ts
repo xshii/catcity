@@ -32,7 +32,7 @@ export function closeRiverPanel() {
 }
 
 /** Walks the selected cat to a shore; the outing page finds it without a map tap. */
-function reachWaterway(spotId: SpotId) {
+export function reachWaterway(spotId: SpotId) {
   closeRiverPanel();
   click('#visit-city');
   expandTab('#city-tab-outing');
@@ -57,16 +57,31 @@ export function enterRiver(game: Game) {
   expect(scene()).toBe('river');
 }
 
-export function openGear(
-  game: Game,
-  section: 'setup' | 'supplies' | 'info' = 'setup',
-) {
+function openRiverPanel(game: Game, panel: 'gear' | 'bag') {
   if (scene() !== 'river') {
     closeRiverPanel();
     enterRiver(game);
   }
-  expandTab('#river-tab-gear');
+  expandTab(`#river-tab-${panel}`);
+}
+
+export function openGear(
+  game: Game,
+  section: 'setup' | 'supplies' | 'info' = 'setup',
+) {
+  openRiverPanel(game, 'gear');
   click(`#gear-tab-${section}`);
+}
+
+/** The bag's fish page that shows this fish, paged to from the first page. */
+export function showBagFish(game: Game, fishId: string) {
+  openRiverPanel(game, 'bag');
+  click('#bag-tab-fish');
+  const fish = `[data-gift-fish="${fishId}"]`;
+  const enabled = (id: string) => !$<HTMLButtonElement>(id).disabled;
+  while (enabled('#bag-prev')) click('#bag-prev');
+  while (!visible(fish) && enabled('#bag-next')) click('#bag-next');
+  expect(visible(fish)).toBe(true);
 }
 
 /** The cats panel of whichever scene shows, on one of its pages. */

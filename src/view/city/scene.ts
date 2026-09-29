@@ -3,9 +3,13 @@ import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
 import type { Position } from '../../core';
-import { catArt } from '../art/cat';
+import { CatArt } from '../art/cat';
+import { catPose } from '../art/cat-look';
 import type { City } from './panel';
 import { drawCityMap } from '../art/city-map';
+import { CityAmbience } from '../art/city-ambience';
+import { cityLight, shade } from '../art/city-light';
+import { CITY_COLOURS, LABEL } from '../art/city-palette';
 import { RiverView } from '../art/river';
 import { aimAtPoint } from '../art/water-view';
 import { measureBarInsets } from './bars';
@@ -13,8 +17,9 @@ import { boardSize, frameMap, MAP_VIEW, tileCenter } from './geometry';
 
 export class CityScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
+  private ambience!: CityAmbience;
   private labels: Phaser.GameObjects.Text[] = [];
-  private cats = new Map<string, Phaser.GameObjects.Container>();
+  private cats = new Map<string, CatArt>();
   private river!: RiverView;
   private riverMode = false;
   private paintedState = '';
@@ -44,6 +49,7 @@ export class CityScene extends Phaser.Scene {
 
   create() {
     this.graphics = this.add.graphics();
+    this.ambience = new CityAmbience(this);
     this.river = new RiverView(this);
     const repaint = () => this.paint();
     const unsubscribePlace = this.place.subscribe(repaint);
@@ -192,15 +198,27 @@ export class CityScene extends Phaser.Scene {
   }
 
   /** Frame the camera every frame, so a walking cat and a resized frame stay centred. */
-  update() {
+  update(time: number) {
     // Frames drawn so far, so real-input tests can wait for the camera to catch up
     // instead of guessing a delay (harness settle()).
     this.game.canvas.dataset.frame = String(++this.frames);
     const camera = this.cameras.main;
+    // Idle motion only for cats in last frame's view (a tile of margin).
+    const view = camera.worldView;
+    const margin = MAP_VIEW.tile;
+    for (const sprite of this.cats.values())
+      sprite.animate(
+        sprite.visible &&
+          sprite.x > view.left - margin &&
+          sprite.x < view.right + margin &&
+          sprite.y > view.top - margin &&
+          sprite.y < view.bottom + margin,
+      );
     if (this.riverMode) {
       camera.setZoom(1).centerOn(MAP_VIEW.size / 2, MAP_VIEW.size / 2);
       return;
     }
+    this.ambience.update(time);
     if (!this.frame.width || !this.frame.height || !this.tiles.width) return;
     const board = boardSize(this.tiles);
     const cat = this.followedCat();
@@ -223,20 +241,16 @@ export class CityScene extends Phaser.Scene {
     camera.setZoom(scale * this.logicalPerCss()).centerOn(center.x, center.y);
   }
 
-  private label(
-    x: number,
-    y: number,
-    text: string,
-    size = 12,
-    color = '#53674f',
-  ) {
+  private label(x: number, y: number, text: string, size = 12) {
     this.labels.push(
       this.add
         .text(x, y, text, {
-          fontFamily: 'system-ui',
+          fontFamily: LABEL.font,
           resolution: 2,
           fontSize: size,
-          color,
+          color: LABEL.color,
+          stroke: LABEL.halo,
+          strokeThickness: 3,
         })
         .setOrigin(0.5),
     );
@@ -262,28 +276,41 @@ export class CityScene extends Phaser.Scene {
       ringCentre: this.aim.ringCentre(),
     });
     const { selection, walker } = this.city.view.get();
+    const light = cityLight(world.minute);
     const signature = JSON.stringify([
       world.map,
       world.buildings,
-      world.cats.map((cat) => [cat.id, cat.position, cat.walk, cat.appearance]),
+      world.cats.map((cat) => [
+        cat.id,
+        cat.position,
+        cat.walk,
+        cat.appearance,
+        catPose(world, cat),
+      ]),
       selection,
       this.session.selectedEntity,
       this.riverMode,
+      light.daypart,
     ]);
     if (signature === this.paintedState) return;
     this.paintedState = signature;
     this.graphics.clear().setVisible(!this.riverMode);
     this.labels.forEach((label) => label.destroy());
     this.labels = [];
+    this.ambience.render(world, light, !this.riverMode);
+    // The ground around the board takes the light too; the river's page shows through.
+    this.cameras.main.setBackgroundColor(
+      this.riverMode ? 'rgba(0,0,0,0)' : shade(CITY_COLOURS.ground, light),
+    );
     if (!this.riverMode)
-      drawCityMap(this.graphics, world, selection, (x, y, text, size, color) =>
-        this.label(x, y, text, size, color),
+      drawCityMap(this.graphics, world, selection, light, (x, y, text, size) =>
+        this.label(x, y, text, size),
       );
     for (const cat of world.cats) {
       const { x, y } = tileCenter(cat.position.x, cat.position.y);
       let sprite = this.cats.get(cat.id);
       if (!sprite) {
-        sprite = catArt(this, x, y, 1, cat.appearance.coat).setDepth(5);
+        sprite = new CatArt(this, x, y, 1, cat.appearance.coat).setDepth(5);
         this.cats.set(cat.id, sprite);
       } else if (sprite.x !== x || sprite.y !== y) {
         this.tweens.killTweensOf(sprite);
@@ -295,13 +322,13 @@ export class CityScene extends Phaser.Scene {
           ease: 'Sine.easeInOut',
         });
       }
-      sprite.setVisible(!this.riverMode);
+      sprite.setPose(catPose(world, cat)).setVisible(!this.riverMode);
       if (!this.riverMode) {
         if (walker === cat.id)
           this.graphics
-            .lineStyle(2.5, 0x55764b)
+            .lineStyle(2.5, CITY_COLOURS.selected)
             .strokeRoundedRect(x - 23, y - 25, 46, 49, 10);
-        this.label(x, y + 31, cat.name, 11, '#485b42');
+        this.label(x, y + 31, cat.name, 11);
       }
     }
     for (const [id, sprite] of this.cats)
