@@ -76,11 +76,9 @@ it.each(TARGETS)(
   'a %s player averages %i to %i mood a round',
   (player, min, max) => {
     const { mood, good } = average(player);
-    console.info(
-      `petting balance: ${player} averages ${mood.toFixed(2)} mood, ${Math.round(good * 100)}% good rounds`,
-    );
-    expect(mood).toBeGreaterThanOrEqual(min);
-    expect(mood).toBeLessThanOrEqual(max);
+    const measured = `${player}: ${mood.toFixed(2)} mood a round, ${Math.round(good * 100)}% good rounds`;
+    expect(mood, measured).toBeGreaterThanOrEqual(min);
+    expect(mood, measured).toBeLessThanOrEqual(max);
   },
 );
 
