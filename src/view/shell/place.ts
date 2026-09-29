@@ -40,4 +40,6 @@ export interface AimControl {
   /** Aiming on the water or by tilt; callers keep values within `FISHING.input`. */
   set: (next: Partial<Omit<Aim, 'spotId'>>) => void;
   subscribe: (listener: () => void) => () => void;
+  /** The motion fight ring's centre on the 100×100 water plane; the line runs to it. */
+  ringCentre: () => { x: number; y: number };
 }

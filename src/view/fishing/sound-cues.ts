@@ -7,8 +7,15 @@ import type { FishingView } from './view-state';
 
 type Fishing = WorldState['fishing'];
 
-/** One-shot fishing sounds (spec 033 F4); the reeling hum is continuous, see `reelLevel`. */
-export type SoundCue = 'cast' | 'nibble' | 'bite' | 'strain' | 'catch' | 'snap';
+/**
+ * One-shot fishing moments (spec 033 F4), each with its sound but the strike, where the
+ * reeling hum starts (continuous, see `reelLevel`). They also pick the screen cues that
+ * stand in for vibration, see `screenCue`.
+ */
+export type SoundCue =
+  'cast' | 'nibble' | 'bite' | 'strike' | 'strain' | 'catch' | 'snap';
+/** A gentle shake of the river art, or a soft warm glow at the screen's edges. */
+export type ScreenCue = 'shake' | 'glow';
 
 /** Per-device sound choice; never part of the world or a save. */
 export const SOUND_KEY = 'cat-city.sound';
@@ -42,6 +49,7 @@ export function soundCues(previous: Fishing, next: Fishing): SoundCue[] {
     const nibble = motionNibble(run);
     if (nibble !== null && nibble !== motionNibble(before)) cues.push('nibble');
     if (before.phase !== 'hook' && run.phase === 'hook') cues.push('bite');
+    if (before.phase === 'hook' && run.phase === 'fight') cues.push('strike');
     if (strainSteps(run) > strainSteps(before)) cues.push('strain');
   }
   const ended = next.lastResult;
@@ -54,6 +62,26 @@ export function soundCues(previous: Fishing, next: Fishing): SoundCue[] {
     else if (ended.reason === 'line-break') cues.push('snap');
   }
   return cues;
+}
+
+const SCREEN_CUES: Partial<Record<SoundCue, ScreenCue>> = {
+  bite: 'shake',
+  strike: 'shake',
+  snap: 'shake',
+  strain: 'glow',
+  catch: 'glow',
+};
+/**
+ * What the screen shows for one world change's cues. A device that vibrates keeps its
+ * pulses and shows nothing; one that cannot (iPhone) shakes for the bite, the strike and
+ * a snapped line, and glows for a straining line and a catch.
+ */
+export function screenCue(
+  cues: readonly SoundCue[],
+  canVibrate: boolean,
+): ScreenCue | null {
+  if (canVibrate) return null;
+  return cues.map((cue) => SCREEN_CUES[cue]).find(Boolean) ?? null;
 }
 
 /** The reeling hum while a fight is played: how far it has come (0–1), or null for silence. */

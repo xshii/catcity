@@ -15,24 +15,34 @@ import {
 } from '../../src/view/fishing/view-state';
 import {
   reelLevel,
+  screenCue,
   soundCues,
   soundLabel,
   soundOn,
+  type ScreenCue,
   type SoundCue,
 } from '../../src/view/fishing/sound-cues';
 import { replay } from '../helpers/fishing-view';
 
-/** A world whose every command is followed by the sounds its change calls for. */
+/**
+ * A world whose every command is followed by the sounds its change calls for, and the
+ * screen cues a device that cannot vibrate shows for it.
+ */
 function listening(world: World) {
   let previous = world.getSnapshot().fishing;
   const heard: SoundCue[] = [];
+  const seen: ScreenCue[] = [];
   return {
     heard,
+    seen,
     getSnapshot: () => world.getSnapshot(),
     dispatch(command: GameCommand) {
       const result = world.dispatch(command);
       const next = world.getSnapshot().fishing;
-      heard.push(...soundCues(previous, next));
+      const cues = soundCues(previous, next);
+      heard.push(...cues);
+      const screen = screenCue(cues, false);
+      if (screen) seen.push(screen);
       previous = next;
       return result;
     },
@@ -107,28 +117,28 @@ const playing = (...events: FishingViewEvent[]) =>
   );
 
 describe('fishing sounds', () => {
-  it('a caught fish sounds its cast, its bite and the catch, once each', () => {
+  it('a caught fish cues its cast, bite, strike and catch, once each', () => {
     const game = listening(fishingFixture(7));
     begin(game);
     expect(game.heard).toEqual([]);
     finishFishing(game);
-    expect(game.heard).toEqual(['cast', 'bite', 'catch']);
+    expect(game.heard).toEqual(['cast', 'bite', 'strike', 'catch']);
   });
 
   it('holding too hard strains the line once, then it snaps', () => {
     const game = listening(fishingFixture(1000039));
     const runId = begin(game);
     toButtonFight(game, runId);
-    expect(game.heard).toEqual(['cast', 'bite']);
+    expect(game.heard).toEqual(['cast', 'bite', 'strike']);
     holdTicks(game, runId, true, 100);
     expect(game.getSnapshot().fishing.lastResult).toMatchObject({
       caught: false,
       reason: 'line-break',
     });
-    expect(game.heard).toEqual(['cast', 'bite', 'strain', 'snap']);
+    expect(game.heard).toEqual(['cast', 'bite', 'strike', 'strain', 'snap']);
   });
 
-  it('a motion run sounds every fake nibble, then the bite; a strike is silent', () => {
+  it('a motion run cues every fake nibble, then the bite and the strike', () => {
     const game = listening(fishingFixture(42));
     const { nibbles } = toMotionFight(game);
     expect(nibbles.length).toBeGreaterThan(0);
@@ -136,6 +146,7 @@ describe('fishing sounds', () => {
       'cast',
       ...nibbles.map(() => 'nibble' as const),
       'bite',
+      'strike',
     ]);
   });
 
@@ -181,6 +192,48 @@ describe('fishing sounds', () => {
     expect(soundCues(empty, fighting)).toEqual([]);
     expect(soundCues(ended, fighting)).toEqual([]);
     expect(soundCues(ended, ended)).toEqual([]);
+  });
+});
+
+describe('screen cues instead of vibration', () => {
+  const ALL: SoundCue[] = [
+    'cast',
+    'nibble',
+    'bite',
+    'strike',
+    'strain',
+    'catch',
+    'snap',
+  ];
+
+  it('without vibration, the bite, strike and snap shake; strain and a catch glow', () => {
+    expect(ALL.map((cue) => screenCue([cue], false))).toEqual([
+      null,
+      null,
+      'shake',
+      'shake',
+      'glow',
+      'glow',
+      'shake',
+    ]);
+    expect(screenCue([], false)).toBeNull();
+    expect(screenCue(['cast', 'bite'], false)).toBe('shake');
+  });
+
+  it('a device that vibrates keeps its pulses and shows no screen cue', () => {
+    for (const cue of ALL) expect(screenCue([cue], true)).toBeNull();
+  });
+
+  it('a real catch and a snapped line cue the screen at each moment', () => {
+    const caught = listening(fishingFixture(7));
+    begin(caught);
+    finishFishing(caught);
+    expect(caught.seen).toEqual(['shake', 'shake', 'glow']);
+    const snapped = listening(fishingFixture(1000039));
+    const runId = begin(snapped);
+    toButtonFight(snapped, runId);
+    holdTicks(snapped, runId, true, 100);
+    expect(snapped.seen).toEqual(['shake', 'shake', 'glow', 'shake']);
   });
 });
 
