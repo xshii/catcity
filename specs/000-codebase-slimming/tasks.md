@@ -38,7 +38,7 @@
 
 - [x] 旧存档拒绝用例合并为 `tests/integration/legacy-saves.test.ts`（v1–v10 + 未来版本，11 例），删除 6 个分散用例
 - [ ] 体感模式映射下沉到单元测试，E2E 每条路径保留一例
-- [ ] `game.spec.ts` 解锁用例从预制存档起步
+- [x] `game.spec.ts` 解锁用例从预制存档起步 — 连钓解锁、换饵、赠鱼的流程移到 `tests/view/fishing-progress.test.ts`（约 2 秒）；E2E 从 Core 预制的进度存档起步，只验证真实点击赠鱼后刷新保留、解锁仍在（39.3 → 3.4 秒）。Chromium E2E 全量墙钟 77.5 → 62.9 秒（2 workers）
 - [ ] Playwright 并行：再试（PR 2）4 workers 5.1 分钟、1 例超时，串行 6.2 分钟——4 个浏览器同时软件渲染占满 CPU，收益太小，保持串行。更早一次试过 4 workers（5.3 分钟），但两个依赖真实时间的用例（`fishing-hook-motion.spec.ts:222` 暂停竞态、`game.spec.ts:21` 遛鱼循环）在负载下失败，串行重跑通过 → 已撤回。前置条件：把这些用例改为确定性推进后再并行。重复构建仅 2.3 秒，不改
 
 - [x] 仓库误提交的 `node_modules` 软链接移除，`.gitignore` 改为同时忽略目录与软链接（PR 2）

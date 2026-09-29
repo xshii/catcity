@@ -1,5 +1,8 @@
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { SAVE_VERSION } from '../../src/core/schema';
+import { createWorld } from '../../src/core';
+import { greenZone } from '../../src/minigames/angling';
+import { FISHING, type BaitId, type SpotId } from '../../src/content/fishing';
 import {
   enterRiver,
   reachWaterway,
@@ -7,7 +10,6 @@ import {
 import { catchFish } from '../../harness/adapters/catcity/angling-input';
 import { expect, test } from '@playwright/test';
 import {
-  closeRiverPanel,
   invitePepper,
   openChat,
   openGear,
@@ -214,73 +216,90 @@ test('city guide makes construction, income and the relationship activity discov
   ).toBe(true);
 });
 
-test('skill and atlas unlock a new waterway; bait changes catches and Pepper receives a favorite fish', async ({
+/**
+ * The progress tests/view/fishing-progress.test.ts plays through the page, played here
+ * through Core: four pond catches (left, right), the walk to the reeds, a perch on
+ * worms, and Pepper invited.
+ */
+function progressSave() {
+  const world = createWorld(42);
+  const land = (spotId: SpotId, baitId: BaitId, direction: number) => {
+    expect(
+      world.dispatch({
+        type: 'FISH_BEGIN',
+        catId: 'mochi',
+        baitId,
+        direction,
+        spotId,
+        aimDepth: 50,
+      }).ok,
+    ).toBe(true);
+    for (
+      let tick = 0;
+      tick < 600 && world.getSnapshot().fishing.active;
+      tick++
+    ) {
+      const run = world.getSnapshot().fishing.active!;
+      const zone = greenZone(run);
+      const pressed =
+        run.phase === 'charge'
+          ? run.tick < 23
+          : run.phase === 'hook'
+            ? run.cursor >= zone.low && run.cursor <= zone.high
+            : run.phase === 'fight' && run.tension < (zone.low + zone.high) / 2;
+      expect(
+        world.dispatch({
+          type: 'FISH_CONTROL',
+          runId: run.id,
+          pressed,
+          ticks: 1,
+        }).ok,
+      ).toBe(true);
+    }
+    expect(world.getSnapshot().fishing.lastResult!.caught).toBe(true);
+  };
+  for (let cast = 0; cast < 4; cast++)
+    land('POND', 'BREAD', FISHING.input.maxDirection * (cast % 2 ? 1 : -1));
+  expect(
+    world.dispatch({
+      type: 'TRAVEL_TO_FISHING_SPOT',
+      catId: 'mochi',
+      spotId: 'REEDS',
+    }).ok,
+  ).toBe(true);
+  for (
+    let minute = 0;
+    minute < 120 && world.getSnapshot().cats[0]!.walk;
+    minute++
+  )
+    expect(world.dispatch({ type: 'ADVANCE_TIME', minutes: 1 }).ok).toBe(true);
+  land('REEDS', 'WORM', FISHING.input.maxDirection);
+  expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+  return world;
+}
+
+test('fishing progress survives a real reload, and the reloaded panel keeps its unlocks', async ({
   page,
 }) => {
-  // Five real casts plus panel navigation and travel take about two minutes in software-rendered Chromium.
-  test.setTimeout(180_000);
+  const prepared = progressSave();
+  // A device that already holds this progress; the reload must find the page's own save.
+  await page.addInitScript((save) => {
+    if (localStorage.getItem('cat-city.save.v1') === null)
+      localStorage.setItem('cat-city.save.v1', save);
+  }, prepared.save());
   await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
-  await enterRiver(page);
-  await openGear(page);
-  await expect(
-    page.locator('#fish-location option[value="REEDS"]'),
-  ).toHaveJSProperty('disabled', true);
-  for (let cast = 0; cast < 4; cast++) {
-    await openGear(page);
-    await page.locator('#fish-direction').focus();
-    await page.keyboard.press(cast % 2 ? 'End' : 'Home');
-    await closeRiverPanel(page);
-    await page.locator('#cast-start').click();
-    await catchFish(page);
-  }
-  expect((await readWorld(page)).fishing.xp).toBe(50);
-  await openGear(page);
-  await expect(
-    page.locator('#fish-location option[value="REEDS"]'),
-  ).toHaveJSProperty('disabled', false);
-  const beforeTravel = await readWorld(page);
-  await page.locator('#fish-location').selectOption('REEDS');
-  await expect(page.locator('#visit-city')).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  expect((await readWorld(page)).minute).toBe(beforeTravel.minute);
-  await reachWaterway(page, 'REEDS');
-  const arrived = await readWorld(page);
-  expect(arrived.minute).toBeGreaterThan(beforeTravel.minute);
-  expect(arrived.cats[0]!.needs.energy).toBeLessThan(
-    beforeTravel.cats[0]!.needs.energy,
-  );
-  expect(arrived.cats[0]!.fishingSpotId).toBe('REEDS');
-  await enterRiver(page, 'REEDS');
-  await openGear(page);
-  await expect(page.locator('#travel-to-spot')).toBeDisabled();
-  await page.locator('#fish-bait').selectOption('WORM');
-  await closeRiverPanel(page);
-  await expect(page.locator('#cast-start')).toBeEnabled();
-  await page.locator('#cast-start').click();
-  await catchFish(page);
-  const world = await readWorld(page);
-  expect(world.minute).toBe(arrived.minute);
-  const perch = world.fishing.inventory.find(
-    (fish) => fish.speciesId === 'PERCH',
-  )!;
-  expect(perch).toBeDefined();
-  await invitePepper(page);
-  const pepper = (await readWorld(page)).cats.find(
-    (cat) => cat.definitionId === 'PEPPER',
-  )!;
+  const { cats, fishing } = prepared.getSnapshot();
+  const pepper = cats.find((cat) => cat.definitionId === 'PEPPER')!;
+  const perch = fishing.inventory.find((fish) => fish.speciesId === 'PERCH')!;
+  // Real clicks change the progress just before the reload: the perch goes to Pepper.
   await openGear(page);
   await page.locator('#fish-companion').selectOption(pepper.id);
   await showBagFish(page, perch.id);
-  await expect(page.locator('#fish-tastes')).toContainText('鲈鱼、鲶鱼');
   await page.locator(`[data-gift-fish="${perch.id}"]`).click();
-  expect(
-    (await readWorld(page)).cats.find((cat) => cat.id === pepper.id)!.fishGift!
-      .favorite,
-  ).toBe(true);
   const before = await readWorld(page);
+  // The perch left the bag, so the reload has progress of this page to keep.
+  expect(before.fishing.inventory).toHaveLength(fishing.inventory.length - 1);
   await page.reload();
   await ready(page);
   expect(await readWorld(page)).toEqual(before);
