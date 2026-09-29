@@ -4,6 +4,7 @@ import { BrowserSaveRepository, SAVE_KEY } from './platform/storage';
 import { STARTER_CAT_ID } from './content/cats';
 import { mountGameView } from './view';
 import { startDeviceLog } from './platform/device-log';
+import { showBuildVersion } from './platform/build-version';
 
 const initialSeed =
   import.meta.env.MODE === 'test'
@@ -31,6 +32,7 @@ function deviceLog() {
 }
 const trace = deviceLog();
 if (trace) {
+  showBuildVersion(__BUILD_VERSION__);
   // Each command notifies once; the per-tick fishing controls only when they change play.
   let logged = -1;
   session.subscribe(() => {
