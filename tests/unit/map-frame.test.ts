@@ -3,6 +3,8 @@ import {
   boardSize,
   frameMap,
   MAP_VIEW,
+  revealOffset,
+  revealShift,
   tileCenter,
 } from '../../src/view/city/geometry';
 
@@ -76,4 +78,48 @@ it('keeps the board between floating bars: centred in the band, clamped to its e
   const boardBottomOnScreen =
     frame.height / 2 + (board.height - bottom.center.y) * bottom.scale;
   expect(boardBottomOnScreen).toBeCloseTo(frame.height - insets.bottom);
+});
+
+it('moves the map only as far as it takes to show a covered tile, and never for a visible one', () => {
+  const open = { top: 95, bottom: 673 };
+  const gap = MAP_VIEW.revealGap;
+  // Inside the open band, touching its edges or not: already visible.
+  expect(revealOffset({ top: 300, bottom: 366 }, open)).toBe(0);
+  expect(revealOffset({ top: 95, bottom: 673 }, open)).toBe(0);
+  // Under the card: the map moves up until the tile is a small gap above the card.
+  expect(revealOffset({ top: 640, bottom: 706 }, open)).toBe(706 - 673 + gap);
+  // Under the hint: the map moves down until the tile is a small gap below it.
+  expect(revealOffset({ top: 80, bottom: 146 }, open)).toBe(80 - 95 - gap);
+});
+
+it('keeps the camera still when the action card opens, unless the selected tile is under it', () => {
+  const frame = { width: 390, height: 844 };
+  // The camera frames between the scene bar and the tool bar only…
+  const bars = { top: 52, bottom: 62 };
+  // …while the hint and the action card float over the map too.
+  const hint = { top: 95, bottom: 62 };
+  const card = { top: 95, bottom: 171 };
+  const camera = frameMap(frame, ten, true, tileCenter(7, 3), bars);
+  const onScreen = (y: number, center = camera.center) =>
+    frame.height / 2 + (y - center.y) * camera.scale;
+  // A tile in the middle: the card opens beside it and nothing moves.
+  expect(revealShift(frame, camera, tileCenter(6, 5), bars, hint)).toBe(0);
+  expect(revealShift(frame, camera, tileCenter(6, 5), bars, card)).toBe(0);
+  // A bottom-row tile under the card: the camera moves just far enough to show it.
+  const low = tileCenter(7, 9);
+  const half = (MAP_VIEW.tile * camera.scale) / 2;
+  expect(onScreen(low.y) + half).toBeGreaterThan(frame.height - card.bottom);
+  const shift = revealShift(frame, camera, low, bars, card);
+  const moved = { x: camera.center.x, y: camera.center.y + shift };
+  expect(onScreen(low.y, moved) + half).toBeCloseTo(
+    frame.height - card.bottom - MAP_VIEW.revealGap,
+  );
+  // The card closes: the tile shows, so the camera stays where it is.
+  expect(
+    revealShift(frame, { ...camera, center: moved }, low, bars, hint),
+  ).toBe(0);
+  // On a short phone the bottom row lies off the screen, not under the card: no move.
+  const short = { width: 360, height: 640 };
+  const followTop = frameMap(short, ten, true, tileCenter(7, 3), bars);
+  expect(revealShift(short, followTop, low, bars, card)).toBe(0);
 });
