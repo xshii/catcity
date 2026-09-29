@@ -134,7 +134,7 @@ function nextPurchase(world: World, cafes: readonly Position[]) {
   );
 }
 
-export interface Purchase {
+interface Purchase {
   realMinute: number;
   building: 'CAT_CAFE' | 'CAT_APARTMENT';
   cost: number;
