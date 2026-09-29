@@ -412,6 +412,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     el.ring.style.top = `${rod.y}%`;
     el.ring.style.width = `${radius * 2}%`;
     el.ring.classList.toggle('inside', inside);
+    // The outer edge reddens as the line tightens (spec 033).
+    el.ring.style.setProperty('--tension', String(motionRun.tension));
     el.fish.style.left = `${fish.x}%`;
     el.fish.style.top = `${fish.y}%`;
     // The shadow faces right; it turns to where the fish swims.
