@@ -39,6 +39,8 @@ it.each(
       expect(state.fishing.inventory).toEqual([]);
       expect(state.fishing.xp).toBe(0);
       expect(state.cats[0]!.fishingMemory).toBeNull();
+      // Neither a failure nor its trash grows the bond (spec 034).
+      expect(state.cats[0]!.playerBond).toBe(0);
       expect(state.fishing.supplies.trash).toBe(
         state.fishing.lastResult!.trashAmount,
       );

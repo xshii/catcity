@@ -1,3 +1,5 @@
+import { bondLevel } from './care';
+
 /**
  * Mood tuning (spec 032): every change a cat's mood (0–100) takes, and the small bonus a
  * happy cat brings to a run. Losses are magnitudes. Mood never cuts rewards or blocks play.
@@ -6,6 +8,8 @@ export const MOOD = {
   /** Each full game hour mood drifts `drift` toward `rest`, never past it. */
   tickMinutes: 60,
   rest: 60,
+  /** Each bond level above the first lifts that cat's resting mood (spec 034). */
+  restPerBondLevel: 3,
   drift: 2,
   /** Extra each full hour for a cat beside its own apartment. */
   home: 1,
@@ -32,4 +36,9 @@ export function moodBand(mood: number): MoodBand {
   if (mood >= 50) return 'calm';
   if (mood >= 30) return 'glum';
   return 'low';
+}
+
+/** The mood a cat with this bond drifts toward: 60 for a new friend, 72 for family. */
+export function moodRest(playerBond: number): number {
+  return MOOD.rest + bondLevel(playerBond) * MOOD.restPerBondLevel;
 }
