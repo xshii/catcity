@@ -9,6 +9,7 @@ import { FISHING } from '../../content/fishing';
 import { fishShadow } from '../art/illustrations';
 import { WATER_VIEW } from '../art/water-view';
 import {
+  aimedSteps,
   motionNibble,
   motionWant,
   SCREEN_COPY,
@@ -18,8 +19,10 @@ import {
 import { logTime, type Trace } from '../../platform/device-log';
 import { readJsonPref, readPref, savePref } from '../../platform/local-prefs';
 import {
+  GUIDE_STEPS,
   motionActive,
   type FishingViewStore,
+  type GuideStep,
   type Preference,
 } from '../fishing/view-state';
 import { OrientationTracker } from './orientation';
@@ -40,6 +43,8 @@ const PREFERENCE_KEY = 'cat-city.fishing-input';
  * calibrations on iPhones named the rate axes wrongly and are ignored.
  */
 const TUNING_KEY = 'cat-city.rod-tuning.v2';
+/** Per-device first-cast guide progress: the step to learn next, or `done`. */
+const GUIDE_KEY = 'cat-city.fishing-guide';
 /** How long the calibration result stays on screen. */
 const NOTICE_MS = 3000;
 const FEEL = FISHING.motion.feel;
@@ -52,10 +57,15 @@ interface PermissionApi {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 }
 
-/** Motion facts read once at mount: the stored choice and what this device must ask. */
+/**
+ * Motion facts read once at mount: the stored choice, the guide's progress, whether this
+ * device ever calibrated, and what it must ask.
+ */
 export function motionStartup() {
   return {
     preference: readPreference(),
+    guide: readGuide(),
+    autoCalibrate: parseTuning(readJsonPref(TUNING_KEY)) === null,
     needsPermission:
       typeof (window.DeviceMotionEvent as PermissionApi | undefined)
         ?.requestPermission === 'function',
@@ -121,6 +131,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   overlay.hidden = true;
   overlay.innerHTML =
     '<p id="motion-fishing-hint" class="motion-fishing-hint" role="status"></p>' +
+    `<button id="motion-guide-skip" class="motion-guide-skip" hidden>${SCREEN_COPY.guide.skip}</button>` +
     '<strong id="motion-bite" class="motion-bite" hidden aria-live="assertive">！</strong>' +
     `<span id="motion-fish" class="motion-fish" hidden aria-hidden="true">${fishShadow()}</span>` +
     '<span id="motion-ring" class="motion-ring" hidden aria-hidden="true"></span>' +
@@ -145,6 +156,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     powerValue: overlay.querySelector<HTMLElement>('.motion-power-value')!,
     hold: $<HTMLProgressElement>('motion-hold'),
     calibrate: $('motion-calibrate'),
+    skip: $('motion-guide-skip'),
   };
   // The precise-cast band on the power meter comes from the cast rules.
   const band = FISHING.cast.precisionPower;
@@ -234,7 +246,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       power = tip.power(next);
       const preview = { direction: tip.aim(next), power };
       const key = `${preview.direction}/${preview.power}`;
-      if (key !== lastPreview) deps.previewAim(preview);
+      if (key !== lastPreview) {
+        deps.previewAim(preview);
+        for (const did of aimedSteps(preview))
+          view.dispatch({ type: 'guide', did });
+      }
       lastPreview = key;
     }
   }
@@ -260,16 +276,29 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       deps.trace('gesture', { t: logTime(event.timeStamp), gesture });
     if (gesture?.kind === 'cast') {
       // Without orientation readings the cast goes straight ahead.
-      if (deps.cast(tilt ? tip.aim(tilt) : 0, gesture.power))
+      if (deps.cast(tilt ? tip.aim(tilt) : 0, gesture.power)) {
         deps.vibrate(FEEL.castVibrateMs);
-    } else if (gesture?.kind === 'lift') deps.strike();
+        view.dispatch({ type: 'guide', did: 'cast' });
+      }
+    } else if (gesture?.kind === 'lift') strike();
+  }
+  /** A strike on the "!" hooks the fish: the guide's lift step. */
+  function strike() {
+    const hooked = deps.getRun()?.phase === 'hook';
+    deps.strike();
+    if (hooked) view.dispatch({ type: 'guide', did: 'strike' });
   }
 
   overlay.addEventListener('click', () => {
-    if (tapStrikes(view.get(), deps.getRun())) deps.strike();
+    if (tapStrikes(view.get(), deps.getRun())) strike();
+  });
+  el.skip.addEventListener('click', (event) => {
+    event.stopPropagation();
+    view.dispatch({ type: 'skip-guide' });
   });
 
-  // One-tap calibration: two flicks down, then the rod follows this phone and player.
+  // One-tap calibration: two flicks down, then the rod follows this phone and player. The
+  // view state turns it on (the button, or by itself on a device never calibrated).
   const endCalibration = () => {
     window.clearTimeout(calibrationTimer);
     calibration = null;
@@ -284,10 +313,9 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   };
   el.calibrate.addEventListener('click', (event) => {
     event.stopPropagation();
-    endCalibration();
     view.dispatch({ type: 'calibrating', on: true });
-    // The view state refuses calibration unless motion is active and playable.
-    if (!view.get().motion.calibrating) return;
+  });
+  const startCalibration = () => {
     const samples: SpinSample[] = [];
     calibration = samples;
     gestures.reset();
@@ -309,10 +337,17 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
           : SCREEN_COPY.calibrate.failed,
       );
     }, FISHING.motion.gesture.calibration.windowMs);
-  });
-  // The view state ends calibration when play or motion stops; drop its samples then.
+  };
+  // The view state starts calibration, and ends it when play or motion stops (drop its
+  // samples then); guide progress is kept for this device.
+  let savedGuide = view.get().motion.guide;
   view.subscribe((state) => {
     if (!state.motion.calibrating && calibration) endCalibration();
+    if (state.motion.calibrating && !calibration) startCalibration();
+    if (state.motion.guide !== savedGuide) {
+      savedGuide = state.motion.guide;
+      savePref(GUIDE_KEY, savedGuide ?? 'done');
+    }
   });
 
   /** Keep the plane square over the canvas's open water, so drawing matches Core. */
@@ -376,6 +411,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     }
     overlay.dataset.phase = model.overlayPhase;
     el.calibrate.hidden = !model.calibrateButton;
+    el.skip.hidden = !model.guide;
     el.power.hidden = !model.powerMeter;
     el.power.style.setProperty('--power', `${power}%`);
     el.power.setAttribute('aria-valuenow', String(power));
@@ -434,4 +470,9 @@ function readTuning(): RodTuning {
 }
 function readPreference(): Preference {
   return readPref(PREFERENCE_KEY) === 'buttons' ? 'buttons' : 'motion';
+}
+function readGuide(): GuideStep | null {
+  const stored = readPref(GUIDE_KEY);
+  if (stored === 'done') return null;
+  return GUIDE_STEPS.find((step) => step === stored) ?? 'aim';
 }

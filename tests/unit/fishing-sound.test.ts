@@ -98,6 +98,8 @@ const playing = (...events: FishingViewEvent[]) =>
       preference: 'buttons',
       needsPermission: false,
       coarsePointer: false,
+      guide: null,
+      autoCalibrate: false,
     }),
     { type: 'place', place: 'river' },
     { type: 'run', runId: 'r' },

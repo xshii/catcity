@@ -2,6 +2,9 @@ import type { Place } from '../shell/place';
 
 export type Capability = 'unknown' | 'ready' | 'denied' | 'unsupported';
 export type Preference = 'motion' | 'buttons';
+/** The first motion cast, taught one step at a time, in this order (spec 033 F3). */
+export const GUIDE_STEPS = ['aim', 'power', 'cast', 'strike', 'fight'] as const;
+export type GuideStep = (typeof GUIDE_STEPS)[number];
 
 /**
  * Everything the fishing screen decides from, besides the world snapshot (spec 015).
@@ -27,6 +30,10 @@ export interface FishingView {
     coarsePointer: boolean;
     calibrating: boolean;
     notice: string | null;
+    /** The first-cast guide's step to learn next; null once done or skipped. Per device. */
+    guide: GuideStep | null;
+    /** This device never calibrated: the first time it can aim, calibration starts by itself. */
+    autoCalibrate: boolean;
   };
 }
 
@@ -44,13 +51,21 @@ export type FishingViewEvent =
   /** Permission granted again: a refusal is forgotten, a ready sensor stays ready. */
   | { type: 'grant' }
   | { type: 'calibrating'; on: boolean }
-  | { type: 'notice'; text: string | null };
+  | { type: 'notice'; text: string | null }
+  /** The player did a guide step's move; only the step being taught moves on. */
+  | { type: 'guide'; did: GuideStep }
+  | { type: 'skip-guide' };
 
-export function initialFishingView(options: {
-  preference: Preference;
-  needsPermission: boolean;
-  coarsePointer: boolean;
-}): FishingView {
+export function initialFishingView(
+  options: Pick<
+    FishingView['motion'],
+    | 'preference'
+    | 'needsPermission'
+    | 'coarsePointer'
+    | 'guide'
+    | 'autoCalibrate'
+  >,
+): FishingView {
   return {
     place: 'city',
     toolsOpen: false,
@@ -65,6 +80,8 @@ export function initialFishingView(options: {
       coarsePointer: options.coarsePointer,
       calibrating: false,
       notice: null,
+      guide: options.guide,
+      autoCalibrate: options.autoCalibrate,
     },
   };
 }
@@ -78,7 +95,8 @@ export const motionActive = (view: FishingView) =>
 /**
  * Pure transitions. Invariants (unit-tested under random event sequences): outside play
  * input is paused and released; a held button implies play; calibration only runs while
- * motion is active and playable, before a run.
+ * motion is active and playable, before a run, and starts by itself at most once; the
+ * guide only moves forward, one step per move, and only in motion play.
  */
 export function reduceFishingView(
   view: FishingView,
@@ -126,20 +144,36 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
       return motion({ calibrating: event.on });
     case 'notice':
       return motion({ notice: event.text });
+    case 'guide':
+      return event.did === view.motion.guide && motionActive(view)
+        ? motion({
+            guide: GUIDE_STEPS[GUIDE_STEPS.indexOf(event.did) + 1] ?? null,
+          })
+        : view;
+    case 'skip-guide':
+      return motion({ guide: null });
   }
 }
 
-/** Calibration needs play, motion and no run; unchanged states keep their identity. */
+/**
+ * Calibration needs play, motion and no run; a device never calibrated starts it the
+ * first time that holds. Unchanged states keep their identity.
+ */
 function settle(next: FishingView, previous: FishingView): FishingView {
-  const calibrating =
-    next.motion.calibrating &&
-    canPlay(next) &&
-    motionActive(next) &&
-    next.runId === null;
+  const aiming = canPlay(next) && motionActive(next) && next.runId === null;
+  const auto = next.motion.autoCalibrate && aiming;
+  const calibrating = aiming && (next.motion.calibrating || auto);
   const settled =
-    calibrating === next.motion.calibrating
+    calibrating === next.motion.calibrating && !auto
       ? next
-      : { ...next, motion: { ...next.motion, calibrating } };
+      : {
+          ...next,
+          motion: {
+            ...next.motion,
+            calibrating,
+            autoCalibrate: next.motion.autoCalibrate && !auto,
+          },
+        };
   return JSON.stringify(settled) === JSON.stringify(previous)
     ? previous
     : settled;

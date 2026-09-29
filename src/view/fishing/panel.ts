@@ -27,7 +27,7 @@ import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
-import { fishingScreen } from './screen';
+import { fishingScreen, ringHeld } from './screen';
 import {
   createFishingView,
   initialFishingView,
@@ -548,12 +548,14 @@ export function mountAngling(
         runId: ended.runId,
         note: moodNote(previousWorld, world, ended.catId),
       };
+    const held = ringHeld(previousWorld.fishing.active, world.fishing.active);
     previousWorld = world;
     stage.follow(session.getSnapshot());
     const runId = session.getSnapshot().fishing.active?.id ?? null;
     if (runId && runId !== view.get().runId) root.hidden = false;
     const before = view.get();
     view.dispatch({ type: 'run', runId });
+    if (held) view.dispatch({ type: 'guide', did: 'fight' });
     if (view.get() === before) render();
   });
   view.subscribe((state) => {
