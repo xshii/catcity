@@ -4,6 +4,7 @@ const STREAM_SALT = {
   trash: 0x85ebca6b,
   bite: 0x27d4eb2f,
   fish: 0x165667b1,
+  shadow: 0xd3a2646c,
 } as const;
 const RUN_SEED_MULTIPLIER = 2246822519;
 export const streamSeed = (seed: number, stream: keyof typeof STREAM_SALT) =>

@@ -59,8 +59,11 @@
 
 - [x] F1 画面：圈外缘随张力由金变红（CSS 变量 `--tension`）；预警与冲刺中提示"往回拉！"（`SCREEN_COPY.hint.pull`，由 `fishingScreen` 按下一 tick 的鱼判断）。
 - [ ] F1 画面：鱼影随累计进度靠近、变大。
+- [x] F2 鱼影（2026-09-29，分支 `feat/fish-shadows`）：`core/fishing/shadows.ts` 的 `fishShadows(world, spotId)`（经 `core/index.ts` 导出）按世界种子、钓点、游戏小时推导每钓点 3 条鱼影（方向、`reach` = (近远 + 力度)/2、体型、隐藏鱼种），不存档；`shadowAt` 判定落点半径 12 内最近的一条。抛竿（`FISH_CAST` 与按钮松开蓄力）由 Core 判定并记一竿的 `shadow`，`minigames/angling.ts` 据此（鱼影只会让结果更好：星级低于原规则本来的鱼时不理会）：饵合口且品种允许 → 该鱼、等待减半（含假咬口），面包轻抛不出补给；饵不对 → 原规则、咬口推迟 40 tick；其余按原规则。每种鱼吃的饵在 `content/fishing/catalog.ts` 的 `baits`，数值在 `FISHING.shadows`。saveVersion 17（F1 之后），v15、v16 进行中一竿存档作拒绝 fixture。画面：`view/art/river.ts` 瞄准时（含按钮蓄力）按体型画深色鱼影、原地轻游，抛出后隐藏；坐标映射 `water-view.ts` 的 `shadowPoint`。原先瞄准时落点下的装饰鱼影只在遛鱼时显示。
+  - 测试：`tests/unit/fish-shadows.test.ts`（推导与每小时刷新、命中半径、咬口/嗅饵/品种不允许、补给、遛鱼参数不变、分块等价、Core 抛竿与按钮松开、存档往返与篡改拒绝）；`tests/unit/water-view.test.ts`（鱼影画在正中命中的落点）；`tests/simulation/shadow-balance.test.ts`（见 [钓鱼设计](../../docs/fishing-design.md) 鱼影一节的数值）；`legacy-saves.test.ts` 加 v16（F1 的遛鱼中张力存档）。两处既有断言因落点碰上鱼影改为新结果：30 天模拟第 0 天左抛落在鲫鱼鱼影（银鱼 14、鲫鱼 16、金币 1304），断线垃圾测试的鱼种取 `shadow ?? 'SILVER'`。
+  - 已决定（用户："鱼影只会让结果更好"）：先按原规则算出本来的鱼，鱼影星级不低于它才起作用（咬口/嗅饵）；单测覆盖所有钓点、饵、品种与落点下有鱼影不降星、不把鱼换成补给。照原线索抛、不看鱼影不再吃亏（英短 4–5★ 65%→66%，布偶 100%）。
 - [x] F3（2026-09-29，分支 `feat/first-cast-guide`）：引导是钓鱼 View 状态的 `motion.guide`（按 `GUIDE_STEPS`：aim → power → cast → strike → fight，完成或跳过为 null）；`guide` 事件只推进当前一步且只在体感就绪时，`skip-guide` 结束引导。何时算做到：瞄准预览偏离正前方 ≥ 15°、力度 ≥ 65（`screen.ts` 的 `aimedSteps`）、甩竿抛出、在"！"时上扬或点水提竿（`motion-fishing.ts` 报告）、遛鱼中 Core 的累计进度增加（`ringHeld`，`panel.ts` 在世界变化时报告）。提示由 `fishingScreen` 按阶段选（`SCREEN_COPY.guide`），校准、提示消息、暂停与"往回拉！"优先；"跳过引导"键在校准键下方。进度按设备存 `cat-city.fishing-guide`，不进世界与存档；按钮模式没有引导。
   - 自动校准：本地没有调校时 `motion.autoCalibrate` 为真，第一次能瞄准（河畔、体感就绪、没有一竿）时 reducer 直接开始校准并清掉标记；`motion-fishing.ts` 在状态进入校准时开始采样（按钮也只派发事件）。校准中不识别手势（`motionWant` 为 null）。失败提示改为"点「校准甩竿」再试一次"，之后引导继续。
   - 测试：reducer 单测（按序只在本步推进、跳过、按钮模式与未就绪不推进、自动校准只一次、随机 2 万步分段序列的不变量）；画面模型单测（各步所在阶段、校准/提示/暂停/往回拉优先、按钮模式无引导、`aimedSteps`、`ringHeld`）；E2E：新设备自动校准失败后逐步走完引导（Chromium 与 WebKit，`@motion-smoke`）、跳过引导。其余体感 E2E 预置"已完成引导与校准"。
   - 限制：自动校准失败不留记录，下次打开页面会再自动校准一次；15° / 65 的阈值未经实机验证；实机观察首竿用时与卡点待做。
-- [ ] F2、F4、F5。
+- [ ] F4、F5。
