@@ -44,6 +44,7 @@ const TUNING_KEY = 'cat-city.rod-tuning.v2';
 const NOTICE_MS = 3000;
 const FEEL = FISHING.motion.feel;
 const PLANE_CENTRE = FISHING.motion.planeCentre;
+const POWER_COPY = SCREEN_COPY.power;
 /** The screen's rotation from its natural orientation, in degrees. */
 const screenAngle = () => screen.orientation?.angle ?? 0;
 const clampPlane = (value: number) => Math.min(100, Math.max(0, value));
@@ -123,7 +124,13 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     '<strong id="motion-bite" class="motion-bite" hidden aria-live="assertive">！</strong>' +
     `<span id="motion-fish" class="motion-fish" hidden aria-hidden="true">${fishShadow()}</span>` +
     '<span id="motion-ring" class="motion-ring" hidden aria-hidden="true"></span>' +
-    '<div id="motion-power" class="motion-power" hidden role="meter" aria-label="抛竿力度" aria-valuemin="0" aria-valuemax="100"><span class="motion-power-band"></span><i class="motion-power-level"></i></div>' +
+    `<div id="motion-power" class="motion-power" hidden role="meter" aria-label="${POWER_COPY.label}" aria-valuemin="0" aria-valuemax="${FISHING.input.maxPower}">` +
+    '<b class="motion-power-value"></b>' +
+    `<small class="motion-power-end motion-power-strong">${POWER_COPY.strong}</small>` +
+    '<span class="motion-power-track"><span class="motion-power-band"></span></span>' +
+    `<small class="motion-power-precise">${POWER_COPY.precise}</small>` +
+    '<i class="motion-power-level"></i>' +
+    `<small class="motion-power-end motion-power-weak">${POWER_COPY.weak}</small></div>` +
     '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>' +
     `<button id="motion-calibrate" class="motion-calibrate" hidden>${SCREEN_COPY.calibrate.button}</button>`;
   deps.plane.append(overlay);
@@ -135,6 +142,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     fish: $('motion-fish'),
     ring: $('motion-ring'),
     power: $('motion-power'),
+    powerValue: overlay.querySelector<HTMLElement>('.motion-power-value')!,
     hold: $<HTMLProgressElement>('motion-hold'),
     calibrate: $('motion-calibrate'),
   };
@@ -371,6 +379,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     el.power.hidden = !model.powerMeter;
     el.power.style.setProperty('--power', `${power}%`);
     el.power.setAttribute('aria-valuenow', String(power));
+    el.power.setAttribute(
+      'aria-valuetext',
+      POWER_COPY.valueText(power, band.min, band.max),
+    );
+    el.powerValue.textContent = POWER_COPY.heading(power);
     el.hint.textContent = model.hint;
     el.bite.hidden = !model.bite;
     const nibble = motionNibble(motionRun);

@@ -327,10 +327,18 @@ test('slow pitch sets the power the flick casts with', async ({
   const { powerRangeDeg } = FISHING.motion.gesture;
   // Tilt the tip back slowly, as far as the power range goes.
   for (let i = 0; i < 30; i++) await orient(page, 0, powerRangeDeg);
-  await expect(page.locator('#motion-power')).toHaveAttribute(
-    'aria-valuenow',
-    '100',
+  const meter = page.locator('#motion-power');
+  await expect(meter).toHaveAttribute('aria-valuenow', '100');
+  // The meter explains itself: its value, its ends and the precise band.
+  const band = FISHING.cast.precisionPower;
+  await expect(meter.locator('.motion-power-value')).toHaveText('力度 100');
+  await expect(meter).toHaveAttribute(
+    'aria-valuetext',
+    `力度 100，精准区间 ${band.min}–${band.max}`,
   );
+  await expect(meter.locator('.motion-power-strong')).toHaveText('强');
+  await expect(meter.locator('.motion-power-weak')).toHaveText('弱');
+  await expect(meter.locator('.motion-power-precise')).toHaveText('精准');
   await page.screenshot({ path: testInfo.outputPath('motion-aim.png') });
   await swing(page);
   expect((await readWorld(page)).fishing.active).toMatchObject({

@@ -32,6 +32,16 @@ export const SCREEN_COPY = {
     enable: '开启体感钓鱼',
     buttons: '改用按钮',
   },
+  /** The cast power meter shown while aiming. */
+  power: {
+    label: '抛竿力度',
+    heading: (power: number) => `力度 ${power}`,
+    strong: '强',
+    weak: '弱',
+    precise: '精准',
+    valueText: (power: number, low: number, high: number) =>
+      `力度 ${power}，精准区间 ${low}–${high}`,
+  },
   calibrate: {
     button: '校准甩竿',
     done: (peak: number) => `校准完成：下甩 ${peak}°/s`,
