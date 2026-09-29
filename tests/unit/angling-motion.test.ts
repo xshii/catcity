@@ -17,6 +17,7 @@ const M = FISHING.motion;
 function cast(seed: number, direction = 30, power = 60): AnglingRun {
   return castAngling(
     initialAngling({
+      happy: false,
       id: 'angling-1',
       catId: 'mochi',
       seed,
@@ -219,6 +220,7 @@ describe('fish ring fight', () => {
     const loot = Array.from({ length: 80 }, (_, i) =>
       castAngling(
         initialAngling({
+          happy: false,
           id: 'angling-1',
           catId: 'mochi',
           seed: i + 1,

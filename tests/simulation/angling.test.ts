@@ -72,6 +72,7 @@ it('runs each fish difficulty deterministically and preserves held-input chunk e
   for (const speciesId of FISH_IDS) {
     const input = {
       ...initialAngling({
+        happy: false,
         mode: 'buttons',
         catBreed: 'RAGDOLL',
         spotId: 'POND',
