@@ -1,3 +1,4 @@
+import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { expect, test, type Page } from '@playwright/test';
 import { clickTile } from '../../harness/adapters/catcity/city-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
@@ -189,7 +190,7 @@ test('the clock speed cycles 1× → 2× → 4× → 1×, is remembered, and min
 });
 
 test('a production clock advances faster at 4×', async ({ page }) => {
-  await page.goto('http://127.0.0.1:4174/');
+  await page.goto(`${localOrigin(testPorts().production)}/`);
   await expect(page.locator('canvas')).toBeVisible();
   const minute = () =>
     page.evaluate(() => {

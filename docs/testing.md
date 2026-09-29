@@ -21,7 +21,7 @@
 
 Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真实格子点击、按钮、键盘和触摸，不能注入获胜结果。测试构建（`--mode test`）把纯等待（等咬钩、传感器启动期限）按 `src/view/time-scale.ts` 加速，提竿、遛鱼和甩竿窗口保持真实速度；Debug Bridge 的 `stepFishing` 可逐 tick 推进钓鱼以消除短窗口竞态，输入仍是真实按键。生产构建始终 1×。截图是观察证据，当前没有强制像素基线；不得自动接受新快照来通过测试。
 
-[Playwright 配置](../playwright.config.ts) 中 Chromium 执行全量 E2E，WebKit 仅执行带 `@motion-smoke` 标记的代表性体感输入与延迟恢复用例，二者都属于 `check`。可用 `npm run test:e2e -- --project=webkit-motion` 定向验证；自动化注入读数用于验证浏览器适配，仍需 Safari 实机确认权限弹窗、传感器和手感。
+每个检出目录的测试服务使用自己的端口（测试构建、生产构建、验收预览三个相邻端口，由目录路径推导，`CAT_CITY_TEST_PORT` 可指定起始端口，见 [test-ports.ts](../harness/runner/test-ports.ts)），因此多个 worktree 的门禁与 E2E 可同时运行；实机试玩预览固定为 4178。[Playwright 配置](../playwright.config.ts) 中 Chromium 执行全量 E2E，WebKit 仅执行带 `@motion-smoke` 标记的代表性体感输入与延迟恢复用例，二者都属于 `check`。可用 `npm run test:e2e -- --project=webkit-motion` 定向验证；自动化注入读数用于验证浏览器适配，仍需 Safari 实机确认权限弹窗、传感器和手感。
 
 实机问题先用[实机调试日志](local-publication.md#实机调试日志)记录，再用 `npm run device-trace` 切成 `tests/fixtures/device/` 下的夹具；[device-traces.test.ts](../tests/unit/device-traces.test.ts) 按设备送来的顺序，把每个夹具经与 `motion-fishing.ts` 相同的纯函数（姿态连续化、竿尖、屏幕轴角速度、甩竿识别、校准）重放，结果必须等于夹具的 `expect`。重放不含 DOM 与 View 状态，窗口需落在同一阶段内（瞄准、等咬钩/提竿或校准）。
 
