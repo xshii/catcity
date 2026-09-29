@@ -50,3 +50,25 @@ export function outcomeNote(
     .filter(Boolean)
     .join('。');
 }
+
+/**
+ * The words for a gift: the usual ones while gifts count, kind ones once the cat has had
+ * the day's share (spec 038). Told from the gift count of the two snapshots.
+ */
+export function giftNotice(
+  usual: string,
+  previous: WorldState,
+  next: WorldState,
+  catId: string,
+): string {
+  const before = previous.cats.find((cat) => cat.id === catId);
+  const after = next.cats.find((cat) => cat.id === catId);
+  if (!before || !after) return usual;
+  const counted =
+    after.giftBond !== null &&
+    (before.giftBond?.day !== after.giftBond.day ||
+      before.giftBond.count !== after.giftBond.count);
+  return counted
+    ? usual
+    : `${after.name} 今天已经吃饱啦，这条先收下，明天再好好谢你。`;
+}

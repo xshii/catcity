@@ -21,7 +21,7 @@ import {
   type AnglingRun,
 } from '../../minigames/angling';
 import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
-import { rewardBond } from '../bond';
+import { rewardBond, spendDaily } from '../bond';
 import { liftCalmMood, liftMood } from '../mood';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { Position, WorldState } from '../schema';
@@ -214,8 +214,8 @@ export function applyAngling(
           spotId: next.spotId,
           minute: world.minute,
         };
-        // The bond reads the mood the cat was in before this catch lifts it.
-        rewardBond(cat, BOND.catch);
+        // One meaning of happy for the whole catch: the run's, as for its XP.
+        rewardBond(cat, BOND.catch, next.happy);
         liftCalmMood(cat, MOOD.catch);
       } else if (next.phase === 'escaped') {
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
@@ -241,9 +241,17 @@ export function applyAngling(
         minute: world.minute,
         favorite,
       };
-      rewardBond(cat, favorite ? BOND.favoriteGift : BOND.gift);
-      liftMood(cat, favorite ? MOOD.favoriteGift : MOOD.gift);
-      emit(favorite ? 'favorite-gift' : 'gift', cat.id);
+      // Past the day's allowance the fish is still taken and remembered, nothing more.
+      const counted = spendDaily(cat.giftBond, world.minute, BOND.giftsPerDay);
+      if (counted) {
+        cat.giftBond = counted;
+        rewardBond(cat, favorite ? BOND.favoriteGift : BOND.gift);
+        liftMood(cat, favorite ? MOOD.favoriteGift : MOOD.gift);
+      }
+      emit(
+        counted ? (favorite ? 'favorite-gift' : 'gift') : 'gift-kept',
+        cat.id,
+      );
     }
     fishing.inventory.splice(index, 1);
   }

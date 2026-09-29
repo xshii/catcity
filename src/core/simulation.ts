@@ -1,6 +1,6 @@
 import { MAX_STAT, WORLD_LIMIT } from './limits';
 import { CARE } from '../content/care';
-import { MOOD, moodRest } from '../content/mood';
+import { MOOD, moodAfterDrift, moodRest } from '../content/mood';
 import { BUILDINGS } from '../content/city';
 import type { GameEvent } from './commands';
 import type { CatEntity, WorldState } from './schema';
@@ -52,11 +52,10 @@ export function simulate(
     if (minute % MOOD.tickMinutes === 0)
       for (const cat of world.cats) {
         const rest = moodRest(cat.playerBond);
-        const drift = cat.mood > MOOD.happy ? MOOD.highDrift : MOOD.drift;
         cat.mood =
           cat.mood > rest
-            ? Math.max(rest, cat.mood - drift)
-            : Math.min(rest, cat.mood + drift);
+            ? Math.max(rest, moodAfterDrift(cat.mood))
+            : Math.min(rest, cat.mood + MOOD.drift);
         if (nearHome(world, cat)) liftMood(cat, MOOD.home);
       }
     advanceWalking(world, events);

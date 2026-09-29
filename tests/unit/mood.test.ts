@@ -97,17 +97,31 @@ describe('hourly drift', () => {
     expect(moodOf(glum)).toBe(40 + MOOD.drift + MOOD.home);
   });
 
-  it('drifts down faster above the happy line (spec 038)', () => {
+  it('drifts down faster from the happy line up (spec 038)', () => {
     expect(MOOD.highDrift).toBeGreaterThan(MOOD.drift);
-    for (const [start, step] of [
-      [100, MOOD.highDrift],
-      [MOOD.happy + 1, MOOD.highDrift],
-      [MOOD.happy, MOOD.drift],
-      [MOOD.happy - 1, MOOD.drift],
+    // Where the cat just under the line lands: no happier cat lands below it.
+    const floor = MOOD.happy - 1 - MOOD.drift;
+    for (const [start, after] of [
+      [100, 100 - MOOD.highDrift],
+      [MOOD.happy + MOOD.highDrift, MOOD.happy],
+      [MOOD.happy + 1, floor],
+      [MOOD.happy, floor],
+      [MOOD.happy - 1, floor],
+      [MOOD.happy - 2, floor - 1],
     ] as const) {
       const world = withMood(start);
       advance(world, 60);
-      expect(moodOf(world)).toBe(start - step);
+      expect(moodOf(world), `from ${start}`).toBe(after);
+    }
+  });
+
+  it('never leaves a happier cat below a less happy one after the hour', () => {
+    let previous = 0;
+    for (let mood = MOOD.rest; mood <= 100; mood++) {
+      const world = withMood(mood);
+      advance(world, 60);
+      expect(moodOf(world), `from ${mood}`).toBeGreaterThanOrEqual(previous);
+      previous = moodOf(world);
     }
   });
 

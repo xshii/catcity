@@ -11,7 +11,7 @@ export const MOOD = {
   /** Each bond level above the first lifts that cat's resting mood (spec 036). */
   restPerBondLevel: 3,
   drift: 2,
-  /** The drift of a mood above `happy` (spec 038): happiness is earned, not kept. */
+  /** The drift of a happy cat (spec 038): happiness is earned, not kept. */
   highDrift: 4,
   /** Extra each full hour for a cat beside its own apartment. */
   home: 1,
@@ -48,6 +48,16 @@ export function moodBand(mood: number): MoodBand {
 /** What a gain adds at this mood: a happy cat takes half, rounded down, at least 1. */
 export function moodGain(mood: number, amount: number): number {
   return mood >= MOOD.happy ? Math.max(1, Math.floor(amount / 2)) : amount;
+}
+
+/**
+ * A mood an hour's drift down later: faster from the happy line up, but never to below
+ * where a cat just under the line lands, so a happier cat is never left the sadder one.
+ */
+export function moodAfterDrift(mood: number): number {
+  return mood >= MOOD.happy
+    ? Math.max(mood - MOOD.highDrift, MOOD.happy - 1 - MOOD.drift)
+    : mood - MOOD.drift;
 }
 
 /** The mood a cat with this bond drifts toward: 60 for a new friend, 72 for family. */

@@ -8,9 +8,16 @@ export type DailyCount = { day: number; count: number };
 
 export const gameDay = (minute: number) => Math.floor(minute / BOND.dayMinutes);
 
-/** A source's points, one more for a cat that is happy now; the bond never falls. */
-export function rewardBond(cat: CatEntity, points: number): void {
-  const bonus = cat.mood >= MOOD.happy ? BOND.happy : 0;
+/**
+ * A source's points, one more from a happy cat: happy now, or for a catch the `happy`
+ * its run began with. The bond never falls.
+ */
+export function rewardBond(
+  cat: CatEntity,
+  points: number,
+  happy = cat.mood >= MOOD.happy,
+): void {
+  const bonus = happy ? BOND.happy : 0;
   cat.playerBond = Math.min(MAX_BOND, cat.playerBond + points + bonus);
 }
 

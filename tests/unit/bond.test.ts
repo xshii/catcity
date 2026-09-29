@@ -151,12 +151,100 @@ describe('bond points (spec 038)', () => {
     expect(cat(world).mood).toBe(50 + MOOD.chat + MOOD.catch);
   });
 
-  it('each source earns one more from a cat that is happy at that moment', () => {
+  it('a catch earns one more from a run that began happy, whatever the mood is when it lands', () => {
+    /** The bond a catch adds: the cat in `begun` mood at the cast, `landed` at the catch. */
+    const earned = (begun: number, landed: number) => {
+      const world = edited(fishingFixture(42), (cat) => (cat.mood = begun));
+      begin(world);
+      const state = world.getSnapshot();
+      state.cats[0]!.mood = landed;
+      const playing = new World(state);
+      expect(playing.getSnapshot().fishing.active!.happy).toBe(
+        begun >= MOOD.happy,
+      );
+      finishFishing(playing);
+      return cat(playing).playerBond;
+    };
+    expect(earned(MOOD.happy, MOOD.happy)).toBe(BOND.catch + BOND.happy);
+    expect(earned(MOOD.happy, 40)).toBe(BOND.catch + BOND.happy);
+    expect(earned(MOOD.happy - 1, MOOD.happy - 1)).toBe(BOND.catch);
+    expect(earned(MOOD.happy - 1, 100)).toBe(BOND.catch);
+  });
+
+  it('only the first gifts of a game day count, for each cat; later ones are still taken', () => {
+    let world = fishingFixture(42);
+    world.dispatch({ type: 'INVITE_PEPPER' });
+    const gifts = BOND.giftsPerDay + 2;
+    for (let cast = 0; cast <= gifts; cast++) catchFish(world);
+    world = edited(world, (cat) => Object.assign(cat, { mood: 30 }));
+    const start = cat(world);
+    for (let given = 1; given <= gifts; given++) {
+      const fish = world.getSnapshot().fishing.inventory[0]!;
+      const before = cat(world);
+      const result = gift(world, 'mochi');
+      expect(result.ok).toBe(true);
+      const after = cat(world);
+      // Every gift is taken and remembered.
+      expect(
+        world
+          .getSnapshot()
+          .fishing.inventory.some((item) => item.id === fish.id),
+      ).toBe(false);
+      expect(after.fishGift!.fishId).toBe(fish.id);
+      const counted = given <= BOND.giftsPerDay;
+      expect(after.playerBond > before.playerBond, `gift ${given}`).toBe(
+        counted,
+      );
+      expect(after.mood > before.mood, `gift ${given}`).toBe(counted);
+      expect(after.giftBond).toEqual({
+        day: gameDay(world.getSnapshot().minute),
+        count: Math.min(given, BOND.giftsPerDay),
+      });
+      expect(result.ok && result.events[0]).toMatchObject({
+        type: 'FishingChanged',
+        action: counted ? 'favorite-gift' : 'gift-kept',
+      });
+    }
+    expect(cat(world).playerBond).toBe(
+      start.playerBond + BOND.giftsPerDay * BOND.favoriteGift,
+    );
+    // Pepper's day is her own.
+    const pepper = world.getSnapshot().cats[1]!;
+    gift(world, pepper.id);
+    expect(world.getSnapshot().cats[1]!.playerBond).toBe(BOND.gift);
+    expect(loadWorld(world.save()).save()).toBe(world.save());
+    // A new game day counts again.
+    const minute = world.getSnapshot().minute;
+    advance(world, BOND.dayMinutes - (minute % BOND.dayMinutes));
+    const rested = cat(world);
+    catchFish(world);
+    const caught = cat(world).playerBond;
+    gift(world, 'mochi');
+    expect(cat(world).playerBond).toBe(caught + BOND.favoriteGift);
+    expect(cat(world).mood).toBeGreaterThan(rested.mood);
+    expect(cat(world).giftBond!.count).toBe(1);
+  });
+
+  it('rejects a gift count from the future or past the day’s allowance', () => {
+    const world = createWorld(42);
+    const day = gameDay(world.getSnapshot().minute);
+    for (const giftBond of [
+      { day: day + 1, count: 1 },
+      { day, count: BOND.giftsPerDay + 1 },
+      { day, count: 0 },
+    ]) {
+      const state = world.getSnapshot();
+      state.cats[0]!.giftBond = giftBond;
+      expect(() => new World(state)).toThrow();
+    }
+  });
+
+  it('a gift or a chat earns one more from a cat that is happy at that moment', () => {
     /** What each source adds for a cat in this mood just before it happens. */
     const happy = (mood: number) => {
       let world = fishingFixture(42);
+      catchFish(world);
       const steps = [
-        catchFish,
         (world: World) => gift(world, 'mochi'),
         (world: World) => chat(world),
       ];
@@ -167,13 +255,8 @@ describe('bond points (spec 038)', () => {
         return cat(world).playerBond - before;
       });
     };
-    expect(happy(MOOD.happy - 1)).toEqual([
-      BOND.catch,
-      BOND.favoriteGift,
-      BOND.chat,
-    ]);
+    expect(happy(MOOD.happy - 1)).toEqual([BOND.favoriteGift, BOND.chat]);
     expect(happy(MOOD.happy)).toEqual([
-      BOND.catch + BOND.happy,
       BOND.favoriteGift + BOND.happy,
       BOND.chat + BOND.happy,
     ]);

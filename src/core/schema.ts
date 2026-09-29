@@ -31,6 +31,8 @@ const integer = z.number().int().min(0).max(WORLD_LIMIT);
 export const positionSchema = z.strictObject({ x: integer, y: integer });
 const percent = z.number().int().min(0).max(MAX_STAT);
 const text = z.string().min(1).max(MAX_TEXT);
+const dailyCount = (limit: number) =>
+  z.strictObject({ day: integer, count: z.number().int().min(1).max(limit) });
 const memorySchema = z.strictObject({
   id: text,
   kind: z.literal('conversation'),
@@ -56,12 +58,9 @@ const catSchema = z.strictObject({
   home: text.nullable(),
   position: positionSchema,
   /** Chats that earned bond points on the latest day one did. */
-  chatBond: z
-    .strictObject({
-      day: integer,
-      count: z.number().int().min(1).max(BOND.chatsPerDay),
-    })
-    .nullable(),
+  chatBond: dailyCount(BOND.chatsPerDay).nullable(),
+  /** Gifts that counted on the latest day one did. */
+  giftBond: dailyCount(BOND.giftsPerDay).nullable(),
   lastChatMoodMinute: integer.nullable(),
   fishingSpotId: spotIdSchema.nullable(),
   walk: z
@@ -150,9 +149,10 @@ export function assertWorld(value: unknown): WorldState {
     assertTemplate(cat, world.cats);
     if (
       (cat.chatBond !== null && cat.chatBond.day > gameDay(world.minute)) ||
+      (cat.giftBond !== null && cat.giftBond.day > gameDay(world.minute)) ||
       (cat.lastChatMoodMinute !== null && cat.lastChatMoodMinute > world.minute)
     )
-      throw new Error('Future chat');
+      throw new Error('Future chat or gift');
     if (
       cat.home !== null &&
       !world.buildings.some((building) => building.id === cat.home)

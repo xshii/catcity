@@ -49,7 +49,7 @@ import {
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
 import { withMoodNote } from '../shell/mood';
-import { outcomeNote } from '../shell/bond';
+import { giftNotice, outcomeNote } from '../shell/bond';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -283,7 +283,12 @@ export function mountAngling(
             result,
             command.type === 'GIFT_FISH'
               ? withMoodNote(
-                  message,
+                  giftNotice(
+                    message,
+                    before,
+                    session.getSnapshot(),
+                    command.catId,
+                  ),
                   outcomeNote(before, session.getSnapshot(), command.catId),
                 )
               : message,

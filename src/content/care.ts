@@ -20,6 +20,8 @@ export const BOND = {
   happy: 1,
   /** Chats that earn points, per cat and game day. */
   chatsPerDay: 1,
+  /** Gifts that earn points and lift mood, per cat and game day; later ones are kept. */
+  giftsPerDay: 3,
   dayMinutes: 24 * 60,
 } as const;
 

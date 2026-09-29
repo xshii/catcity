@@ -276,8 +276,13 @@ function play(seed: number) {
             : ['FISH_CONTROL', 'FISH_MOTION_CONTROL'].includes(command.type)
               ? [BOND.catch]
               : [];
+      // A catch reads the happy of its run; a gift or a chat the mood of the moment.
+      const happy =
+        command.type === 'INTERACT' || command.type === 'GIFT_FISH'
+          ? cat.mood >= MOOD.happy
+          : before.fishing.active!.happy;
       expect(
-        points.map((base) => base + (cat.mood >= MOOD.happy ? BOND.happy : 0)),
+        points.map((base) => base + (happy ? BOND.happy : 0)),
         `bond: ${where}`,
       ).toContain(grown);
     }

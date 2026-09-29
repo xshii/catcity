@@ -37,6 +37,7 @@ export function instantiateCat(
     playerBond: 0,
     home: null,
     chatBond: null,
+    giftBond: null,
     lastChatMoodMinute: null,
   };
 }
