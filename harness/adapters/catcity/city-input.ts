@@ -151,6 +151,45 @@ export async function clickTile(page: Page, x: number, y: number) {
   throw new Error(`Tile ${x},${y} never came into view`);
 }
 
+/**
+ * Lift a cat with a real finger (spec 035): press the point and keep still until the scene
+ * shows the cat lifted (`data-lifted` on the canvas), drag to `to`, run `held` with the
+ * finger still down, then let go. Touch goes through the browser's input pipeline
+ * (Chromium with touch enabled), not through synthetic DOM events.
+ */
+export async function liftAndDrop(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  held: () => Promise<void> = async () => {},
+) {
+  const touch = await page.context().newCDPSession(page);
+  const send = (
+    type: 'touchStart' | 'touchMove' | 'touchEnd',
+    points: { x: number; y: number }[],
+  ) => touch.send('Input.dispatchTouchEvent', { type, touchPoints: points });
+  await send('touchStart', [from]);
+  try {
+    await expect(page.locator('#game canvas')).toHaveAttribute(
+      'data-lifted',
+      /./,
+    );
+    const steps = 8;
+    for (let step = 1; step <= steps; step++)
+      await send('touchMove', [
+        {
+          x: from.x + ((to.x - from.x) * step) / steps,
+          y: from.y + ((to.y - from.y) * step) / steps,
+        },
+      ]);
+    await settle(page);
+    await held();
+  } finally {
+    await send('touchEnd', []);
+    await touch.detach();
+  }
+}
+
 /** All movement and elapsed time use visible player controls, including production smoke. */
 export async function reachWaterway(page: Page, spotId: SpotId = 'POND') {
   const close = page.locator('#river-tools-close');

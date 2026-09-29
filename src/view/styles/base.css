@@ -115,6 +115,10 @@ h1 {
 }
 canvas {
   display: block;
+  /* A long press lifts a cat (spec 035); never open the iOS callout or select the page. */
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .card {
