@@ -41,6 +41,30 @@ export const settle = (page: Page) =>
   );
 
 /**
+ * How far the floating bars reach over the map frame, measured through Playwright rather
+ * than code sent into the page, so it also works on production builds.
+ */
+export async function barInsetsOf(
+  page: Page,
+  frame: { y: number; height: number },
+) {
+  const spans = async (selector: string) => {
+    const boxes = [];
+    for (const bar of await page.locator(selector).all())
+      if (await bar.isVisible()) {
+        const box = (await bar.boundingBox())!;
+        boxes.push({ top: box.y, bottom: box.y + box.height });
+      }
+    return boxes;
+  };
+  return barInsets(
+    { top: frame.y, bottom: frame.y + frame.height },
+    await spans(BAR_SELECTORS.top),
+    await spans(BAR_SELECTORS.bottom),
+  );
+}
+
+/**
  * Click a tile the way a player would: open a fresh overview (centred on the board), and
  * drag the map first when the tile lies outside the open band between the floating bars.
  * Positions come from the same framing rule and bar insets the scene uses, so this works
@@ -59,21 +83,8 @@ export async function clickTile(page: Page, x: number, y: number) {
   const { map } = await observeWorld(page);
   const bounds = await page.locator('#game').boundingBox();
   if (!bounds) throw new Error('Map frame must have bounds');
-  // Measured through Playwright rather than code sent into the page (production builds).
-  const spans = async (selector: string) => {
-    const boxes = [];
-    for (const bar of await page.locator(selector).all())
-      if (await bar.isVisible()) {
-        const box = (await bar.boundingBox())!;
-        boxes.push({ top: box.y, bottom: box.y + box.height });
-      }
-    return boxes;
-  };
-  const insets = barInsets(
-    { top: bounds.y, bottom: bounds.y + bounds.height },
-    await spans(BAR_SELECTORS.top),
-    await spans(BAR_SELECTORS.bottom),
-  );
+  const insets = await barInsetsOf(page, bounds);
+
   const band = {
     top: insets.top,
     bottom: bounds.height - insets.bottom,
