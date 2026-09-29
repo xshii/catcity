@@ -1,3 +1,4 @@
+import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { expect, test } from '@playwright/test';
 import { createWorld } from '../../src/core';
 import { greenZone } from '../../src/minigames/angling';
@@ -51,7 +52,7 @@ test('releasing a held touch after landing cannot click through into a second ca
       localStorage.setItem('cat-city.save.v1', save);
       localStorage.setItem('cat-city.fishing-input', 'buttons');
     }, landingSave());
-    await page.goto('http://127.0.0.1:4173');
+    await page.goto(`${localOrigin(testPorts().test)}/`);
     await ready(page);
     const before = await readWorld(page);
     const control = page.locator('#fish-control');

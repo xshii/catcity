@@ -8,6 +8,10 @@ import { mountPanel } from './shell/panel';
 import { createPlace } from './shell/place';
 import './styles/base.css';
 
+/** Frames per second in test builds; production uses the display's rate. */
+const TEST_FPS =
+  import.meta.env.MODE === 'test' ? { target: 15, limit: 15 } : {};
+
 /** Browser composition; the application owns the session, this layer owns rendering. */
 export function mountGameView(session: GameSession, trace: Trace) {
   const place = createPlace();
@@ -29,6 +33,8 @@ export function mountGameView(session: GameSession, trace: Trace) {
     banner: false,
     audio: { noAudio: true },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    // Test browsers draw in software; tests need a drawn frame, not smooth motion.
+    fps: TEST_FPS,
     scene,
   });
   return {
