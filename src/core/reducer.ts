@@ -11,6 +11,7 @@ import type { WorldState } from './schema';
 import { simulate } from './simulation';
 import { isWalkable } from './city/path';
 import { travelToFishingSpot } from './fishing/travel';
+import { petCat } from './petting';
 
 export function applyCommand(
   world: WorldState,
@@ -43,6 +44,8 @@ export function applyCommand(
     case 'BUY_BAIT':
     case 'INVITE_PEPPER':
       return applyAngling(world, command);
+    case 'PET_CAT':
+      return petCat(world, command);
     case 'ADVANCE_TIME':
       if (world.minute + command.minutes > WORLD_LIMIT)
         throw new CommandError('TIME_LIMIT');

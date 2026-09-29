@@ -37,6 +37,7 @@ export function instantiateCat(
     playerBond: 0,
     home: null,
     lastBondMinute: null,
+    petting: { discovered: [], hour: null, rounds: 0 },
   };
 }
 

@@ -12,6 +12,7 @@ import {
   WORLD_LIMIT,
 } from './limits';
 import { CARE } from '../content/care';
+import { PETTING, PET_SPOTS } from '../content/petting';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
 import { assertCity } from './city/validation';
@@ -67,6 +68,13 @@ const catSchema = z.strictObject({
   favoriteFish: z.array(fishIdSchema).min(1).max(6),
   fishingMemory: fishingMemorySchema.nullable(),
   fishGift: giftSchema.nullable(),
+  /** Petting (spec 039): tastes derive from the seed; only what was found out is saved. */
+  petting: z.strictObject({
+    discovered: z.array(z.enum(PET_SPOTS)).max(PET_SPOTS.length),
+    /** The game hour of the latest round and the rounds counted in it, up to the limit. */
+    hour: integer.nullable(),
+    rounds: z.number().int().min(0).max(PETTING.limit.fullRounds),
+  }),
 });
 const buildingSchema = z.strictObject({
   id: text,
@@ -102,7 +110,7 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 19;
 export const CONTENT_VERSION = 8;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
@@ -146,6 +154,18 @@ export function assertWorld(value: unknown): WorldState {
       !world.buildings.some((building) => building.id === cat.home)
     )
       throw new Error('Unknown home');
+    const { discovered, hour, rounds } = cat.petting;
+    if (
+      discovered.some(
+        (spot, index) =>
+          index > 0 &&
+          PET_SPOTS.indexOf(spot) <= PET_SPOTS.indexOf(discovered[index - 1]!),
+      ) ||
+      (hour === null) !== (rounds === 0) ||
+      (hour !== null &&
+        hour > Math.floor(world.minute / PETTING.limit.hourMinutes))
+    )
+      throw new Error('Invalid petting record');
     let previousMinute = -1;
     for (const memory of cat.memories) {
       uniqueId(memory.id);

@@ -54,7 +54,7 @@ describe('bond levels (spec 036)', () => {
   });
 
   it('add no saved field', () => {
-    expect(SAVE_VERSION).toBe(17);
+    expect(SAVE_VERSION).toBe(19);
     const world = edited(
       createWorld(42),
       (cat) => (cat.playerBond = BOND_LEVELS[1].bond),
