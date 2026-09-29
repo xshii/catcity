@@ -10,6 +10,7 @@ import { fishShadow } from '../art/illustrations';
 import { WATER_VIEW } from '../art/water-view';
 import {
   aimedSteps,
+  askSensors,
   motionNibble,
   motionWant,
   SCREEN_COPY,
@@ -20,7 +21,6 @@ import { logTime, type Trace } from '../../platform/device-log';
 import { readJsonPref, readPref, savePref } from '../../platform/local-prefs';
 import {
   GUIDE_STEPS,
-  motionActive,
   type FishingViewStore,
   type GuideStep,
   type Preference,
@@ -79,9 +79,6 @@ export interface MotionFishingDeps {
   stage: HTMLElement;
   /** The canvas box: the overlay's 100×100 water plane scales with it. */
   plane: HTMLElement;
-  settings: HTMLElement;
-  /** The ready-to-cast area: while motion is off, a way back to it lives here. */
-  readySlot: HTMLElement;
   getRun: () => AnglingRun | null;
   /** Live aim and power while no run exists, so the water preview follows the rod. */
   previewAim: (aim: { direction: number; power: number }) => void;
@@ -137,8 +134,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     '<span id="motion-ring" class="motion-ring" hidden aria-hidden="true"></span>' +
     `<span id="motion-power" class="motion-power" hidden role="meter" aria-label="${POWER_COPY.label}" aria-valuemin="0" aria-valuemax="${FISHING.input.maxPower}"></span>` +
     `<p id="motion-precise" class="motion-precise" hidden>${SCREEN_COPY.cast.legend}</p>` +
-    '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>' +
-    `<button id="motion-calibrate" class="motion-calibrate" hidden>${SCREEN_COPY.calibrate.button}</button>`;
+    '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>';
   deps.plane.append(overlay);
   const $ = <T extends HTMLElement>(id: string) =>
     overlay.querySelector<T>(`#${id}`)!;
@@ -150,30 +146,10 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     power: $('motion-power'),
     precise: $('motion-precise'),
     hold: $<HTMLProgressElement>('motion-hold'),
-    calibrate: $('motion-calibrate'),
     skip: $('motion-guide-skip'),
   };
   // The water shows the power as the landing arc (spec 033 F5); the meter reads it out.
   const band = FISHING.cast.precisionPower;
-
-  const card = document.createElement('div');
-  card.id = 'motion-onboarding';
-  card.className = 'motion-onboarding';
-  card.hidden = true;
-  card.innerHTML =
-    `<p>${SCREEN_COPY.card.text}</p>` +
-    `<button id="motion-enable" class="primary">${SCREEN_COPY.card.enable}</button>` +
-    `<button id="motion-use-buttons" class="quiet">${SCREEN_COPY.card.buttons}</button>`;
-  deps.stage.append(card);
-
-  const toggle = document.createElement('button');
-  toggle.id = 'motion-mode-toggle';
-  deps.settings.append(toggle);
-  const quick = document.createElement('button');
-  quick.id = 'motion-quick';
-  quick.className = 'quiet';
-  deps.readySlot.append(quick);
-  quick.addEventListener('click', () => void enable());
 
   const choose = (preference: Preference) => {
     savePref(PREFERENCE_KEY, preference);
@@ -183,17 +159,16 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     window.addEventListener('devicemotion', onMotion);
     window.addEventListener('deviceorientation', onOrientation);
   };
-  async function enable() {
-    choose('motion');
-    if (!window.isSecureContext || !('DeviceMotionEvent' in window))
-      return view.dispatch({ type: 'capability', capability: 'unsupported' });
+  /** Asks for sensor access where the browser must, then listens for readings. */
+  async function request() {
     if (view.get().motion.needsPermission) {
-      // Both requests must start inside the click that triggered them.
+      // Both requests must start inside the tap that triggered them.
       const motion = (window.DeviceMotionEvent as PermissionApi)
         .requestPermission!();
       const orientation = (
         window.DeviceOrientationEvent as PermissionApi | undefined
       )?.requestPermission?.();
+      view.dispatch({ type: 'ask' });
       const results = await Promise.all([
         motion.catch(() => 'denied' as const),
         orientation?.catch(() => 'denied' as const) ?? 'granted',
@@ -204,24 +179,22 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     }
     listen();
   }
-  card
-    .querySelector('#motion-enable')!
-    .addEventListener('click', () => void enable());
-  card
-    .querySelector('#motion-use-buttons')!
-    .addEventListener('click', () => choose('buttons'));
-  toggle.addEventListener('click', () => {
-    if (motionActive(view.get())) choose('buttons');
-    else void enable();
-  });
-  // Capable browsers without a permission prompt start listening right away.
   const startup = view.get().motion;
-  if (
-    startup.preference === 'motion' &&
-    !startup.needsPermission &&
-    window.isSecureContext
-  )
+  // Without HTTPS or the sensor events, motion cannot work: buttons, without a word.
+  if (!window.isSecureContext || !('DeviceMotionEvent' in window))
+    view.dispatch({ type: 'capability', capability: 'unsupported' });
+  // Capable browsers without a permission prompt start listening right away.
+  else if (startup.preference === 'motion' && !startup.needsPermission)
     listen();
+  // Motion is the default (spec 034): a phone that must ask does so on its first tap on
+  // the river, after that tap's own handler (so the tap that opens the river counts) and
+  // inside it, as iOS requires. Touch ends too, for taps on the water that never click.
+  const onTap = () => {
+    if (askSensors(view.get(), deps.getRun()) && userActivated())
+      void request();
+  };
+  for (const type of ['click', 'touchend'])
+    window.addEventListener(type, onTap);
 
   function onOrientation(event: DeviceOrientationEvent) {
     const next = tracker.sample(event.beta, event.gamma, screenAngle());
@@ -291,7 +264,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   });
 
   // One-tap calibration: two flicks down, then the rod follows this phone and player. The
-  // view state turns it on (the button, or by itself on a device never calibrated).
+  // view state turns it on (the settings sheet, or by itself on a device never calibrated).
   const endCalibration = () => {
     window.clearTimeout(calibrationTimer);
     calibration = null;
@@ -304,10 +277,6 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       NOTICE_MS,
     );
   };
-  el.calibrate.addEventListener('click', (event) => {
-    event.stopPropagation();
-    view.dispatch({ type: 'calibrating', on: true });
-  });
   const startCalibration = () => {
     const samples: SpinSample[] = [];
     calibration = samples;
@@ -379,13 +348,6 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   /** Applies the screen model; decides nothing itself. */
   function apply(model: FishingScreen, run: AnglingRun | null) {
     const motionRun = run?.mode === 'motion' ? run : null;
-    card.hidden = !model.motionCard;
-    toggle.textContent = model.toggle.label;
-    toggle.setAttribute('aria-pressed', String(model.toggle.pressed));
-    toggle.disabled = model.toggle.disabled;
-    quick.hidden = !model.quick.visible;
-    quick.textContent = model.quick.label;
-    quick.disabled = model.quick.disabled;
     overlay.hidden = !model.overlay;
     if (overlay.hidden) return;
     place();
@@ -405,7 +367,6 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       cuedNibble = null;
     }
     overlay.dataset.phase = model.overlayPhase;
-    el.calibrate.hidden = !model.calibrateButton;
     el.skip.hidden = !model.guide;
     el.power.hidden = !model.powerMeter;
     el.precise.hidden = !model.powerMeter;
@@ -457,7 +418,27 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     el.fish.style.setProperty('--near', String(Math.min(1, filled)));
   }
 
-  return { point, ringCentre, apply };
+  return {
+    point,
+    ringCentre,
+    apply,
+    /** The player's choice in the settings, remembered; motion asks inside this tap. */
+    choose(preference: Preference) {
+      choose(preference);
+      if (preference === 'motion') void request();
+    },
+  };
+}
+
+/**
+ * Whether this moment is inside a user gesture, where the browser says (Safari 16.4+,
+ * Chromium): a request outside one would be refused, and read as the player's refusal.
+ */
+function userActivated() {
+  const { userActivation } = navigator as {
+    userActivation?: { isActive: boolean };
+  };
+  return userActivation?.isActive ?? true;
 }
 
 function readTuning(): RodTuning {

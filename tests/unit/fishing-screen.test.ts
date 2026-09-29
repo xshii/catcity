@@ -8,10 +8,12 @@ import {
 } from '../../src/minigames/angling-motion';
 import {
   aimedSteps,
+  askSensors,
   castNotice,
   fishingScreen,
   motionNibble,
   motionWant,
+  permissionNotice,
   ringHeld,
   SCREEN_COPY,
   tapStrikes,
@@ -98,60 +100,151 @@ describe('fishing screen', () => {
         expect(screen).toMatchObject({
           readyToCast: false,
           console: false,
-          motionCard: false,
           overlay: false,
-          quick: { visible: false },
+          settings: { gear: false, open: false, calibrate: false },
         });
+        expect(askSensors(state, run)).toBe(false);
       }
   });
 
-  it('offers a phone that has not chosen only the motion card', () => {
-    const screen = fishingScreen(view({}, river), null);
-    expect(screen).toMatchObject({ motionCard: true, readyToCast: false });
-    expect(screen.quick.visible).toBe(false);
-    // Desktops (no permission prompt, fine pointer) go straight to buttons.
-    expect(fishingScreen(view({ phone: false }, river), null)).toMatchObject({
-      motionCard: false,
+  it('fishes by motion by default: no card, and a river tap on a phone asks for sensors once', () => {
+    // A phone that must ask: nothing covers the river while it waits for the tap.
+    const phone = view({}, river);
+    expect(fishingScreen(phone, null)).toMatchObject({
       readyToCast: true,
+      overlay: false,
+    });
+    expect(askSensors(phone, null)).toBe(true);
+    // Asked once on this page: the next taps do not ask again, whatever the answer.
+    const asked = replay(phone, { type: 'ask' });
+    expect(askSensors(asked, null)).toBe(false);
+    expect(
+      askSensors(
+        replay(
+          asked,
+          { type: 'capability', capability: 'denied' },
+          {
+            type: 'grant',
+          },
+        ),
+        null,
+      ),
+    ).toBe(false);
+    // Answered already, chosen buttons, a button run, off the river: no asking.
+    expect(askSensors(view({}, river, ready), null)).toBe(false);
+    expect(
+      askSensors(
+        view({}, river, { type: 'capability', capability: 'denied' }),
+        null,
+      ),
+    ).toBe(false);
+    expect(askSensors(view({ preference: 'buttons' }, river), null)).toBe(
+      false,
+    );
+    expect(askSensors(phone, runOf('buttons'))).toBe(false);
+    expect(askSensors(view({}), null)).toBe(false);
+    // A motion run restored after a reload needs the sensors again, whatever the choice.
+    expect(
+      askSensors(view({ preference: 'buttons' }, river), runOf('motion')),
+    ).toBe(true);
+    // Desktops (no permission prompt, or a fine pointer) never ask by themselves.
+    expect(askSensors(view({ phone: false }, river), null)).toBe(false);
+    // Once the sensors report, motion takes the river.
+    expect(fishingScreen(view({}, river, ready), null)).toMatchObject({
+      readyToCast: false,
+      overlay: true,
     });
   });
 
-  it('in button mode keeps the manual cast and offers the way back, saying why', () => {
-    const buttons = view({ preference: 'buttons' }, river, ready);
-    expect(fishingScreen(buttons, null)).toMatchObject({
+  it('says once, as the phone refuses its sensors, that buttons take over', () => {
+    const phone = view({}, river, { type: 'ask' });
+    const denied = replay(phone, { type: 'capability', capability: 'denied' });
+    expect(permissionNotice(phone, denied)).toBe(SCREEN_COPY.permission.denied);
+    expect(SCREEN_COPY.permission.denied).toBe(
+      '体感未获授权，已改用按钮；可在设置里重试',
+    );
+    expect(fishingScreen(denied, null)).toMatchObject({
       readyToCast: true,
-      motionCard: false,
-      quick: {
-        visible: true,
-        label: SCREEN_COPY.quick.enable,
-        disabled: false,
-      },
+      overlay: false,
     });
-    const denied = view({}, river, {
-      type: 'capability',
-      capability: 'denied',
-    });
-    expect(fishingScreen(denied, null).quick).toEqual({
-      visible: true,
-      label: SCREEN_COPY.quick.denied,
-      disabled: false,
-    });
-    const unsupported = view({}, river, {
-      type: 'capability',
-      capability: 'unsupported',
-    });
-    expect(fishingScreen(unsupported, null).quick).toMatchObject({
-      label: SCREEN_COPY.quick.unsupported,
-      disabled: true,
-    });
-    // Nothing to switch while tools cover the river or a run is on.
+    // Not again for the same refusal, nor for any other change.
+    expect(permissionNotice(denied, denied)).toBeNull();
     expect(
-      fishingScreen(
-        view({ preference: 'buttons' }, river, { type: 'tools', open: true }),
-        null,
-      ).quick.visible,
-    ).toBe(false);
-    expect(fishingScreen(buttons, runOf('buttons')).quick.visible).toBe(false);
+      permissionNotice(denied, replay(denied, { type: 'pause' })),
+    ).toBeNull();
+    expect(permissionNotice(phone, replay(phone, ready))).toBeNull();
+    expect(
+      permissionNotice(
+        phone,
+        replay(phone, { type: 'capability', capability: 'unsupported' }),
+      ),
+    ).toBeNull();
+  });
+
+  it('the settings sheet shows the mode in use and says why motion is not', () => {
+    const mode = (state: FishingView, run: AnglingRun | null = null) =>
+      fishingScreen(state, run).settings.mode;
+    const words = SCREEN_COPY.settings;
+    expect(mode(view({}, river, ready))).toEqual({
+      motion: { pressed: true, disabled: false },
+      buttons: { pressed: false, disabled: false },
+      note: null,
+    });
+    expect(mode(view({ preference: 'buttons' }, river, ready))).toEqual({
+      motion: { pressed: false, disabled: false },
+      buttons: { pressed: true, disabled: false },
+      note: null,
+    });
+    // Buttons by choice keep the manual cast, even with the sensors reporting.
+    expect(
+      fishingScreen(view({ preference: 'buttons' }, river, ready), null)
+        .readyToCast,
+    ).toBe(true);
+    // Refused: buttons are in use, and "motion" retries.
+    expect(
+      mode(view({}, river, { type: 'capability', capability: 'denied' })),
+    ).toEqual({
+      motion: { pressed: false, disabled: false },
+      buttons: { pressed: true, disabled: false },
+      note: words.denied,
+    });
+    // Unsupported: motion cannot be chosen, and the sheet says why.
+    expect(
+      mode(view({}, river, { type: 'capability', capability: 'unsupported' })),
+    ).toEqual({
+      motion: { pressed: false, disabled: true },
+      buttons: { pressed: true, disabled: false },
+      note: words.unsupported,
+    });
+    // Motion wanted and asked for, but no reading yet; a phone not yet asked says nothing.
+    expect(mode(view({}, river, { type: 'ask' })).note).toBe(words.waiting);
+    expect(mode(view({ phone: false }, river)).note).toBe(words.waiting);
+    expect(mode(view({}, river)).note).toBeNull();
+    // A run keeps its mode: both locked, the run's mode pressed, and why.
+    for (const run of [runOf('motion'), runOf('buttons')])
+      expect(mode(view({}, river, ready), run)).toEqual({
+        motion: { pressed: run.mode === 'motion', disabled: true },
+        buttons: { pressed: run.mode === 'buttons', disabled: true },
+        note: words.runLocked,
+      });
+  });
+
+  it('shows the gear on the river and its sheet while open, over paused play', () => {
+    const closed = view({}, river, ready);
+    expect(fishingScreen(closed, null).settings).toMatchObject({
+      gear: true,
+      open: false,
+    });
+    const open = replay(closed, { type: 'settings', open: true });
+    expect(fishingScreen(open, null)).toMatchObject({
+      settings: { gear: true, open: true },
+      // The sheet covers play: no aiming, no gesture counts.
+      overlay: false,
+    });
+    expect(motionWant(open, null)).toBeNull();
+    // The gear stays during a run, in either mode.
+    for (const run of [runOf('motion'), runOf('buttons')])
+      expect(fishingScreen(closed, run).settings.gear).toBe(true);
   });
 
   it('gives the river to motion play while motion is on, with aim tools before a run', () => {
@@ -159,15 +252,24 @@ describe('fishing screen', () => {
     expect(fishingScreen(motion, null)).toMatchObject({
       readyToCast: false,
       overlay: true,
-      calibrateButton: true,
+      settings: { calibrate: true },
       powerMeter: true,
       hint: SCREEN_COPY.hint.aim,
     });
+    // The sheet offers calibration while it covers the aim; buttons never do.
+    expect(
+      fishingScreen(replay(motion, { type: 'settings', open: true }), null)
+        .settings.calibrate,
+    ).toBe(true);
+    expect(
+      fishingScreen(view({ preference: 'buttons' }, river, ready), null)
+        .settings.calibrate,
+    ).toBe(false);
     const casting = fishingScreen(motion, runOf('motion', 'waiting'));
     expect(casting).toMatchObject({
       console: true,
       consoleMode: 'motion',
-      calibrateButton: false,
+      settings: { calibrate: false },
       powerMeter: false,
     });
     // Tools over the river hide the plane.
@@ -183,12 +285,13 @@ describe('fishing screen', () => {
       consoleMode: 'buttons',
       overlay: false,
     });
-    // A motion run restored after a reload still shows its plane and asks to enable.
+    // A motion run restored after a reload still shows its plane; a tap asks again.
     const reloaded = view({}, river);
     expect(fishingScreen(reloaded, runOf('motion', 'hook'))).toMatchObject({
       overlay: true,
-      motionCard: true,
+      readyToCast: false,
     });
+    expect(askSensors(reloaded, runOf('motion', 'hook'))).toBe(true);
   });
 
   it('words the hint by phase, pause, calibration and notices', () => {
@@ -231,7 +334,7 @@ describe('fishing screen', () => {
       on: true,
     });
     expect(hint(calibrating, null)).toBe(SCREEN_COPY.hint.calibrating);
-    expect(fishingScreen(calibrating, null).calibrateButton).toBe(false);
+    expect(fishingScreen(calibrating, null).settings.calibrate).toBe(false);
     const notice = reduceFishingView(motion, {
       type: 'notice',
       text: '校准完成',
@@ -436,26 +539,7 @@ describe('fishing screen', () => {
     expect(words.legend).toBe('绿区＝稳投：遛鱼圈更大');
   });
 
-  it('labels the settings switch and the pause button from the state', () => {
-    const toggle = (state: FishingView) => fishingScreen(state, null).toggle;
-    expect(toggle(view({}, ready))).toEqual({
-      label: SCREEN_COPY.toggle.active,
-      pressed: true,
-      disabled: false,
-    });
-    expect(toggle(view({ preference: 'buttons' })).label).toBe(
-      SCREEN_COPY.toggle.buttons,
-    );
-    expect(toggle(view({})).label).toBe(SCREEN_COPY.toggle.enable);
-    expect(
-      toggle(view({}, { type: 'capability', capability: 'denied' })).label,
-    ).toBe(SCREEN_COPY.toggle.denied);
-    expect(
-      toggle(view({}, { type: 'capability', capability: 'unsupported' })),
-    ).toMatchObject({
-      label: SCREEN_COPY.toggle.unsupported,
-      disabled: true,
-    });
+  it('labels the pause button from the state', () => {
     const paused = view({}, river, { type: 'run', runId: 'r' });
     expect(fishingScreen(paused, runOf('buttons')).pauseLabel).toBe(
       SCREEN_COPY.pause.resume,

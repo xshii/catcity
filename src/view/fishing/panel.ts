@@ -27,7 +27,14 @@ import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
-import { castNotice, fishingScreen, ringHeld, SCREEN_COPY } from './screen';
+import { mountFishingSettings } from './settings';
+import {
+  castNotice,
+  fishingScreen,
+  permissionNotice,
+  ringHeld,
+  SCREEN_COPY,
+} from './screen';
 import {
   createFishingView,
   initialFishingView,
@@ -98,11 +105,6 @@ export function mountAngling(
   ready.className = 'scene-ready';
   ready.append(castStart);
   stage.stage.append(ready);
-  const feedback = mountFishingFeedback(
-    session,
-    stage.stage,
-    get<HTMLButtonElement>('haptics-toggle'),
-  );
   const location = get<HTMLSelectElement>('fish-location');
   const companion = get<HTMLSelectElement>('fish-companion');
   const bait = get<HTMLSelectElement>('fish-bait');
@@ -137,7 +139,14 @@ export function mountAngling(
     type: 'run',
     runId: session.getSnapshot().fishing.active?.id ?? null,
   });
-  mountFishingSound(session, view, get<HTMLButtonElement>('sound-toggle'));
+  const settings = mountFishingSettings({
+    view,
+    plane: shell.game,
+    stage: stage.stage,
+    choose: (mode) => motion.choose(mode),
+  });
+  const feedback = mountFishingFeedback(session, stage.stage, settings.haptics);
+  mountFishingSound(session, view, settings.sound);
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
@@ -311,6 +320,7 @@ export function mountAngling(
     const destination = requestedSpot();
     stage.render(world, selectedCat.id, destination, resultNote);
     layout.refresh();
+    settings.apply(screen.settings);
     motion.apply(screen, run ?? null);
     collections.refresh();
     const atDestination = atShore(destination, selectedCat.id);
@@ -387,8 +397,6 @@ export function mountAngling(
     view,
     stage: stage.stage,
     plane: shell.game,
-    settings: layout.settings,
-    readySlot: ready,
     getRun: () => session.getSnapshot().fishing.active,
     previewAim: (preview) => aim.set(preview),
     // One swing starts and casts a motion run: nothing is spent before it.
@@ -437,7 +445,7 @@ export function mountAngling(
     notify(
       run
         ? '回到这一竿，准备好后继续操作。'
-        : '先选择落点，再准备抛竿；也可开启体感瞄准。',
+        : '先选择落点，再准备抛竿；钓鱼方式可在设置里切换。',
     );
   }
   function begin() {
@@ -570,7 +578,11 @@ export function mountAngling(
     if (held) view.dispatch({ type: 'guide', did: 'fight' });
     if (view.get() === before) render();
   });
+  let seenView = view.get();
   view.subscribe((state) => {
+    const refused = permissionNotice(seenView, state);
+    seenView = state;
+    if (refused) notify(refused);
     trace('view', { ...state });
     render();
   });

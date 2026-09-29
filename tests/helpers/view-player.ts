@@ -157,19 +157,26 @@ export const swing = () => spin(FLICK);
 /** A quick lift of the tip: the strike. */
 export const lift = () => spin([-400]);
 
-/** The sensors report, so the game hears them; motion is then on. */
+/** The sensors report, so the game hears them; motion is then the mode in use. */
 export function sensorsOn(withOrientation = true) {
   if (withOrientation) orient(0, 0);
   spin([0]);
-  expect($('#motion-mode-toggle').getAttribute('aria-pressed')).toBe('true');
+  expect($('#settings-mode-motion').getAttribute('aria-pressed')).toBe('true');
 }
 
-/** At the river with motion switched on in the gear panel, as a desktop opts in. */
+/** The river's settings sheet, opened with the gear over the water (spec 034). */
+export function openSettings() {
+  click('#river-settings');
+  expect(visible('#river-settings-sheet')).toBe(true);
+}
+export function closeSettings() {
+  click('#river-settings-close');
+  expect(visible('#river-settings-sheet')).toBe(false);
+}
+
+/** At the river with the sensors reporting: motion is the default (spec 034). */
 export function inMotionRiver(game: Game, { orientation = true } = {}) {
   enterRiver(game);
-  openGear(game, 'supplies');
-  click('#motion-mode-toggle');
-  closeRiverPanel();
   sensorsOn(orientation);
   expect(visible('#motion-fishing')).toBe(true);
   expect(visible('#scene-ready')).toBe(false);
@@ -204,8 +211,8 @@ const RIVER_CONTROLS = [
   '#angling-live',
   '#fish-control',
   '#motion-fishing',
-  '#motion-onboarding',
-  '#motion-quick',
+  '#river-settings',
+  '#river-settings-sheet',
   '#river-hud',
   '#river-tools-nav',
 ];

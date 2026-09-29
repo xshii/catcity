@@ -26,20 +26,14 @@
   max-width: 160%;
   text-align: center;
 }
-.motion-calibrate {
-  position: absolute;
-  left: 4px;
-  top: 4px;
-  pointer-events: auto;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-}
-/* The first-cast guide's way out, under the calibrate button and clear of the hold bar. */
+/*
+ * The first-cast guide's way out, under the settings gear (44px at 4px from this plane's
+ * corner, spec 034) and clear of the hold bar.
+ */
 .motion-guide-skip {
   position: absolute;
   left: 4px;
-  top: 40px;
+  top: 56px;
   pointer-events: auto;
   padding: 4px 10px;
   border-radius: 999px;
@@ -134,10 +128,10 @@
 }
 .motion-hold {
   position: absolute;
-  left: 10%;
-  right: 10%;
+  /* Centred, clear of the settings gear at the plane's top-left corner. */
+  left: 56px;
   top: 4%;
-  width: 80%;
+  width: calc(100% - 112px);
   /* A leaf fill on a warm track, rounded like the button fight's meters. */
   appearance: none;
   border: 0;
@@ -155,23 +149,6 @@
 .motion-hold::-moz-progress-bar {
   background: var(--leaf);
   border-radius: var(--radius-pill);
-}
-.motion-onboarding {
-  position: absolute;
-  /* Top of the river, clear of the prepare button and the float. */
-  inset: 48px 12px auto;
-  z-index: 5;
-  padding: 12px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-sheet);
-  display: grid;
-  gap: 8px;
-}
-.motion-onboarding p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text);
 }
 @keyframes motion-nibble {
   50% {
@@ -204,7 +181,7 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
-/* What the green zone on the water gives, across from the calibrate button. */
+/* What the green zone on the water gives, across from the settings gear. */
 .motion-precise {
   position: absolute;
   right: 4px;
@@ -217,15 +194,4 @@
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-}
-/* The way back to motion fishing, under the cast button while motion is off. */
-#motion-quick {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  min-height: 40px;
-  font-size: 14px;
-}
-#motion-quick[hidden] {
-  display: none;
 }

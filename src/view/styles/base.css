@@ -1165,19 +1165,6 @@ input::placeholder {
     animation: none;
   }
 }
-.fishing-settings {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.fishing-settings #fishing-resources {
-  font-size: 11px;
-}
-.fishing-settings #haptics-toggle {
-  flex-shrink: 0;
-  font-size: 11px;
-}
 #fishing-stage[data-feedback='bite'] #game {
   filter: brightness(1.08);
 }

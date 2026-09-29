@@ -2,15 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { CARE } from '../../src/content/care';
 import { FISHING } from '../../src/content/fishing';
 import { $, click, key, openGame, text, visible } from '../helpers/view-rig';
+import { SCREEN_COPY } from '../../src/view/fishing/screen';
 import {
   backToCity,
   castOnce,
   catchFish,
   closeRiverPanel,
+  closeSettings,
   enterRiver,
   meter,
   openCats,
   openGear,
+  openSettings,
 } from '../helpers/view-player';
 
 describe('the button flow', () => {
@@ -62,19 +65,19 @@ describe('the button flow', () => {
   it('real fishing inputs trigger optional haptics; switching it off stops further pulses', () => {
     const game = openGame();
     enterRiver(game);
-    openGear(game, 'supplies');
+    openSettings();
     expect(text('#haptics-toggle')).toBe('震动：开');
-    closeRiverPanel();
+    closeSettings();
     click('#cast-start');
     catchFish(game);
     expect(text('#catch-reveal')).toContain('银鱼');
     expect(game.vibrations).toEqual([[12, 35, 12], 25, [30, 45, 55]]);
-    openGear(game, 'supplies');
+    openSettings();
     click('#haptics-toggle');
     expect(text('#haptics-toggle')).toBe('震动：关');
     const disabled = [...game.vibrations];
     expect(disabled.at(-1)).toBe(0);
-    closeRiverPanel();
+    closeSettings();
     click('#cast-start');
     $('#fish-control').focus();
     key('keydown', 'Space');
@@ -96,10 +99,10 @@ describe('the button flow', () => {
   it('browsers without vibration shake the river on a bite instead and do not change gameplay', () => {
     const game = openGame({ vibration: false });
     enterRiver(game);
-    openGear(game, 'supplies');
+    openSettings();
     expect($<HTMLButtonElement>('#haptics-toggle').disabled).toBe(false);
     expect(text('#haptics-toggle')).toBe('画面反馈：开');
-    closeRiverPanel();
+    closeSettings();
     const before = game.world();
     click('#cast-start');
     expect(visible('#fish-control')).toBe(true);
@@ -117,23 +120,93 @@ describe('the button flow', () => {
     const game = openGame({ audio: true });
     expect(game.audio).toEqual({ contexts: 0, starts: 0 });
     enterRiver(game);
-    openGear(game, 'supplies');
+    openSettings();
     expect(text('#sound-toggle')).toBe('音效：开');
-    closeRiverPanel();
+    closeSettings();
     expect(game.audio).toEqual({ contexts: 1, starts: 0 });
     click('#cast-start');
     castOnce(game);
     expect(game.audio.starts).toBeGreaterThan(0);
 
-    openGear(game, 'supplies');
+    openSettings();
     click('#sound-toggle');
     expect(text('#sound-toggle')).toBe('音效：关');
     expect($('#sound-toggle').getAttribute('aria-pressed')).toBe('false');
     game.reload();
-    openGear(game, 'supplies');
+    enterRiver(game);
+    openSettings();
     expect(text('#sound-toggle')).toBe('音效：关');
     // Gestures no longer start any audio while sound is off.
     expect(game.audio).toEqual({ contexts: 0, starts: 0 });
+  });
+
+  it('the gear opens the settings; ✕, a tap outside or Escape closes them and focus returns', () => {
+    const game = openGame();
+    enterRiver(game);
+    expect(visible('#river-settings')).toBe(true);
+    expect($('#river-settings').getAttribute('aria-label')).toBe('设置');
+    for (const close of [
+      () => click('#river-settings-close'),
+      () => click('#river-settings-shade'),
+      () => key('keydown', 'Escape'),
+    ]) {
+      openSettings();
+      expect($('#river-settings').getAttribute('aria-expanded')).toBe('true');
+      expect(document.activeElement).toBe($('#river-settings-close'));
+      close();
+      expect(visible('#river-settings-sheet')).toBe(false);
+      expect($('#river-settings').getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe($('#river-settings'));
+    }
+    // The gear and its sheet are the river's alone.
+    backToCity();
+  });
+
+  it('a run keeps its mode: the settings lock the choice and say why, and pause the run', () => {
+    const game = openGame();
+    enterRiver(game);
+    click('#cast-start');
+    castOnce(game);
+    openSettings();
+    for (const mode of ['motion', 'buttons'])
+      expect($<HTMLButtonElement>(`#settings-mode-${mode}`).disabled).toBe(
+        true,
+      );
+    expect($('#settings-mode-buttons').getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(text('#settings-mode-note')).toBe(SCREEN_COPY.settings.runLocked);
+    // The sheet covers the water: the run waits.
+    const run = game.world().fishing.active!;
+    expect(game.tick(5)).toBe(0);
+    expect(game.world().fishing.active).toEqual(run);
+    // Sound and haptics still switch mid-run.
+    click('#haptics-toggle');
+    expect(text('#haptics-toggle')).toBe('震动：关');
+    closeSettings();
+    expect(text('#fish-pause')).toBe(SCREEN_COPY.pause.resume);
+    click('#fish-cancel');
+    openSettings();
+    expect($<HTMLButtonElement>('#settings-mode-motion').disabled).toBe(false);
+    // This desktop wants motion but its sensors never report: the sheet says so.
+    expect(text('#settings-mode-note')).toBe(SCREEN_COPY.settings.waiting);
+  });
+
+  it('the gear panel keeps bait supplies only; the settings moved to the gear over the water', () => {
+    const game = openGame();
+    enterRiver(game);
+    openGear(game, 'supplies');
+    expect(text('#gear-tab-supplies')).toBe('补充');
+    expect(visible('[data-buy-bait="WORM"]')).toBe(true);
+    const gear = $('#river-panel-gear');
+    for (const id of [
+      '#sound-toggle',
+      '#haptics-toggle',
+      '#settings-mode-motion',
+    ])
+      expect(gear.querySelector(id)).toBeNull();
+    // The gear over the water is under the panel's shade while it is open.
+    expect(visible('#river-settings-sheet')).toBe(false);
   });
 
   it('city clock updates preserve the focused cat card and render fixture names literally', () => {

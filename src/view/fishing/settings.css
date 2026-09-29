@@ -1,0 +1,110 @@
+/* The river's settings (spec 034): a gear over the water and the small sheet it opens. */
+.river-settings-gear {
+  /* Placed in JS at the open water's top-left corner, over the canvas. */
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: var(--float-border);
+  border-radius: var(--radius-pill);
+  background: var(--float-bg);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--float-blur);
+  -webkit-backdrop-filter: var(--float-blur);
+}
+.river-settings-gear svg {
+  display: block;
+}
+#river-settings-shade:not([hidden]) {
+  display: block;
+  position: absolute;
+  z-index: 35;
+  inset: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--scrim);
+}
+.river-settings {
+  position: absolute;
+  z-index: 36;
+  top: var(--under-bar);
+  left: 8px;
+  width: min(340px, calc(100% - 16px));
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-sheet);
+}
+.river-settings button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.river-settings button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.river-settings-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  border-bottom: 1px solid var(--line);
+}
+.river-settings-heading h2 {
+  font-size: 17px;
+}
+.river-settings-heading button {
+  width: 44px;
+  padding: 0;
+}
+.river-settings-label {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+/* The fishing mode: a segmented switch like the scene tabs, with touch-size segments. */
+.river-settings-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunk);
+}
+.river-settings .river-settings-modes button {
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.river-settings .river-settings-modes button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow-tab);
+}
+.river-settings-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-accent);
+}
+.river-settings-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}

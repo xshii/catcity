@@ -9,17 +9,18 @@ import {
   orient,
   spin,
   text,
+  touchEnd,
   visible,
 } from '../helpers/view-rig';
 import {
   backToCity,
-  closeRiverPanel,
+  closeSettings,
   enterRiver,
   FLICK,
   followFish,
   inMotionRiver,
   lift,
-  openGear,
+  openSettings,
   SEASONED,
   sensorsOn,
   swing,
@@ -28,6 +29,13 @@ import {
 
 const G = FISHING.motion.gesture;
 const hint = () => text('#motion-fishing-hint');
+const pressed = (mode: 'motion' | 'buttons') =>
+  $(`#settings-mode-${mode}`).getAttribute('aria-pressed') === 'true';
+/** Both sensors asked for once, each inside the player's tap. */
+const ASKED_IN_TAP = [
+  { sensor: 'motion', inTap: true },
+  { sensor: 'orientation', inTap: true },
+];
 
 describe('motion fishing', () => {
   it('swings to cast, lifts on "!", follows the fish, and leaves nothing behind', () => {
@@ -85,16 +93,20 @@ describe('motion fishing', () => {
   it('players can switch back to the frozen button flow on this device', () => {
     const game = openGame({ storage: SEASONED });
     inMotionRiver(game);
-    openGear(game, 'supplies');
-    expect(text('#motion-mode-toggle')).toMatch(/体感 ✓/);
-    click('#motion-mode-toggle');
-    expect(text('#motion-mode-toggle')).toMatch(/按钮/);
-    closeRiverPanel();
+    openSettings();
+    expect(pressed('motion')).toBe(true);
+    click('#settings-mode-buttons');
+    expect(pressed('buttons')).toBe(true);
+    expect(pressed('motion')).toBe(false);
+    closeSettings();
     expect(visible('#motion-fishing')).toBe(false);
     expect(visible('#scene-ready')).toBe(true);
     // The choice is remembered for this device.
     game.reload();
     expect(localStorage.getItem('cat-city.fishing-input')).toBe('buttons');
+    enterRiver(game);
+    expect(visible('#scene-ready')).toBe(true);
+    expect(pressed('buttons')).toBe(true);
   });
 
   it('the tilt aim survives the city clock refreshing the view', () => {
@@ -155,7 +167,8 @@ describe('motion fishing', () => {
     // Before calibrating, the reversed flick is not a cast.
     reversed(FLICK);
     expect(game.world().fishing.active).toBeNull();
-    click('#motion-calibrate');
+    openSettings();
+    click('#settings-calibrate');
     expect(hint()).toContain('校准');
     for (const rates of [FLICK, quiet, FLICK, quiet]) {
       reversed(rates);
@@ -220,50 +233,135 @@ describe('motion fishing', () => {
     expect(visible('#motion-precise')).toBe(false);
   });
 
-  it('a phone in button mode can switch to motion right from the river', () => {
-    const game = openGame({ storage: SEASONED });
-    inMotionRiver(game);
-    openGear(game, 'supplies');
-    click('#motion-mode-toggle');
-    closeRiverPanel();
-    expect(visible('#scene-ready')).toBe(true);
-    // No digging in the gear panel: the ready area offers the way back.
-    expect(text('#motion-quick')).toBe('改用体感钓鱼');
-    click('#motion-quick');
+  it('a phone fishes by motion by default: the tap that opens the river asks for its sensors, once', async () => {
+    const game = openGame({
+      phone: true,
+      permission: 'granted',
+      storage: SEASONED,
+    });
+    // No card to tap: asked inside the tap on 河畔 itself, and not before in the city.
+    enterRiver(game);
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    await game.answer();
     sensorsOn();
     expect(visible('#motion-fishing')).toBe(true);
-    expect(visible('#motion-quick')).toBe(false);
-  });
-
-  it('a phone that has not chosen yet sees the motion card, not the manual cast', () => {
-    const game = openGame({ phone: true, permission: 'granted' });
-    enterRiver(game);
-    closeRiverPanel();
-    expect(visible('#motion-onboarding')).toBe(true);
     expect(visible('#scene-ready')).toBe(false);
-    // Choosing buttons brings the manual cast back.
-    click('#motion-use-buttons');
-    expect(visible('#scene-ready')).toBe(true);
+    // Later taps on the river never ask again, and nothing was chosen for the player.
+    openSettings();
+    closeSettings();
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    expect(localStorage.getItem('cat-city.fishing-input')).toBeNull();
   });
 
-  it('shows the calibrate button while motion is ready to aim, not over a calibration or a run', () => {
+  it('a phone that refuses its sensors fishes with buttons, is told once, and can retry in the settings', async () => {
+    const game = openGame({
+      phone: true,
+      permission: 'denied',
+      storage: SEASONED,
+    });
+    enterRiver(game);
+    await game.answer();
+    expect(text('#notice')).toBe(SCREEN_COPY.permission.denied);
+    expect(visible('#scene-ready')).toBe(true);
+    expect(visible('#motion-fishing')).toBe(false);
+    // The sheet says why; opening it did not ask again.
+    openSettings();
+    expect(pressed('buttons')).toBe(true);
+    expect(text('#settings-mode-note')).toBe(SCREEN_COPY.settings.denied);
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    // "Motion" retries inside its own tap.
+    click('#settings-mode-motion');
+    expect(game.sensorAsks).toEqual([...ASKED_IN_TAP, ...ASKED_IN_TAP]);
+    await game.answer();
+    expect(pressed('buttons')).toBe(true);
+    closeSettings();
+    // Buttons still fish.
+    click('#cast-start');
+    expect(game.world().fishing.active!.mode).toBe('buttons');
+  });
+
+  it('without HTTPS a phone fishes with buttons, asks nothing, and the settings say why', () => {
+    const game = openGame({
+      phone: true,
+      permission: 'granted',
+      secure: false,
+    });
+    enterRiver(game);
+    expect(game.sensorAsks).toEqual([]);
+    expect(visible('#scene-ready')).toBe(true);
+    expect(text('#notice')).not.toContain('体感');
+    openSettings();
+    expect(pressed('buttons')).toBe(true);
+    expect($<HTMLButtonElement>('#settings-mode-motion').disabled).toBe(true);
+    expect(text('#settings-mode-note')).toBe(SCREEN_COPY.settings.unsupported);
+  });
+
+  it('a phone in button mode switches to motion in the settings, asking inside that tap', async () => {
+    const game = openGame({
+      phone: true,
+      permission: 'granted',
+      storage: { ...SEASONED, 'cat-city.fishing-input': 'buttons' },
+    });
+    enterRiver(game);
+    // Buttons by choice: entering asks nothing.
+    expect(game.sensorAsks).toEqual([]);
+    expect(visible('#scene-ready')).toBe(true);
+    openSettings();
+    click('#settings-mode-motion');
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    await game.answer();
+    closeSettings();
+    sensorsOn();
+    expect(visible('#motion-fishing')).toBe(true);
+    expect(visible('#scene-ready')).toBe(false);
+    expect(localStorage.getItem('cat-city.fishing-input')).toBe('motion');
+  });
+
+  it('after a reload mid-run, the first tap on the river asks for the sensors again', async () => {
+    const game = openGame({
+      phone: true,
+      permission: 'granted',
+      storage: SEASONED,
+    });
+    enterRiver(game);
+    await game.answer();
+    sensorsOn();
+    swing();
+    expect(game.world().fishing.active!.mode).toBe('motion');
+    game.reload();
+    // The restored run brings back the river without a tap: nothing is asked yet.
+    expect(visible('#motion-fishing')).toBe(true);
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    // A tap on the water, which iOS does not click through, asks inside it.
+    touchEnd('#motion-fishing');
+    expect(game.sensorAsks).toEqual([...ASKED_IN_TAP, ...ASKED_IN_TAP]);
+  });
+
+  it('offers calibration in the settings while motion is ready to aim, not over a calibration or a run', () => {
     const game = openGame({ storage: SEASONED });
     enterRiver(game);
-    expect(visible('#motion-calibrate')).toBe(false);
+    openSettings();
+    expect(visible('#settings-calibrate')).toBe(false);
+    closeSettings();
     inMotionRiver(game);
-    expect(visible('#motion-calibrate')).toBe(true);
-    click('#motion-calibrate');
-    expect(visible('#motion-calibrate')).toBe(false);
+    openSettings();
+    expect(visible('#settings-calibrate')).toBe(true);
+    click('#settings-calibrate');
+    // The sheet closes, calibration starts on the water, and focus is back on the gear.
+    expect(visible('#river-settings-sheet')).toBe(false);
+    expect(document.activeElement).toBe($('#river-settings'));
     expect(hint()).toBe(SCREEN_COPY.hint.calibrating);
-    // No flicks: the window closes without a result and the button returns.
+    expect($('#settings-calibrate').hidden).toBe(true);
+    // No flicks: the window closes without a result and calibration is offered again.
     game.wait(G.calibration.windowMs);
     expect(hint()).toBe(SCREEN_COPY.calibrate.failed);
-    expect(visible('#motion-calibrate')).toBe(true);
+    expect($('#settings-calibrate').hidden).toBe(false);
     // Flicks just after calibrating still belong to it.
     game.wait(G.calibration.settleMs);
     swing();
     expect(game.world().fishing.active!.mode).toBe('motion');
-    expect(visible('#motion-calibrate')).toBe(false);
+    openSettings();
+    expect(visible('#settings-calibrate')).toBe(false);
   });
 
   it('the first-cast guide can be skipped for good', () => {
