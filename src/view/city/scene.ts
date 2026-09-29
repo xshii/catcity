@@ -259,6 +259,7 @@ export class CityScene extends Phaser.Scene {
       power: aim.power,
       live: aim.live,
       spotId: aim.spotId,
+      ringCentre: this.aim.ringCentre(),
     });
     const { selection, walker } = this.city.view.get();
     const signature = JSON.stringify([

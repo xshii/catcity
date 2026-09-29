@@ -130,6 +130,10 @@ test(
     await spin(page, [-400]);
     expect((await readWorld(page)).fishing.active!.phase).toBe('fight');
     await expect(page.locator('#motion-ring')).toBeVisible();
+    // Without vibration (WebKit) the strike shakes the river: measure it at rest.
+    await expect(page.locator('#fishing-stage')).not.toHaveClass(
+      /screen-shake/,
+    );
     const plane = (await page.locator('#motion-fishing').boundingBox())!;
     // Motion play gives the river most of the phone: the canvas spans the width
     // and the open-water plane over half of it.

@@ -6,7 +6,9 @@ import {
   aimAtPoint,
   castPreview,
   landingShare,
+  planePoint,
   shadowPoint,
+  showsShadows,
   WATER_VIEW,
   waterPoint,
 } from '../../src/view/art/water-view';
@@ -88,6 +90,31 @@ it('draws each fish shadow where a cast that meets it head-on lands', () => {
           expect(drawn.y).toBeGreaterThan(V.horizonY);
           expect(drawn.y).toBeLessThan(V.nearY);
         }
+});
+
+it('keeps the fish shadows in the water until a fish is hooked', () => {
+  expect(showsShadows(null)).toBe(true);
+  for (const phase of ['charge', 'waiting', 'hook'] as const)
+    expect(showsShadows({ phase })).toBe(true);
+  // The fight shows the hooked fish instead.
+  expect(showsShadows({ phase: 'fight' })).toBe(false);
+});
+
+it('puts a fight-plane point on the canvas where the overlay ring is drawn', () => {
+  const { left, top, side } = V.plane;
+  expect(planePoint({ x: 0, y: 0 })).toMatchObject({
+    x: left * V.size,
+    y: top * V.size,
+  });
+  expect(planePoint({ x: 100, y: 100 })).toMatchObject({
+    x: (left + side) * V.size,
+    y: (top + side) * V.size,
+  });
+  // Same perspective as a landing at that height: smaller toward the horizon.
+  const centre = planePoint(FISHING.motion.planeCentre);
+  const share = (V.nearY - centre.y) / (V.nearY - V.horizonY);
+  expect(centre.scale).toBeCloseTo(waterPoint(0, share).scale);
+  expect(planePoint({ x: 50, y: 10 }).scale).toBeLessThan(centre.scale);
 });
 
 describe('the landing preview while aiming (spec 033 F5)', () => {

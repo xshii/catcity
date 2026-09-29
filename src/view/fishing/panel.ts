@@ -369,6 +369,7 @@ export function mountAngling(
       aimListeners.add(listener);
       return () => aimListeners.delete(listener);
     },
+    ringCentre: () => motion.ringCentre(),
   };
   const controls = mountFishingControls({
     session,

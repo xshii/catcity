@@ -17,8 +17,8 @@
   margin: 0;
   padding: 8px 16px;
   border-radius: 999px;
-  background: rgba(255, 253, 244, 0.92);
-  color: #45613f;
+  background: var(--surface-float);
+  color: var(--text);
   font-size: 14px;
   font-weight: 600;
   /* The plane is 60% of the canvas: hints may widen past it, within the canvas. */
@@ -55,22 +55,26 @@
   transform: translate(-50%, -50%);
   font-size: clamp(72px, 30vmin, 180px);
   line-height: 1;
-  color: #d9644c;
-  text-shadow: 0 2px 0 #fff;
+  color: var(--alert);
+  text-shadow: 0 2px 0 var(--surface);
 }
 .motion-ring {
   position: absolute;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 6px solid #d9644c;
+  border: 6px solid var(--alert);
   /* Line tension 0–100 (set in JS) turns the outer edge from gold to red. */
   box-shadow: 0 0 0 3px
-    color-mix(in srgb, #c0392b calc(var(--tension, 0) * 1%), #e9c46a);
+    color-mix(
+      in srgb,
+      var(--tension-high) calc(var(--tension, 0) * 1%),
+      var(--tension-low)
+    );
   transition: border-color 0.15s;
 }
 .motion-ring.inside {
-  border-color: #5f9c5a;
+  border-color: var(--good);
 }
 /* A dash is coming: the fish ripples, then flashes while it darts. */
 .motion-fish.warning::after {
@@ -78,11 +82,11 @@
   position: absolute;
   inset: -14px;
   border-radius: 50%;
-  border: 3px solid #fff4c0;
+  border: 3px solid var(--glint);
   animation: motion-ripple 0.4s ease-out infinite;
 }
 .motion-fish.dashing svg {
-  filter: drop-shadow(0 0 4px #fff4c0) drop-shadow(0 0 2px #fff4c0);
+  filter: drop-shadow(0 0 4px var(--glint)) drop-shadow(0 0 2px var(--glint));
 }
 @keyframes motion-ripple {
   from {
@@ -129,16 +133,16 @@
   inset: 48px 12px auto;
   z-index: 5;
   padding: 12px;
-  border-radius: 14px;
-  background: #fffdf4;
-  box-shadow: 0 6px 20px rgba(60, 80, 50, 0.18);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
   display: grid;
   gap: 8px;
 }
 .motion-onboarding p {
   margin: 0;
   font-size: 13px;
-  color: #45613f;
+  color: var(--text);
 }
 @keyframes motion-nibble {
   50% {
@@ -161,7 +165,7 @@
 .game-screen #angling-live.scene-console[data-mode='motion'] {
   height: auto;
   padding: 6px 12px;
-  background: #fffcf0cc;
+  background: var(--float-bg);
 }
 /* Cast power for screen readers; the water shows it as the landing arc (spec 033 F5). */
 .motion-power {
@@ -171,7 +175,7 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
-/* What the green stretch on the water gives, across from the calibrate button. */
+/* What the green zone on the water gives, across from the calibrate button. */
 .motion-precise {
   position: absolute;
   right: 4px;
@@ -179,8 +183,8 @@
   margin: 0;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 253, 244, 0.92);
-  color: #3d7a37;
+  background: var(--surface-float);
+  color: var(--text-good);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;

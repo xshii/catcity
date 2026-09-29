@@ -2,7 +2,14 @@ import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { catArt } from './cat';
-import { castPreview, shadowPoint, WATER_VIEW, waterPoint } from './water-view';
+import {
+  castPreview,
+  planePoint,
+  shadowPoint,
+  showsShadows,
+  WATER_VIEW,
+  waterPoint,
+} from './water-view';
 import { BANK, BANK_STRIP, DOCK, MOON_TINT, SAND, SKY } from './river-palette';
 
 const V = WATER_VIEW;
@@ -284,6 +291,8 @@ export class RiverView {
       /** The rod sets the power now (motion aiming). */
       live: boolean;
       spotId: SpotId;
+      /** The motion fight ring's centre on the water plane. */
+      ringCentre: { x: number; y: number };
     },
   ) {
     const active = world.fishing.active;
@@ -294,9 +303,7 @@ export class RiverView {
     }
     for (const [id, layer] of Object.entries(this.scenery))
       layer.setVisible(id === spotId);
-    // Shadows show while aiming and hide once the line is in the water.
-    const shadows =
-      active && active.phase !== 'charge' ? [] : fishShadows(world, spotId);
+    const shadows = showsShadows(active) ? fishShadows(world, spotId) : [];
     if (JSON.stringify(shadows) !== JSON.stringify(this.shadows)) {
       this.shadows = shadows;
       this.waterFrame = -1;
@@ -365,6 +372,11 @@ export class RiverView {
           land.y + 8 * land.scale,
         );
     }
+    // A motion fight: the line runs to the ring the player steers.
+    const held =
+      active?.mode === 'motion' && active.phase === 'fight'
+        ? planePoint(preview.ringCentre)
+        : null;
     const flight =
       active?.phase === 'waiting' ? Math.min(1, active.phaseTick / 10) : 1;
     const bob =
@@ -373,22 +385,24 @@ export class RiverView {
         : active?.phase === 'waiting'
           ? Math.sin(active.phaseTick / 5) * 2
           : 0;
-    this.float
-      .setVisible(cast)
-      .setPosition(
-        ROD_TIP.x + (land.x - ROD_TIP.x) * flight,
-        ROD_TIP.y +
-          (land.y - ROD_TIP.y) * flight -
-          Math.sin(flight * Math.PI) * 60 +
-          bob,
-      )
-      .setScale(land.scale * (active?.phase === 'hook' ? 1.5 : 1));
+    this.float.setVisible(cast);
+    if (held) this.float.setPosition(held.x, held.y).setScale(held.scale);
+    else
+      this.float
+        .setPosition(
+          ROD_TIP.x + (land.x - ROD_TIP.x) * flight,
+          ROD_TIP.y +
+            (land.y - ROD_TIP.y) * flight -
+            Math.sin(flight * Math.PI) * 60 +
+            bob,
+        )
+        .setScale(land.scale * (active?.phase === 'hook' ? 1.5 : 1));
     this.bite
       .setVisible(active?.phase === 'hook')
       .setPosition(land.x, land.y - 45 * land.scale);
     this.fishShadow
-      // Only the hooked fish: aiming shows Core's real shadows instead.
-      .setVisible(active?.phase === 'fight')
+      // Only the hooked fish of a button fight: the motion overlay draws its own fish.
+      .setVisible(active?.phase === 'fight' && !held)
       .setPosition(
         land.x - 20 * land.scale + Math.sin((active?.tick ?? 0) / 10) * 16,
         land.y + 24 * land.scale,
