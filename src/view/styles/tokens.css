@@ -1,0 +1,83 @@
+/*
+ * Visual tokens (治愈系, docs/ui-layout.md「视觉基调」): the only place UI colours, shadows
+ * and radii are written. Text pairs keep ≥ 4.5:1 on paper and surface; the warm-brown
+ * line is for lines and large text only.
+ */
+:root {
+  /* Palette */
+  --paper: #fbf6ec;
+  --apricot: #f6c9a0;
+  --sage: #a8c3a0;
+  --mint: #9ccfc8;
+  --sakura: #f2b8b5;
+  --wood: #e8d3b0;
+  --leaf: #7fa37a;
+  --brown: #8a6f5a;
+  --ink: #5e4b3e;
+
+  /* Text */
+  --text: var(--ink);
+  --text-muted: #76624f;
+  --text-accent: #8f5634;
+  --text-good: #4f7a4b;
+  --text-mood: #9a4e4a;
+  --text-on-primary: #fffdf8;
+
+  /* Surfaces and lines */
+  --surface: #fffdf8;
+  --surface-float: rgb(255 253 248 / 0.96);
+  --surface-sunk: #f1e6d4;
+  --accent: var(--apricot);
+  --accent-soft: #fdebd8;
+  --mood-bg: #fce3e1;
+  --selected-bg: #e9f0e1;
+  --selected-line: var(--sage);
+  --line: #e9dcc8;
+  --line-strong: #dcc7aa;
+  --scene-ground: #f1ead9;
+  --scrim: rgb(94 75 62 / 0.28);
+
+  /* Floating chrome over the scene */
+  --float-bg: rgb(251 246 236 / 0.9);
+  --float-border: 1px solid var(--line);
+  --float-blur: blur(8px);
+
+  /* Buttons */
+  --btn-primary-bg: #557d51;
+  --btn-primary-hover: #4b7247;
+  --btn-primary-edge: #44683f;
+  --btn-secondary-bg: var(--surface);
+  --btn-secondary-border: var(--line-strong);
+  --focus-ring: #b36a45;
+
+  /* Feedback on the water (the ring's tension mix stays red over gold) */
+  --good: #5f9c5a;
+  --alert: #d9644c;
+  --alert-soft: #e3a58f;
+  --accent-strong: #e0a068;
+  --tension-high: #c0392b;
+  --tension-low: #e9c46a;
+  --glint: #fff4c0;
+
+  /* Soft warm shadows */
+  --shadow-tab: 0 2px 6px rgb(138 111 90 / 0.18);
+  --shadow-soft: 0 6px 18px rgb(179 106 69 / 0.12);
+  --shadow-card: 0 8px 22px rgb(179 106 69 / 0.1);
+  --shadow-sheet: 0 12px 40px rgb(138 94 60 / 0.2);
+  --shadow-primary:
+    0 3px 0 var(--btn-primary-edge), 0 8px 18px rgb(127 163 122 / 0.35);
+  --glow-accent: 0 0 0 3px rgb(246 201 160 / 0.55);
+  --glow-good: 0 0 0 3px rgb(168 195 160 / 0.5);
+  /* The warm edge a device without vibration shows on a catch or strain. */
+  --glow-screen: inset 0 0 48px 6px rgb(246 201 160 / 0.6);
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --font-ui:
+    ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont,
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}

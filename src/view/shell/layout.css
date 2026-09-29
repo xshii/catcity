@@ -17,10 +17,6 @@ body {
   --safe-bottom: max(8px, env(safe-area-inset-bottom));
   --bar-height: 44px;
   --nav-height: 54px;
-  /* Floating chrome over the scene. */
-  --float-bg: #faf9efd9;
-  --float-border: 1px solid #d7dfc6b3;
-  --float-blur: blur(8px);
   /* Below the scene bar, and above the tool bar. */
   --under-bar: calc(var(--safe-top) + var(--bar-height) + 8px);
   --over-nav: calc(var(--safe-bottom) + var(--nav-height) + 8px);
@@ -48,7 +44,7 @@ body {
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  background: #e4ead3;
+  background: var(--scene-ground);
   overflow: hidden;
 }
 .game-screen .map-heading {
@@ -62,8 +58,9 @@ body {
   padding: 5px 10px;
   gap: 8px;
   border: var(--float-border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--float-bg);
+  box-shadow: var(--shadow-soft);
   backdrop-filter: var(--float-blur);
   -webkit-backdrop-filter: var(--float-blur);
 }
@@ -81,7 +78,7 @@ body {
   font-size: 10px;
 }
 .river-status .coins {
-  color: #9b7d43;
+  color: var(--text-accent);
   white-space: nowrap;
 }
 /* The last message floats under the scene bar and its hint, and never takes a tap. */
@@ -94,8 +91,10 @@ body {
   max-width: min(92vw, 560px);
   margin: 0;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--float-bg);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
   font-size: 11px;
   line-height: 1.5;
   text-align: center;
@@ -127,7 +126,7 @@ body {
   left: 12px;
   right: 12px;
   z-index: 45;
-  box-shadow: 0 10px 40px #344b432b;
+  box-shadow: var(--shadow-sheet);
 }
 .game-screen .cat-energy-cards {
   gap: 6px;
@@ -140,7 +139,7 @@ body {
   max-width: none;
   gap: 7px;
   padding: 5px 9px;
-  border-radius: 11px;
+  border-radius: var(--radius-md);
 }
 .game-screen .energy-cat svg {
   width: 30px;
@@ -204,9 +203,9 @@ body {
 .game-screen .river-caption h2 {
   margin: 0;
   font-size: 13px;
-  background: #ecf1dfc9;
+  background: var(--float-bg);
   padding: 5px 8px;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
 }
 .game-screen .scene-ready {
   left: 12%;
@@ -225,7 +224,7 @@ body {
   margin: 0;
   height: 182px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 .game-screen .scene-console .bar-heading {
   font-size: 11px;
@@ -282,7 +281,7 @@ body {
   left: 25%;
   width: 50%;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 .game-screen .catch-reveal svg {
   width: 120px;
@@ -317,8 +316,9 @@ body {
   padding: 5px;
   gap: 5px;
   border: var(--float-border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--float-bg);
+  box-shadow: var(--shadow-soft);
   backdrop-filter: var(--float-blur);
   -webkit-backdrop-filter: var(--float-blur);
 }
@@ -337,10 +337,16 @@ body {
   font-size: 22px;
   line-height: 1;
 }
-.scene-tools-nav button[aria-selected='true'] {
-  color: #3e603b;
-  background: #e1eacf;
-  box-shadow: inset 0 0 0 1px #cad8b5;
+/* Borderless tabs on the bar (outranking the panel's button style); the open one is tinted. */
+.game-screen .scene-tools-nav button:not(.primary) {
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+}
+.game-screen .scene-tools-nav button[aria-selected='true']:not(.primary) {
+  background: var(--selected-bg);
+  box-shadow: inset 0 0 0 1px var(--selected-line);
 }
 /* Panels open over the scene: a sheet on phones, a drawer on the right on desktops. */
 .game-screen #river-tools {
@@ -351,10 +357,10 @@ body {
   right: 8px;
   bottom: var(--over-nav);
   padding: 0 14px 12px;
-  border: 1px solid #cad6ba;
-  border-radius: 16px;
-  background: #faf9ef;
-  box-shadow: 0 8px 40px #304b392b;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-sheet);
 }
 @media (min-width: 761px) {
   .game-screen #river-tools {
@@ -368,7 +374,7 @@ body {
   align-items: center;
   gap: 12px;
   height: 47px;
-  border-bottom: 1px solid #e0e5d2;
+  border-bottom: 1px solid var(--line);
 }
 .game-screen .river-tools-heading h2 {
   font-size: 17px;
@@ -394,10 +400,11 @@ body {
   padding: 6px;
   font-size: 11px;
 }
-.tool-subtabs button[aria-selected='true'] {
-  background: #e0e9ce;
-  color: #46623d;
-  border-color: #a9be90;
+/* Outranks the panel's button style, so the open group shows. */
+.game-screen .tool-subtabs button[aria-selected='true'] {
+  background: var(--selected-bg);
+  color: var(--text);
+  border-color: var(--selected-line);
 }
 .tool-page {
   min-height: 0;
@@ -501,7 +508,7 @@ body {
   inset: 0;
   border: none;
   border-radius: 0;
-  background: #314b453d;
+  background: var(--scrim);
 }
 #cats-page-talk .cat-card {
   border: 0;
@@ -606,7 +613,7 @@ body {
   flex: 0 0 auto;
   margin: 0 10px 5px;
   padding: 9px 11px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 .game-screen .city-steps {
   gap: 10px;
@@ -720,8 +727,8 @@ body {
   white-space: nowrap;
 }
 #clock-speed.guide-target {
-  border-color: #8fac74;
-  box-shadow: 0 0 0 3px #d6e5c2;
+  border-color: var(--accent-strong);
+  box-shadow: var(--glow-accent);
 }
 .city-save {
   display: flex;
@@ -729,9 +736,9 @@ body {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 0;
-  border-top: 1px solid #e0e5d2;
+  border-top: 1px solid var(--line);
   font-size: 10px;
-  color: #6f7d64;
+  color: var(--text-muted);
 }
 .city-save p {
   margin: 0;
@@ -751,7 +758,7 @@ body {
 .outing-intro {
   margin: 12px 0 8px;
   font-size: 11px;
-  color: #6f7d64;
+  color: var(--text-muted);
 }
 .outing-list {
   display: grid;
@@ -766,8 +773,8 @@ body {
   align-items: center;
   gap: 2px 10px;
   padding: 8px 10px;
-  border: 1px solid #dfe5d2;
-  border-radius: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
 }
 .outing-list strong {
   font-size: 12px;
@@ -776,7 +783,7 @@ body {
   grid-column: 1;
   font-size: 10px;
   line-height: 1.45;
-  color: #75826a;
+  color: var(--text-muted);
 }
 .outing-list button {
   grid-row: 1 / span 2;
