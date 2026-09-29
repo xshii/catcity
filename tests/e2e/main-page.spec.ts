@@ -41,7 +41,8 @@ async function board(page: Page) {
 
 /**
  * Centred on an axis when it fits; otherwise the map covers the frame. Vertically that
- * frame is the open band between the floating bars (spec 031), so no row hides under them.
+ * frame is the band between the scene bar and the tool bar (spec 031); the hint and the
+ * action card float over the map without moving it.
  */
 async function expectFramed(page: Page) {
   await settle(page);
@@ -51,7 +52,7 @@ async function expectFramed(page: Page) {
   expect(Math.abs(canvas.width - frame.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(canvas.height - frame.height)).toBeLessThanOrEqual(1);
   const box = await board(page);
-  const bars = await barInsetsOf(page, frame);
+  const { bars } = await barInsetsOf(page, frame);
   expect(bars.top).toBeGreaterThan(0);
   expect(bars.bottom).toBeGreaterThan(0);
   for (const [low, high, start, size] of [
@@ -120,6 +121,54 @@ for (const viewport of [
     }
   });
 }
+
+test('the action card floats over the map: opening or closing it never moves the map, a tile under it is revealed', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await ready(page);
+  const card = page.locator('#city-action-card');
+  const still = async (tile: Position, at: Position) => {
+    await settle(page);
+    const now = await tileOnScreen(page, tile);
+    expect(Math.abs(now.x - at.x)).toBeLessThan(0.5);
+    expect(Math.abs(now.y - at.y)).toBeLessThan(0.5);
+  };
+  // Overview, where the board used to shift into the band left above the card.
+  await page.locator('#city-overview').click();
+  await settle(page);
+  const middle = { x: 6, y: 5 };
+  const before = await tileOnScreen(page, middle);
+  await page.mouse.click(before.x, before.y);
+  await expect(card).toBeVisible();
+  await still(middle, before);
+  await page.locator('#cancel-city-action').click();
+  await expect(card).toBeHidden();
+  await still(middle, before);
+
+  // Following the cat, the bottom row sits where the card opens: tapping a tile there moves
+  // the map up just far enough to show it above the card, and closing the card keeps it.
+  await page.locator('#city-overview').click();
+  await settle(page);
+  const { map } = await readWorld(page);
+  const low = { x: 7, y: map.height - 1 };
+  const tapped = await tileOnScreen(page, low);
+  await page.mouse.click(tapped.x, tapped.y);
+  await expect(page.locator('#buy-land')).toBeVisible();
+  await settle(page);
+  const shown = await tileOnScreen(page, low);
+  const cardTop = (await card.boundingBox())!.y;
+  const half = (await board(page)).tile / 2;
+  expect(tapped.y + half).toBeGreaterThan(cardTop);
+  expect(
+    Math.abs(shown.y + half - (cardTop - MAP_VIEW.revealGap)),
+  ).toBeLessThan(1);
+  expect(Math.abs(shown.x - tapped.x)).toBeLessThan(0.5);
+  await page.locator('#cancel-city-action').click();
+  await expect(card).toBeHidden();
+  await still(low, shown);
+});
 
 test('a new game guides the next step above the map and keeps one clock control', async ({
   page,

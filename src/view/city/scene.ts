@@ -13,7 +13,13 @@ import { CITY_COLOURS, LABEL } from '../art/city-palette';
 import { RiverView } from '../art/river';
 import { aimAtPoint } from '../art/water-view';
 import { measureBarInsets } from './bars';
-import { boardSize, frameMap, MAP_VIEW, tileCenter } from './geometry';
+import {
+  boardSize,
+  frameMap,
+  MAP_VIEW,
+  revealShift,
+  tileCenter,
+} from './geometry';
 
 export class CityScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
@@ -27,6 +33,10 @@ export class CityScene extends Phaser.Scene {
   private pan: { x: number; y: number } | null = null;
   /** The framed focus: the world point in the middle of the open band between the bars. */
   private focus = { x: 0, y: 0 };
+  /** World px the camera has moved down to reveal a selection from under the card or hint. */
+  private reveal = 0;
+  /** The selection and covers last checked for a reveal. */
+  private revealChecked = '';
   /** The map frame (#game) in CSS pixels. */
   private frame = { width: 0, height: 0 };
   private tiles = { width: 0, height: 0 };
@@ -71,7 +81,10 @@ export class CityScene extends Phaser.Scene {
     let overview = this.city.view.get().overview;
     const unsubscribeView = this.city.view.subscribe((view) => {
       // Switching between follow and overview starts from the centre again.
-      if (view.overview !== overview) this.pan = null;
+      if (view.overview !== overview) {
+        this.pan = null;
+        this.reveal = 0;
+      }
       overview = view.overview;
       repaint();
     });
@@ -188,6 +201,16 @@ export class CityScene extends Phaser.Scene {
       this.scale.setGameSize(next.width, next.height);
   }
 
+  /** The selected tile or cat in world pixels. */
+  private selectedPoint() {
+    const selected = this.city.view.get().selection;
+    if (!selected) return null;
+    if (selected.kind !== 'cat')
+      return tileCenter(selected.position.x, selected.position.y);
+    const cat = this.cats.get(selected.catId);
+    return cat ? { x: cat.x, y: cat.y } : null;
+  }
+
   private followedCat() {
     const selected = this.city.view.get().selection;
     const catId =
@@ -228,17 +251,31 @@ export class CityScene extends Phaser.Scene {
       : cat
         ? { x: cat.x, y: cat.y }
         : { x: board.width / 2, y: board.height / 2 };
-    const framed = frameMap(
-      this.frame,
-      this.tiles,
-      !overview,
-      focus,
-      measureBarInsets(),
-    );
-    const { scale, center } = framed;
+    // Framed between the persistent bars only: the card and the hint float over the map.
+    const { bars, covers } = measureBarInsets();
+    const framed = frameMap(this.frame, this.tiles, !overview, focus, bars);
+    const { scale } = framed;
     this.focus = framed.focus;
     if (overview && this.pan) this.pan = framed.focus;
-    camera.setZoom(scale * this.logicalPerCss()).centerOn(center.x, center.y);
+    // A new selection, or a card that changed size, may cover the selected tile: move just
+    // enough to show it, and stay there when the card closes.
+    const selected = this.selectedPoint();
+    const check = JSON.stringify([this.city.view.get().selection, covers]);
+    if (selected && check !== this.revealChecked)
+      this.reveal += revealShift(
+        this.frame,
+        {
+          scale,
+          center: { ...framed.center, y: framed.center.y + this.reveal },
+        },
+        selected,
+        bars,
+        covers,
+      );
+    this.revealChecked = check;
+    camera
+      .setZoom(scale * this.logicalPerCss())
+      .centerOn(framed.center.x, framed.center.y + this.reveal);
   }
 
   private label(x: number, y: number, text: string, size = 12) {
