@@ -7,6 +7,9 @@ import { CatArt } from '../art/cat';
 import { catPose } from '../art/cat-look';
 import type { City } from './panel';
 import { drawCityMap } from '../art/city-map';
+import { CityAmbience } from '../art/city-ambience';
+import { cityLight, shade } from '../art/city-light';
+import { CITY_COLOURS, LABEL } from '../art/city-palette';
 import { RiverView } from '../art/river';
 import { aimAtPoint } from '../art/water-view';
 import { measureBarInsets } from './bars';
@@ -14,6 +17,7 @@ import { boardSize, frameMap, MAP_VIEW, tileCenter } from './geometry';
 
 export class CityScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
+  private ambience!: CityAmbience;
   private labels: Phaser.GameObjects.Text[] = [];
   private cats = new Map<string, CatArt>();
   private river!: RiverView;
@@ -45,6 +49,7 @@ export class CityScene extends Phaser.Scene {
 
   create() {
     this.graphics = this.add.graphics();
+    this.ambience = new CityAmbience(this);
     this.river = new RiverView(this);
     const repaint = () => this.paint();
     const unsubscribePlace = this.place.subscribe(repaint);
@@ -193,7 +198,7 @@ export class CityScene extends Phaser.Scene {
   }
 
   /** Frame the camera every frame, so a walking cat and a resized frame stay centred. */
-  update() {
+  update(time: number) {
     // Frames drawn so far, so real-input tests can wait for the camera to catch up
     // instead of guessing a delay (harness settle()).
     this.game.canvas.dataset.frame = String(++this.frames);
@@ -213,6 +218,7 @@ export class CityScene extends Phaser.Scene {
       camera.setZoom(1).centerOn(MAP_VIEW.size / 2, MAP_VIEW.size / 2);
       return;
     }
+    this.ambience.update(time);
     if (!this.frame.width || !this.frame.height || !this.tiles.width) return;
     const board = boardSize(this.tiles);
     const cat = this.followedCat();
@@ -235,20 +241,16 @@ export class CityScene extends Phaser.Scene {
     camera.setZoom(scale * this.logicalPerCss()).centerOn(center.x, center.y);
   }
 
-  private label(
-    x: number,
-    y: number,
-    text: string,
-    size = 12,
-    color = '#53674f',
-  ) {
+  private label(x: number, y: number, text: string, size = 12) {
     this.labels.push(
       this.add
         .text(x, y, text, {
-          fontFamily: 'system-ui',
+          fontFamily: LABEL.font,
           resolution: 2,
           fontSize: size,
-          color,
+          color: LABEL.color,
+          stroke: LABEL.halo,
+          strokeThickness: 3,
         })
         .setOrigin(0.5),
     );
@@ -274,6 +276,7 @@ export class CityScene extends Phaser.Scene {
       ringCentre: this.aim.ringCentre(),
     });
     const { selection, walker } = this.city.view.get();
+    const light = cityLight(world.minute);
     const signature = JSON.stringify([
       world.map,
       world.buildings,
@@ -287,15 +290,21 @@ export class CityScene extends Phaser.Scene {
       selection,
       this.session.selectedEntity,
       this.riverMode,
+      light.daypart,
     ]);
     if (signature === this.paintedState) return;
     this.paintedState = signature;
     this.graphics.clear().setVisible(!this.riverMode);
     this.labels.forEach((label) => label.destroy());
     this.labels = [];
+    this.ambience.render(world, light, !this.riverMode);
+    // The ground around the board takes the light too; the river's page shows through.
+    this.cameras.main.setBackgroundColor(
+      this.riverMode ? 'rgba(0,0,0,0)' : shade(CITY_COLOURS.ground, light),
+    );
     if (!this.riverMode)
-      drawCityMap(this.graphics, world, selection, (x, y, text, size, color) =>
-        this.label(x, y, text, size, color),
+      drawCityMap(this.graphics, world, selection, light, (x, y, text, size) =>
+        this.label(x, y, text, size),
       );
     for (const cat of world.cats) {
       const { x, y } = tileCenter(cat.position.x, cat.position.y);
@@ -317,9 +326,9 @@ export class CityScene extends Phaser.Scene {
       if (!this.riverMode) {
         if (walker === cat.id)
           this.graphics
-            .lineStyle(2.5, 0x55764b)
+            .lineStyle(2.5, CITY_COLOURS.selected)
             .strokeRoundedRect(x - 23, y - 25, 46, 49, 10);
-        this.label(x, y + 31, cat.name, 11, '#485b42');
+        this.label(x, y + 31, cat.name, 11);
       }
     }
     for (const [id, sprite] of this.cats)
