@@ -2,8 +2,27 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['tests/{unit,simulation,integration}/**/*.test.ts'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'headless',
+          environment: 'node',
+          include: ['tests/{unit,simulation,integration}/**/*.test.ts'],
+        },
+      },
+      {
+        // The real page in a simulated DOM, Phaser stubbed (tests/helpers/view-rig.ts); its
+        // stylesheets load so that visibility follows the page's own CSS.
+        extends: true,
+        test: {
+          name: 'view',
+          environment: 'happy-dom',
+          css: true,
+          include: ['tests/view/**/*.test.ts'],
+        },
+      },
+    ],
     coverage: {
       provider: 'v8',
       include: [
