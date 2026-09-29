@@ -50,13 +50,13 @@ const frame = (time: number): MapPointerEvent => ({ type: 'frame', time });
 
 describe('map gesture', () => {
   it('a quick press and release is a tap, on a cat or on the ground', () => {
-    expect(gesture(down('mochi'), up(120))).toEqual({
+    expect(gesture(down('mochi'), up(120, 0, { x: 7, y: 3 }))).toEqual({
       phase: 'tapped',
-      point: at,
+      tile: { x: 7, y: 3 },
     });
     expect(gesture(down(null), frame(200), up(250))).toEqual({
       phase: 'tapped',
-      point: at,
+      tile: null,
     });
     // A few pixels of finger wobble are still a tap.
     expect(
@@ -254,6 +254,11 @@ describe('cat drop', () => {
           type: 'TRAVEL_TO_FISHING_SPOT',
           catId: 'mochi',
           spotId: 'POND',
+        },
+        // As after the card: the water stays selected, to enter the spot on arrival.
+        then: {
+          type: 'select',
+          selection: { kind: 'water', spotId: 'POND', position: pond(world) },
         },
       },
     });

@@ -15,7 +15,7 @@ interface Point {
 }
 
 /**
- * One press on the city map (spec 034), in CSS px and milliseconds. `tapped` and `dropped`
+ * One press on the city map (spec 035), in CSS px and milliseconds. `tapped` and `dropped`
  * are what a release asks for; the scene acts on them and the next press starts over.
  */
 export type MapGesture =
@@ -23,7 +23,7 @@ export type MapGesture =
   | { phase: 'pressing'; catId: string | null; start: Point; since: number }
   | { phase: 'panning'; start: Point; point: Point }
   | { phase: 'lifted'; catId: string; point: Point; tile: Position | null }
-  | { phase: 'tapped'; point: Point }
+  | { phase: 'tapped'; tile: Position | null }
   | { phase: 'dropped'; catId: string; tile: Position | null };
 
 /** `catId` is the cat under the press; `tile` the tile under the pointer, null off the board. */
@@ -58,7 +58,7 @@ export function reduceMapGesture(
     case 'dropped':
       return event.type === 'up' ? { phase: 'idle' } : gesture;
     case 'pressing': {
-      if (event.type === 'up') return { phase: 'tapped', point: gesture.start };
+      if (event.type === 'up') return { phase: 'tapped', tile: event.tile };
       const point = event.type === 'move' ? event.point : gesture.start;
       if (
         Math.hypot(point.x - gesture.start.x, point.y - gesture.start.y) >
@@ -99,7 +99,8 @@ export type CatDrop =
 /**
  * What letting a lifted cat go over `tile` does. Pure, and no rules of its own: it is the
  * button the action card would offer this cat on that tile (walk here) or water (walk to
- * the shore), and nothing when the card has no such button or Core would reject it.
+ * the shore), and nothing when the card has no such button or Core would reject it. Like
+ * the card, a walk leaves the cat selected and a trip to the shore its water.
  */
 export function catDrop(
   world: WorldState,
@@ -125,5 +126,16 @@ export function catDrop(
   );
   if (!button || button.reason !== null || button.intent.kind !== 'command')
     return { kind: 'none' };
-  return { kind: spotId ? 'travel' : 'walk', intent: button.intent };
+  return spotId
+    ? {
+        kind: 'travel',
+        intent: {
+          ...button.intent,
+          then: {
+            type: 'select',
+            selection: { kind: 'water', spotId, position: tile },
+          },
+        },
+      }
+    : { kind: 'walk', intent: button.intent };
 }
