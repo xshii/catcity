@@ -4,20 +4,21 @@
 
 ## 测试金字塔与命令
 
-| 命令                       | 覆盖边界                                                    |
-| -------------------------- | ----------------------------------------------------------- |
-| `npm run typecheck`        | strict TypeScript 与纯 Core 编译边界                        |
-| `npm run lint:code`        | 类型感知 ESLint、异步处理、联合类型穷尽与架构依赖边界       |
-| `npm run lint:unused`      | Knip 检查无用文件、导出和依赖                               |
-| `npm run lint`             | 上述静态检查与 Prettier 格式                                |
-| `npm test`                 | 经济、建设、地图、移动、猫咪、时间、RNG、钓鱼、原子拒绝     |
-| `npm run test:simulation`  | 30 游戏日不变量、有限状态、时间分块等价                     |
-| `npm run test:integration` | 保存/续玩、Provider 回退、事实回忆、回放、进程与发布失败    |
-| `npm run test:coverage`    | 一次运行单元/模拟/集成测试并检查 V8 覆盖率门槛              |
-| `npm run test:e2e`         | 实际输入、持久化、单屏布局、生产隔离及 Pages 子路径资源加载 |
-| `npm run build`            | HTML5 生产构建                                              |
-| `npm run check`            | 类型 → 静态检查/格式 → Headless 测试与覆盖率 → 构建 → E2E   |
-| `npm run harness`          | 完整 Gate，再启动验收浏览器、采集证据并验证回放             |
+| 命令                       | 覆盖边界                                                   |
+| -------------------------- | ---------------------------------------------------------- |
+| `npm run typecheck`        | strict TypeScript 与纯 Core 编译边界                       |
+| `npm run lint:code`        | 类型感知 ESLint、异步处理、联合类型穷尽与架构依赖边界      |
+| `npm run lint:unused`      | Knip 检查无用文件、导出和依赖                              |
+| `npm run lint`             | 上述静态检查与 Prettier 格式                               |
+| `npm test`                 | 经济、建设、地图、移动、猫咪、时间、RNG、钓鱼、原子拒绝    |
+| `npm run test:simulation`  | 30 游戏日不变量、有限状态、时间分块等价                    |
+| `npm run test:integration` | 保存/续玩、Provider 回退、事实回忆、回放、进程与发布失败   |
+| `npm run test:view`        | View 测试台：真实页面面板、按钮与体感流程、设备设置记忆    |
+| `npm run test:coverage`    | 一次运行单元/模拟/集成与 View 测试台并检查 V8 覆盖率门槛   |
+| `npm run test:e2e`         | 画布/触摸输入、刷新续玩、单屏布局、生产隔离及 Pages 子路径 |
+| `npm run build`            | HTML5 生产构建                                             |
+| `npm run check`            | 类型 → 静态检查/格式 → Headless 测试与覆盖率 → 构建 → E2E  |
+| `npm run harness`          | 完整 Gate，再启动验收浏览器、采集证据并验证回放            |
 
 Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真实格子点击、按钮、键盘和触摸，不能注入获胜结果。测试构建（`--mode test`）把纯等待（等咬钩、传感器启动期限）按 `src/view/time-scale.ts` 加速，提竿、遛鱼和甩竿窗口保持真实速度；Debug Bridge 的 `stepFishing` 可逐 tick 推进钓鱼以消除短窗口竞态，输入仍是真实按键。生产构建始终 1×。截图是观察证据，当前没有强制像素基线；不得自动接受新快照来通过测试。
 
@@ -27,7 +28,7 @@ Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真�
 
 静态检查在执行前发现未处理 Promise、错误异步回调、不必要的类型断言、遗漏的联合类型分支及违反模块边界的导入。运行时验证由行为测试、模拟不变量、覆盖率和浏览器断言承担；覆盖率不代替结果正确性。Knip 的公共入口显式列在 [knip.json](../knip.json)，仅为实际使用的 API 保留入口，不批量忽略问题。
 
-V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runner；浏览器 View 与 E2E 不计入这份 Headless 覆盖率。门槛由 [vitest.config.ts](../vitest.config.ts) 强制执行：
+V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runner；View 测试台随之运行，但 View 代码与 E2E 不计入这份覆盖率。门槛由 [vitest.config.ts](../vitest.config.ts) 强制执行：
 
 | 范围        | 语句 | 行  | 分支 | 函数 |
 | ----------- | ---- | --- | ---- | ---- |
@@ -36,6 +37,18 @@ V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runne
 | Application | 85%  | 90% | 80%  | 75%  |
 
 报告保存在 `coverage/index.html`、`coverage/coverage-summary.json` 和 `coverage/lcov.info`。CI 与测试证据一同上传，覆盖率不足保持失败，不通过删除用例或排除未覆盖业务来过关。
+
+## 三层测试与 View 测试台
+
+| 层          | 位置                                                  | 环境                  | 验证什么                                                                   |
+| ----------- | ----------------------------------------------------- | --------------------- | -------------------------------------------------------------------------- |
+| Headless    | `tests/unit`、`tests/simulation`、`tests/integration` | Node                  | Core 规则、存档、Provider；View 的纯状态 reducer 与画面模型                |
+| View 测试台 | `tests/view`                                          | Vitest + happy-dom    | 真实页面：面板显示/隐藏、文案、由按钮/键盘/传感器事件驱动的流程、设置记忆  |
+| E2E         | `tests/e2e`                                           | Playwright 真实浏览器 | 画布与格子点击、触摸、布局与视口、刷新后存档续玩、多标签、生产构建与子路径 |
+
+测试台（[view-rig.ts](../tests/helpers/view-rig.ts)）按 `main.ts` 的方式装配真实 `GameSession`（浏览器存储、规则对话、seed 42）与 `mountGameView`；`vi.mock` 把 Phaser 换成不绘制的替身，页面 CSS 照常加载，可见性按 `hidden` 与计算样式判断。时间由 `vi.useFakeTimers` 控制：`wait(ms)` 让计时器到期，`tick(n)` 每 tick 先过 50 ms 再经 View 自己的钓鱼时钟推进（与 Bridge 的手动时钟相同）。倾斜与陀螺仪读数以合成 `deviceorientation`/`devicemotion` 事件派发；手机粗指针、传感器权限、震动、替身 Web Audio 与预置 localStorage 由 `openGame` 参数给出，`reload()` 在同一存储上重新装配页面。操作词汇在 [view-player.ts](../tests/helpers/view-player.ts)，与 Harness 适配器一致（`enterRiver`、`castOnce`、`catchFish`、`swing`、`lift`…）。每例几十到几百毫秒；CI 经 `test:coverage` 运行。
+
+断言只涉及 DOM/面板状态、文案、可见性、设备设置，或由按钮、键盘、传感器事件驱动的流程时，写在测试台。需要真实布局（尺寸、视口、滚动）、画布坐标、浏览器合成的触摸与点击、刷新后的存档续玩、`storage` 事件、生产构建、真实浏览器 API（权限弹窗、WebKit）或截图证据时，留在 E2E；拿不准时保留 E2E。测试台没有布局与像素，不替代截图检查。
 
 ## 必须保持的回归
 

@@ -164,39 +164,6 @@ test('a new game guides the next step above the map and keeps one clock control'
   await expect(page.locator('#notice')).toContainText('欢迎回来');
 });
 
-test('the clock speed cycles 1× → 2× → 4× → 1×, is remembered, and minigames run at 1×', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
-  await ready(page);
-  const speed = page.locator('#clock-speed');
-  await expect(speed).toContainText('1×');
-  for (const label of ['2×', '4×', '1×', '2×', '4×']) {
-    await speed.click();
-    await expect(speed).toContainText(label);
-  }
-  await page.reload();
-  await ready(page);
-  await expect(speed).toContainText('4×');
-  await expect(speed).toBeEnabled();
-  // Entering the river (a minigame) drops to 1× and locks the control.
-  await page.locator('#visit-river').click();
-  await expect(page.locator('#visit-river')).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(speed).toBeDisabled();
-  await expect(speed).toContainText('1×');
-  await expect(speed).toContainText('钓鱼');
-  await page.locator('#visit-city').click();
-  await expect(speed).toBeEnabled();
-  await expect(speed).toContainText('1×');
-  await page.reload();
-  await ready(page);
-  await expect(speed).toContainText('1×');
-});
-
 test('a production clock advances faster at 4×', async ({ page }) => {
   await page.goto(`${localOrigin(testPorts().production)}/`);
   await expect(page.locator('canvas')).toBeVisible();
@@ -302,40 +269,4 @@ test('a selected cat walks only through an explicit action; apartments list 入�
   expect((await readWorld(page)).cats[1]!.home).toBe(walking.buildings[0]!.id);
   await expect(page.locator(`#assign-home-${pepper.id}`)).toBeDisabled();
   await expect(page.locator('#city-action-reason')).toContainText('已经住');
-});
-
-test('outing lists waterways with their conditions; chat has no second fishing entry', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
-  await ready(page);
-  await page.locator('#city-tab-cats').click();
-  await expect(page.getByRole('button', { name: /去钓鱼/ })).toHaveCount(0);
-  await page.locator('#city-tab-outing').click();
-  await expect(page.locator('#city-tab-outing')).toHaveAttribute(
-    'aria-expanded',
-    'true',
-  );
-  const spots = page.locator('[data-outing-spot]');
-  await expect(spots).toHaveCount(4);
-  await expect(page.locator('#city-panel-outing')).toContainText('家门口池塘');
-  await expect(page.locator('#city-panel-outing')).toContainText('钓技');
-  const before = await readWorld(page);
-  await page.locator('[data-outing-spot="REEDS"]').click();
-  await expect(page.locator('#river-tools')).toBeHidden();
-  await expect(page.locator('#city-selection-label')).toContainText('芦苇河湾');
-  await expect(page.locator('#walk-to-waterway')).toBeDisabled();
-  await expect(page.locator('#city-action-reason')).toContainText('钓技');
-  expect(await readWorld(page)).toEqual(before);
-  await page.locator('#city-tab-outing').click();
-  await page.locator('[data-outing-spot="POND"]').click();
-  await expect(page.locator('#begin-fishing')).toBeVisible();
-  // Pepper is invited from the cats page, never from the river roster.
-  await page.locator('#begin-fishing').click();
-  await expect(page.locator('#visit-river')).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(page.locator('#invite-pepper')).toBeHidden();
 });
