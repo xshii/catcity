@@ -3,7 +3,7 @@ import { BUILDINGS } from '../../content/city';
 import { SPOTS, type SpotId } from '../../content/fishing';
 import { shoreTiles, spotAt } from '../../core/city';
 import type { WorldState } from '../../core';
-import type { CitySelection } from '../city/actions';
+import type { CitySelection } from '../city/view-state';
 import { boardSize, MAP_VIEW, tileCenter } from '../city/geometry';
 
 type Label = (

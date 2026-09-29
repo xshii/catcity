@@ -17,6 +17,8 @@ type FishAction = Extract<GameCommand, { type: 'SELL_FISH' | 'GIFT_FISH' }>;
 
 /** Read-only catalogue rendering; clicks return commands to the application adapter. */
 export function renderFishingCatalog(
+  /** The fishing markup's elements by id. */
+  get: <T extends HTMLElement = HTMLElement>(id: string) => T,
   world: WorldState,
   cat: CatEntity,
   onAction: (command: FishAction, message: string) => void,
@@ -25,8 +27,6 @@ export function renderFishingCatalog(
 ) {
   const f = world.fishing;
   const discovered = discoveredSpecies(f.atlas);
-  const get = <T extends HTMLElement = HTMLElement>(id: string) =>
-    document.getElementById(id) as T;
   get('fish-supplies').textContent =
     `垃圾 ${f.supplies.trash} 件 · 罐头 ${f.supplies.cans} 份 · 已打开金币袋 ${f.supplies.coinBags} 个`;
   get<HTMLButtonElement>('use-can').disabled =
