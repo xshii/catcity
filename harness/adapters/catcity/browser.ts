@@ -1,5 +1,11 @@
 import { CARE } from '../../../src/content/care';
-import { CITY_START } from '../../../src/content/city';
+import {
+  buildingPrice,
+  CAFE,
+  CITY_COSTS,
+  CITY_START,
+  landPrice,
+} from '../../../src/content/city';
 import { catchFish } from './angling-input';
 import assert from 'node:assert/strict';
 import { expect, type Page } from '@playwright/test';
@@ -31,6 +37,13 @@ export const readWorld = (page: Page) =>
 /** Full hours of play: a new game starts on a full hour, and income is paid on each. */
 const hoursSinceStart = (minute: number) =>
   Math.floor((minute - CITY_START.minute) / 60);
+/** Coins after each purchase of the run, from the prices in content (spec 040). */
+const AFTER_LAND = CITY_START.coins - landPrice({ x: 2, y: 5 });
+const AFTER_ROAD = AFTER_LAND - CITY_COSTS.placeRoad - CITY_COSTS.upgradeRoad;
+const AFTER_HOME = AFTER_ROAD - buildingPrice('CAT_APARTMENT', 0);
+const BUILT = AFTER_HOME - buildingPrice('CAT_CAFE', 0);
+/** Mochi is the cafe's only customer. */
+const HOURLY = CAFE.coinsPerCustomer;
 
 export function createCatCityAdapter(): GameAdapter {
   let capturedReplay: ReplayRecord | undefined;
@@ -42,7 +55,7 @@ export function createCatCityAdapter(): GameAdapter {
       );
       await step('initial-world', async () => {
         const world = await readWorld(page);
-        assert.equal(world.coins, 1000);
+        assert.equal(world.coins, CITY_START.coins);
         assert.equal(world.seed, 42);
         assert.equal(world.cats[0]!.name, 'Mochi');
         assert.ok(
@@ -56,7 +69,7 @@ export function createCatCityAdapter(): GameAdapter {
       await step('land-and-road', async () => {
         await clickTile(page, 2, 5);
         await page.locator('#buy-land').click();
-        await expect(page.getByTestId('coins')).toHaveText('950');
+        await expect(page.getByTestId('coins')).toHaveText(String(AFTER_LAND));
         await page.locator('#place-road').click();
         await page.locator('#upgrade-road').click();
         const tile = (await readWorld(page)).map.tiles.find(
@@ -64,20 +77,27 @@ export function createCatCityAdapter(): GameAdapter {
         )!;
         assert.equal(tile.owned, true);
         assert.equal(tile.road, 'STONE');
-        assert.equal((await readWorld(page)).coins, 880);
+        assert.equal((await readWorld(page)).coins, AFTER_ROAD);
       });
       await step('apartment-and-home', async () => {
         await clickTile(page, 4, 6);
         await page.locator('[data-build-type="CAT_APARTMENT"]').click();
         await page.locator('#assign-home-mochi').click();
         const world = await readWorld(page);
-        assert.equal(world.coins, 630);
+        assert.equal(world.coins, AFTER_HOME);
         assert.equal(world.cats[0]!.home, world.buildings[0]!.id);
       });
       await step('build-cafe', async () => {
         await clickTile(page, 4, 4);
+        await expect(page.locator('[data-build-type="CAT_CAFE"]')).toHaveText(
+          `猫咖 · ${buildingPrice('CAT_CAFE', 0)}`,
+        );
         await page.locator('[data-build-type="CAT_CAFE"]').click();
-        await expect(page.getByTestId('coins')).toHaveText('330');
+        await expect(page.getByTestId('coins')).toHaveText(String(BUILT));
+        // Mochi's home is two tiles away: the cafe has its customer.
+        await expect(page.locator('#city-action-detail')).toContainText(
+          `客人 1/${CAFE.seats} · 每小时 ${HOURLY} 金币 · Mochi`,
+        );
         const world = await readWorld(page);
         assert.equal(world.buildings.length, 2);
         assert.equal(world.buildings[1]!.type, 'CAT_CAFE');
@@ -85,10 +105,11 @@ export function createCatCityAdapter(): GameAdapter {
       });
       await step('move-building', async () => {
         await page.locator('#move-building').click();
-        await clickTile(page, 6, 4);
+        // Moving is free; the new plot is still within range of Mochi's home.
+        await clickTile(page, 6, 6);
         const world = await readWorld(page);
-        assert.deepEqual(world.buildings[1]!.position, { x: 6, y: 4 });
-        assert.equal(world.coins, 330);
+        assert.deepEqual(world.buildings[1]!.position, { x: 6, y: 6 });
+        assert.equal(world.coins, BUILT);
         assert.equal(world.buildings.length, 2);
       });
       await step('income', async () => {
@@ -97,7 +118,9 @@ export function createCatCityAdapter(): GameAdapter {
         await page.getByRole('button', { name: '去调快时间' }).click();
         await expect(page.locator('#clock-speed')).toBeFocused();
         await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
-        await expect(page.getByTestId('coins')).toHaveText('340');
+        await expect(page.getByTestId('coins')).toHaveText(
+          String(BUILT + HOURLY),
+        );
         assert.equal((await readWorld(page)).minute, CITY_START.minute + 60);
       });
       await step('select-cat', async () => {
@@ -174,7 +197,10 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.locator('#memory-fact')).toContainText('银鱼');
         await expect(page.locator('#memory-fact')).toBeVisible();
         const world = await readWorld(page);
-        assert.equal(world.coins, 330 + hoursSinceStart(world.minute) * 10);
+        assert.equal(
+          world.coins,
+          BUILT + hoursSinceStart(world.minute) * HOURLY,
+        );
         assert.equal(world.fishing.inventory.length, 1);
         assert.equal(world.cats[0]!.fishingMemory!.speciesId, 'SILVER');
         await openBag(page);
@@ -216,10 +242,11 @@ export function createCatCityAdapter(): GameAdapter {
         const recovered = await readWorld(page);
         assert.equal(recovered.minute, before.minute + 60);
         assert.equal(recovered.cats[0]!.needs.energy, 100);
-        assert.equal(recovered.coins, before.coins + 10);
+        assert.equal(recovered.coins, before.coins + HOURLY);
+        // 8 coins came from the silver fish sold.
         assert.equal(
           recovered.coins,
-          338 + hoursSinceStart(recovered.minute) * 10,
+          BUILT + 8 + hoursSinceStart(recovered.minute) * HOURLY,
         );
       });
       await step('save-reload', async () => {

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUILDING_IDS,
-  BUILDINGS,
+  buildingPrice,
   CITY_COSTS,
+  landPrice,
   ROAD_PRICE,
 } from '../../src/content/city';
 import { BAITS, FISHING, fishById, SPOT_IDS } from '../../src/content/fishing';
@@ -114,7 +115,7 @@ function coinChange(
   if (!result.ok) return 0;
   switch (command.type) {
     case 'BUY_LAND':
-      return -CITY_COSTS.buyLand;
+      return -landPrice(command.position);
     case 'PLACE_ROAD':
       return -CITY_COSTS.placeRoad;
     case 'UPGRADE_ROAD':
@@ -128,7 +129,12 @@ function coinChange(
       return ROAD_PRICE[tile.road!];
     }
     case 'BUILD_BUILDING':
-      return -BUILDINGS[command.buildingType].cost;
+      return -buildingPrice(
+        command.buildingType,
+        before.buildings.filter(
+          (building) => building.type === command.buildingType,
+        ).length,
+      );
     case 'BUY_BAIT':
       return -BAITS[command.baitId].price;
     case 'RECYCLE_TRASH':

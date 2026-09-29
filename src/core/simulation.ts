@@ -1,12 +1,13 @@
 import { MAX_STAT, WORLD_LIMIT } from './limits';
 import { CARE } from '../content/care';
 import { MOOD, moodRest } from '../content/mood';
-import { BUILDINGS } from '../content/city';
+import { BUILDINGS, CAFE } from '../content/city';
 import type { GameEvent } from './commands';
 import type { CatEntity, WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
 import { catIdle } from './cats';
 import { gridDistance } from './city/map';
+import { cafeCustomers } from './city/customers';
 
 export function simulate(
   world: WorldState,
@@ -17,12 +18,16 @@ export function simulate(
   for (let step = 0; step < minutes; step++) {
     const minute = ++world.minute;
     for (const building of world.buildings) {
-      const definition = BUILDINGS[building.type];
+      if (building.type !== 'CAT_CAFE') continue;
       // Income derives from build time; moving a building keeps its clock.
       const elapsed = minute - building.builtAtMinute;
-      if (elapsed % definition.intervalMinutes === 0) {
+      if (elapsed % BUILDINGS.CAT_CAFE.intervalMinutes === 0) {
+        // Customers are counted when the hour is up; a cafe without any earns nothing.
         // Income stops at the coin limit instead of rejecting the clock.
-        const amount = Math.min(definition.income, WORLD_LIMIT - world.coins);
+        const amount = Math.min(
+          cafeCustomers(world, building.id).length * CAFE.coinsPerCustomer,
+          WORLD_LIMIT - world.coins,
+        );
         if (amount > 0) {
           world.coins += amount;
           events.push({

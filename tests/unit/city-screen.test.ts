@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDINGS, CITY_TIME } from '../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_TIME,
+  landPrice,
+} from '../../src/content/city';
 import type { GameCommand, WorldState } from '../../src/core';
-import { createWorld, type World } from '../../src/core/world';
-import { cityScreen } from '../../src/view/city/screen';
+import { createWorld, loadWorld, type World } from '../../src/core/world';
+import { cityScreen, guideProgress } from '../../src/view/city/screen';
 import {
   initialCityView,
   reduceCityView,
@@ -209,23 +215,123 @@ describe('city screen', () => {
     });
   });
 
-  it('walks the guide from the first cafe to the first memory', () => {
+  it('shows the price of the next building and of this plot', () => {
+    const world = createWorld(42);
+    const texts = (x: number, y: number) =>
+      screenOf(world, view(tile(x, y))).card!.buttons.map(({ text }) => text);
+    expect(texts(4, 4).slice(0, 2)).toEqual([
+      `猫咖 · ${buildingPrice('CAT_CAFE', 0)}`,
+      `猫公寓 · ${buildingPrice('CAT_APARTMENT', 0)}`,
+    ]);
+    buildCafe(world, { x: 4, y: 4 });
+    // One cafe stands: the next one is dearer, the first apartment is not.
+    expect(texts(6, 4).slice(0, 2)).toEqual([
+      `猫咖 · ${buildingPrice('CAT_CAFE', 1)}`,
+      `猫公寓 · ${buildingPrice('CAT_APARTMENT', 0)}`,
+    ]);
+    expect(texts(4, 2)).toEqual([
+      `买下土地 · ${landPrice({ x: 4, y: 2 })} 金币`,
+    ]);
+    expect(texts(7, 9)).toEqual(['买下土地 · 125 金币']);
+  });
+
+  it('says what is needed and what there is when coins are short', () => {
+    const save = JSON.parse(createWorld(42).save());
+    save.world.coins = 100;
+    const world = loadWorld(JSON.stringify(save));
+    const grass = screenOf(world, view(tile(4, 4))).card!;
+    expect(grass.buttons.map(({ reason }) => reason)).toEqual([
+      `金币不足：需要 ${buildingPrice('CAT_CAFE', 0)}，现有 100。`,
+      `金币不足：需要 ${buildingPrice('CAT_APARTMENT', 0)}，现有 100。`,
+      null,
+    ]);
+    expect(screenOf(world, view(tile(7, 9))).card!.reasons).toEqual([
+      '金币不足：需要 125，现有 100。',
+    ]);
+    // Near the district the same coins are enough.
+    expect(screenOf(world, view(tile(4, 2))).card!.reasons).toEqual([]);
+  });
+
+  it('shows a cafe its customers and what they bring each hour', () => {
+    const world = createWorld(42);
+    buildCafe(world, { x: 4, y: 4 });
+    const detail = () => screenOf(world, view(tile(4, 4))).card!.detail;
+    expect(detail()).toContain(`客人 0/${CAFE.seats} · 每小时 0 金币`);
+    expect(detail()).toContain(`${CAFE.range} 格内`);
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_APARTMENT',
+      position: { x: 4, y: 3 },
+    });
+    const home = world.getSnapshot().buildings[1]!.id;
+    world.dispatch({ type: 'ASSIGN_HOME', catId: 'mochi', buildingId: home });
+    world.dispatch({ type: 'INVITE_PEPPER' });
+    world.dispatch({
+      type: 'ASSIGN_HOME',
+      catId: world.getSnapshot().cats[1]!.id,
+      buildingId: home,
+    });
+    expect(detail()).toBe(
+      `客人 2/${CAFE.seats} · 每小时 ${2 * CAFE.coinsPerCustomer} 金币 · Mochi、Pepper`,
+    );
+  });
+
+  it('walks the guide from a home to a cafe nearby, its income and the first memory', () => {
     const world = createWorld(42);
     const guide = () => screenOf(world, view()).guide;
+    const progress = () => guideProgress(world.getSnapshot());
     expect(guide()).toMatchObject({
-      hint: expect.stringContaining('猫咖'),
+      hint: expect.stringContaining('猫公寓'),
+      instruction: expect.stringContaining(
+        `${buildingPrice('CAT_APARTMENT', 0)} 金币`,
+      ),
+      action: '回地图选择空地',
       speedTarget: false,
       income: null,
       steps: [{ complete: false }, { complete: false }, { complete: false }],
     });
-    buildCafe(world, { x: 4, y: 4 });
+    expect(progress()).toMatchObject({ stage: 'home', placed: false });
+    // The guide points at a plot Core accepts, then at the apartment built there.
+    const home = progress().site!;
+    expect(
+      world.dispatch({
+        type: 'BUILD_BUILDING',
+        buildingType: 'CAT_APARTMENT',
+        position: home,
+      }).ok,
+    ).toBe(true);
     expect(guide()).toMatchObject({
-      hint: expect.stringContaining('速度'),
-      speedTarget: true,
-      income: expect.stringContaining('累计赚取 0 金币'),
+      hint: expect.stringContaining('入住'),
+      action: '回地图找到公寓',
+    });
+    expect(progress()).toMatchObject({ site: home, placed: true });
+    world.dispatch({
+      type: 'ASSIGN_HOME',
+      catId: 'mochi',
+      buildingId: world.getSnapshot().buildings[0]!.id,
+    });
+    expect(guide()).toMatchObject({
+      hint: expect.stringContaining(`${CAFE.range} 格内建一间猫咖`),
+      instruction: expect.stringContaining(
+        `${buildingPrice('CAT_CAFE', 0)} 金币`,
+      ),
+      action: '回地图选择空地',
       steps: [{ complete: true }, { complete: false }, { complete: false }],
     });
+    // A cafe on the suggested plot has Mochi as its customer.
+    expect(buildCafe(world, progress().site!).ok).toBe(true);
+    expect(guide()).toMatchObject({
+      hint: expect.stringContaining('速度'),
+      instruction: expect.stringContaining(
+        `每游戏小时带来 ${CAFE.coinsPerCustomer} 金币`,
+      ),
+      speedTarget: true,
+      income: `猫咖 · 客人 1/${CAFE.seats} · 每游戏小时 ${CAFE.coinsPerCustomer} 金币 · 距离下笔收入 ${BUILDINGS.CAT_CAFE.intervalMinutes} 游戏分钟`,
+      steps: [{ complete: true }, { complete: false }, { complete: false }],
+    });
+    const coins = world.getSnapshot().coins;
     advance(world, BUILDINGS.CAT_CAFE.intervalMinutes);
+    expect(world.getSnapshot().coins).toBe(coins + CAFE.coinsPerCustomer);
     expect(guide()).toMatchObject({
       hint: expect.stringContaining('池塘'),
       speedTarget: false,
@@ -250,5 +356,37 @@ describe('city screen', () => {
     }).guide;
     expect(grown.action).toBe('和 Mochi 聊聊共同回忆');
     expect(grown.steps.every((step) => step.complete)).toBe(true);
+  });
+
+  it('asks to move a cafe without customers instead of waiting for income', () => {
+    const world = createWorld(42);
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_APARTMENT',
+      position: { x: 4, y: 4 },
+    });
+    world.dispatch({
+      type: 'ASSIGN_HOME',
+      catId: 'mochi',
+      buildingId: world.getSnapshot().buildings[0]!.id,
+    });
+    // Four tiles from Mochi's home: open, but nobody comes.
+    buildCafe(world, { x: 6, y: 6 });
+    advance(world, 2 * BUILDINGS.CAT_CAFE.intervalMinutes);
+    const guide = screenOf(world, view()).guide;
+    expect(guide).toMatchObject({
+      hint: expect.stringContaining('搬'),
+      action: '回地图找到猫咖',
+      speedTarget: false,
+      income: expect.stringContaining(
+        `客人 0/${CAFE.seats} · 每游戏小时 0 金币`,
+      ),
+      steps: [{ complete: true }, { complete: false }, { complete: false }],
+    });
+    expect(guideProgress(world.getSnapshot())).toMatchObject({
+      stage: 'cafe',
+      site: { x: 6, y: 6 },
+      placed: true,
+    });
   });
 });

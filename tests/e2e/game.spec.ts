@@ -16,6 +16,7 @@ import {
   showFish,
 } from '../../harness/adapters/catcity/navigation';
 import { ready, readWorld } from '../../harness/adapters/catcity/browser';
+import { buildingPrice, CAFE, CITY_START } from '../../src/content/city';
 
 // The full build → dialogue → reload → replay loop runs as the harness acceptance
 // (`npm run harness -- acceptance`), which also checks console errors and replay.
@@ -172,19 +173,38 @@ test('city guide makes construction, income and the relationship activity discov
   await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await page.locator('#city-tab-guide').click();
-  await expect(page.locator('#city-goal')).toHaveText('先给 Mochi 建一间猫咖');
+  // A home first: only cats living nearby visit a cafe (spec 040).
+  await expect(page.locator('#city-goal')).toHaveText('先给 Mochi 安个家');
   await page.getByRole('button', { name: '回地图选择空地' }).click();
   expect((await readWorld(page)).buildings).toHaveLength(0);
+  await page.locator('[data-build-type=CAT_APARTMENT]').click();
+  const housed = CITY_START.coins - buildingPrice('CAT_APARTMENT', 0);
+  await expect(page.getByTestId('coins')).toHaveText(String(housed));
+  await page.locator('#city-tab-guide').click();
+  await page.getByRole('button', { name: '回地图找到公寓' }).click();
+  await page.locator('#assign-home-mochi').click();
+  expect((await readWorld(page)).cats[0]!.home).toBe('building-1');
+  await page.locator('#city-tab-guide').click();
+  await expect(page.locator('#city-goal')).toHaveText('在家附近开一间猫咖');
+  await page.getByRole('button', { name: '回地图选择空地' }).click();
   await page.locator('[data-build-type=CAT_CAFE]').click();
-  await expect(page.getByTestId('coins')).toHaveText('700');
-  expect((await readWorld(page)).buildings).toHaveLength(1);
+  const built = housed - buildingPrice('CAT_CAFE', 0);
+  await expect(page.getByTestId('coins')).toHaveText(String(built));
+  expect((await readWorld(page)).buildings).toHaveLength(2);
+  await expect(page.locator('#city-action-detail')).toContainText(
+    `客人 1/${CAFE.seats}`,
+  );
   await page.locator('#city-tab-guide').click();
   // The guide points at the clock speed; the test build advances its clock explicitly.
   await page.getByRole('button', { name: '去调快时间' }).click();
   await expect(page.locator('#clock-speed')).toBeFocused();
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
-  await expect(page.getByTestId('coins')).toHaveText('710');
-  await expect(page.locator('#cafe-income')).toContainText('累计赚取 10 金币');
+  await expect(page.getByTestId('coins')).toHaveText(
+    String(built + CAFE.coinsPerCustomer),
+  );
+  await expect(page.locator('#cafe-income')).toContainText(
+    `客人 1/${CAFE.seats} · 每游戏小时 ${CAFE.coinsPerCustomer} 金币`,
+  );
   await page.reload();
   await ready(page);
   await page.locator('#city-tab-guide').click();

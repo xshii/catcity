@@ -178,7 +178,7 @@ test('a new game guides the next step above the map and keeps one clock control'
   await ready(page);
   await expect(page.locator('#notice')).not.toContainText('欢迎回来');
   await expect(page.locator('#city-hint')).toContainText('下一步');
-  await expect(page.locator('#city-hint')).toContainText('猫咖');
+  await expect(page.locator('#city-hint')).toContainText('猫公寓');
   await expect(page.locator('#city-hint')).toBeInViewport({ ratio: 1 });
   // One time control, next to the clock and the coins in the floating scene bar.
   await expect(
@@ -196,6 +196,13 @@ test('a new game guides the next step above the map and keeps one clock control'
   // Saving is automatic; the guide says so beside the explicit save.
   await expect(page.locator('#city-save')).toContainText('自动保存');
   await expect(page.locator('#city-panel-guide')).not.toContainText('种子');
+  // A home, a resident, then a cafe within reach of the home (spec 040).
+  await page.getByRole('button', { name: '回地图选择空地' }).click();
+  await page.locator('[data-build-type=CAT_APARTMENT]').click();
+  await expect(page.locator('#city-hint')).toContainText('入住');
+  await page.locator('#assign-home-mochi').click();
+  await expect(page.locator('#city-hint')).toContainText('建一间猫咖');
+  await page.locator('#city-tab-guide').click();
   await page.getByRole('button', { name: '回地图选择空地' }).click();
   await page.locator('[data-build-type=CAT_CAFE]').click();
   await expect(page.locator('#city-hint')).toContainText('下一步');
