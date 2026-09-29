@@ -39,5 +39,5 @@
   - `view/city/panel.ts` 创建 store，一次渲染应用画面模型；`actions.ts`、`guide.ts`、`scene.ts` 不再各自保存选择、搬迁或总览状态，场景读取 store。选择对象从世界消失时在世界变化事件中清除，不在渲染中改状态。
   - 场景切换键的按下态与 `.map-card` 的河畔样式改由页面挂载（`shell/panel.ts`）随地点更新，不再由城市场景查找。
   - lint（`eslint.config.js` 的 `no-restricted-syntax`）：`src/view/**` 不得调用 `document.getElementById`、`querySelector(All)`、`getElementsBy*`；模块只在自己创建或被传入的元素内查找，其他模块的元素由挂载方以参数传入。钓鱼面板按 id 索引自己的模板，把元素交给图鉴、收藏与震动模块；地图框与场景切换键由页面传入。
-  - 例外：`shell/panel.ts`（页面挂载，写入页面结构并分发元素）、`city/bars.ts`（Harness 会把它单独放进页面执行）。尚未迁移、暂列例外：`shell/layout.ts`、`shell/navigation.ts`、`companion/journal.ts`，下一步改为接收元素参数。
+  - 例外：`shell/panel.ts`（页面挂载，写入页面结构并分发元素）、`city/bars.ts`（按与 Harness 共用的选择器测量各模块的浮动条）。尚未迁移、暂列例外：`shell/layout.ts`、`shell/navigation.ts`、`companion/journal.ts`，下一步改为接收元素参数。
   - 面板开关仍由 `shell/navigation.ts` 持有（两场景共用，钓鱼 store 以 `tools` 事件镜像）；城市画面没有由它决定的显示，因此未放进城市 store。

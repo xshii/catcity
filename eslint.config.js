@@ -65,7 +65,7 @@ export default tseslint.config(
     ignores: [
       // The page mount writes the page markup and hands its elements out.
       'src/view/shell/panel.ts',
-      // The harness evaluates this function alone in the page.
+      // Measures the floating bars of several modules by the selectors the harness shares.
       'src/view/city/bars.ts',
       // Not yet migrated (spec 015 step 4 follow-up).
       'src/view/shell/layout.ts',
