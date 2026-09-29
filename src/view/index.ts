@@ -6,6 +6,7 @@ import { CityScene } from './city/scene';
 import { MAP_VIEW } from './city/geometry';
 import { mountPanel } from './shell/panel';
 import { createPlace } from './shell/place';
+import './styles/tokens.css';
 import './styles/base.css';
 
 /** Frames per second in test builds; production uses the display's rate. */

@@ -17,7 +17,7 @@
 | `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                     |
 | `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                            |
 | `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                               |
-| `src/view/styles/base.css`               | 共用视觉基础；玩法布局样式留在对应 View 模块                                           |
+| `src/view/styles/`                       | 视觉 token（`tokens.css`）与共用基础样式；玩法布局样式留在对应 View 模块               |
 | `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                                |
 | `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                          |
 | `tests/`                                 | 按 unit / simulation / integration / e2e 分层，旧存档仅作拒绝 fixture                  |

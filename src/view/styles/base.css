@@ -1,9 +1,7 @@
 :root {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
-    sans-serif;
-  color: #364839;
-  background: #f5f2e9;
+  font-family: var(--font-ui);
+  color: var(--text);
+  background: var(--paper);
   font-synthesis: none;
 }
 * {
@@ -21,7 +19,7 @@ button {
 }
 button:focus-visible,
 input:focus-visible {
-  outline: 3px solid #b38559;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 [hidden] {
@@ -44,22 +42,22 @@ input:focus-visible {
   height: 39px;
   display: grid;
   place-items: center;
-  background: #455b43;
-  color: #f7f1dd;
+  background: var(--btn-primary-bg);
+  color: var(--text-on-primary);
   border-radius: 13px 13px 18px 18px;
   font-size: 28px;
 }
 
 .quiet {
   padding: 9px 17px;
-  border: 1px solid #d6dacb;
-  border-radius: 8px;
-  background: transparent;
-  color: #506048;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  color: var(--text);
 }
 
 .eyebrow {
-  color: #92977e;
+  color: var(--text-muted);
   letter-spacing: 2px;
   font-size: 10px;
   font-weight: 600;
@@ -74,9 +72,9 @@ h1 {
 }
 
 .coin {
-  color: #d1ab62;
-  background: #f4e7be;
-  border: 2px solid #dfc080;
+  color: var(--text-accent);
+  background: var(--accent-soft);
+  border: 2px solid var(--accent);
   border-radius: 50%;
   width: 31px;
   height: 31px;
@@ -92,15 +90,15 @@ h1 {
   align-items: start;
 }
 .map-card {
-  background: #eceee0;
+  background: var(--scene-ground);
   border-radius: 18px;
-  border: 1px solid #dfe3d3;
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 .map-heading {
   padding: 20px 24px 0;
   font-size: 12px;
-  color: #68775a;
+  color: var(--text-muted);
 }
 .map-heading > span {
   display: flex;
@@ -120,9 +118,9 @@ canvas {
 }
 
 .card {
-  border: 1px solid #e3e1d4;
-  background: #fcfaf3;
-  border-radius: 15px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
   padding: 23px;
 }
 h2 {
@@ -133,40 +131,40 @@ h2 {
 .card > p:not(.eyebrow) {
   line-height: 1.9;
   font-size: 12px;
-  color: #87907e;
+  color: var(--text-muted);
   margin: 13px 0;
 }
 
 .pill {
-  background: #eef0e2;
-  color: #87966f;
+  background: var(--mood-bg);
+  color: var(--text-mood);
   padding: 5px 8px;
   font-size: 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
 }
 .traits {
-  color: #8b907d;
+  color: var(--text-muted);
   margin-top: 14px;
   font-size: 12px;
 }
 .bond {
-  color: #a1967c;
+  color: var(--text-muted);
   font-size: 10px;
   margin: 10px 0;
 }
 .speech {
-  background: #f0eee3;
-  border-radius: 3px 12px 12px 12px;
+  background: var(--surface-sunk);
+  border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
   padding: 14px;
   font-size: 12px;
   line-height: 1.9;
   margin: 15px 0;
-  color: #717b66;
+  color: var(--text);
 }
 label {
   display: block;
   font-size: 11px;
-  color: #8c947f;
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
 .input-row {
@@ -176,21 +174,21 @@ label {
 input {
   min-width: 0;
   width: 100%;
-  background: #fffdf7;
-  border: 1px solid #dedfcf;
-  border-radius: 7px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
   padding: 10px;
-  color: #596a50;
+  color: var(--text);
   font-size: 12px;
 }
 input::placeholder {
-  color: #b0b49e;
+  color: var(--text-muted);
 }
 #send {
   border: none;
-  border-radius: 7px;
-  background: #708564;
-  color: white;
+  border-radius: var(--radius-sm);
+  background: var(--btn-primary-bg);
+  color: var(--text-on-primary);
   width: 39px;
   flex-shrink: 0;
   font-size: 19px;
@@ -200,16 +198,16 @@ input::placeholder {
 }
 #notice {
   font-size: 12px;
-  color: #7c886f;
+  color: var(--text);
   padding: 20px 0;
   min-height: 55px;
 }
 #storage-error {
-  background: #f5dfc5;
-  color: #88573a;
+  background: var(--accent-soft);
+  color: var(--text-accent);
   padding: 12px;
   font-size: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 @media (max-width: 800px) {
@@ -239,12 +237,12 @@ input::placeholder {
   gap: 24px;
 }
 .map-card {
-  background: #e9eddd;
+  background: var(--scene-ground);
 }
 .scene-tabs {
   display: flex;
   gap: 5px;
-  background: #dce3ce;
+  background: var(--surface-sunk);
   padding: 4px;
   border-radius: 30px;
 }
@@ -253,13 +251,13 @@ input::placeholder {
   border-radius: 24px;
   background: transparent;
   padding: 7px 20px;
-  color: #778469;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .scene-tabs button[aria-pressed='true'] {
-  background: #faf9f0;
-  color: #4e694e;
-  box-shadow: 0 2px 6px #4d674a12;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-tab);
 }
 .cat-heading {
   justify-content: flex-start;
@@ -269,11 +267,11 @@ input::placeholder {
   width: 61px;
   height: 61px;
   border-radius: 50%;
-  background: #eee2c8;
+  background: var(--accent-soft);
   display: grid;
   place-items: center;
   font-size: 26px;
-  color: #a78b63;
+  color: var(--brown);
 }
 .cat-avatar svg {
   display: inline-block;
@@ -285,7 +283,7 @@ input::placeholder {
 }
 .tiny-heart {
   margin-left: auto;
-  color: #bc9b86;
+  color: var(--brown);
   font-size: 23px;
 }
 .traits {
@@ -295,14 +293,14 @@ input::placeholder {
 .reunion {
   font-size: 12px;
   line-height: 1.9;
-  color: #7b866b;
+  color: var(--text-muted);
   margin: 0 0 10px;
 }
 .speech {
   min-height: 78px;
-  background: #edf0e2;
+  background: var(--surface-sunk);
   margin: 13px 0;
-  color: #5c7157;
+  color: var(--text);
   font-size: 13px;
 }
 .quick-talk {
@@ -312,46 +310,55 @@ input::placeholder {
   margin: 0 0 17px;
 }
 .quick-talk button {
-  border: 1px solid #e0e2d3;
-  border-radius: 20px;
-  background: #faf9f0;
-  color: #829073;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-pill);
+  background: var(--btn-secondary-bg);
+  color: var(--text-muted);
   padding: 6px 9px;
   font-size: 10px;
 }
 .primary {
   width: 100%;
-  background: #637d59;
+  background: var(--btn-primary-bg);
   border: none;
-  color: #fffbee;
+  color: var(--text-on-primary);
   padding: 14px 18px;
   margin-top: 18px;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-primary);
   transition:
     background 0.2s,
+    box-shadow 0.2s,
     transform 0.2s;
 }
 .primary:hover {
-  background: #516c48;
+  background: var(--btn-primary-hover);
   transform: translateY(-1px);
+}
+/* Pressed: the button sinks onto its edge by shadow and colour, never by moving. */
+.primary:active:not(:disabled) {
+  background: var(--btn-primary-edge);
+  box-shadow: 0 1px 0 var(--btn-primary-edge);
 }
 .primary:disabled {
   opacity: 0.65;
   cursor: default;
   transform: none;
+  box-shadow: none;
 }
 .journal {
-  background: #faf7eb;
+  background: var(--paper);
 }
 .journal-heading {
   display: flex;
   justify-content: space-between;
-  color: #bcaa76;
+  color: var(--brown);
 }
 .journal-count {
   font-size: 10px !important;
-  color: #a2997b !important;
+  color: var(--text-muted) !important;
   margin: 8px 0 15px !important;
 }
 #memory-empty {
@@ -360,20 +367,20 @@ input::placeholder {
 }
 #memory-card {
   padding: 9px 9px 0;
-  background: #fffdf5;
-  border: 1px solid #e9e4d1;
+  background: var(--surface);
+  border: 1px solid var(--line);
   transform: rotate(-1.5deg);
-  box-shadow: 0 4px 14px #766b4210;
+  box-shadow: var(--shadow-card);
 }
 .memory-art {
   height: 82px;
   padding: 10px 18px;
-  color: #d0b878;
+  color: var(--brown);
   background: linear-gradient(
     155deg,
-    #dfebd1 0 40%,
-    #afd2c5 40% 75%,
-    #d6daba 75%
+    var(--selected-bg) 0 40%,
+    var(--mint) 40% 75%,
+    var(--wood) 75%
   );
   font-size: 22px;
 }
@@ -381,25 +388,25 @@ input::placeholder {
   display: block;
   text-align: center;
   font-size: 20px;
-  color: #648e7e;
+  color: var(--text);
 }
 #memory-date {
   display: block;
   margin-top: 11px;
   font-size: 10px;
-  color: #b1a383;
+  color: var(--text-muted);
 }
 #memory-fact {
   display: block;
   margin-top: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: #796f52;
+  color: var(--text);
 }
 #memory-caption {
   font-size: 10px;
   line-height: 1.8;
-  color: #a1967d;
+  color: var(--text-muted);
 }
 
 @keyframes breathe {
@@ -453,9 +460,9 @@ input::placeholder {
 .city-guide {
   margin: 18px 24px 0;
   padding: 18px 20px;
-  background: #faf9ed;
-  border: 1px solid #dbe1cb;
-  border-radius: 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
 }
 .city-steps {
   list-style: none;
@@ -468,14 +475,14 @@ input::placeholder {
 }
 .city-steps li {
   counter-increment: city-step;
-  color: #969e86;
+  color: var(--text-muted);
   font-size: 11px;
 }
 .city-steps li::before {
   content: counter(city-step) ' · ';
 }
 .city-steps li[data-complete='true'] {
-  color: #5f7c56;
+  color: var(--text-good);
 }
 .city-steps li[data-complete='true']::before {
   content: '✓ ';
@@ -487,7 +494,7 @@ input::placeholder {
 .city-guide p {
   font-size: 12px;
   line-height: 1.8;
-  color: #7c886e;
+  color: var(--text-muted);
   margin: 8px 0 0;
 }
 .city-guide .primary {
@@ -495,7 +502,7 @@ input::placeholder {
 }
 .city-guide .cafe-income {
   font-size: 10px;
-  color: #968964;
+  color: var(--text-muted);
 }
 @media (max-width: 760px) {
   .city-guide {
@@ -510,8 +517,8 @@ input::placeholder {
 /* Angling: real controls and readable collection cards on touch screens. */
 .angling {
   padding: 24px;
-  border-top: 1px solid #dfe3d2;
-  background: #faf9ef;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
 }
 .angling h2 {
   font-size: 22px;
@@ -525,8 +532,8 @@ input::placeholder {
   gap: 10px;
 }
 #fishing-level {
-  border-radius: 24px;
-  background: #dfe9cf;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
   padding: 9px 14px;
   white-space: nowrap;
 }
@@ -535,7 +542,7 @@ input::placeholder {
 .spot-unlocks,
 #fish-tastes {
   font-size: 13px;
-  color: #65745c;
+  color: var(--text-muted);
   line-height: 1.8;
 }
 .fishing-prep {
@@ -546,17 +553,17 @@ input::placeholder {
 .fishing-prep label,
 .direction-label {
   font-size: 12px;
-  color: #6a785f;
+  color: var(--text-muted);
 }
 .fishing-prep select {
   display: block;
   width: 100%;
   min-height: 44px;
   margin-top: 5px;
-  border: 1px solid #d5dfc7;
-  border-radius: 10px;
-  background: #fffef8;
-  color: #47563f;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
   padding: 8px;
   font: inherit;
 }
@@ -568,7 +575,7 @@ input::placeholder {
   display: block;
   width: 100%;
   min-height: 35px;
-  accent-color: #749465;
+  accent-color: var(--btn-primary-bg);
 }
 .direction-label output {
   float: right;
@@ -589,13 +596,13 @@ input::placeholder {
 #angling-live {
   padding: 20px;
   margin: 18px 0;
-  border: 1px solid #ccdabb;
-  border-radius: 16px;
-  background: #f0f4e5;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
 }
 #angling-status {
   font-size: 12px;
-  color: #64785b;
+  color: var(--text-muted);
 }
 #angling-instruction {
   font-size: 14px;
@@ -607,19 +614,19 @@ input::placeholder {
   margin: 16px 8px;
   background: linear-gradient(
     90deg,
-    #dab89c,
-    #ebd5a0 25%,
-    #ebd5a0 75%,
-    #dab89c
+    var(--apricot),
+    var(--wood) 25%,
+    var(--wood) 75%,
+    var(--apricot)
   );
   border-radius: 12px;
-  border: 2px solid #d0c6a8;
+  border: 2px solid var(--line-strong);
 }
 .angling-green {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: #80aa70;
+  background: var(--leaf);
   border-radius: 8px;
 }
 .angling-cursor {
@@ -628,10 +635,10 @@ input::placeholder {
   bottom: -7px;
   width: 6px;
   transform: translateX(-50%);
-  background: #fffdf4;
-  border: 1px solid #59664e;
+  background: var(--surface);
+  border: 1px solid var(--text);
   border-radius: 4px;
-  box-shadow: 0 2px 4px #56614433;
+  box-shadow: var(--shadow-tab);
 }
 .fight-meters {
   display: flex;
@@ -646,7 +653,7 @@ input::placeholder {
 .fight-meters progress {
   display: block;
   width: 100%;
-  accent-color: #749a64;
+  accent-color: var(--leaf);
   margin-top: 6px;
 }
 .angling .fish-control {
@@ -660,16 +667,16 @@ input::placeholder {
   font-size: 17px;
 }
 .fish-control[aria-pressed='true'] {
-  background: #496c3f;
+  background: var(--btn-primary-edge);
   transform: translateY(2px);
 }
 .fish-result {
   font-size: 15px;
-  color: #617a4e;
+  color: var(--text-good);
   line-height: 1.8;
 }
 .angling details {
-  border-top: 1px solid #dce4ce;
+  border-top: 1px solid var(--line);
   padding: 14px 0;
 }
 .angling summary {
@@ -698,9 +705,9 @@ input::placeholder {
   padding-top: 15px;
 }
 .fish-entry {
-  border: 1px solid #dce3d0;
-  background: #fffef5;
-  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-md);
   padding: 15px;
   font-size: 12px;
 }
@@ -717,7 +724,7 @@ input::placeholder {
   font-size: 30px;
 }
 .fish-entry[data-discovered='false'] .fish-silhouette {
-  color: #abb4a4;
+  color: var(--line-strong);
 }
 .gray-cat {
   filter: grayscale(1);
@@ -746,10 +753,10 @@ input::placeholder {
   }
 }
 .angling button:not(.primary) {
-  border: 1px solid #d0dcc4;
-  border-radius: 10px;
-  background: #f4f7ed;
-  color: #566b4b;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  color: var(--text);
   padding: 8px 12px;
   font: inherit;
   font-size: 13px;
@@ -768,17 +775,17 @@ input::placeholder {
 .save-recovery {
   padding: 16px;
   margin-bottom: 20px;
-  background: #f9ead1;
-  border: 1px solid #e1c49d;
-  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
 }
 .save-recovery button {
   margin-top: 10px;
   padding: 12px 16px;
-  border: 1px solid #ba9a70;
-  border-radius: 10px;
-  background: #fff8e9;
-  color: #66503a;
+  border: 1px solid var(--brown);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   cursor: pointer;
 }
@@ -808,7 +815,7 @@ input::placeholder {
 }
 .river-caption p {
   font-size: 12px;
-  color: #667d62;
+  color: var(--text-muted);
   margin: 0;
 }
 .river-clock {
@@ -816,8 +823,8 @@ input::placeholder {
   top: 5%;
   right: 5%;
   font-size: 11px;
-  background: #fffbeddf;
-  border: 1px solid #d3ddc0;
+  background: var(--float-bg);
+  border: 1px solid var(--line);
   padding: 8px 10px;
   border-radius: 18px;
 }
@@ -834,16 +841,16 @@ input::placeholder {
   max-width: 240px;
   align-items: center;
   text-align: left;
-  background: #fffef4;
-  color: #4b604a;
-  border: 1px solid #d8dfc9;
-  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   padding: 10px;
   gap: 8px;
 }
 .energy-cat[aria-pressed='true'] {
-  border-color: #77955e;
-  box-shadow: 0 0 0 2px #a3ba8133;
+  border-color: var(--selected-line);
+  box-shadow: var(--glow-good);
 }
 .energy-cat svg {
   width: 48px;
@@ -858,30 +865,67 @@ input::placeholder {
 }
 .energy-cat small {
   font-size: 10px;
-  color: #7a866e;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 .energy-cat .mood-hint,
 .cat-heading .mood-hint {
-  color: #6f8f55;
+  color: var(--text-accent);
 }
 .cat-heading .mood-hint {
   display: block;
   margin-top: 4px;
   font-size: 10px;
 }
+/* The mood badge: a sakura chip, no taller than the line it sits on. */
+.energy-cat .mood-line {
+  width: fit-content;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--mood-bg);
+  color: var(--text-mood);
+}
 .energy-cat progress {
   display: block;
   width: 100%;
   height: 8px;
-  accent-color: #7f9e65;
+  accent-color: var(--sage);
   margin-top: 6px;
+}
+/* Meters: a leaf fill on a warm track, rounded; sizes stay with each meter's rule. */
+.energy-cat progress,
+.fight-meters progress {
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunk);
+  overflow: hidden;
+}
+.energy-cat progress::-webkit-progress-bar,
+.fight-meters progress::-webkit-progress-bar {
+  background: var(--surface-sunk);
+}
+.energy-cat progress::-webkit-progress-value {
+  background: var(--leaf);
+  border-radius: var(--radius-pill);
+}
+.fight-meters progress::-webkit-progress-value {
+  background: var(--btn-primary-bg);
+  border-radius: var(--radius-pill);
+}
+.energy-cat progress::-moz-progress-bar {
+  background: var(--leaf);
+  border-radius: var(--radius-pill);
+}
+.fight-meters progress::-moz-progress-bar {
+  background: var(--btn-primary-bg);
+  border-radius: var(--radius-pill);
 }
 .sleep-mark {
   position: absolute;
   left: 7px;
   top: 4px;
-  color: #8097ac;
+  color: var(--text-muted);
   font:
     italic 14px Georgia,
     serif;
@@ -899,9 +943,7 @@ input::placeholder {
 .scene-ready .primary {
   margin: 0;
   min-height: 56px;
-  box-shadow:
-    0 6px 0 #456c4533,
-    0 12px 30px #40644026;
+  box-shadow: var(--shadow-primary);
 }
 #angling-live.scene-console {
   position: absolute;
@@ -910,9 +952,9 @@ input::placeholder {
   bottom: 18px;
   margin: 0;
   padding: 14px 18px;
-  background: #fffcf0f5;
-  border: 1px solid #c7d2ad;
-  box-shadow: 0 8px 30px #41644c22;
+  background: var(--surface-float);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
 }
 .scene-console .bar-heading {
   font-size: 13px;
@@ -939,7 +981,7 @@ input::placeholder {
 .scene-console .fishing-actions button {
   border: 0;
   background: none;
-  color: #82906f;
+  color: var(--text-muted);
   padding: 6px 10px;
   font-size: 11px;
 }
@@ -975,20 +1017,20 @@ input::placeholder {
   display: none;
 }
 #fishing-stage[data-phase='hook'] .scene-console {
-  border-color: #d4ab56;
-  box-shadow: 0 0 0 3px #e6c36744;
+  border-color: var(--accent-strong);
+  box-shadow: var(--glow-accent);
 }
 .catch-reveal {
   position: absolute;
   top: 25%;
   left: 25%;
   width: 50%;
-  background: #fffcf1f2;
-  border: 1px solid #e0d8b5;
-  border-radius: 20px;
+  background: var(--surface-float);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   padding: 16px;
   text-align: center;
-  box-shadow: 0 12px 30px #47624b26;
+  box-shadow: var(--shadow-sheet);
   animation: catch-pop 0.35s ease-out;
 }
 .catch-reveal svg {
@@ -1009,10 +1051,10 @@ input::placeholder {
 .catch-reveal span,
 .catch-reveal small {
   font-size: 12px;
-  color: #8a916e;
+  color: var(--text-muted);
 }
 .catch-reveal .catch-price {
-  color: #aa8751;
+  color: var(--text-accent);
   margin-top: 8px;
 }
 .catch-reveal .loot-art {
@@ -1042,14 +1084,14 @@ input::placeholder {
   gap: 8px;
 }
 .bait-tray button[aria-pressed='true'] {
-  border-color: #83a365;
-  background: #e3eccf;
+  border-color: var(--selected-line);
+  background: var(--selected-bg);
 }
 .bait-tray small {
   display: block;
   font-size: 9px;
   margin-top: 3px;
-  color: #839072;
+  color: var(--text-muted);
 }
 .fish-silhouette svg {
   display: block;
@@ -1139,10 +1181,10 @@ input::placeholder {
   filter: brightness(1.08);
 }
 #fishing-stage[data-feedback='hook'] .scene-console {
-  box-shadow: 0 0 0 4px #a4bf7044;
+  box-shadow: var(--glow-good);
 }
 #fishing-stage[data-feedback='missed'] .scene-console {
-  border-color: #c18c73;
+  border-color: var(--alert-soft);
 }
 @media (max-width: 600px) {
   .energy-cat svg {

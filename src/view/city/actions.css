@@ -10,11 +10,12 @@
   gap: 8px;
   justify-content: space-between;
   padding: 4px 6px 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--float-bg);
+  box-shadow: var(--shadow-soft);
   backdrop-filter: var(--float-blur);
   -webkit-backdrop-filter: var(--float-blur);
-  color: #66775b;
+  color: var(--text);
   font-size: 10px;
 }
 .game-screen #city-overview {
@@ -35,10 +36,10 @@
   bottom: var(--over-nav);
   margin: 0;
   padding: 8px 10px;
-  box-shadow: 0 6px 24px #304b3924;
-  background: #faf9ef;
-  border: 1px solid #cedabb;
-  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
 }
 .city-action-heading {
   display: flex;
@@ -61,7 +62,7 @@
   margin: 5px 0 0;
   font-size: 10px;
   line-height: 1.4;
-  color: #9a6b45;
+  color: var(--text-accent);
 }
 .game-screen #city-action-buttons button {
   flex: 1 1 0;
