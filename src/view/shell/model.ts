@@ -1,6 +1,7 @@
 import { CAT_BREEDS } from '../../content/breeds';
 import { CAT_DEFINITIONS } from '../../content/cats';
 import type { WorldState } from '../../core';
+import { bondBadge } from './bond';
 import { moodBadge } from './mood';
 
 export function toViewModel(world: WorldState, selected: string | null) {
@@ -13,6 +14,7 @@ export function toViewModel(world: WorldState, selected: string | null) {
       ? {
           ...cat,
           moodBadge: moodBadge(cat.mood),
+          bondBadge: bondBadge(cat.playerBond),
           personalityLabel: `${CAT_BREEDS[cat.breedId].name} · ${CAT_DEFINITIONS[cat.definitionId].personalityLabel}`,
         }
       : null,

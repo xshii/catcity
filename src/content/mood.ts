@@ -8,7 +8,7 @@ export const MOOD = {
   /** Each full game hour mood drifts `drift` toward `rest`, never past it. */
   tickMinutes: 60,
   rest: 60,
-  /** Each bond level above the first lifts that cat's resting mood (spec 034). */
+  /** Each bond level above the first lifts that cat's resting mood (spec 036). */
   restPerBondLevel: 3,
   drift: 2,
   /** Extra each full hour for a cat beside its own apartment. */

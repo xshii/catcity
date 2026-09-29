@@ -22,7 +22,7 @@ const begin = (world: World) =>
     aimDepth: 50,
   });
 
-describe('bond levels (spec 034)', () => {
+describe('bond levels (spec 036)', () => {
   it('are named 初识, 熟悉, 信任, 亲密, 家人 from 0, 5, 15, 30 and 60', () => {
     expect(BOND_LEVELS).toEqual([
       { name: '初识', bond: 0 },

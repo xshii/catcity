@@ -475,7 +475,7 @@ it('hooks canned food and coin bags through real inputs without adding fish reco
       ),
     ).toBe(true);
     expect(world.getSnapshot().cats[0]!.fishingMemory).toBeNull();
-    // Supplies are not a shared catch: the bond stays (spec 034).
+    // Supplies are not a shared catch: the bond stays (spec 036).
     expect(world.getSnapshot().cats[0]!.playerBond).toBe(0);
     if (result.catchKind === 'coins') {
       expect(world.getSnapshot().coins).toBe(1000 + result.lootAmount);

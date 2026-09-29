@@ -152,6 +152,34 @@ h2 {
   font-size: 10px;
   margin: 10px 0;
 }
+/* Bond level (spec 036): hearts and name on one line with the way to the next level. */
+.bond-level {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 3px 8px;
+  margin: 10px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.bond-level strong {
+  color: var(--text);
+}
+.bond-hearts,
+.energy-cat .bond-line {
+  color: var(--text-mood);
+}
+.bond-hearts {
+  letter-spacing: 2px;
+}
+.bond-level progress {
+  width: 100%;
+  height: 6px;
+}
+.bond-next {
+  grid-column: 1 / -1;
+  font-size: 10px;
+}
 .speech {
   background: var(--surface-sunk);
   border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
@@ -894,6 +922,7 @@ input::placeholder {
 }
 /* Meters: a leaf fill on a warm track, rounded; sizes stay with each meter's rule. */
 .energy-cat progress,
+.bond-level progress,
 .fight-meters progress {
   appearance: none;
   border: 0;
@@ -902,6 +931,7 @@ input::placeholder {
   overflow: hidden;
 }
 .energy-cat progress::-webkit-progress-bar,
+.bond-level progress::-webkit-progress-bar,
 .fight-meters progress::-webkit-progress-bar {
   background: var(--surface-sunk);
 }
@@ -915,6 +945,14 @@ input::placeholder {
 }
 .energy-cat progress::-moz-progress-bar {
   background: var(--leaf);
+  border-radius: var(--radius-pill);
+}
+.bond-level progress::-webkit-progress-value {
+  background: var(--accent-strong);
+  border-radius: var(--radius-pill);
+}
+.bond-level progress::-moz-progress-bar {
+  background: var(--accent-strong);
   border-radius: var(--radius-pill);
 }
 .fight-meters progress::-moz-progress-bar {

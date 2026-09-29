@@ -9,7 +9,7 @@ export const CARE = {
   memoryLimit: 50,
 } as const;
 
-/** Bond levels (spec 034), lowest first: a cat is at the last one whose `bond` it has reached. */
+/** Bond levels (spec 036), lowest first: a cat is at the last one whose `bond` it has reached. */
 export const BOND_LEVELS = [
   { name: '初识', bond: 0 },
   { name: '熟悉', bond: 5 },
