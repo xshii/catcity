@@ -1,6 +1,10 @@
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { expect, test, type Page } from '@playwright/test';
-import { clickTile } from '../../harness/adapters/catcity/city-input';
+import {
+  barInsetsOf,
+  clickTile,
+  settle,
+} from '../../harness/adapters/catcity/city-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import type { Position } from '../../src/core';
 import { MAP_VIEW } from '../../src/view/city/geometry';
@@ -8,13 +12,6 @@ import { MAP_VIEW } from '../../src/view/city/geometry';
 // Spec 014: the city page on a phone — messages, entry points, selecting a
 // cat, first-screen guidance, map framing and the clock speed.
 
-const frames = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve)),
-      ),
-  );
 const tileOnScreen = (page: Page, position: Position) =>
   page.evaluate(
     (tile) => window.CAT_CITY_DEBUG!.getTileScreenPosition(tile)!,
@@ -41,18 +38,29 @@ async function board(page: Page) {
   };
 }
 
-/** Centred on an axis when it fits; otherwise the map covers the frame. */
+/**
+ * Centred on an axis when it fits; otherwise the map covers the frame. Vertically that
+ * frame is the open band between the floating bars (spec 031), so no row hides under them.
+ */
 async function expectFramed(page: Page) {
-  await frames(page);
+  await settle(page);
   const frame = (await page.locator('#game').boundingBox())!;
   const canvas = (await page.locator('#game canvas').boundingBox())!;
   // The canvas uses the whole frame, including the vertical space.
   expect(Math.abs(canvas.width - frame.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(canvas.height - frame.height)).toBeLessThanOrEqual(1);
   const box = await board(page);
+  const bars = await barInsetsOf(page, frame);
+  expect(bars.top).toBeGreaterThan(0);
+  expect(bars.bottom).toBeGreaterThan(0);
   for (const [low, high, start, size] of [
     [box.left, box.right, frame.x, frame.width],
-    [box.top, box.bottom, frame.y, frame.height],
+    [
+      box.top,
+      box.bottom,
+      frame.y + bars.top,
+      frame.height - bars.top - bars.bottom,
+    ],
   ] as const) {
     if (high - low <= size + 1)
       expect(Math.abs((low + high) / 2 - (start + size / 2))).toBeLessThan(2);
@@ -69,7 +77,7 @@ for (const viewport of [
   { width: 360, height: 640 },
   { width: 1280, height: 1000 },
 ]) {
-  test(`the map is centred in its frame in follow and overview at ${viewport.width}×${viewport.height}`, async ({
+  test(`the map is centred between the floating bars in follow and overview at ${viewport.width}×${viewport.height}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
@@ -122,20 +130,21 @@ test('a new game guides the next step above the map and keeps one clock control'
   await expect(page.locator('#city-hint')).toContainText('下一步');
   await expect(page.locator('#city-hint')).toContainText('猫咖');
   await expect(page.locator('#city-hint')).toBeInViewport({ ratio: 1 });
-  // One time control, next to the clock; saving leaves the top bar.
+  // One time control, next to the clock and the coins in the floating scene bar.
   await expect(
     page.getByRole('button', { name: /快进|营业一小时/ }),
   ).toHaveCount(0);
   await expect(page.locator('#clock-speed')).toBeInViewport({ ratio: 1 });
-  await expect(page.locator('.topbar #save')).toHaveCount(0);
-  await expect(page.locator('.topbar .offline')).toContainText('自动保存');
-  await expect(page.locator('.topbar .offline')).toBeVisible();
+  await expect(page.getByTestId('coins')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.topbar')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('地图种子');
 
   // Guide tab (renamed from 建设): tutorial, explicit save, no developer info.
   await expect(page.locator('#city-tab-guide')).toContainText('指引');
   await page.locator('#city-tab-guide').click();
   await expect(page.locator('#city-panel-guide #save')).toBeVisible();
+  // Saving is automatic; the guide says so beside the explicit save.
+  await expect(page.locator('#city-save')).toContainText('自动保存');
   await expect(page.locator('#city-panel-guide')).not.toContainText('种子');
   await page.getByRole('button', { name: '回地图选择空地' }).click();
   await page.locator('[data-build-type=CAT_CAFE]').click();
@@ -301,7 +310,7 @@ test('outing lists waterways with their conditions; chat has no second fishing e
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await ready(page);
-  await page.locator('#city-tab-chat').click();
+  await page.locator('#city-tab-cats').click();
   await expect(page.getByRole('button', { name: /去钓鱼/ })).toHaveCount(0);
   await page.locator('#city-tab-outing').click();
   await expect(page.locator('#city-tab-outing')).toHaveAttribute(

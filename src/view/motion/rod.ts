@@ -5,8 +5,8 @@ const G = FISHING.motion.gesture;
 export interface RodSample {
   /** Milliseconds, monotonic (event timestamps). */
   t: number;
-  /** Gyroscope rate about the tuned axis, °/s, as reported by the device. */
-  pitchRate: number;
+  /** Gyroscope rate about the tuned axis of the screen as held, °/s. */
+  rate: number;
   /** The power the slow pitch currently sets (0–100). */
   power: number;
 }
@@ -55,7 +55,7 @@ export function createRodGestures(tuning: RodTuning = DEFAULT_TUNING) {
     },
     push(sample: RodSample, want: 'cast' | 'lift'): RodEvent | null {
       // Positive `down` flicks the tip toward the water; negative lifts it.
-      const down = sample.pitchRate * tuning.pitchSign;
+      const down = sample.rate * tuning.pitchSign;
       if (want === 'lift') {
         history = [];
         onsetPower = null;

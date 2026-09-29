@@ -1,6 +1,7 @@
 import type { Aim, AimControl, PlaceState, Tools } from '../shell/place';
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
+import type { GameCommand } from '../../core';
 import {
   discoveredSpecies,
   FISHING,
@@ -18,7 +19,7 @@ import {
 import { greenZone } from '../../minigames/angling';
 import { CARE } from '../../content/care';
 import { mountFishingFeedback } from './feedback';
-import { mountFishingStage } from './stage';
+import { mountFishingStage, type FishingShell } from './stage';
 import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
@@ -37,9 +38,12 @@ import {
   BUTTON_PHASE_NAMES,
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
+import { moodNote, withMoodNote } from '../shell/mood';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
+/** Before a run the button flow's power rests at half; it is charged in the run. */
+const REST_POWER = FISHING.input.maxPower / 2;
 /** A render that triggers more than this many re-renders is a state loop, not UI. */
 const MAX_RENDER_PASSES = 5;
 
@@ -49,16 +53,16 @@ export function mountAngling(
   notify: (text: string) => void,
   onNeedTravel: (spotId: SpotId) => void,
   trace: Trace,
+  shell: FishingShell,
 ) {
   const atShore = (spotId: SpotId, catId: string) => {
     const world = session.getSnapshot();
     const cat = world.cats.find((item) => item.id === catId);
     return !!cat && !cat.walk && onShore(world.map, spotId, cat.position);
   };
-  const requestedSpot = () =>
-    ((document.getElementById('fish-location') as HTMLSelectElement | null)
-      ?.value as SpotId) || 'POND';
-  const stage = mountFishingStage(session, place, {
+  // Asked only after mounting, once the location field exists.
+  const requestedSpot = () => (location.value as SpotId) || 'POND';
+  const stage = mountFishingStage(session, place, shell, {
     canEnter: () => {
       const world = session.getSnapshot();
       return atShore(
@@ -76,24 +80,54 @@ export function mountAngling(
   root.hidden = true;
   stage.stage.after(root);
   root.innerHTML = ANGLING_MARKUP;
+  // The markup's elements by id, kept while the layout moves them into its panels.
+  const owned = new Map(
+    Array.from(root.querySelectorAll<HTMLElement>('[id]'), (element) => [
+      element.id,
+      element,
+    ]),
+  );
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
-    document.getElementById(id) as T;
-  stage.stage.append(get('angling-live'));
+    owned.get(id) as T;
+  const live = get('angling-live');
+  stage.stage.append(live);
+  const castStart = get<HTMLButtonElement>('cast-start');
   const ready = document.createElement('div');
   ready.id = 'scene-ready';
   ready.className = 'scene-ready';
-  ready.append(get('cast-start'));
+  ready.append(castStart);
   stage.stage.append(ready);
-  const feedback = mountFishingFeedback(session, stage.stage);
+  const feedback = mountFishingFeedback(
+    session,
+    stage.stage,
+    get<HTMLButtonElement>('haptics-toggle'),
+  );
   const location = get<HTMLSelectElement>('fish-location');
   const companion = get<HTMLSelectElement>('fish-companion');
   const bait = get<HTMLSelectElement>('fish-bait');
   const direction = get<HTMLInputElement>('fish-direction');
   const depth = get<HTMLInputElement>('fish-depth');
   const control = get<HTMLButtonElement>('fish-control');
+  const bar = get('angling-bar');
+  const green = get('angling-green');
+  const pause = get('fish-pause');
+  const invite = get('invite-pepper');
+  /** The FISH_BEGIN the panel's choices ask for; the button flow leaves `mode` out. */
+  const beginCommand = (castDirection: number) =>
+    ({
+      type: 'FISH_BEGIN',
+      catId: companion.value,
+      baitId: bait.value as BaitId,
+      direction: castDirection,
+      aimDepth: Number(depth.value),
+      spotId: requestedSpot(),
+    }) satisfies GameCommand;
   let detailsKey = '';
   let aimKey = '';
-  let aimPower = FISHING.input.maxPower / 2;
+  let aimPower = REST_POWER;
+  // How the run that just ended changed its cat's mood band; read from the change itself.
+  let previousWorld = session.getSnapshot();
+  let resultMood = { runId: '', note: '' };
   const aimListeners = new Set<() => void>();
   // Every switchable state of the fishing screen (spec 015): one store, one render.
   const view = createFishingView(initialFishingView(motionStartup()));
@@ -134,22 +168,19 @@ export function mountAngling(
     const state = view.get();
     const screen = fishingScreen(state, run ?? null);
     const active = !!run;
+    const resultNote =
+      f.lastResult?.runId === resultMood.runId ? resultMood.note : '';
     const selectedCat =
       world.cats.find(
         (cat) => cat.id === (run?.catId ?? session.selectedEntity),
       ) ?? world.cats[0]!;
     const energy = selectedCat.needs.energy;
-    document
-      .querySelector('.shell')
-      ?.classList.toggle('motion-play', screen.motionPlay);
-    get('scene-ready').hidden = !screen.readyToCast;
-    get<HTMLButtonElement>('cast-start').disabled =
-      active || energy < CAST_COST;
+    ready.hidden = !screen.readyToCast;
     for (const field of [location, companion, bait, direction, depth])
       field.disabled = active;
 
-    get('angling-live').hidden = !screen.console;
-    get('angling-live').dataset.mode = screen.consoleMode ?? '';
+    live.hidden = !screen.console;
+    live.dataset.mode = screen.consoleMode ?? '';
     const key = JSON.stringify([
       f.xp,
       f.supplies,
@@ -158,6 +189,7 @@ export function mountAngling(
       f.inventory,
       f.atlas,
       f.lastResult,
+      resultNote,
       world.cats.map((cat) => [
         cat.id,
         cat.fishGift,
@@ -215,21 +247,35 @@ export function mountAngling(
       );
       bait.value = baitId;
       get('spot-hint').textContent =
-        `${SPOTS[location.value as SpotId].hint}。力度控制远近，方向决定落点。`;
+        `${SPOTS[requestedSpot()].hint}。力度控制远近，方向决定落点。`;
       get('spot-unlocks').textContent = SPOT_IDS.slice(1)
         .map(
           (id) =>
             `${SPOTS[id].name}：${spotUnlocked(id, f.xp, discovered) ? '已开放 ✓' : `钓技 ${level}/${SPOTS[id].level} 级 · 图鉴 ${discovered}/${SPOTS[id].species} 种`}`,
         )
         .join(' → ');
-      get('invite-pepper').hidden = world.cats.some(
-        (cat) => cat.definitionId === 'PEPPER',
-      );
+      invite.hidden = world.cats.some((cat) => cat.definitionId === 'PEPPER');
       const cat = world.cats.find((cat) => cat.id === companion.value)!;
       get('companion-specialty').textContent =
         `${cat.name} · ${CAT_BREEDS[cat.breedId].name}：${CAT_BREEDS[cat.breedId].fishingHint}。鱼饵、落点和钓点条件仍需满足。`;
-      renderFishingCatalog(world, cat, (command, message) =>
-        report(session.execute(command), message),
+      renderFishingCatalog(
+        get,
+        world,
+        cat,
+        (command, message) => {
+          const before = session.getSnapshot();
+          const result = session.execute(command);
+          report(
+            result,
+            command.type === 'GIFT_FISH'
+              ? withMoodNote(
+                  message,
+                  moodNote(before, session.getSnapshot(), command.catId),
+                )
+              : message,
+          );
+        },
+        resultNote,
       );
     }
     if (run) {
@@ -248,35 +294,35 @@ export function mountAngling(
           : run.phase === 'hook'
             ? run.cursor
             : run.power;
-      get('angling-green').style.left = `${zone.low}%`;
-      get('angling-green').style.width = `${zone.high - zone.low}%`;
+      green.style.left = `${zone.low}%`;
+      green.style.width = `${zone.high - zone.low}%`;
       get('angling-cursor').style.left = `${value}%`;
-      get('angling-bar').setAttribute('aria-valuenow', String(value));
-      get('angling-bar').dataset.phase = run.phase;
-      get('angling-bar').dataset.low = String(zone.low);
-      get('angling-bar').dataset.high = String(zone.high);
+      bar.setAttribute('aria-valuenow', String(value));
+      bar.dataset.phase = run.phase;
+      bar.dataset.low = String(zone.low);
+      bar.dataset.high = String(zone.high);
       get<HTMLProgressElement>('fish-progress').value = run.progress;
       get<HTMLProgressElement>('line-health').value = run.lineHealth;
       control.setAttribute('aria-pressed', String(state.pressed));
-      get('fish-pause').textContent = screen.pauseLabel;
+      pause.textContent = screen.pauseLabel;
     }
-    stage.render(world, selectedCat.id, (location.value || 'POND') as SpotId);
-    layout?.refresh();
-    motion?.apply(screen, run ?? null);
+    const destination = requestedSpot();
+    stage.render(world, selectedCat.id, destination, resultNote);
+    layout.refresh();
+    motion.apply(screen, run ?? null);
     collections.refresh();
-    const destination = (location.value || 'POND') as SpotId;
     const atDestination = atShore(destination, selectedCat.id);
-    get('travel-duration').textContent = atDestination
+    layout.travelDuration.textContent = atDestination
       ? `已在${SPOTS[destination].name}`
       : selectedCat.walk
         ? `步行中 · 剩 ${selectedCat.walk.route.length} 格 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`
         : `需要先走到岸边 · 耗时取决于道路 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`;
-    get<HTMLButtonElement>('travel-to-spot').disabled = active || atDestination;
-    get('travel-to-spot').textContent = atDestination
+    layout.travelButton.disabled = active || atDestination;
+    layout.travelButton.textContent = atDestination
       ? '已经抵达'
       : '出发去钓点 →';
-    get<HTMLButtonElement>('cast-start').disabled ||= !atDestination;
-    get('cast-start').textContent = atDestination
+    castStart.disabled = active || energy < CAST_COST || !atDestination;
+    castStart.textContent = atDestination
       ? `准备抛竿 ↗ · 抛出耗 ${CAST_COST} 体力`
       : '先在地图走到岸边';
     root
@@ -298,11 +344,11 @@ export function mountAngling(
     }
   };
   const currentAim = (): Aim => ({
-    spotId: (location.value || 'POND') as SpotId,
+    spotId: requestedSpot(),
     direction: Number(direction.value),
     depth: Number(depth.value),
     // Only motion aiming sets the power before a run; the button flow charges it.
-    power: motionActive(view.get()) ? aimPower : FISHING.input.maxPower / 2,
+    power: motionActive(view.get()) ? aimPower : REST_POWER,
   });
   const aim: AimControl = {
     get: currentAim,
@@ -322,37 +368,32 @@ export function mountAngling(
     session,
     view,
     control,
-    castStart: get<HTMLButtonElement>('cast-start'),
+    castStart,
     rodTip: () => motion.point(),
     onCastStart: () => begin(),
   });
   const layout = mountFishingLayout(session, place, () =>
     view.dispatch({ type: 'tools', open: layout.isOpen() }),
   );
-  const collections = mountFishingCollections();
+  const collections = mountFishingCollections(get);
   const motion = mountMotionFishing({
     view,
     stage: stage.stage,
-    plane: get('game'),
-    settings: get('gear-page-supplies'),
+    plane: shell.game,
+    settings: layout.settings,
     readySlot: ready,
     getRun: () => session.getSnapshot().fishing.active,
     previewAim: (preview) => aim.set(preview),
     // One swing starts and casts a motion run: nothing is spent before it.
     cast: (swingDirection, power) => {
       if (session.getSnapshot().fishing.active) return false;
-      if (!atShore(location.value as SpotId, companion.value)) {
+      if (!atShore(requestedSpot(), companion.value)) {
         notify('先让猫走到岸边，再甩竿。');
         return false;
       }
       direction.value = String(swingDirection);
       const begun = session.execute({
-        type: 'FISH_BEGIN',
-        catId: companion.value,
-        baitId: bait.value as BaitId,
-        direction: swingDirection,
-        aimDepth: Number(depth.value),
-        spotId: location.value as SpotId,
+        ...beginCommand(swingDirection),
         mode: 'motion',
       });
       const run = session.getSnapshot().fishing.active;
@@ -392,24 +433,17 @@ export function mountAngling(
     );
   }
   function begin() {
-    layout?.close();
-    if (!atShore(location.value as SpotId, companion.value)) {
-      onNeedTravel(location.value as SpotId);
+    layout.close();
+    if (!atShore(requestedSpot(), companion.value)) {
+      onNeedTravel(requestedSpot());
       return;
     }
     if (!stage.showRiver()) return;
-    const result = session.execute({
-      type: 'FISH_BEGIN',
-      catId: companion.value,
-      baitId: bait.value as BaitId,
-      direction: Number(direction.value),
-      aimDepth: Number(depth.value),
-      spotId: location.value as SpotId,
-    });
+    const result = session.execute(beginCommand(Number(direction.value)));
     report(result, '落点已锁定，按住按钮蓄力，松开抛竿。');
   }
-  get('travel-to-spot').addEventListener('click', () => {
-    const spotId = location.value as SpotId;
+  layout.travelButton.addEventListener('click', () => {
+    const spotId = requestedSpot();
     const result = session.execute({
       type: 'TRAVEL_TO_FISHING_SPOT',
       catId: companion.value,
@@ -448,7 +482,7 @@ export function mountAngling(
   direction.addEventListener('input', render);
   depth.addEventListener('input', render);
   location.addEventListener('change', () => {
-    const spotId = location.value as SpotId;
+    const spotId = requestedSpot();
     if (!atShore(spotId, companion.value)) {
       layout.close();
       onNeedTravel(spotId);
@@ -469,7 +503,7 @@ export function mountAngling(
       `回收了一件垃圾，获得 ${FISHING.supplies.trashCoins} 金币。`,
     ),
   );
-  get('invite-pepper').addEventListener('click', () =>
+  invite.addEventListener('click', () =>
     report(
       session.execute({ type: 'INVITE_PEPPER' }),
       'Pepper 来了！它喜欢鲈鱼和鲶鱼。',
@@ -488,7 +522,7 @@ export function mountAngling(
         ),
       ),
     );
-  get('fish-pause').addEventListener('click', () =>
+  pause.addEventListener('click', () =>
     view.dispatch({ type: 'toggle-pause' }),
   );
   get('fish-cancel').addEventListener('click', () => {
@@ -501,6 +535,18 @@ export function mountAngling(
   });
   // A world change or a view change: either way, one render applies the screen.
   session.subscribe(() => {
+    const world = session.getSnapshot();
+    const ended = world.fishing.lastResult;
+    if (
+      ended &&
+      ended.runId === previousWorld.fishing.active?.id &&
+      ended.runId !== previousWorld.fishing.lastResult?.runId
+    )
+      resultMood = {
+        runId: ended.runId,
+        note: moodNote(previousWorld, world, ended.catId),
+      };
+    previousWorld = world;
     stage.follow(session.getSnapshot());
     const runId = session.getSnapshot().fishing.active?.id ?? null;
     if (runId && runId !== view.get().runId) root.hidden = false;
@@ -518,6 +564,7 @@ export function mountAngling(
   stage.follow(session.getSnapshot());
   render();
   return {
+    stage: stage.stage,
     enterAtSpot,
     tools: { close: layout.close, openTalk: layout.openTalk } satisfies Tools,
     aim,

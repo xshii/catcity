@@ -153,15 +153,16 @@ it.each(Object.keys(PLAYERS) as (keyof typeof PLAYERS)[])(
 const HAPPY = { noviceHighStarMax: 15, skilledLiftMax: 10 };
 const STARS = [0, 1, 2, 3, 4, 5];
 
-it.each(Object.keys(PLAYERS) as (keyof typeof PLAYERS)[])(
-  'never makes a happy run harder for %s players',
-  (player) => {
-    for (const stars of STARS)
-      expect(catchRate(player, stars, true)).toBeGreaterThanOrEqual(
-        catchRate(player, stars),
-      );
-  },
-);
+// One case per player and star, so each stays small (rates are cached across cases).
+it.each(
+  (Object.keys(PLAYERS) as (keyof typeof PLAYERS)[]).flatMap((player) =>
+    STARS.map((stars) => [player, stars] as const),
+  ),
+)('never makes a happy %s run harder at %i★', (player, stars) => {
+  expect(catchRate(player, stars, true)).toBeGreaterThanOrEqual(
+    catchRate(player, stars),
+  );
+});
 
 it.each([4, 5])('keeps %i★ fish rare for novices on a happy run', (stars) => {
   const rate = catchRate('novice', stars, true);

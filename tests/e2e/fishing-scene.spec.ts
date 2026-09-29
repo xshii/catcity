@@ -10,7 +10,7 @@ import {
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import {
   closeRiverPanel,
-  invitePepper,
+  openCats,
   openGear,
 } from '../../harness/adapters/catcity/navigation';
 
@@ -47,10 +47,12 @@ test('scene input aims at water, cat cards switch independent stamina, and idle 
     arrival.cats[0]!.needs.energy - 8,
   );
   // Nothing to press: an idle, tired cat shows that it is recovering.
+  await openCats(page);
   await expect(page.locator('[data-cat-id="mochi"] .sleep-mark')).toBeVisible();
-  await invitePepper(page);
+  await page.locator('#invite-pepper').click();
   const pepper = (await readWorld(page)).cats[1]!;
   await page.locator(`[data-cat-id="${pepper.id}"]`).click();
+  await closeRiverPanel(page);
   await enterRiver(page);
   const pepperArrival = await readWorld(page);
   await page.locator('#cast-start').click();
@@ -198,6 +200,8 @@ test('city clock updates preserve the focused cat card and render fixture names 
   await page.goto('/');
   await ready(page);
   await enterRiver(page);
+  // The roster lives in the cats panel; the city clock still runs while it is open.
+  await openCats(page);
   const card = page.locator('[data-cat-id="mochi"]');
   const mounted = await card.elementHandle();
   await card.focus();
@@ -205,11 +209,13 @@ test('city clock updates preserve the focused cat card and render fixture names 
   await expect(card).toBeFocused();
   expect(await mounted.evaluate((element) => element.isConnected)).toBe(true);
   // A pond-shore spawn arrives at full energy; spend a cast so it has something to recover.
+  await closeRiverPanel(page);
   await page.locator('#cast-start').click();
   await castOnce(page);
   await page.locator('#fish-cancel').click();
   const tired = (await readWorld(page)).cats[0]!.needs.energy;
   expect(tired).toBeLessThan(100);
+  await openCats(page);
   await card.focus();
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(10));
   await expect(card).toBeFocused();

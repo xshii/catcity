@@ -10,6 +10,7 @@ import {
 } from './runner/local-publication';
 import { sourceIdentity } from './runner/evidence';
 import { runProcess } from './runner/process';
+import { buildStamp } from './runner/build-stamp';
 import { mkdir } from 'node:fs/promises';
 import { runHarness } from './runner/run-harness';
 
@@ -29,7 +30,8 @@ if (command === 'verify' || command === 'publish') {
   // Try-out release for phones: production build, no gate or smoke; marked unverified.
   const identity = await sourceIdentity();
   await mkdir('artifacts', { recursive: true });
-  const buildVersion = `test-${identity.commit?.slice(0, 8) ?? 'local'}-${identity.sourceDigest.slice(0, 12)}`;
+  // When it was built comes first, so the phone's debug stamp says which try-out it is.
+  const buildVersion = `test-${buildStamp(new Date())}-${identity.commit?.slice(0, 8) ?? 'local'}-${identity.sourceDigest.slice(0, 6)}`;
   await runProcess(
     'npm',
     ['run', 'build'],

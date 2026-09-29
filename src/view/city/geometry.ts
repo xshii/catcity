@@ -41,17 +41,24 @@ export const boardSize = (tiles: Size): Size => ({
  * Where the city camera looks: `scale` is CSS px per world px and `center` a world point.
  * Overview fits the board unless tiles would drop below `minTilePx`; follow magnifies it.
  * On each axis the board is centred when it fits and otherwise clamped to cover the frame,
- * so it never drifts to one side, whatever the map or screen size.
+ * so it never drifts to one side, whatever the map or screen size. Floating bars cover
+ * `insets` (CSS px) at the top and bottom: the board keeps to the open band between them,
+ * so no row is ever stuck under a bar.
  */
 export function frameMap(
   frame: Size,
   tiles: Size,
   follow: boolean,
   focus: Point,
-): { scale: number; center: Point } {
+  insets: { top: number; bottom: number } = { top: 0, bottom: 0 },
+): { scale: number; focus: Point; center: Point } {
   const board = boardSize(tiles);
+  const band = {
+    width: frame.width,
+    height: Math.max(1, frame.height - insets.top - insets.bottom),
+  };
   const overview = Math.max(
-    Math.min(frame.width / board.width, frame.height / board.height),
+    Math.min(band.width / board.width, band.height / board.height),
     MAP_VIEW.minTilePx / MAP_VIEW.tile,
   );
   const scale = follow ? overview * MAP_VIEW.followZoom : overview;
@@ -59,11 +66,18 @@ export function frameMap(
     span >= length
       ? length / 2
       : Math.min(Math.max(at, span / 2), length - span / 2);
+  // `focus` is the clamped point in the band's middle (what panning keeps); the camera
+  // centres the whole frame, so it shifts by half the difference of the insets.
+  const clamped = {
+    x: axis(band.width / scale, board.width, focus.x),
+    y: axis(band.height / scale, board.height, focus.y),
+  };
   return {
     scale,
+    focus: clamped,
     center: {
-      x: axis(frame.width / scale, board.width, focus.x),
-      y: axis(frame.height / scale, board.height, focus.y),
+      x: clamped.x,
+      y: clamped.y - (insets.top - insets.bottom) / 2 / scale,
     },
   };
 }

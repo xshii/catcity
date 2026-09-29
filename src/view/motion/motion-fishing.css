@@ -141,10 +141,6 @@
   }
 }
 
-/* Motion play: only pause/cancel remain below the river, so the canvas grows. */
-.game-screen.motion-play #fishing-stage.is-river #game {
-  bottom: 64px;
-}
 .scene-console[data-mode='motion'] .bar-heading,
 .scene-console[data-mode='motion'] #angling-bar,
 .scene-console[data-mode='motion'] .fight-meters,
@@ -157,15 +153,24 @@
   padding: 6px 12px;
   background: #fffcf0cc;
 }
-/* Cast power set by slow pitch: a vertical meter with the precise band highlighted. */
+/*
+ * Cast power set by slow pitch: a vertical meter just right of the plane, labelled
+ * "力度 N" above, 强 at the top, 弱 at the bottom and 精准 beside the precise band.
+ */
 .motion-power {
   position: absolute;
-  right: -18px;
-  top: 8%;
-  width: 12px;
-  height: 84%;
+  right: -20px;
+  top: 10%;
+  width: 16px;
+  height: 78%;
+  color: #45613f;
+}
+.motion-power-track {
+  position: absolute;
+  inset: 0;
   border-radius: 999px;
-  background: rgba(255, 253, 244, 0.7);
+  background: rgba(255, 253, 244, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(69, 97, 63, 0.35);
   overflow: hidden;
 }
 .motion-power-band {
@@ -174,17 +179,54 @@
   right: 0;
   bottom: var(--band-low);
   height: var(--band-size);
-  background: rgba(95, 156, 90, 0.55);
+  background: rgba(95, 156, 90, 0.7);
 }
 .motion-power-level {
   position: absolute;
-  left: -2px;
-  right: -2px;
+  left: -5px;
+  right: -5px;
   bottom: var(--power);
-  height: 4px;
-  border-radius: 2px;
+  height: 6px;
+  border-radius: 3px;
   background: #d9644c;
+  box-shadow: 0 0 0 2px #fffdf4;
   transform: translateY(50%);
+}
+.motion-power-value,
+.motion-power-end,
+.motion-power-precise {
+  position: absolute;
+  white-space: nowrap;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: rgba(255, 253, 244, 0.92);
+}
+/* Right-aligned with the track: the phone's edge is just beyond it. */
+.motion-power-value {
+  right: -4px;
+  bottom: calc(100% + 24px);
+  font-size: 13px;
+}
+.motion-power-end {
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+}
+.motion-power-strong {
+  bottom: calc(100% + 7px);
+}
+.motion-power-weak {
+  top: calc(100% + 7px);
+}
+.motion-power-precise {
+  right: calc(100% + 6px);
+  bottom: calc(var(--band-low) + var(--band-size) / 2);
+  transform: translateY(50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: #3d7a37;
 }
 /* The way back to motion fishing, under the cast button while motion is off. */
 #motion-quick {

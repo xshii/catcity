@@ -27,6 +27,9 @@ const waterSpots: Partial<Record<Terrain, SpotId>> = {
 };
 export const samePosition = (a: Position, b: Position): boolean =>
   a.x === b.x && a.y === b.y;
+/** Steps between two tiles along rows and columns; neighbours are 1 apart. */
+export const gridDistance = (a: Position, b: Position): number =>
+  Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 export function tileAt(map: CityMap, position: Position): CityTile | undefined {
   const { x, y } = position;
   if (
