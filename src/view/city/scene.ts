@@ -171,11 +171,11 @@ export class CityScene extends Phaser.Scene {
       .cats.find((item) => item.position.x === x && item.position.y === y);
     if (cat) {
       this.city.selectCat(cat.id);
-      this.onMessage(
-        this.city.view.get().walker === cat.id
-          ? `已选中 ${cat.name}：点一块地，在卡片上选「让 ${cat.name} 走到这里」。`
-          : '已取消猫咪选择。',
-      );
+      // Letting the cat go says nothing: its selection ring disappears.
+      if (this.city.view.get().walker === cat.id)
+        this.onMessage(
+          `已选中 ${cat.name}：点一块地，在卡片上选「让 ${cat.name} 走到这里」。`,
+        );
     } else this.city.selectTile({ x, y });
   }
 
