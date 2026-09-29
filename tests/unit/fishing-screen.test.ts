@@ -3,9 +3,11 @@ import { FISHING } from '../../src/content/fishing';
 import { createWorld } from '../../src/core/world';
 import { motionSchedule } from '../../src/minigames/angling-motion';
 import {
+  aimedSteps,
   fishingScreen,
   motionNibble,
   motionWant,
+  ringHeld,
   SCREEN_COPY,
   tapStrikes,
 } from '../../src/view/fishing/screen';
@@ -15,12 +17,18 @@ import {
   type Capability,
   type FishingView,
   type FishingViewEvent,
+  type GuideStep,
 } from '../../src/view/fishing/view-state';
 import type { AnglingRun } from '../../src/minigames/angling';
 import { replay } from '../helpers/fishing-view';
 
+/** A device that finished the guide and calibrated before, unless told otherwise. */
 const view = (
-  options: { phone?: boolean; preference?: 'motion' | 'buttons' } = {},
+  options: {
+    phone?: boolean;
+    preference?: 'motion' | 'buttons';
+    guide?: GuideStep;
+  } = {},
   ...events: FishingViewEvent[]
 ) =>
   replay(
@@ -28,6 +36,8 @@ const view = (
       preference: options.preference ?? 'motion',
       needsPermission: options.phone ?? true,
       coarsePointer: options.phone ?? true,
+      guide: options.guide ?? null,
+      autoCalibrate: false,
     }),
     ...events,
   );
@@ -195,6 +205,123 @@ describe('fishing screen', () => {
     ).toBe(SCREEN_COPY.hint.waiting);
   });
 
+  it('teaches the first cast in the hint, each step where it happens, with a skip', () => {
+    const playing: FishingViewEvent[] = [
+      river,
+      ready,
+      { type: 'run', runId: 'r' },
+      { type: 'resume' },
+    ];
+    const cases: [
+      GuideStep,
+      FishingViewEvent[],
+      ReturnType<typeof runOf> | null,
+    ][] = [
+      ['aim', [river, ready], null],
+      ['power', [river, ready], null],
+      ['cast', [river, ready], null],
+      ['strike', playing, runOf('motion', 'waiting')],
+      ['strike', playing, runOf('motion', 'hook')],
+      ['fight', playing, runOf('motion', 'fight')],
+    ];
+    for (const [guide, events, run] of cases)
+      expect(fishingScreen(view({ guide }, ...events), run)).toMatchObject({
+        guide,
+        hint: SCREEN_COPY.guide[guide],
+      });
+    // A step waits for its moment: the usual hint shows until then.
+    expect(
+      fishingScreen(view({ guide: 'strike' }, river, ready), null),
+    ).toMatchObject({ guide: null, hint: SCREEN_COPY.hint.aim });
+    expect(
+      fishingScreen(view({ guide: 'aim' }, ...playing), runOf('motion')),
+    ).toMatchObject({ guide: null, hint: SCREEN_COPY.hint.waiting });
+    // Finished or skipped: no guide.
+    expect(fishingScreen(view({}, river, ready), null).guide).toBeNull();
+  });
+
+  it('never shows the guide in button mode, over calibration, a notice or a pause', () => {
+    const guide = 'aim';
+    for (const state of [
+      view({ guide, preference: 'buttons' }, river, ready),
+      view({ guide }, river),
+      view({ guide }, river, { type: 'capability', capability: 'denied' }),
+      view({ guide }, ready),
+    ])
+      expect(fishingScreen(state, null).guide).toBeNull();
+    // A button run on a phone with motion on gets no motion guide either.
+    expect(
+      fishingScreen(view({ guide: 'strike' }, river, ready), runOf('buttons'))
+        .guide,
+    ).toBeNull();
+    const calibrating = view({ guide }, river, ready, {
+      type: 'calibrating',
+      on: true,
+    });
+    expect(fishingScreen(calibrating, null)).toMatchObject({
+      guide: null,
+      hint: SCREEN_COPY.hint.calibrating,
+    });
+    // A failed calibration's notice shows first; the guide continues after it.
+    const failed = view({ guide }, river, ready, {
+      type: 'notice',
+      text: SCREEN_COPY.calibrate.failed,
+    });
+    expect(fishingScreen(failed, null)).toMatchObject({
+      guide: null,
+      hint: SCREEN_COPY.calibrate.failed,
+    });
+    expect(SCREEN_COPY.calibrate.failed).toContain(
+      SCREEN_COPY.calibrate.button,
+    );
+    expect(
+      fishingScreen(
+        reduceFishingView(failed, { type: 'notice', text: null }),
+        null,
+      ).guide,
+    ).toBe(guide);
+    const paused = view({ guide: 'strike' }, river, ready, {
+      type: 'run',
+      runId: 'r',
+    });
+    expect(fishingScreen(paused, runOf('motion', 'hook'))).toMatchObject({
+      guide: null,
+      hint: SCREEN_COPY.hint.paused,
+    });
+  });
+
+  it('counts a clear turn as aiming and a clear pitch back as power', () => {
+    expect(aimedSteps({ direction: 0, power: 50 })).toEqual([]);
+    // A steady hand's wobble does not count.
+    expect(aimedSteps({ direction: 3, power: 54 })).toEqual([]);
+    expect(aimedSteps({ direction: -15, power: 50 })).toEqual(['aim']);
+    expect(aimedSteps({ direction: 15, power: 65 })).toEqual(['aim', 'power']);
+    expect(aimedSteps({ direction: 0, power: 100 })).toEqual(['power']);
+  });
+
+  it('counts the ring as held when Core fills the hold of the same motion fight', () => {
+    const fight = {
+      id: 'r',
+      mode: 'motion' as const,
+      phase: 'fight' as const,
+      hold: 5,
+    };
+    expect(ringHeld(fight, { ...fight, hold: 6 })).toBe(true);
+    expect(ringHeld(fight, fight)).toBe(false);
+    expect(ringHeld(fight, { ...fight, hold: 3 })).toBe(false);
+    // A strike's head start is not a hold, nor another run's, nor a button run's.
+    expect(ringHeld({ ...fight, phase: 'hook', hold: 0 }, fight)).toBe(false);
+    expect(ringHeld({ ...fight, id: 'q', hold: 0 }, fight)).toBe(false);
+    expect(
+      ringHeld(
+        { ...fight, mode: 'buttons' },
+        { ...fight, mode: 'buttons', hold: 6 },
+      ),
+    ).toBe(false);
+    expect(ringHeld(fight, null)).toBe(false);
+    expect(ringHeld(null, fight)).toBe(false);
+  });
+
   it('labels the settings switch and the pause button from the state', () => {
     const toggle = (state: FishingView) => fishingScreen(state, null).toggle;
     expect(toggle(view({}, ready))).toEqual({
@@ -263,6 +390,13 @@ describe('fishing screen', () => {
       ),
     ).toBeNull();
     expect(motionWant(view({}, river), null)).toBeNull();
+    // Calibrating: every flick feeds the calibration, none casts.
+    expect(
+      motionWant(
+        view({}, river, ready, { type: 'calibrating', on: true }),
+        null,
+      ),
+    ).toBeNull();
     expect(
       motionWant(view({}, river, ready, { type: 'tools', open: true }), null),
     ).toBeNull();

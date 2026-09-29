@@ -1,7 +1,12 @@
 import { FISHING } from '../../content/fishing';
 import type { AnglingRun } from '../../minigames/angling';
 import { motionSchedule } from '../../minigames/angling-motion';
-import { canPlay, motionActive, type FishingView } from './view-state';
+import {
+  canPlay,
+  motionActive,
+  type FishingView,
+  type GuideStep,
+} from './view-state';
 
 /** Player-facing words of the fishing screen's switchable controls. */
 export const SCREEN_COPY = {
@@ -26,6 +31,15 @@ export const SCREEN_COPY = {
     settle: '稳住，用圈罩住鱼',
     fight: '倾斜手机，让圈罩住鱼',
   },
+  /** The first motion cast, one step at a time (spec 033 F3). */
+  guide: {
+    aim: '1/5 左右瞄准：左右转动手机',
+    power: '2/5 后仰加力：手机慢慢往后仰，看右侧力度',
+    cast: '3/5 下甩抛竿：朝水面快速下甩',
+    strike: '4/5 等"！"再上扬：看到"！"就快速抬起手机',
+    fight: '5/5 用圈罩住鱼：倾斜手机，让圈跟住鱼',
+    skip: '跳过引导',
+  },
   pause: { pause: '暂停', resume: '继续钓鱼' },
   card: {
     text: '开启体感钓鱼：面向水面，左右瞄准，慢慢俯仰调力度，快速下甩抛竿，看到"！"快速上扬。',
@@ -45,11 +59,29 @@ export const SCREEN_COPY = {
   calibrate: {
     button: '校准甩竿',
     done: (peak: number) => `校准完成：下甩 ${peak}°/s`,
-    failed: '没感到两次一致的下甩，再试一次',
+    failed: '没感到两次一致的下甩，点「校准甩竿」再试一次',
   },
 } as const;
 
 type Run = Pick<AnglingRun, 'mode' | 'phase' | 'phaseTick'>;
+
+/**
+ * How far the aim must turn and the power rise before the guide counts the step learned:
+ * past the wobble of a steady hand (a third of the aim, well into the precise band).
+ */
+const GUIDE_AIM = {
+  direction: Math.round(FISHING.input.maxDirection / 3),
+  power: 65,
+};
+/** Where each guide step is taught: aiming before a run, then the run's phases. */
+const GUIDE_PHASES: Record<GuideStep, readonly (AnglingRun['phase'] | null)[]> =
+  {
+    aim: [null],
+    power: [null],
+    cast: [null],
+    strike: ['waiting', 'hook'],
+    fight: ['fight'],
+  };
 
 /**
  * What the fishing scene shows (spec 015). Pure: the DOM only applies this, after every
@@ -73,6 +105,7 @@ export function fishingScreen(view: FishingView, run: Run | null) {
   // A button run keeps its own controls even while the phone's motion is on.
   const overlay = playable && (!!motionRun || (active && !run));
   const aiming = overlay && !motionRun && active;
+  const guide = overlay && active ? guideStep(view, motionRun) : null;
   return {
     /** The manual "ready to cast" area. */
     readyToCast: river && !run && !active && !motionCard,
@@ -113,7 +146,9 @@ export function fishingScreen(view: FishingView, run: Run | null) {
     bite: overlay && motionRun?.phase === 'hook',
     /** The fish, the player's ring and the hold meter. */
     fight: overlay && motionRun?.phase === 'fight',
-    hint: hint(view, motionRun),
+    hint: guide ? SCREEN_COPY.guide[guide] : hint(view, motionRun),
+    /** The first-cast guide's step whose hint shows, with a way to skip the guide. */
+    guide,
     pauseLabel: view.paused
       ? SCREEN_COPY.pause.resume
       : SCREEN_COPY.pause.pause,
@@ -126,13 +161,15 @@ const strikable = (run: Run) =>
 
 /**
  * The rod gesture that counts now: a cast before a run, a lift while a motion run waits
- * for or has a bite; none while motion is off, play is covered or the run is paused.
+ * for or has a bite; none while motion is off, play is covered, the rod is calibrating
+ * or the run is paused.
  */
 export function motionWant(
   view: FishingView,
   run: Run | null,
 ): 'cast' | 'lift' | null {
-  if (!motionActive(view) || !canPlay(view)) return null;
+  if (!motionActive(view) || !canPlay(view) || view.motion.calibrating)
+    return null;
   if (!run) return 'cast';
   return !view.paused && strikable(run) ? 'lift' : null;
 }
@@ -149,6 +186,34 @@ export function motionNibble(run: AnglingRun | null): number | null {
       run.phaseTick >= at && run.phaseTick < at + FISHING.motion.nibbleTicks,
   );
   return index === -1 ? null : index;
+}
+
+/** The guide's aim steps a motion aim preview shows done: a clear turn, a clear pitch back. */
+export function aimedSteps(aim: {
+  direction: number;
+  power: number;
+}): GuideStep[] {
+  const steps: GuideStep[] = [];
+  if (Math.abs(aim.direction) >= GUIDE_AIM.direction) steps.push('aim');
+  if (aim.power >= GUIDE_AIM.power) steps.push('power');
+  return steps;
+}
+
+type HoldRun = Pick<AnglingRun, 'id' | 'mode' | 'phase' | 'hold'>;
+/** Core counted the ring over the fish on this world change: the guide's last step. */
+export const ringHeld = (before: HoldRun | null, after: HoldRun | null) =>
+  after?.mode === 'motion' &&
+  after.phase === 'fight' &&
+  before?.id === after.id &&
+  before.phase === 'fight' &&
+  after.hold > before.hold;
+
+/** The guide step taught now: not over calibration, a notice or a pause. */
+function guideStep(view: FishingView, motionRun: Run | null): GuideStep | null {
+  const step = view.motion.guide;
+  if (!step || view.motion.calibrating) return null;
+  if (motionRun ? view.paused : view.motion.notice) return null;
+  return GUIDE_PHASES[step].includes(motionRun?.phase ?? null) ? step : null;
 }
 
 function hint(view: FishingView, motionRun: Run | null): string {

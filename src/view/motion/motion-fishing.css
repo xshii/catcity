@@ -35,6 +35,16 @@
   border-radius: 999px;
   font-size: 13px;
 }
+/* The first-cast guide's way out, under the calibrate button and clear of the hold bar. */
+.motion-guide-skip {
+  position: absolute;
+  left: 4px;
+  top: 40px;
+  pointer-events: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
 #motion-fishing.nibble .motion-fishing-hint {
   animation: motion-nibble 0.3s ease-in-out;
 }

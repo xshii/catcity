@@ -40,6 +40,8 @@ function syntheticLog(
     preference: 'motion',
     needsPermission: true,
     coarsePointer: true,
+    guide: null,
+    autoCalibrate: false,
   });
   entry('view', {
     ...view,
