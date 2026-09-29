@@ -12,11 +12,11 @@ export function mountFishingLayout(
 ) {
   const get = (id: string) => document.getElementById(id)!;
   const shell = document.querySelector<HTMLElement>('.shell')!;
-  const mobile = window.matchMedia('(max-width: 760px)');
   shell.classList.add('game-screen');
   const status = document.createElement('div');
   status.className = 'river-status';
-  status.innerHTML = '<span id="river-coins" aria-label="城市金币"></span>';
+  status.innerHTML =
+    '<span class="coins" aria-label="城市金币"><span aria-hidden="true">●</span> <strong id="coins" data-testid="coins"></strong></span>';
   status.prepend(get('clock'), get('clock-speed'));
   get('map-heading').append(status);
 
@@ -87,21 +87,15 @@ export function mountFishingLayout(
   );
   gearRoot.querySelector('.fishing-settings')!.remove();
 
-  const { pages: chat, show: showChat } = groups(
-    get('river-panel-chat'),
-    'chat',
-    [
-      ['talk', '说说话'],
-      ['memory', '共同回忆'],
-    ],
-  );
-  chat.talk!.append(
-    get('river-panel-chat').querySelector('.desktop-chat-hint')!,
-  );
-  const catCard = document.querySelector<HTMLElement>('.cat-card')!;
-  const catHome = document.createComment('desktop companion');
-  catCard.before(catHome);
-  chat.memory!.append(document.querySelector<HTMLElement>('.journal')!);
+  // Everything about the cats lives in one panel, the same on every screen.
+  const { pages: cats, show: showCats } = groups(get('panel-cats'), 'cats', [
+    ['roster', '猫咪'],
+    ['talk', '说说话'],
+    ['memory', '共同回忆'],
+  ]);
+  cats.roster!.append(get('river-roster'), get('invite-pepper'));
+  cats.talk!.append(document.querySelector<HTMLElement>('.cat-card')!);
+  cats.memory!.append(document.querySelector<HTMLElement>('.journal')!);
   const replyPages = document.createElement('div');
   replyPages.className = 'reply-pages';
   replyPages.innerHTML =
@@ -113,10 +107,6 @@ export function mountFishingLayout(
   const refresh = () => {
     const world = session.getSnapshot();
     navigation.refresh();
-    get('river-coins').textContent = `● ${world.coins}`;
-    if (mobile.matches) {
-      if (catCard.parentElement !== chat.talk) chat.talk!.append(catCard);
-    } else if (catCard.previousSibling !== catHome) catHome.after(catCard);
     const cat = world.cats.find((cat) => cat.id === session.selectedEntity);
     const fullReply =
       cat?.memories.at(-1)?.reply ??
@@ -145,15 +135,18 @@ export function mountFishingLayout(
     replyPage++;
     refresh();
   });
-  mobile.addEventListener('change', refresh);
   refresh();
   return {
     ...navigation,
     refresh,
-    /** Open the chat panel on its conversation page in the current scene. */
+    /** Fishing controls placed in the gear panel: the travel line and the settings page. */
+    travelDuration: travel.querySelector<HTMLElement>('#travel-duration')!,
+    travelButton: travel.querySelector<HTMLButtonElement>('#travel-to-spot')!,
+    settings: gear.supplies!,
+    /** Open the cats panel on its conversation page in the current scene. */
     openTalk() {
-      navigation.open('chat');
-      showChat('talk');
+      navigation.open('cats');
+      showCats('talk');
     },
   };
 }

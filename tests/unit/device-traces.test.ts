@@ -2,10 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  DEVICE_FIXTURES,
   extractDeviceTrace,
   type DeviceTrace,
 } from '../../harness/adapters/catcity/device-trace';
 import { FISHING } from '../../src/content/fishing';
+import {
+  initialFishingView,
+  type FishingView,
+} from '../../src/view/fishing/view-state';
 import { DEFAULT_TUNING } from '../../src/view/motion/rod';
 import { replayDeviceTrace } from '../helpers/device-replay';
 
@@ -31,22 +36,16 @@ function syntheticLog(
   entry('device', { build: 'test', ua: 'synthetic' });
   entry('tuning', { ...DEFAULT_TUNING });
   // The fishing view as logged: motion on and nothing cast yet.
-  entry('view', {
-    place,
-    toolsOpen: false,
-    pageHidden: false,
-    paused: true,
-    pressed: false,
-    runId: null,
-    motion: {
-      preference: 'motion',
-      capability: 'ready',
-      needsPermission: true,
-      coarsePointer: true,
-      calibrating: false,
-      notice: null,
-    },
+  const view = initialFishingView({
+    preference: 'motion',
+    needsPermission: true,
+    coarsePointer: true,
   });
+  entry('view', {
+    ...view,
+    place,
+    motion: { ...view.motion, capability: 'ready' },
+  } satisfies FishingView);
   build({
     entry,
     now: () => t,
@@ -146,7 +145,7 @@ describe('device traces', () => {
   });
 
   it('replays every recorded device window to what the player meant', () => {
-    const directory = join(import.meta.dirname, '../fixtures/device');
+    const directory = join(import.meta.dirname, '../..', DEVICE_FIXTURES);
     let files: string[] = [];
     try {
       files = readdirSync(directory).filter((file) => file.endsWith('.json'));

@@ -59,6 +59,32 @@ export default tseslint.config(
     },
   },
   {
+    // A view module finds elements only inside what it created or was handed; the page
+    // mount passes other modules' elements as parameters (spec 015).
+    files: ['src/view/**/*.ts'],
+    ignores: [
+      // The page mount writes the page markup and hands its elements out.
+      'src/view/shell/panel.ts',
+      // Measures the floating bars of several modules by the selectors the harness shares.
+      'src/view/city/bars.ts',
+      // Not yet migrated (spec 015 step 4 follow-up).
+      'src/view/shell/layout.ts',
+      'src/view/shell/navigation.ts',
+      'src/view/companion/journal.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.name='document'][callee.property.name=/^(getElementById|querySelector|querySelectorAll|getElementsBy.*)$/]",
+          message:
+            "Don't look up the document: query inside an element this module created, or take the element as a parameter from the mount.",
+        },
+      ],
+    },
+  },
+  {
     files: ['src/application/**/*.ts', 'src/providers/**/*.ts'],
     rules: {
       'no-restricted-imports': [
