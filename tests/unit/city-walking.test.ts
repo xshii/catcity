@@ -1,4 +1,5 @@
 import { CARE } from '../../src/content/care';
+import { CITY_START } from '../../src/content/city';
 import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
@@ -22,10 +23,10 @@ it('moves one real tile per scheduled step, charges only that cat and persists t
     }).ok,
   ).toBe(true);
   const start = world.getSnapshot();
-  expect(start.minute).toBe(0);
+  expect(start.minute).toBe(CITY_START.minute);
   expect(start.cats[0]!.position).toEqual({ x: 5, y: 5 });
   expect(start.cats[0]!.walk!.route).toHaveLength(2);
-  expect(start.cats[0]!.walk!.nextStepMinute).toBe(5);
+  expect(start.cats[0]!.walk!.nextStepMinute).toBe(start.minute + 5);
   advance(world, 4);
   expect(world.getSnapshot().cats[0]!.position).toEqual(
     start.cats[0]!.position,
@@ -87,7 +88,9 @@ it('uses stone road timing and rejects water, occupied destinations and invalid 
   expect(
     world.dispatch({ type: 'WALK_CAT', catId: 'mochi', destination }).ok,
   ).toBe(true);
-  expect(world.getSnapshot().cats[0]!.walk!.nextStepMinute).toBe(3);
+  expect(world.getSnapshot().cats[0]!.walk!.nextStepMinute).toBe(
+    CITY_START.minute + 3,
+  );
   advance(world, 3);
   expect(world.getSnapshot().cats[0]!.position).toEqual(destination);
   const water = world
@@ -140,7 +143,7 @@ it('requires actually reaching a shore before fishing and keeps locked travel at
       spotId: 'POND',
     }).ok,
   ).toBe(true);
-  expect(world.getSnapshot().minute).toBe(0);
+  expect(world.getSnapshot().minute).toBe(CITY_START.minute);
   expect(world.getSnapshot().cats[0]!.walk).not.toBeNull();
   expect(
     world.dispatch({
@@ -182,7 +185,7 @@ it('stops blocked destinations after building and keeps competing walkers separa
   expect(built).toMatchObject({
     ok: true,
     events: expect.arrayContaining([
-      { type: 'WalkBlocked', minute: 0, entityId: 'mochi' },
+      { type: 'WalkBlocked', minute: CITY_START.minute, entityId: 'mochi' },
     ]),
   });
   expect(world.getSnapshot().cats[0]!.walk).toBeNull();

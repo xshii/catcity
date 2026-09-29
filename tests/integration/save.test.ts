@@ -70,7 +70,8 @@ it.each([
   if (kind === 'negative-money') save.world.coins = -1;
   if (kind === 'overlap') save.world.cats[0].position = { x: 3, y: 3 };
   if (kind === 'out-of-bounds') save.world.cats[0].position.x = 10;
-  if (kind === 'future-memory') save.world.cats[0].memories[0].minute = 100;
+  if (kind === 'future-memory')
+    save.world.cats[0].memories[0].minute = save.world.minute + 1;
   if (kind === 'duplicate-cat') save.world.cats.push(save.world.cats[0]);
   expect(() => loadWorld(JSON.stringify(save))).toThrow();
 });

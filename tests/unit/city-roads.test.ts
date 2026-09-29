@@ -20,7 +20,9 @@ it('removes an unused road with a full refund, after which the tile can be built
   expect(road(world, 3, 5)).toBe('DIRT');
   expect(world.dispatch({ type: 'REMOVE_ROAD', position })).toEqual({
     ok: true,
-    events: [{ type: 'CityChanged', minute: 0, action: 'REMOVE_ROAD' }],
+    events: [
+      { type: 'CityChanged', minute: CITY_START.minute, action: 'REMOVE_ROAD' },
+    ],
   });
   expect(road(world, 3, 5)).toBeNull();
   expect(world.getSnapshot().coins).toBe(1000 + ROAD_PRICE.DIRT);

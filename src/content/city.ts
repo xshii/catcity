@@ -39,6 +39,8 @@ export const CITY_TIME = { waitMinutes: 10, speeds: [1, 2, 4] } as const;
 export const CITY_START = {
   size: 10,
   coins: 1000,
+  /** A new game opens at 07:00 on day 1. */
+  minute: 7 * 60,
   starterDistrict: { min: 3, max: 6 },
   crossroads: { x: 5, y: 5 },
 } as const;

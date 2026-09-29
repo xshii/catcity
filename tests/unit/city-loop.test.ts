@@ -1,4 +1,5 @@
 import { advance, buildCafe } from '../helpers/world';
+import { CITY_START } from '../../src/content/city';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 
@@ -65,7 +66,7 @@ it('buys land and a road before building a connected cafe, and preserves income 
   ).toBe(true);
   expect(world.getSnapshot().buildings[0]).toMatchObject({
     id: building.id,
-    builtAtMinute: 0,
+    builtAtMinute: CITY_START.minute,
     position: { x: 6, y: 4 },
   });
   expect(world.getSnapshot().coins).toBe(620);
