@@ -18,7 +18,7 @@ export const MOOD = {
   /** A chat, at most once per `chatCooldownMinutes` for each cat. */
   chat: 2,
   chatCooldownMinutes: 60,
-  catch: 3,
+  catch: 5,
   gift: 3,
   favoriteGift: 8,
   /** A run that ends with the fish getting away (a cancel does not). */

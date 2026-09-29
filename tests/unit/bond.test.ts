@@ -102,10 +102,12 @@ describe('bond points (spec 038)', () => {
   });
 
   it('a favourite fish given earns more than another fish', () => {
-    const world = fishingFixture(42);
+    let world = fishingFixture(42);
     world.dispatch({ type: 'INVITE_PEPPER' });
     catchFish(world);
     catchFish(world);
+    // The catches cheered Mochi up; a calm cat shows the plain points.
+    world = edited(world, (cat) => (cat.mood = MOOD.happy - 1));
     const [mochi, pepper] = world.getSnapshot().cats;
     const before = mochi!.playerBond;
     // Both pond fish are Mochi's favourites and neither is Pepper's.

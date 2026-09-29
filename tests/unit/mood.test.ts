@@ -224,7 +224,7 @@ describe('a happy cat takes half of every gain (spec 038)', () => {
       half(MOOD.favoriteGift),
       half(MOOD.chat),
     ]);
-    expect(half(MOOD.catch)).toBe(1);
+    expect(half(MOOD.catch)).toBe(2);
     expect(half(MOOD.favoriteGift)).toBe(4);
   });
 

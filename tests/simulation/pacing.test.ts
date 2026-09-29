@@ -168,10 +168,8 @@ const levelNamed = (name: string) =>
 
 /**
  * Target ranges from specs/037-cat-life/numbers.md §9: [what, measure, min, max].
- * Measured 2026-09-29 (novice / skilled): reeds 4 / 4, moon lake 52 / 42, full skill
- * 414 / 284, 信任 75 / 75, 家人 750 / 750. The skilled player's 42 fish to the moon lake
- * are under the range: its 3★ fish earn 25 XP each where the design assumed 20. The
- * numbers are the design's and the range is left as it is (spec 038, 已知偏差).
+ * Measured 2026-09-29 (novice / skilled): reeds 5 / 5, moon lake 54 / 45, full skill
+ * 432 / 294, 信任 66 / 66, 家人 650 / 644.
  */
 const TARGETS: [string, (pace: Pace) => number, number, number][] = [
   ['fish to open the reeds', (pace) => pace.opened.REEDS!, 4, 8],
@@ -196,8 +194,8 @@ it.each(
   },
 );
 
-// Measured 2026-09-29: 0 of 750 casts. At a cast an hour a catch lifts 79 to 82 and the
-// hour's drift of 4 brings it back to 78, so no cast begins happy (spec 038, 已知偏差).
+// Measured 2026-09-29: 33% (novice 31%). The share follows the rhythm of `CAST_MINUTES`:
+// at 45 game minutes a cast it is 66%, at 30 and at 20 it is 99% (spec 038).
 it('a skilled player who only fishes has a happy cat on 30–50% of the casts', () => {
   const { casts, happyCasts } = paceOf('skilled');
   const share = Math.round((happyCasts / casts) * 100);

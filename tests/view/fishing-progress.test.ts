@@ -10,7 +10,7 @@ import {
   showBagFish,
 } from '../helpers/view-player';
 import { pondDirection, progressSaves } from '../helpers/fishing-progress';
-import { skillXp } from '../../src/content/fishing';
+import { catchXp, fishById, skillXp } from '../../src/content/fishing';
 
 // Each test starts from progress played once through Core and plays one step in the page.
 let saves: ReturnType<typeof progressSaves>;
@@ -25,6 +25,7 @@ const spotOption = (spotId: string) =>
 describe('skill and atlas unlock a new waterway; bait changes catches and Pepper receives a favorite fish', () => {
   it('the catch that brings skill and atlas far enough opens the reeds', () => {
     const game = openAt(saves.oneCatchShort);
+    const before = game.world().fishing.xp;
     enterRiver(game);
     openGear(game);
     expect(spotOption('REEDS').disabled).toBe(true);
@@ -32,11 +33,16 @@ describe('skill and atlas unlock a new waterway; bait changes catches and Pepper
     closeRiverPanel();
     click('#cast-start');
     catchFish(game);
-    expect(game.world().fishing.xp).toBe(skillXp(2));
+    // A crucian on a run begun happy: the catches before it cheered Mochi up.
+    const xp = before + catchXp(fishById('CRUCIAN').stars, true);
+    expect(before).toBeLessThan(skillXp(2));
+    expect(xp).toBeGreaterThanOrEqual(skillXp(2));
+    expect(game.world().fishing.xp).toBe(xp);
+    expect(game.world().fishing.lastResult!.speciesId).toBe('CRUCIAN');
     openGear(game);
     expect(text('#fishing-level')).toBe('钓技 Lv.2');
     expect(text('#fishing-resources')).toContain(
-      `经验 ${skillXp(2)} / ${skillXp(3)} 升级`,
+      `经验 ${xp} / ${skillXp(3)} 升级`,
     );
     expect(spotOption('REEDS').disabled).toBe(false);
   });
