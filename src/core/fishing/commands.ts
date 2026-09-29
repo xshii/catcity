@@ -216,7 +216,13 @@ export function applyAngling(
         };
         // The bond reads the mood the cat was in before this catch lifts it.
         rewardBond(cat, BOND.catch);
-        liftMood(cat, MOOD.catch);
+        if (
+          cat.lastCatchMoodMinute === null ||
+          world.minute - cat.lastCatchMoodMinute >= MOOD.catchCooldownMinutes
+        ) {
+          liftMood(cat, MOOD.catch);
+          cat.lastCatchMoodMinute = world.minute;
+        }
       } else if (next.phase === 'escaped') {
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.mood = Math.max(0, cat.mood - MOOD.escape);

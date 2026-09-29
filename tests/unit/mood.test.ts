@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { advance, interact } from '../helpers/world';
-import { fishingFixture, finishFishing } from './fishing-fixture';
+import { catsAtPond, fishingFixture, finishFishing } from './fishing-fixture';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import { MOOD, moodBand } from '../../src/content/mood';
 import { FISH_IDS, fishById } from '../../src/content/fishing';
@@ -148,7 +148,7 @@ describe('chat', () => {
   });
 
   it('keeps its hour whatever the bond earned: once a day there, hourly here', () => {
-    const world = withMood(50, fishingFixture(42));
+    const world = withMood(40, fishingFixture(42));
     // A catch takes nothing from the chat's hour.
     world.dispatch({
       type: 'FISH_BEGIN',
@@ -160,7 +160,7 @@ describe('chat', () => {
     });
     finishFishing(world);
     interact(world, 'mochi', '你好', '喵');
-    expect(moodOf(world)).toBe(50 + MOOD.catch + MOOD.chat);
+    expect(moodOf(world)).toBe(40 + MOOD.catch + MOOD.chat);
     const bond = world.getSnapshot().cats[0]!.playerBond;
     advance(world, MOOD.chatCooldownMinutes);
     const drifted = moodOf(world);
@@ -210,9 +210,10 @@ describe('a happy cat takes half of every gain (spec 038)', () => {
     });
   };
 
-  it('in full just below the happy line', () => {
-    expect(gains(MOOD.happy - 1)).toEqual([
-      MOOD.catch,
+  it('in full below the happy line, up to just under it', () => {
+    expect(gains(40)).toEqual([MOOD.catch, MOOD.favoriteGift, MOOD.chat]);
+    // A catch from here would run into the top of the range.
+    expect(gains(MOOD.happy - 1).slice(1)).toEqual([
       MOOD.favoriteGift,
       MOOD.chat,
     ]);
@@ -224,7 +225,7 @@ describe('a happy cat takes half of every gain (spec 038)', () => {
       half(MOOD.favoriteGift),
       half(MOOD.chat),
     ]);
-    expect(half(MOOD.catch)).toBe(2);
+    expect(half(MOOD.catch)).toBe(17);
     expect(half(MOOD.favoriteGift)).toBe(4);
   });
 
@@ -305,14 +306,87 @@ describe('fishing', () => {
   };
 
   it('keeps the catch and gift rewards', () => {
-    const world = withMood(50, fishingFixture(42));
+    const world = withMood(30, fishingFixture(42));
     begin(world, 'buttons');
     finishFishing(world);
-    expect(moodOf(world)).toBe(50 + MOOD.catch);
+    expect(moodOf(world)).toBe(30 + MOOD.catch);
     const fish = world.getSnapshot().fishing.inventory[0]!;
     // Silver is Mochi's favourite.
     world.dispatch({ type: 'GIFT_FISH', fishId: fish.id, catId: 'mochi' });
-    expect(moodOf(world)).toBe(50 + MOOD.catch + MOOD.favoriteGift);
+    expect(moodOf(world)).toBe(30 + MOOD.catch + MOOD.favoriteGift);
+  });
+
+  it('lifts mood with the first catch of each cooldown, not with the ones after it', () => {
+    const world = withMood(30, fishingFixture(42));
+    const land = () => {
+      begin(world, 'buttons');
+      finishFishing(world);
+    };
+    land();
+    land();
+    expect(moodOf(world)).toBe(30 + MOOD.catch);
+    advance(world, MOOD.catchCooldownMinutes - 1);
+    const waited = moodOf(world);
+    land();
+    expect(moodOf(world)).toBe(waited);
+    advance(world, 1);
+    const rested = moodOf(world);
+    land();
+    expect(moodOf(world)).toBe(rested + MOOD.catch);
+    land();
+    expect(moodOf(world)).toBe(rested + MOOD.catch);
+    expect(loadWorld(world.save()).save()).toBe(world.save());
+  });
+
+  it('counts the cooldown for each cat and rejects one from the future', () => {
+    const world = withMood(30, fishingFixture(42));
+    world.dispatch({ type: 'INVITE_PEPPER' });
+    const ready = edited(catsAtPond(world), (cats) =>
+      cats.forEach((cat) => (cat.mood = 30)),
+    );
+    begin(ready, 'buttons');
+    finishFishing(ready);
+    const pepper = ready.getSnapshot().cats[1]!;
+    ready.dispatch({
+      type: 'FISH_BEGIN',
+      catId: pepper.id,
+      spotId: 'POND',
+      baitId: 'BREAD',
+      direction: -30,
+      aimDepth: 50,
+    });
+    finishFishing(ready);
+    expect(moodOf(ready, 1)).toBe(30 + MOOD.catch);
+    const state = ready.getSnapshot();
+    expect(state.cats[0]!.lastCatchMoodMinute).toBe(state.minute);
+    state.cats[0]!.lastCatchMoodMinute = state.minute + 1;
+    expect(() => new World(state)).toThrow();
+  });
+
+  it('a fish that gets away costs mood every time, inside the cooldown too', () => {
+    const world = withMood(30, fishingFixture(42));
+    begin(world, 'buttons');
+    finishFishing(world);
+    for (const lost of [1, 2]) {
+      begin(world);
+      missBite(world);
+      expect(moodOf(world)).toBe(30 + MOOD.catch - lost * MOOD.escape);
+    }
+  });
+
+  it('gives the same mood in one advance as in minute steps between catches', () => {
+    const world = withMood(30, fishingFixture(42));
+    begin(world, 'buttons');
+    finishFishing(world);
+    const stepwise = loadWorld(world.save());
+    advance(world, MOOD.catchCooldownMinutes);
+    for (let minute = 0; minute < MOOD.catchCooldownMinutes; minute++)
+      advance(stepwise, 1);
+    for (const game of [world, stepwise]) {
+      begin(game, 'buttons');
+      finishFishing(game);
+    }
+    expect(stepwise.save()).toBe(world.save());
   });
 
   it('costs the run cat a little when the fish gets away, not on a cancel', () => {

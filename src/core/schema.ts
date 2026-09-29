@@ -63,6 +63,7 @@ const catSchema = z.strictObject({
     })
     .nullable(),
   lastChatMoodMinute: integer.nullable(),
+  lastCatchMoodMinute: integer.nullable(),
   fishingSpotId: spotIdSchema.nullable(),
   walk: z
     .strictObject({
@@ -150,9 +151,12 @@ export function assertWorld(value: unknown): WorldState {
     assertTemplate(cat, world.cats);
     if (
       (cat.chatBond !== null && cat.chatBond.day > gameDay(world.minute)) ||
-      (cat.lastChatMoodMinute !== null && cat.lastChatMoodMinute > world.minute)
+      (cat.lastChatMoodMinute !== null &&
+        cat.lastChatMoodMinute > world.minute) ||
+      (cat.lastCatchMoodMinute !== null &&
+        cat.lastCatchMoodMinute > world.minute)
     )
-      throw new Error('Future chat');
+      throw new Error('Future mood lift');
     if (
       cat.home !== null &&
       !world.buildings.some((building) => building.id === cat.home)

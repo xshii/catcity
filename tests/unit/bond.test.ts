@@ -95,9 +95,11 @@ describe('bond points (spec 038)', () => {
   });
 
   it('every catch counts: the clock no longer limits the bond', () => {
-    const world = fishingFixture(42);
+    // Calm enough to stay calm after the first catch cheers it up.
+    const world = edited(fishingFixture(42), (cat) => (cat.mood = 40));
     catchFish(world);
     catchFish(world);
+    expect(cat(world).mood).toBeLessThan(MOOD.happy);
     expect(cat(world).playerBond).toBe(2 * BOND.catch);
   });
 

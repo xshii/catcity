@@ -100,7 +100,8 @@ describe('bond level in the cats panel (spec 036)', () => {
     });
     finishFishing(played);
     const state = played.getSnapshot();
-    state.cats[0]!.playerBond = short;
+    // Calm again: the catch made Mochi happy, and a happy cat would earn one more.
+    Object.assign(state.cats[0]!, { playerBond: short, mood: 50 });
     const next = openGame({
       storage: { 'cat-city.save.v1': new World(state).save() },
     });

@@ -349,9 +349,7 @@ it('unlocks distinct waterways through skill and discoveries, with real bait/dir
   expect(catchAt('POND', 'BREAD', -30)).toBe('SILVER');
   expect(catchAt('POND', 'BREAD', 30)).toBe('CRUCIAN');
   catchAt('POND', 'BREAD', 0);
-  // Two species are not enough: the reeds also take the skill of two more catches.
-  expect(travel('REEDS')).toEqual({ ok: false, error: 'SPOT_LOCKED' });
-  catchAt('POND', 'BREAD', 0);
+  // Two species are not enough: the reeds also take the skill of a fourth catch.
   expect(travel('REEDS')).toEqual({ ok: false, error: 'SPOT_LOCKED' });
   catchAt('POND', 'BREAD', 0);
   expect(catchAt('REEDS', 'WORM', 0)).toBe('PERCH');

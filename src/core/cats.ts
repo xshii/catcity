@@ -38,6 +38,7 @@ export function instantiateCat(
     home: null,
     chatBond: null,
     lastChatMoodMinute: null,
+    lastCatchMoodMinute: null,
   };
 }
 

@@ -18,7 +18,13 @@ export const MOOD = {
   /** A chat, at most once per `chatCooldownMinutes` for each cat. */
   chat: 2,
   chatCooldownMinutes: 60,
-  catch: 5,
+  /**
+   * A fish caught together, at most once per `catchCooldownMinutes` for each cat: one
+   * large lift that wears off over hours, so the time a cat is happy follows the game
+   * clock and not how fast the player casts (spec 038).
+   */
+  catch: 34,
+  catchCooldownMinutes: 15 * 60,
   gift: 3,
   favoriteGift: 8,
   /** A run that ends with the fish getting away (a cancel does not). */
