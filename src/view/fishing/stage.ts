@@ -8,10 +8,11 @@ import {
   SPOTS,
   type SpotId,
 } from '../../content/fishing';
-import { catIdle, MAX_STAT, type CatEntity, type WorldState } from '../../core';
+import { MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
 import { moodBadge } from '../shell/mood';
 import { catPortrait, fishIllustration } from '../art/illustrations';
+import { catPose } from '../art/cat-look';
 import { riverBackdrop } from '../art/river-palette';
 
 /** The river caption before a run. */
@@ -21,8 +22,7 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   const button = document.createElement('button');
   button.className = 'energy-cat';
   button.dataset.catId = cat.id;
-  let coat = cat.appearance.coat;
-  button.innerHTML = catPortrait(coat);
+  let portrait = '';
   const text = document.createElement('span');
   const name = document.createElement('strong');
   const energy = document.createElement('small');
@@ -34,19 +34,22 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   mood.setAttribute('role', 'img');
   const hint = document.createElement('small');
   hint.className = 'mood-hint';
-  const sleep = document.createElement('b');
-  sleep.className = 'sleep-mark';
-  sleep.textContent = 'zZ';
-  text.append(name, energy, progress, activity, mood, hint);
-  button.append(text, sleep);
+  // The curled portrait shows it; screen readers hear the words.
+  const rest = document.createElement('small');
+  rest.className = 'rest-label';
+  rest.textContent = '在休息';
+  text.append(name, energy, progress, activity, rest, mood, hint);
+  button.append(text);
   button.addEventListener('click', () => select(cat.id));
   return {
     button,
     update(cat: CatEntity, world: WorldState, selected: string) {
-      if (coat !== cat.appearance.coat) {
-        coat = cat.appearance.coat;
-        button.querySelector('svg')!.remove();
-        button.insertAdjacentHTML('afterbegin', catPortrait(coat));
+      const pose = catPose(world, cat);
+      const next = catPortrait(cat.appearance.coat, pose);
+      if (portrait !== next) {
+        portrait = next;
+        button.querySelector('svg')?.remove();
+        button.insertAdjacentHTML('afterbegin', portrait);
       }
       button.setAttribute('aria-pressed', String(cat.id === selected));
       button.disabled = !!world.fishing.active;
@@ -54,13 +57,12 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
       energy.textContent = `${CAT_BREEDS[cat.breedId].name} · ${cat.needs.energy}/${MAX_STAT}`;
       progress.value = cat.needs.energy;
       progress.setAttribute('aria-label', `${cat.name} 体力`);
-      const recovering = catIdle(world, cat) && cat.needs.energy < MAX_STAT;
       activity.textContent = cat.walk
         ? `步行中 · 剩 ${cat.walk.route.length} 格`
         : cat.fishingSpotId
           ? `在${SPOTS[cat.fishingSpotId].name}岸边`
           : '在小城里';
-      sleep.hidden = !recovering;
+      rest.hidden = !pose.curled;
       const badge = moodBadge(cat.mood);
       mood.textContent = badge.text;
       mood.setAttribute('aria-label', badge.label);

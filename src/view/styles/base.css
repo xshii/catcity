@@ -921,14 +921,15 @@ input::placeholder {
   background: var(--btn-primary-bg);
   border-radius: var(--radius-pill);
 }
-.sleep-mark {
+/* A resting cat shows as its curled portrait; the words are for screen readers. */
+.energy-cat .rest-label {
   position: absolute;
-  left: 7px;
-  top: 4px;
-  color: var(--text-muted);
-  font:
-    italic 14px Georgia,
-    serif;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 #fishing-stage:not(.is-river) .scene-ready {
   display: none;

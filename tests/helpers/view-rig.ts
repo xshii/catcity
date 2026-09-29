@@ -13,6 +13,8 @@ vi.mock('phaser', () => ({
     Scale: { FIT: 0, CENTER_BOTH: 0 },
     Game: class {},
     Scene: class {},
+    // Classes the art extends when its module loads (cat art is a Container).
+    GameObjects: { Container: class {} },
   },
 }));
 

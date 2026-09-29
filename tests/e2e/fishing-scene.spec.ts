@@ -45,7 +45,9 @@ test('scene input aims at water, cat cards switch independent stamina, and idle 
   );
   // Nothing to press: an idle, tired cat shows that it is recovering.
   await openCats(page);
-  await expect(page.locator('[data-cat-id="mochi"] .sleep-mark')).toBeVisible();
+  await expect(page.locator('[data-cat-id="mochi"]')).toHaveAccessibleName(
+    /在休息/,
+  );
   await page.locator('#invite-pepper').click();
   const pepper = (await readWorld(page)).cats[1]!;
   await page.locator(`[data-cat-id="${pepper.id}"]`).click();
