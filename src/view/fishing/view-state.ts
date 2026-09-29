@@ -24,7 +24,10 @@ export interface FishingView {
   pressed: boolean;
   /** The run last seen; a new run starts paused. */
   runId: string | null;
-  /** The last run this page saw on the river; its result is "this catch" until the player leaves. */
+  /**
+   * The last run this page saw on the river; its result is "this catch" until the player
+   * leaves, or until a notice is raised over its card.
+   */
   watched: string | null;
   motion: {
     preference: Preference;
@@ -67,6 +70,8 @@ export type FishingViewEvent =
   /** Starting calibration (from the settings sheet) closes the sheet. */
   | { type: 'calibrating'; on: boolean }
   | { type: 'notice'; text: string | null }
+  /** The notice bar was given a message, by anything on the page. */
+  | { type: 'said' }
   /** The player did a guide step's move; only the step being taught moves on. */
   | { type: 'guide'; did: GuideStep }
   | { type: 'skip-guide' };
@@ -194,6 +199,11 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
           });
     case 'notice':
       return motion({ notice: event.text });
+    case 'said':
+      // The catch card gives way to a newer notice; a run's own notices change nothing.
+      return view.runId === null && view.watched
+        ? { ...view, watched: null }
+        : view;
     case 'guide':
       return event.did === view.motion.guide && motionActive(view)
         ? motion({

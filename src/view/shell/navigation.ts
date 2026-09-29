@@ -93,6 +93,8 @@ export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
     }
     const river = place === 'river';
     shell.classList.toggle('river-screen', river);
+    // The notice shows over an open panel (layout.css).
+    shell.classList.toggle('panel-open', selected !== null);
     root.hidden = false;
     sheet.hidden = selected === null;
     shade.hidden = sheet.hidden;

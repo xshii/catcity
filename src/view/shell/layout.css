@@ -90,11 +90,13 @@ body {
 .game-screen #notice {
   position: absolute;
   z-index: 32;
-  left: 50%;
   top: calc(var(--under-bar) + 40px);
-  transform: translateX(-50%);
+  /* Centred, as wide as its words: up to the width between the sides, not half of it. */
+  left: 16px;
+  right: 16px;
+  width: fit-content;
   max-width: min(92vw, 560px);
-  margin: 0;
+  margin: 0 auto;
   padding: 4px 12px;
   border-radius: var(--radius-pill);
   background: var(--float-bg);
@@ -107,6 +109,16 @@ body {
 }
 .game-screen #notice:empty {
   display: none;
+}
+/*
+ * An open panel covers the scene and the bar's usual place: the message shows over the
+ * panel, along its bottom edge, clear of its heading, tabs and controls.
+ */
+.game-screen.panel-open #notice {
+  z-index: 38;
+  top: auto;
+  bottom: calc(var(--over-nav) + 6px);
+  min-height: 0;
 }
 /* A message stays readable for a while, then gives the scene back. */
 .game-screen #notice.fading {
