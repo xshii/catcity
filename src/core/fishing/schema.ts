@@ -57,6 +57,7 @@ const anglingSchema = z.strictObject({
   spooked: z.boolean(),
   hold: count,
   happy: z.boolean(),
+  shadow: fishIdSchema.nullable(),
 });
 export const fishingSchema = z.strictObject({
   supplies: z.strictObject({ trash: count, cans: count, coinBags: count }),

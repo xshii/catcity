@@ -1,7 +1,7 @@
 import { FISHING, fishById } from '../content/fishing';
 import { MOOD } from '../content/mood';
 import { RandomService, streamSeed } from '../core/random';
-import type { AnglingRun } from './angling';
+import { shadowWait, type AnglingRun } from './angling';
 
 /**
  * Motion fishing (spec 030): nibbles and a bite after the cast, a timed lift, then a
@@ -20,7 +20,10 @@ const validTicks = (ticks: number) =>
 const onPlane = (value: number) =>
   Number.isInteger(value) && value >= 0 && value <= PLANE;
 
-/** Fake nibbles and the real bite, in waiting-phase ticks after the cast. */
+/**
+ * Fake nibbles and the real bite, in waiting-phase ticks after the cast; a shadow at the
+ * landing point brings them sooner or later (spec 033).
+ */
 export function motionSchedule(run: AnglingRun): {
   nibbles: number[];
   bite: number;
@@ -31,17 +34,19 @@ export function motionSchedule(run: AnglingRun): {
   let at = M.firstNibble.baseTicks + rng.nextInt(M.firstNibble.jitterTicks);
   const nibbles: number[] = [];
   for (let i = 0; i < count; i++) {
-    nibbles.push(at);
+    nibbles.push(shadowWait(run, at));
     at +=
       M.nibbleTicks +
       M.betweenNibbles.baseTicks +
       rng.nextInt(M.betweenNibbles.jitterTicks);
   }
   const bite =
-    at +
-    M.biteAfterNibbles.baseTicks +
-    rng.nextInt(M.biteAfterNibbles.jitterTicks) +
-    (run.spooked ? M.spook.delayTicks : 0);
+    shadowWait(
+      run,
+      at +
+        M.biteAfterNibbles.baseTicks +
+        rng.nextInt(M.biteAfterNibbles.jitterTicks),
+    ) + (run.spooked ? M.spook.delayTicks : 0);
   return { nibbles, bite };
 }
 

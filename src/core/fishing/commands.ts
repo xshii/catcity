@@ -8,6 +8,7 @@ import {
   skillLevel,
   spotOpen,
   type BaitId,
+  type FishId,
 } from '../../content/fishing';
 import { MOOD } from '../../content/mood';
 import { instantiateCat } from '../cats';
@@ -23,6 +24,7 @@ import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
 import { failureTrash } from './rewards';
+import { fishShadows, shadowAt } from './shadows';
 import { runSeed } from '../random';
 import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from '../limits';
 
@@ -41,6 +43,10 @@ export function applyAngling(
       action,
       entityId,
     });
+  /** The fish of the shadow this hour that a cast at `power` lands on (spec 033). */
+  const shadowUnder = (run: AnglingRun, power: number) =>
+    shadowAt(fishShadows(world, run.spotId), { ...run, power })?.speciesId ??
+    null;
   /** The cast itself costs stamina and one bait (bread is free); preparing is free. */
   const payForCast = (catId: string, baitId: BaitId) => {
     const cat = world.cats.find((cat) => cat.id === catId)!;
@@ -140,11 +146,20 @@ export function applyAngling(
       if (run.phase !== 'charge') throw new CommandError('CAST_NOT_READY');
       // Every cast pays, whether swung (motion) or given an explicit power.
       payForCast(run.catId, run.baitId);
-      fishing.active = castAngling(run, command.power);
+      fishing.active = castAngling(
+        run,
+        command.power,
+        shadowUnder(run, command.power),
+      );
       emit('waiting', run.id);
       return events;
     }
-    const next = advanceRun(run, command);
+    // A button release casts at the charged power.
+    const next = advanceRun(
+      run,
+      command,
+      run.phase === 'charge' ? shadowUnder(run, run.power) : null,
+    );
     // Releasing a button charge is the cast: it pays now.
     if (run.phase === 'charge' && next.phase !== 'charge')
       payForCast(run.catId, run.baitId);
@@ -247,6 +262,7 @@ function advanceRun(
     GameCommand,
     { type: 'FISH_CONTROL' | 'FISH_MOTION_CONTROL' | 'FISH_STRIKE' }
   >,
+  shadow: FishId | null,
 ): AnglingRun {
   if (run.mode === 'motion') {
     if (command.type === 'FISH_STRIKE') {
@@ -261,5 +277,5 @@ function advanceRun(
   }
   if (command.type !== 'FISH_CONTROL')
     throw new CommandError('WRONG_INPUT_MODE');
-  return stepAngling(run, command.pressed, command.ticks);
+  return stepAngling(run, command.pressed, command.ticks, shadow);
 }

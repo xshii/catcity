@@ -85,7 +85,8 @@ export function assertFishing(
         run.weight !== 0 ||
         run.lengthMm !== 0 ||
         run.lootAmount !== 0 ||
-        run.catchKind !== 'fish'
+        run.catchKind !== 'fish' ||
+        run.shadow !== null
       )
         throw new Error('Invalid fishing phase');
     } else {
@@ -94,8 +95,10 @@ export function assertFishing(
       assertCatch(run);
       if (run.speciesId && !canCatchFish(run.speciesId, run.catBreed))
         throw new Error('Invalid breed encounter');
-      // The encounter follows from the saved seed and cast inputs; a save cannot pick it.
-      const expected = castAngling(initialAngling(run), run.power);
+      if (run.shadow && !SPOTS[run.spotId].fish.includes(run.shadow))
+        throw new Error('Invalid fish shadow');
+      // The encounter follows from the saved seed and cast inputs (with the shadow landed on).
+      const expected = castAngling(initialAngling(run), run.power, run.shadow);
       for (const key of [
         'speciesId',
         'catchKind',
