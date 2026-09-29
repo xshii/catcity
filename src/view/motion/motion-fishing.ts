@@ -380,6 +380,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       return { x: finger.x, y: finger.y };
     return rodPoint;
   }
+  /** Where the ring is drawn: the held finger or rod tip, else the plane centre. */
+  const ringCentre = () => point() ?? PLANE_CENTRE;
 
   /** Applies the screen model; decides nothing itself. */
   function apply(model: FishingScreen, run: AnglingRun | null) {
@@ -438,7 +440,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     const fish = path.at(-1)!;
     const before = path.at(-2)!;
     const radius = ringRadius(next);
-    const rod = point() ?? PLANE_CENTRE;
+    const rod = ringCentre();
     // Colour the ring as Core judges: its hit test is a little wider than the drawing.
     const reach = radius + FISHING.motion.fight.toleranceUnits;
     const inside = (rod.x - fish.x) ** 2 + (rod.y - fish.y) ** 2 <= reach ** 2;
@@ -462,7 +464,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     );
   }
 
-  return { point, apply };
+  return { point, ringCentre, apply };
 }
 
 function readTuning(): RodTuning {

@@ -43,13 +43,35 @@ export function shadowPoint(direction: number, reach: number) {
   return waterPoint(direction, landingShare(reach, reach));
 }
 
+/** Perspective scale of something `share` out from the dock (1) toward the horizon. */
+const depthScale = (share: number) => 1 - 0.7 * share;
+
 /** Canvas point and perspective scale of a landing `share` out at `direction`. */
 export function waterPoint(direction: number, share: number) {
   const y = V.nearY - share * (V.nearY - V.horizonY);
   const half = V.nearHalf + (V.horizonHalf - V.nearHalf) * share;
   const x =
     V.centerX + (direction / FISHING.input.maxDirection) * half * V.aimSpread;
-  return { x, y, scale: 1 - 0.7 * share };
+  return { x, y, scale: depthScale(share) };
+}
+
+/**
+ * Canvas point and perspective scale of a point on the motion fight plane (0–100 each
+ * side), where the overlay draws the ring there.
+ */
+export function planePoint(point: { x: number; y: number }) {
+  const { left, top, side } = V.plane;
+  const y = V.size * (top + (side * point.y) / 100);
+  return {
+    x: V.size * (left + (side * point.x) / 100),
+    y,
+    scale: depthScale((V.nearY - y) / (V.nearY - V.horizonY)),
+  };
+}
+
+/** Fish shadows swim while aiming and waiting; the fight shows the hooked fish instead. */
+export function showsShadows(run: { phase: string } | null): boolean {
+  return run?.phase !== 'fight';
 }
 
 /**
