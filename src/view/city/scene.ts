@@ -3,6 +3,7 @@ import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
 import type { Position } from '../../core';
+import { walkingMinutes } from '../../core/city';
 import { CatArt } from '../art/cat';
 import { catPose } from '../art/cat-look';
 import type { City } from './panel';
@@ -26,6 +27,7 @@ import {
   tileCenter,
 } from './geometry';
 import { selectedNotice } from './screen';
+import { catchUp, leadMinutes, walkerAt } from './walk-glide';
 
 /** How a lifted cat looks (world px): raised over the finger, a little larger. */
 const LIFT = { rise: 40, scale: 1.15, riseMs: 140, left: 0.4 } as const;
@@ -35,6 +37,15 @@ export class CityScene extends Phaser.Scene {
   private ambience!: CityAmbience;
   private labels: Phaser.GameObjects.Text[] = [];
   private cats = new Map<string, CatArt>();
+  /** Each cat's name and the picked cat's ring move with its sprite. */
+  private names = new Map<string, Phaser.GameObjects.Text>();
+  private ring!: Phaser.GameObjects.Graphics;
+  /** Game minutes the walking cats are drawn ahead of `glidedFrom`, the last tick seen. */
+  private lead = 0;
+  private glidedFrom = -1;
+  private readonly still = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  );
   private river!: RiverView;
   private riverMode = false;
   private paintedState = '';
@@ -70,12 +81,18 @@ export class CityScene extends Phaser.Scene {
     private readonly onMessage: (message: string) => void,
     private readonly city: City,
     private readonly aim: AimControl,
+    /** Game minutes per real second chosen at the city clock. */
+    private readonly clockSpeed: () => number,
   ) {
     super('city');
   }
 
   create() {
     this.graphics = this.add.graphics();
+    this.ring = this.add
+      .graphics()
+      .lineStyle(2.5, CITY_COLOURS.selected)
+      .strokeRoundedRect(-23, -25, 46, 49, 10);
     this.ambience = new CityAmbience(this);
     this.river = new RiverView(this);
     const repaint = () => this.paint();
@@ -363,7 +380,7 @@ export class CityScene extends Phaser.Scene {
   }
 
   /** Frame the camera every frame, so a walking cat and a resized frame stay centred. */
-  update(time: number) {
+  update(time: number, delta: number) {
     // Frames drawn so far, so real-input tests can wait for the camera to catch up
     // instead of guessing a delay (harness settle()).
     this.game.canvas.dataset.frame = String(++this.frames);
@@ -384,6 +401,7 @@ export class CityScene extends Phaser.Scene {
       return;
     }
     this.ambience.update(time);
+    this.glide(delta);
     if (!this.frame.width || !this.frame.height || !this.tiles.width) return;
     // Time passes under a still finger; a lifted cat stays under it while the camera follows.
     if (this.gesture.phase === 'pressing')
@@ -429,19 +447,58 @@ export class CityScene extends Phaser.Scene {
       .centerOn(framed.center.x, framed.center.y + this.reveal);
   }
 
+  /**
+   * Walking cats glide along the route Core scheduled, for as long as each step takes at
+   * the chosen clock speed (walk-glide.ts); a standing cat is on its tile. With reduced
+   * motion cats move tile by tile as Core moves them.
+   */
+  private glide(realMs: number) {
+    const world = this.session.getSnapshot();
+    const speed = this.clockSpeed();
+    this.lead =
+      world.minute === this.glidedFrom
+        ? leadMinutes(this.lead, realMs, speed)
+        : 0;
+    this.glidedFrom = world.minute;
+    const still = this.still.matches;
+    const { walker } = this.city.view.get();
+    this.ring.setVisible(false);
+    for (const cat of world.cats) {
+      const sprite = this.cats.get(cat.id);
+      if (!sprite) continue;
+      const tile = still
+        ? cat.position
+        : walkerAt(
+            cat,
+            world.minute + this.lead,
+            (position) => walkingMinutes(world, position),
+            speed,
+          );
+      const target = tileCenter(tile.x, tile.y);
+      const { x, y } = still
+        ? target
+        : catchUp(sprite, target, realMs, MAP_VIEW.tile);
+      sprite.setPosition(x, y);
+      this.names.get(cat.id)?.setPosition(x, y + 31);
+      if (walker === cat.id) this.ring.setPosition(x, y).setVisible(true);
+    }
+  }
+
+  private text(x: number, y: number, text: string, size: number) {
+    return this.add
+      .text(x, y, text, {
+        fontFamily: LABEL.font,
+        resolution: 2,
+        fontSize: size,
+        color: LABEL.color,
+        stroke: LABEL.halo,
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+  }
+
   private label(x: number, y: number, text: string, size = 12) {
-    this.labels.push(
-      this.add
-        .text(x, y, text, {
-          fontFamily: LABEL.font,
-          resolution: 2,
-          fontSize: size,
-          color: LABEL.color,
-          stroke: LABEL.halo,
-          strokeThickness: 3,
-        })
-        .setOrigin(0.5),
-    );
+    this.labels.push(this.text(x, y, text, size));
   }
 
   private paint() {
@@ -463,7 +520,7 @@ export class CityScene extends Phaser.Scene {
       spotId: aim.spotId,
       ringCentre: this.aim.ringCentre(),
     });
-    const { selection, walker } = this.city.view.get();
+    const { selection } = this.city.view.get();
     const light = cityLight(world.minute);
     const signature = JSON.stringify([
       world.map,
@@ -498,31 +555,21 @@ export class CityScene extends Phaser.Scene {
       const { x, y } = tileCenter(cat.position.x, cat.position.y);
       let sprite = this.cats.get(cat.id);
       if (!sprite) {
+        // `glide` moves the sprite, its name and the ring from here on.
         sprite = new CatArt(this, x, y, 1, cat.appearance.coat).setDepth(5);
         this.cats.set(cat.id, sprite);
-      } else if (sprite.x !== x || sprite.y !== y) {
-        this.tweens.killTweensOf(sprite);
-        this.tweens.add({
-          targets: sprite,
-          x,
-          y,
-          duration: 400,
-          ease: 'Sine.easeInOut',
-        });
+        this.names.set(cat.id, this.text(x, y + 31, cat.name, 11).setDepth(1));
       }
       sprite.setPose(catPose(world, cat)).setVisible(!this.riverMode);
-      if (!this.riverMode) {
-        if (walker === cat.id)
-          this.graphics
-            .lineStyle(2.5, CITY_COLOURS.selected)
-            .strokeRoundedRect(x - 23, y - 25, 46, 49, 10);
-        this.label(x, y + 31, cat.name, 11);
-      }
+      this.names.get(cat.id)!.setVisible(!this.riverMode);
     }
+    if (this.riverMode) this.ring.setVisible(false);
     for (const [id, sprite] of this.cats)
       if (!world.cats.some((cat) => cat.id === id)) {
         sprite.destroy();
         this.cats.delete(id);
+        this.names.get(id)!.destroy();
+        this.names.delete(id);
       }
   }
 }
