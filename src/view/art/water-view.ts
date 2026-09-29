@@ -120,6 +120,23 @@ export function planePoint(point: { x: number; y: number }) {
 }
 
 /**
+ * The motion fight plane on the page: a square over the open water of the canvas as
+ * drawn (`art`), in pixels from the corner of the box that holds it (`box`). The motion
+ * overlay and the settings gear at its corner are both placed by this.
+ */
+export function planeBox(
+  box: { left: number; top: number },
+  art: { left: number; top: number; width: number; height: number },
+) {
+  const { left, top, side } = V.plane;
+  return {
+    left: art.left - box.left + art.width * left,
+    top: art.top - box.top + art.height * top,
+    side: art.width * side,
+  };
+}
+
+/**
  * A button fight's hooked fish under the float `landing` (spec 033 F1): it sways as it
  * pulls, and as the fight's `progress` (0–100) fills it grows and swims part of the way
  * to the dock, so it looks closer; `near` (0–1) is how far along that is.

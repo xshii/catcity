@@ -45,7 +45,12 @@ body {
   border-radius: 0;
   box-shadow: none;
   background: var(--scene-ground);
-  overflow: hidden;
+  /*
+   * Clipped, not a scroll box: the river art is wider than a phone, and showing a
+   * focused or clicked control must never scroll the scene sideways. Browsers without
+   * `clip` keep the card's `hidden`.
+   */
+  overflow: clip;
 }
 .game-screen .map-heading {
   position: absolute;

@@ -60,7 +60,7 @@ export function mountFishingLayout(
   };
   const { pages: gear } = groups(get('river-panel-gear'), 'gear', [
     ['setup', '配装'],
-    ['supplies', '补充 / 设置'],
+    ['supplies', '补充'],
     ['info', '钓点线索'],
   ]);
   const gearRoot = get('river-panel-gear');
@@ -77,7 +77,7 @@ export function mountFishingLayout(
   gear.setup!.querySelector('.fishing-prep')!.after(travel);
   const baitShop = gearRoot.querySelector<HTMLDetailsElement>('.bait-shop')!;
   baitShop.open = true;
-  gear.supplies!.append(baitShop, get('haptics-toggle'), get('sound-toggle'));
+  gear.supplies!.append(baitShop);
   gear.info!.append(
     gearRoot.querySelector('.angling-title')!,
     get('fishing-resources'),
@@ -85,7 +85,6 @@ export function mountFishingLayout(
     get('spot-hint'),
     get('spot-unlocks'),
   );
-  gearRoot.querySelector('.fishing-settings')!.remove();
 
   // Everything about the cats lives in one panel, the same on every screen.
   const { pages: cats, show: showCats } = groups(get('panel-cats'), 'cats', [
@@ -139,10 +138,9 @@ export function mountFishingLayout(
   return {
     ...navigation,
     refresh,
-    /** Fishing controls placed in the gear panel: the travel line and the settings page. */
+    /** Fishing controls placed in the gear panel: the travel line. */
     travelDuration: travel.querySelector<HTMLElement>('#travel-duration')!,
     travelButton: travel.querySelector<HTMLButtonElement>('#travel-to-spot')!,
-    settings: gear.supplies!,
     /** Open the cats panel on its conversation page in the current scene. */
     openTalk() {
       navigation.open('cats');

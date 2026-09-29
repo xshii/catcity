@@ -10,18 +10,6 @@ import {
 
 /** Player-facing words of the fishing screen's switchable controls. */
 export const SCREEN_COPY = {
-  quick: {
-    enable: '改用体感钓鱼',
-    denied: '体感未获授权 · 点此重试',
-    unsupported: '此设备或连接不支持体感',
-  },
-  toggle: {
-    active: '钓鱼操作：体感 ✓（点此改用按钮）',
-    unsupported: '此设备或连接不支持体感（需 HTTPS 与陀螺仪）',
-    denied: '体感未获授权（点此重试）',
-    enable: '开启体感钓鱼',
-    buttons: '钓鱼操作：按钮（点此开启体感）',
-  },
   hint: {
     calibrating: '校准：向下快甩两次',
     paused: '已暂停 · 点「继续钓鱼」再继续',
@@ -42,11 +30,6 @@ export const SCREEN_COPY = {
     skip: '跳过引导',
   },
   pause: { pause: '暂停', resume: '继续钓鱼' },
-  card: {
-    text: '开启体感钓鱼：面向水面，左右瞄准，慢慢俯仰调力度，快速下甩抛竿，看到"！"快速上扬。',
-    enable: '开启体感钓鱼',
-    buttons: '改用按钮',
-  },
   /** The cast power read out while aiming; the water shows it as the landing arc. */
   power: {
     label: '抛竿力度',
@@ -61,7 +44,24 @@ export const SCREEN_COPY = {
   calibrate: {
     button: '校准甩竿',
     done: (peak: number) => `校准完成：下甩 ${peak}°/s`,
-    failed: '没感到两次一致的下甩，点「校准甩竿」再试一次',
+    failed: '没感到两次一致的下甩，打开设置点「校准甩竿」再试一次',
+  },
+  /** The gear over the water and its sheet (spec 034). */
+  settings: {
+    title: '设置',
+    close: '关闭设置',
+    mode: '钓鱼方式',
+    motion: '体感',
+    buttons: '按钮',
+    runLocked: '这一竿结束后才能换钓鱼方式',
+    denied: '体感未获授权 · 点「体感」重试',
+    deniedAgain: '仍未获授权 · 请在浏览器设置里允许「运动与方向访问」后重试',
+    unsupported: '此设备或连接不支持体感（需 HTTPS 与陀螺仪）',
+    waiting: '等待体感读数…（需陀螺仪）',
+  },
+  /** Said each time the phone refuses its sensors (spec 034). */
+  permission: {
+    denied: '体感未获授权，已改用按钮；可在设置里重试',
   },
 } as const;
 
@@ -95,15 +95,6 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
   const playable = canPlay(view);
   const active = motionActive(view);
   const motionRun = run?.mode === 'motion' ? run : null;
-  const { capability, preference } = view.motion;
-  // Phones that must ask for sensor permission get the one-tap card until the player
-  // chooses; a motion run restored after a reload needs the tap again to strike.
-  const motionCard =
-    playable &&
-    !!(motionRun || (preference === 'motion' && !run)) &&
-    capability === 'unknown' &&
-    view.motion.needsPermission &&
-    view.motion.coarsePointer;
   // A button run keeps its own controls even while the phone's motion is on.
   const overlay = playable && (!!motionRun || (active && !run));
   const aiming = overlay && !motionRun && active;
@@ -112,39 +103,21 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
   const usual = hint(view, motionRun);
   return {
     /** The manual "ready to cast" area. */
-    readyToCast: river && !run && !active && !motionCard,
+    readyToCast: river && !run && !active,
     /** The in-run console (pause, leave; and the button flow's meters). */
     console: river && !!run,
     consoleMode: river && run ? run.mode : null,
-    motionCard,
-    /** In button mode, by choice or failure, the way back sits by the cast button. */
-    quick: {
-      visible: playable && !active && !run && !motionCard,
-      label:
-        capability === 'unsupported'
-          ? SCREEN_COPY.quick.unsupported
-          : capability === 'denied'
-            ? SCREEN_COPY.quick.denied
-            : SCREEN_COPY.quick.enable,
-      disabled: capability === 'unsupported',
-    },
-    toggle: {
-      label: active
-        ? SCREEN_COPY.toggle.active
-        : capability === 'unsupported'
-          ? SCREEN_COPY.toggle.unsupported
-          : capability === 'denied'
-            ? SCREEN_COPY.toggle.denied
-            : preference === 'motion'
-              ? SCREEN_COPY.toggle.enable
-              : SCREEN_COPY.toggle.buttons,
-      pressed: active,
-      disabled: capability === 'unsupported',
+    /** The gear over the water and the sheet it opens (spec 034). */
+    settings: {
+      gear: river,
+      open: river && view.settingsOpen,
+      mode: modeChoices(view, run, active),
+      /** Calibration is offered while motion aims: before a run, not over one. */
+      calibrate: river && active && !run && !view.motion.calibrating,
     },
     /** The motion plane over the water. */
     overlay,
     overlayPhase: motionRun?.phase ?? 'aim',
-    calibrateButton: aiming && !view.motion.calibrating,
     powerMeter: aiming,
     /** The "!" that asks for a lift. */
     bite: overlay && motionRun?.phase === 'hook',
@@ -162,6 +135,78 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
   };
 }
 export type FishingScreen = ReturnType<typeof fishingScreen>;
+
+/**
+ * The sheet's fishing modes: the one in use pressed, both locked while a run keeps its
+ * mode, and a line saying why motion is not in use when it was wanted or cannot be.
+ */
+function modeChoices(
+  view: FishingView,
+  run: Pick<AnglingRun, 'mode'> | null,
+  active: boolean,
+) {
+  const { capability, preference, needsPermission, asked, refusals } =
+    view.motion;
+  const words = SCREEN_COPY.settings;
+  const current = run ? run.mode : active ? 'motion' : 'buttons';
+  const note = run
+    ? words.runLocked
+    : capability === 'unsupported'
+      ? words.unsupported
+      : capability === 'denied'
+        ? refusals > 1
+          ? words.deniedAgain
+          : words.denied
+        : preference === 'motion' &&
+            capability === 'unknown' &&
+            (asked || !needsPermission)
+          ? words.waiting
+          : null;
+  return {
+    motion: {
+      pressed: current === 'motion',
+      disabled: !!run || capability === 'unsupported',
+    },
+    buttons: { pressed: current === 'buttons', disabled: !!run },
+    note,
+  };
+}
+
+/** Motion is what the player fishes with, sensors allowing: a run's mode, else the choice. */
+export const wantsMotion = (
+  view: FishingView,
+  run: Pick<AnglingRun, 'mode'> | null,
+) => (run ? run.mode === 'motion' : view.motion.preference === 'motion');
+
+/**
+ * Whether a tap on the river asks for sensor access by itself (spec 034): on a phone
+ * that must ask, once per page, while motion is wanted (the default, or a motion run
+ * restored after a reload) and nothing has answered yet. Not by a tap that leaves the
+ * settings or the tools open, nor over a run that is playing (a prompt would cost the
+ * bite): a restored run starts paused. The tap handler asks inside the tap, as iOS
+ * requires.
+ */
+export const askSensors = (
+  view: FishingView,
+  run: Pick<AnglingRun, 'mode'> | null,
+) =>
+  canPlay(view) &&
+  (!run || view.paused) &&
+  view.motion.needsPermission &&
+  view.motion.coarsePointer &&
+  !view.motion.asked &&
+  view.motion.capability === 'unknown' &&
+  wantsMotion(view, run);
+
+/**
+ * Said as the phone refuses its sensors, each time it does: play goes on with buttons.
+ * Not to a player who chose buttons before the answer came.
+ */
+export const permissionNotice = (before: FishingView, after: FishingView) =>
+  after.motion.refusals > before.motion.refusals &&
+  after.motion.preference === 'motion'
+    ? SCREEN_COPY.permission.denied
+    : null;
 
 const strikable = (run: Run) =>
   run.mode === 'motion' && (run.phase === 'waiting' || run.phase === 'hook');

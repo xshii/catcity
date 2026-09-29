@@ -8,6 +8,7 @@ import {
   flightPoint,
   hookedFish,
   landingShare,
+  planeBox,
   planePoint,
   shadowPoint,
   showsShadows,
@@ -35,6 +36,25 @@ it('shrinks toward the horizon and mirrors left and right', () => {
   const left = waterPoint(-30, 0.5);
   const right = waterPoint(30, 0.5);
   expect(left.x + right.x).toBeCloseTo(2 * V.centerX);
+});
+
+it('places the open-water plane over the canvas as drawn, wherever it sits in its box', () => {
+  // A tall phone: the square canvas fills its box, wider than the screen.
+  const filled = planeBox(
+    { left: -78, top: 132 },
+    { left: -78, top: 132, width: 546, height: 546 },
+  );
+  expect(filled.left).toBeCloseTo(546 * V.plane.left);
+  expect(filled.top).toBeCloseTo(546 * V.plane.top);
+  expect(filled.side).toBeCloseTo(546 * V.plane.side);
+  // The canvas still at another size, centred in the box: the plane follows the canvas.
+  const centred = planeBox(
+    { left: -78, top: 132 },
+    { left: 0, top: 210, width: 390, height: 390 },
+  );
+  expect(centred.left).toBeCloseTo(78 + 390 * V.plane.left);
+  expect(centred.top).toBeCloseTo(78 + 390 * V.plane.top);
+  expect(centred.side).toBeCloseTo(390 * V.plane.side);
 });
 
 it('turns a tap on the water into the aim whose preview lands there', () => {
