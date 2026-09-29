@@ -77,7 +77,7 @@ export function mountFishingLayout(
   gear.setup!.querySelector('.fishing-prep')!.after(travel);
   const baitShop = gearRoot.querySelector<HTMLDetailsElement>('.bait-shop')!;
   baitShop.open = true;
-  gear.supplies!.append(baitShop, get('haptics-toggle'));
+  gear.supplies!.append(baitShop, get('haptics-toggle'), get('sound-toggle'));
   gear.info!.append(
     gearRoot.querySelector('.angling-title')!,
     get('fishing-resources'),

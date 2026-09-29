@@ -19,6 +19,7 @@ import {
 import { greenZone } from '../../minigames/angling';
 import { CARE } from '../../content/care';
 import { mountFishingFeedback } from './feedback';
+import { mountFishingSound } from './sound';
 import { mountFishingStage, type FishingShell } from './stage';
 import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
@@ -136,6 +137,7 @@ export function mountAngling(
     type: 'run',
     runId: session.getSnapshot().fishing.active?.id ?? null,
   });
+  mountFishingSound(session, view, get<HTMLButtonElement>('sound-toggle'));
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
