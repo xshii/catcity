@@ -10,6 +10,7 @@ import {
   type SpotId,
 } from '../../src/content/fishing';
 import type { GameCommand } from '../../src/core/commands';
+import { MAX_STAT } from '../../src/core/limits';
 import { RandomService } from '../../src/core/random';
 import { applyCommand } from '../../src/core/reducer';
 import { createWorld, World } from '../../src/core/world';
@@ -26,6 +27,8 @@ import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
  *   A fish a minute at the river's 1× clock is 60 (specs/037-cat-life/numbers.md M1);
  *   real play is nearer 30–45. Every target must hold at every rhythm, so that growth
  *   does not depend on how fast the player casts.
+ * - The "always happy" player has the cat's mood at the top before every cast: the
+ *   fastest growth there can be, which no real player reaches.
  * - The player fishes the newest open water with a fixed aim: the skilled one for its best
  *   fish Mochi can land, the novice for a fish of at most 2★.
  * - The hands are those of the fight balance simulation; the lift comes `delay` ticks
@@ -67,7 +70,11 @@ interface Pace {
   bond: number[];
 }
 
-function play(player: 'novice' | 'skilled', minutes: number): Pace {
+function play(
+  player: 'novice' | 'skilled',
+  minutes: number,
+  alwaysHappy: boolean,
+): Pace {
   const state = createWorld(42).getSnapshot();
   const mochi = state.cats[0]!;
   const hand = new RandomService(104729);
@@ -113,6 +120,8 @@ function play(player: 'novice' | 'skilled', minutes: number): Pace {
       run({ type: 'ADVANCE_TIME', minutes: 10 });
       continue;
     }
+    // Stands in for a player who pets the cat before every cast (petting is a later slice).
+    if (alwaysHappy) mochi.mood = MAX_STAT;
     run({
       type: 'FISH_BEGIN',
       catId: mochi.id,
@@ -162,9 +171,13 @@ function play(player: 'novice' | 'skilled', minutes: number): Pace {
 }
 
 const paces = new Map<string, Pace>();
-function paceOf(player: 'novice' | 'skilled', minutes: number): Pace {
-  const key = `${player} ${minutes}`;
-  if (!paces.has(key)) paces.set(key, play(player, minutes));
+function paceOf(
+  player: 'novice' | 'skilled',
+  minutes: number,
+  alwaysHappy = false,
+): Pace {
+  const key = `${player} ${minutes} ${alwaysHappy}`;
+  if (!paces.has(key)) paces.set(key, play(player, minutes, alwaysHappy));
   return paces.get(key)!;
 }
 const levelNamed = (name: string) =>
@@ -172,9 +185,9 @@ const levelNamed = (name: string) =>
 
 /**
  * Target ranges from specs/037-cat-life/numbers.md §9: [what, measure, min, max].
- * Measured 2026-09-30 over the four rhythms (novice / skilled): reeds 4 / 4, moon lake
- * 53–56 / 45–46, full skill 436–442 / 298–304, 信任 63–65 / 63–65, 家人 633–644 / 632–645.
- * The skilled player's moon lake is on the edge of its range.
+ * Measured 2026-09-30, the same at every rhythm (novice / skilled): reeds 5 / 5, moon
+ * lake 56 / 46, full skill 448 / 307, 信任 75 / 75, 家人 750 / 750. The moon lake and
+ * full skill figures sit on the edges of their ranges; no other coefficient fits both.
  */
 const TARGETS: [string, (pace: Pace) => number, number, number][] = [
   ['fish to open the reeds', (pace) => pace.opened.REEDS!, 4, 8],
@@ -202,20 +215,39 @@ it.each(
   },
 );
 
-/**
- * The happy share must not follow the rhythm (spec 038): a catch lifts mood once per
- * cooldown and the hours wear it off, so faster casting earns no more happy casts.
- * Measured 2026-09-30, skilled: 37%, 33%, 35%, 33% at 20, 30, 45 and 60.
- */
-const HAPPY_SHARE = { min: 25, max: 50 };
+// A catch never lifts mood into the happy band (spec 038), so fishing alone earns no
+// happy cast at any rhythm: happiness takes a gift or petting.
+it.each(
+  PLAYER_TYPES.flatMap((player) =>
+    RHYTHMS.map((minutes) => [player, minutes] as const),
+  ),
+)(
+  '%s players who only fish, casting every %i game minutes, never begin a cast with a happy cat',
+  (player, minutes) => {
+    const { casts, happyCasts } = paceOf(player, minutes);
+    expect(casts).toBeGreaterThan(0);
+    expect(happyCasts).toBe(0);
+  },
+);
 
-it.each(RHYTHMS)(
-  'a skilled player who only fishes, casting every %i game minutes, has a happy cat on 25–50%% of the casts',
-  (minutes) => {
-    const { casts, happyCasts } = paceOf('skilled', minutes);
-    const share = Math.round((happyCasts / casts) * 100);
-    const message = `${happyCasts} of ${casts} casts were happy: ${share}%`;
-    expect(share, message).toBeGreaterThanOrEqual(HAPPY_SHARE.min);
-    expect(share, message).toBeLessThanOrEqual(HAPPY_SHARE.max);
+/**
+ * The bound on growth: a cat that is happy on every cast. It may fall under the normal
+ * ranges; these floors keep even that player from rushing the skill.
+ * Measured 2026-09-30 (novice / skilled): moon lake 38 / 32, full skill 299 / 206,
+ * 信任 50 / 50, 家人 500 / 500.
+ */
+const FASTEST = { moonLake: 30, fullSkill: 190 };
+
+it.each(PLAYER_TYPES)(
+  'an always happy cat still takes a %s player the floor number of fish',
+  (player) => {
+    const pace = paceOf(player, 30, true);
+    expect(pace.happyCasts).toBe(pace.casts);
+    expect(pace.opened.MOON, 'moon lake').toBeGreaterThanOrEqual(
+      FASTEST.moonLake,
+    );
+    expect(pace.fullSkill, 'full skill').toBeGreaterThanOrEqual(
+      FASTEST.fullSkill,
+    );
   },
 );

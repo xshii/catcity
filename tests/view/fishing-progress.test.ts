@@ -29,16 +29,15 @@ describe('skill and atlas unlock a new waterway; bait changes catches and Pepper
     enterRiver(game);
     openGear(game);
     expect(spotOption('REEDS').disabled).toBe(true);
-    choose('#fish-direction', String(pondDirection(3)));
+    choose('#fish-direction', String(pondDirection(4)));
     closeRiverPanel();
     click('#cast-start');
     catchFish(game);
-    // A crucian on a run begun happy: the catches before it cheered Mochi up.
-    const xp = before + catchXp(fishById('CRUCIAN').stars, true);
+    const xp = before + catchXp(fishById('SILVER').stars, false);
     expect(before).toBeLessThan(skillXp(2));
     expect(xp).toBeGreaterThanOrEqual(skillXp(2));
     expect(game.world().fishing.xp).toBe(xp);
-    expect(game.world().fishing.lastResult!.speciesId).toBe('CRUCIAN');
+    expect(game.world().fishing.lastResult!.speciesId).toBe('SILVER');
     openGear(game);
     expect(text('#fishing-level')).toBe('钓技 Lv.2');
     expect(text('#fishing-resources')).toContain(

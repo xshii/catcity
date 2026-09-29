@@ -88,7 +88,7 @@ export const FISHING = {
   skill: {
     baseXp: 10,
     xpPerStar: 5,
-    curve: 31,
+    curve: 27,
     maxLevel: 10,
     happyXpPercent: 150,
   },

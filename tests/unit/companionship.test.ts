@@ -104,9 +104,8 @@ describe('shared fishing experiences through current rod inputs', () => {
     for (let n = 0; n < 60; n++) interact(world, 'mochi', '你好', '喵');
     expect(world.getSnapshot().cats[0]!.fishingMemory).toEqual(first);
     // Two catches and the day's one chat that counts; the fish that got away adds nothing.
-    // The first catch made Mochi happy, so what followed earned one more each.
     expect(world.getSnapshot().cats[0]!.playerBond).toBe(
-      2 * BOND.catch + BOND.chat + 2 * BOND.happy,
+      2 * BOND.catch + BOND.chat,
     );
     expect(loadWorld(world.save()).getSnapshot()).toEqual(world.getSnapshot());
   });

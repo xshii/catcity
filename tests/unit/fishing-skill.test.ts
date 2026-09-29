@@ -16,9 +16,9 @@ const { maxLevel } = FISHING.skill;
 const levels = Array.from({ length: maxLevel }, (_, index) => index + 1);
 
 describe('fishing skill curve (spec 038)', () => {
-  it('costs 31 × (n − 1) × n × (n + 1) / 3 XP in total to reach level n', () => {
+  it('costs 27 × (n − 1) × n × (n + 1) / 3 XP in total to reach level n', () => {
     expect(levels.map(skillXp)).toEqual([
-      0, 62, 248, 620, 1240, 2170, 3472, 5208, 7440, 10230,
+      0, 54, 216, 540, 1080, 1890, 3024, 4536, 6480, 8910,
     ]);
   });
 

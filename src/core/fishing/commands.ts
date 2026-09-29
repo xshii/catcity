@@ -22,7 +22,7 @@ import {
 } from '../../minigames/angling';
 import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
 import { rewardBond } from '../bond';
-import { liftMood } from '../mood';
+import { liftCalmMood, liftMood } from '../mood';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
@@ -216,13 +216,7 @@ export function applyAngling(
         };
         // The bond reads the mood the cat was in before this catch lifts it.
         rewardBond(cat, BOND.catch);
-        if (
-          cat.lastCatchMoodMinute === null ||
-          world.minute - cat.lastCatchMoodMinute >= MOOD.catchCooldownMinutes
-        ) {
-          liftMood(cat, MOOD.catch);
-          cat.lastCatchMoodMinute = world.minute;
-        }
+        liftCalmMood(cat, MOOD.catch);
       } else if (next.phase === 'escaped') {
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.mood = Math.max(0, cat.mood - MOOD.escape);
