@@ -96,6 +96,9 @@ test(
       await step(page, 1);
     }
     await expect(page.locator('#motion-bite')).toBeVisible();
+    // The manual clock can bring the bite (sooner on a fish shadow) inside the cooldown
+    // that keeps the cast's rebound from striking; a real bite comes long after it.
+    await page.waitForTimeout(FISHING.motion.gesture.liftCooldownMs);
     await spin(page, [-400]);
     expect((await readWorld(page)).fishing.active!.phase).toBe('fight');
     await expect(page.locator('#motion-ring')).toBeVisible();

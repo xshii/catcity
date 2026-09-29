@@ -35,6 +35,14 @@ export function landingShare(aimDepth: number, power: number): number {
   return V.reach.near + (V.reach.far - V.reach.near) * clamp(mix, 0, 1);
 }
 
+/**
+ * Canvas point of a fish shadow (spec 033) from Core's cast coordinates: `reach` is the
+ * mean of aimed depth and power, so a cast meeting it head-on lands on this point.
+ */
+export function shadowPoint(direction: number, reach: number) {
+  return waterPoint(direction, landingShare(reach, reach));
+}
+
 /** Canvas point and perspective scale of a landing `share` out at `direction`. */
 export function waterPoint(direction: number, share: number) {
   const y = V.nearY - share * (V.nearY - V.horizonY);
