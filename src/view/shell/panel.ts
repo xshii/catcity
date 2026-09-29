@@ -45,7 +45,7 @@ export function mountPanel(
     void notice.offsetWidth;
     notice.classList.add('fading');
   };
-  // The level a chat just reached, shown in the panel: it covers the notice while open.
+  // The level a chat just reached, shown in the panel: it stays after the notice fades.
   let bondNews = { catId: '', note: '' };
   const render = () => {
     const model = toViewModel(session.getSnapshot(), session.selectedEntity);
