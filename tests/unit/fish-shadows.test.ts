@@ -9,7 +9,12 @@ import {
   type FishId,
   type SpotId,
 } from '../../src/content/fishing';
-import { fishShadows, loadWorld, type FishShadow } from '../../src/core';
+import {
+  fishShadows,
+  loadWorld,
+  shadowUnderCast,
+  type FishShadow,
+} from '../../src/core';
 import { shadowAt } from '../../src/core/fishing/shadows';
 import {
   castAngling,
@@ -381,6 +386,33 @@ describe('casting in Core', () => {
     });
     world.dispatch({ type: 'FISH_CAST', runId, power: aim.power });
     expect(world.getSnapshot().fishing.active!.shadow).toBeNull();
+  });
+
+  it('tells the aiming preview the shadow a cast would land on, as the cast finds it', () => {
+    const { world, target } = pondWithShadow();
+    const onTarget = {
+      direction: target.direction,
+      aimDepth: 2 * target.reach - 60,
+      power: 60,
+    };
+    expect(shadowUnderCast(world.getSnapshot(), 'POND', onTarget)).toEqual(
+      target,
+    );
+    // Asking changes nothing; every cast then lands where the preview said.
+    const save = world.save();
+    for (const direction of [-45, -20, target.direction, 10, 45])
+      for (const aimDepth of [0, onTarget.aimDepth, 100])
+        for (const power of [20, 60, 90]) {
+          const trial = loadWorld(save);
+          const cast = { direction, aimDepth, power };
+          const said = shadowUnderCast(trial.getSnapshot(), 'POND', cast);
+          expect(trial.save()).toBe(save);
+          const runId = begin(trial, { direction, aimDepth });
+          trial.dispatch({ type: 'FISH_CAST', runId, power });
+          expect(trial.getSnapshot().fishing.active!.shadow).toBe(
+            said?.speciesId ?? null,
+          );
+        }
   });
 
   it('rejects a save whose shadow does not fit its run', () => {

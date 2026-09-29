@@ -302,8 +302,8 @@ export function stepAngling(
   return run;
 }
 
-/** A cast of this power is precise: it makes the fight a little easier. */
-export function precisePower(power: number): boolean {
+/** A button cast released at this power is precise: the fight is a little easier. */
+function precisePower(power: number): boolean {
   const { min, max } = FISHING.cast.precisionPower;
   return power >= min && power <= max;
 }
@@ -322,7 +322,8 @@ export function castAngling(
   const run: AnglingRun = {
     ...input,
     power,
-    precision: precisePower(power),
+    // Every motion cast is steady: aiming at a fish shadow is its choice (spec 033 F5b).
+    precision: input.mode === 'motion' || precisePower(power),
     phase: 'waiting',
     phaseTick: 0,
     tick: input.tick + 1,

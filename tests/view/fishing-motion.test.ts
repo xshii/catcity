@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FISHING } from '../../src/content/fishing';
+import { fishShadows, shadowUnderCast } from '../../src/core';
 import { SCREEN_COPY } from '../../src/view/fishing/screen';
 import { DEFAULT_TUNING } from '../../src/view/motion/rod';
 import {
@@ -200,25 +201,65 @@ describe('motion fishing', () => {
     expect(meter.getAttribute('aria-valuetext')).toBe(
       `力度 ${precise}，精准区间 ${band.min}–${band.max}`,
     );
-    // The green zone on the water says what a precise cast gives.
-    expect(visible('#motion-precise')).toBe(true);
-    expect(text('#motion-precise')).toBe(SCREEN_COPY.cast.legend);
+    // The legend says what a green landing ring means.
+    expect(visible('#motion-legend')).toBe(true);
+    expect(text('#motion-legend')).toBe(SCREEN_COPY.cast.legend);
     pitch(100);
     expect(meter.getAttribute('aria-valuenow')).toBe('100');
     // The cast reads the power from just before the flick: hold the tilt that long.
     game.wait(G.powerLeadMs * 2);
     swing();
+    // Every motion cast is steady now, whatever its power (spec 033 F5b).
     expect(game.world().fishing.active).toMatchObject({
       mode: 'motion',
       power: 100,
-      precision: false,
+      precision: true,
     });
-    // Said once: past the green, so no precise-cast bonus.
-    expect(text('#notice')).toBe(
-      SCREEN_COPY.cast.notice(100, SCREEN_COPY.cast.loose),
-    );
-    expect(visible('#motion-precise')).toBe(false);
+    expect(visible('#motion-legend')).toBe(false);
   });
+
+  it.each([true, false])(
+    'a flick aimed onto a fish shadow (%s) lands on it and says so, and only then',
+    (onShadow) => {
+      const game = openGame({ storage: SEASONED });
+      inMotionRiver(game);
+      const world = game.world();
+      const shadows = fishShadows(world, 'POND');
+      // The depth slider rests at 50: a shadow within reach of the pitch, head-on.
+      const target = shadows.find((s) => s.reach >= 25 && s.reach <= 75)!;
+      const aim = onShadow
+        ? {
+            direction: 5 * Math.round(target.direction / 5),
+            power: 2 * target.reach - 50,
+          }
+        : [-45, 0, 45]
+            .flatMap((direction) =>
+              [10, 50, 90].map((power) => ({ direction, power })),
+            )
+            .find(
+              (cast) =>
+                shadowUnderCast(world, 'POND', { ...cast, aimDepth: 50 }) ===
+                null,
+            )!;
+      for (let i = 0; i < 30; i++)
+        orient(
+          (aim.direction / FISHING.input.maxDirection) * G.aimRangeDeg,
+          ((aim.power - 50) / 50) * G.powerRangeDeg,
+        );
+      // The preview asks Core what the ring is over: green on a shadow, cream off it.
+      const said = shadowUnderCast(world, 'POND', { ...aim, aimDepth: 50 });
+      expect(said !== null).toBe(onShadow);
+      game.wait(G.powerLeadMs * 2);
+      swing();
+      expect(game.world().fishing.active).toMatchObject({
+        mode: 'motion',
+        ...aim,
+        aimDepth: 50,
+        shadow: said?.speciesId ?? null,
+      });
+      expect(text('#notice') === SCREEN_COPY.cast.onShadow).toBe(onShadow);
+    },
+  );
 
   it('a phone in button mode can switch to motion right from the river', () => {
     const game = openGame({ storage: SEASONED });

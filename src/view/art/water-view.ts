@@ -1,5 +1,6 @@
+import type { SpotId } from '../../content/fishing';
 import { FISHING } from '../../content/fishing';
-import { precisePower } from '../../minigames/angling';
+import { shadowUnderCast, type WorldState } from '../../core';
 
 /**
  * First-person water geometry (spec 030) on the square river canvas: the player stands on
@@ -25,8 +26,6 @@ export const WATER_VIEW = {
   ring: { width: 56, height: 20 },
   /** A cast's flight from the rod tip: how high it rises midway; its preview's dashes. */
   flight: { lift: 60, dashes: 12 },
-  /** The precise zone (spec 033 F5): its width over the ring's; points per rounded end. */
-  zone: { widen: 1.25, capPoints: 9 },
   /**
    * A button fight's hooked fish: below and behind the float, swaying (at the dock's
    * scale), and at full progress `approach` of the way from there to the dock.
@@ -68,43 +67,29 @@ export function flightPoint(tip: Point, landing: Point, t: number): Point {
 }
 
 /**
- * The aiming preview (spec 033 F5): the ring where this aim and power land (the mapping
- * the shadows use, so a ring on a shadow is a cast Core finds on it), the float's flight
- * onto it from the rod `tip`, the green zone of water where precise power lands at this
- * aim, and whether this power is precise (Core's rule).
+ * The aiming preview (spec 033 F5, F5b): the ring where this cast would land (the mapping
+ * the shadows are drawn with), the float's flight onto it from the rod `tip`, and the fish
+ * shadow Core says the cast would land on (the ring turns green on one), or null.
  */
 export function castPreview(
-  direction: number,
-  aimDepth: number,
-  power: number,
+  world: Pick<WorldState, 'seed' | 'minute'>,
+  spotId: SpotId,
+  cast: { direction: number; aimDepth: number; power: number },
   tip: Point,
 ) {
-  const landing = waterPoint(direction, landingShare(aimDepth, power));
+  const landing = waterPoint(
+    cast.direction,
+    landingShare(cast.aimDepth, cast.power),
+  );
   // Dash, gap, …, dash: the last dash ends on the ring.
   const steps = 2 * V.flight.dashes - 1;
-  const { min, max } = FISHING.cast.precisionPower;
-  const low = waterPoint(direction, landingShare(aimDepth, min));
-  const high = waterPoint(direction, landingShare(aimDepth, max));
-  // Each end rounds off like the flattened ring: the near end bulges down, the far up.
-  const cap = (end: typeof low, bulge: 1 | -1) => {
-    const across = (V.ring.width / 2) * V.zone.widen * end.scale;
-    const deep = across * (V.ring.height / V.ring.width);
-    return Array.from({ length: V.zone.capPoints }, (_, i) => {
-      const angle = (Math.PI * i) / (V.zone.capPoints - 1);
-      return {
-        x: end.x - bulge * across * Math.cos(angle),
-        y: end.y + bulge * deep * Math.sin(angle),
-      };
-    });
-  };
   return {
     landing,
     /** The flight, dashed from each even point to the next. */
     arc: Array.from({ length: steps + 1 }, (_, i) =>
       flightPoint(tip, landing, i / steps),
     ),
-    zone: { low, high, outline: [...cap(low, 1), ...cap(high, -1)] },
-    precise: precisePower(power),
+    shadow: shadowUnderCast(world, spotId, cast),
   };
 }
 
