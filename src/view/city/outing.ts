@@ -5,12 +5,15 @@ import {
   SPOT_IDS,
   SPOTS,
   spotOpen,
+  type SpotId,
 } from '../../content/fishing';
-import type { CityActions } from './actions';
 
 /** The outing page lists every waterway and its unlock state; picking one finds it on the map. */
-export function mountOuting(session: GameSession, cityActions: CityActions) {
-  const panel = document.getElementById('city-panel-outing')!;
+export function mountOuting(
+  session: GameSession,
+  panel: HTMLElement,
+  focusWaterway: (spotId: SpotId) => void,
+) {
   panel.innerHTML =
     '<p class="outing-intro">选一片水域，在地图上找到它，再让猫沿路走到岸边。</p><ul id="outing-list" class="outing-list"></ul>';
   const list = panel.querySelector<HTMLElement>('#outing-list')!;
@@ -37,7 +40,7 @@ export function mountOuting(session: GameSession, cityActions: CityActions) {
         find.dataset.outingSpot = id;
         find.textContent = '在地图上找到';
         find.setAttribute('aria-label', `在地图上找到${spot.name}`);
-        find.addEventListener('click', () => cityActions.focusWaterway(id));
+        find.addEventListener('click', () => focusWaterway(id));
         item.append(name, status, find);
         return item;
       }),

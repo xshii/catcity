@@ -139,6 +139,10 @@ export function mountFishingLayout(
   return {
     ...navigation,
     refresh,
+    /** Fishing controls placed in the gear panel: the travel line and the settings page. */
+    travelDuration: travel.querySelector<HTMLElement>('#travel-duration')!,
+    travelButton: travel.querySelector<HTMLButtonElement>('#travel-to-spot')!,
+    settings: gear.supplies!,
     /** Open the cats panel on its conversation page in the current scene. */
     openTalk() {
       navigation.open('cats');

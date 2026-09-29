@@ -2,8 +2,10 @@ import { FISH, fishStars } from '../../content/fishing';
 import './collections.css';
 
 /** Paginate the rendered collection. Navigation never changes inventory or world state. */
-export function mountFishingCollections() {
-  const get = (id: string) => document.getElementById(id)!;
+export function mountFishingCollections(
+  /** The fishing markup's elements by id. */
+  get: (id: string) => HTMLElement,
+) {
   const bag = get('fish-bag') as HTMLDetailsElement;
   const bagPanel = get('river-panel-bag');
   const supplies = (get('fish-supply-detail') ??
@@ -17,11 +19,16 @@ export function mountFishingCollections() {
   segments.innerHTML =
     '<button id="bag-tab-fish" aria-pressed="true">鱼获</button><button id="bag-tab-supplies" aria-pressed="false">补给与垃圾</button>';
   bagPanel.prepend(segments);
+  const fishTab = segments.querySelector<HTMLElement>('#bag-tab-fish')!;
+  const suppliesTab = segments.querySelector<HTMLElement>('#bag-tab-supplies')!;
   const pager = document.createElement('div');
   pager.className = 'collection-pager';
   pager.innerHTML =
     '<button id="bag-prev" aria-label="上一页鱼获">← 上页</button><span id="bag-page" aria-live="polite"></span><button id="bag-next" aria-label="下一页鱼获">下页 →</button>';
   bag.append(pager);
+  const bagPage = pager.querySelector<HTMLElement>('#bag-page')!;
+  const bagPrev = pager.querySelector<HTMLButtonElement>('#bag-prev')!;
+  const bagNext = pager.querySelector<HTMLButtonElement>('#bag-next')!;
   const atlas = get('fish-atlas') as HTMLDetailsElement;
   atlas.open = true;
   const speciesChoice = document.createElement('label');
@@ -42,6 +49,9 @@ export function mountFishingCollections() {
   atlasPager.innerHTML =
     '<button id="atlas-prev" aria-label="上一种鱼">← 上一种</button><span id="atlas-page" aria-live="polite"></span><button id="atlas-next" aria-label="下一种鱼">下一种 →</button>';
   atlas.append(atlasPager);
+  const atlasPage = atlasPager.querySelector<HTMLElement>('#atlas-page')!;
+  const atlasPrev = atlasPager.querySelector<HTMLButtonElement>('#atlas-prev')!;
+  const atlasNext = atlasPager.querySelector<HTMLButtonElement>('#atlas-next')!;
   let page = 0;
   let supplyMode = false;
   const refresh = () => {
@@ -53,13 +63,13 @@ export function mountFishingCollections() {
     rows.forEach((row, index) => {
       row.hidden = Math.floor(index / 4) !== page;
     });
-    get('bag-page').textContent = `${page + 1} / ${pages} 页`;
-    (get('bag-prev') as HTMLButtonElement).disabled = page === 0;
-    (get('bag-next') as HTMLButtonElement).disabled = page + 1 === pages;
+    bagPage.textContent = `${page + 1} / ${pages} 页`;
+    bagPrev.disabled = page === 0;
+    bagNext.disabled = page + 1 === pages;
     bag.hidden = supplyMode;
     supplies.hidden = !supplyMode;
-    get('bag-tab-fish').setAttribute('aria-pressed', String(!supplyMode));
-    get('bag-tab-supplies').setAttribute('aria-pressed', String(supplyMode));
+    fishTab.setAttribute('aria-pressed', String(!supplyMode));
+    suppliesTab.setAttribute('aria-pressed', String(supplyMode));
     const index = Math.max(
       0,
       FISH.findIndex((fish) => fish.id === species.value),
@@ -69,33 +79,32 @@ export function mountFishingCollections() {
       .forEach((card) => {
         card.hidden = card.dataset.species !== species.value;
       });
-    get('atlas-page').textContent = `${index + 1} / ${FISH.length} 种`;
-    (get('atlas-prev') as HTMLButtonElement).disabled = index === 0;
-    (get('atlas-next') as HTMLButtonElement).disabled =
-      index === FISH.length - 1;
+    atlasPage.textContent = `${index + 1} / ${FISH.length} 种`;
+    atlasPrev.disabled = index === 0;
+    atlasNext.disabled = index === FISH.length - 1;
   };
-  get('bag-tab-fish').addEventListener('click', () => {
+  fishTab.addEventListener('click', () => {
     supplyMode = false;
     refresh();
   });
-  get('bag-tab-supplies').addEventListener('click', () => {
+  suppliesTab.addEventListener('click', () => {
     supplyMode = true;
     refresh();
   });
-  get('bag-prev').addEventListener('click', () => {
+  bagPrev.addEventListener('click', () => {
     page = Math.max(0, page - 1);
     refresh();
   });
-  get('bag-next').addEventListener('click', () => {
+  bagNext.addEventListener('click', () => {
     page++;
     refresh();
   });
   species.addEventListener('change', refresh);
-  for (const [id, delta] of [
-    ['atlas-prev', -1],
-    ['atlas-next', 1],
+  for (const [button, delta] of [
+    [atlasPrev, -1],
+    [atlasNext, 1],
   ] as const)
-    get(id).addEventListener('click', () => {
+    button.addEventListener('click', () => {
       const index = FISH.findIndex((fish) => fish.id === species.value);
       species.value =
         FISH[Math.max(0, Math.min(FISH.length - 1, index + delta))]!.id;
