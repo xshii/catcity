@@ -24,6 +24,10 @@ export interface Device {
   phone?: boolean;
   /** Sensors ask for permission first (iOS Safari), and the player answers this. */
   permission?: 'granted' | 'denied';
+  /** `navigator.userActivation` exists (Safari 16.4+, Chromium); default true. */
+  userActivation?: boolean;
+  /** Served over HTTPS (or localhost); default true. Motion needs it. */
+  secure?: boolean;
   /** `navigator.vibrate` exists, as in Chromium; default true. */
   vibration?: boolean;
   /** A stand-in Web Audio that counts contexts and started sounds (Node has none). */
@@ -33,6 +37,13 @@ export interface Device {
 }
 type Vibration = number | number[];
 const TICK_MS = 1000 / FISHING.ticksPerSecond;
+/**
+ * The browser's transient user activation (`navigator.userActivation.isActive`): on only
+ * while a player's tap is being dispatched, as in a browser for code run inside it.
+ */
+let activation = false;
+/** Sensor permission requests: which sensor, and whether it came inside a tap. */
+type SensorAsk = { sensor: 'motion' | 'orientation'; inTap: boolean };
 
 /**
  * The real page (markup, session, panels and wiring) in happy-dom, with fake timers:
@@ -44,10 +55,16 @@ export function openGame(device: Device = {}) {
   for (const [key, value] of Object.entries(device.storage ?? {}))
     localStorage.setItem(key, value);
   // localhost is a secure context in browsers; motion needs one.
-  vi.stubGlobal('isSecureContext', true);
+  vi.stubGlobal('isSecureContext', device.secure ?? true);
   vi.stubGlobal('Option', option);
+  if (device.userActivation !== false)
+    Object.defineProperty(navigator, 'userActivation', {
+      configurable: true,
+      get: () => ({ isActive: activation }),
+    });
   if (device.phone) coarsePointer();
-  if (device.permission) askForSensors(device.permission);
+  const sensorAsks: SensorAsk[] = [];
+  if (device.permission) askForSensors(device.permission, sensorAsks);
   let page = load(device);
   onTestFinished(() => {
     page.unload();
@@ -55,8 +72,7 @@ export function openGame(device: Device = {}) {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     Reflect.deleteProperty(navigator, 'vibrate');
-    for (const sensor of [DeviceMotionEvent, DeviceOrientationEvent])
-      Reflect.deleteProperty(sensor, 'requestPermission');
+    Reflect.deleteProperty(navigator, 'userActivation');
     localStorage.clear();
   });
   return {
@@ -70,6 +86,12 @@ export function openGame(device: Device = {}) {
     },
     get audio() {
       return page.audio;
+    },
+    /** Sensor permission requests since the game opened, across reloads. */
+    sensorAsks,
+    /** Let the page hear pending answers (a permission prompt's), without time passing. */
+    async answer() {
+      for (let hop = 0; hop < 10; hop++) await Promise.resolve();
     },
     /** A new page on the same storage and device, like a browser reload. */
     reload() {
@@ -175,12 +197,21 @@ function coarsePointer() {
   });
 }
 
-function askForSensors(answer: 'granted' | 'denied') {
-  for (const sensor of [DeviceMotionEvent, DeviceOrientationEvent])
-    Object.defineProperty(sensor, 'requestPermission', {
-      configurable: true,
-      value: () => Promise.resolve(answer),
-    });
+/** iOS Safari's sensor events, which ask for permission; happy-dom aliases both to `Event`. */
+function askForSensors(answer: 'granted' | 'denied', asks: SensorAsk[]) {
+  for (const [sensor, name] of [
+    ['motion', 'DeviceMotionEvent'],
+    ['orientation', 'DeviceOrientationEvent'],
+  ] as const)
+    vi.stubGlobal(
+      name,
+      class extends Event {
+        static requestPermission() {
+          asks.push({ sensor, inTap: activation });
+          return Promise.resolve(answer);
+        }
+      },
+    );
 }
 
 /** A Web Audio stand-in that counts contexts and started sounds. */
@@ -247,12 +278,33 @@ export function click(selector: string) {
   if ((element as HTMLButtonElement).disabled)
     throw new Error(`${selector} is disabled`);
   const pointer = { bubbles: true, cancelable: true, pointerId: 1 };
-  element.dispatchEvent(new PointerEvent('pointerdown', pointer));
-  element.focus();
-  element.dispatchEvent(new PointerEvent('pointerup', pointer));
-  element.dispatchEvent(
-    new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }),
-  );
+  activation = true;
+  try {
+    element.dispatchEvent(new PointerEvent('pointerdown', pointer));
+    element.focus();
+    element.dispatchEvent(new PointerEvent('pointerup', pointer));
+    element.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }),
+    );
+  } finally {
+    activation = false;
+  }
+}
+
+/**
+ * A finger lifted off an element that never clicks, as iOS does for a tap on the canvas:
+ * the touch ends inside the tap's activation.
+ */
+export function touchEnd(selector: string) {
+  if (!visible(selector)) throw new Error(`${selector} is not visible`);
+  activation = true;
+  try {
+    $(selector).dispatchEvent(
+      new Event('touchend', { bubbles: true, cancelable: true }),
+    );
+  } finally {
+    activation = false;
+  }
 }
 
 /**
@@ -276,10 +328,20 @@ export function choose(selector: string, value: string) {
 }
 
 /** A key held or released on the focused element, like `page.keyboard.down/up`. */
-export function key(type: 'keydown' | 'keyup', code: 'Space') {
+export function key(
+  type: 'keydown' | 'keyup',
+  code: 'Space' | 'Escape' | 'Tab',
+  shiftKey = false,
+) {
   const target = document.activeElement ?? document.body;
   target.dispatchEvent(
-    new KeyboardEvent(type, { bubbles: true, cancelable: true, code }),
+    new KeyboardEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      code,
+      key: code === 'Space' ? ' ' : code,
+      shiftKey,
+    }),
   );
 }
 

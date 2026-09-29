@@ -15,6 +15,8 @@ export type GuideStep = (typeof GUIDE_STEPS)[number];
 export interface FishingView {
   place: Place;
   toolsOpen: boolean;
+  /** The river's settings sheet (spec 034); like the tools, it covers play. */
+  settingsOpen: boolean;
   pageHidden: boolean;
   /** Fishing input waits for the player; opening anything pauses it. */
   paused: boolean;
@@ -30,11 +32,18 @@ export interface FishingView {
     /** Environment facts, fixed at mount. */
     needsPermission: boolean;
     coarsePointer: boolean;
+    /** Sensor access was requested on this page: a gesture asks by itself only once. */
+    asked: boolean;
+    /** Refusals of sensor access on this page: a retry refused again is a new one. */
+    refusals: number;
     calibrating: boolean;
     notice: string | null;
     /** The first-cast guide's step to learn next; null once done or skipped. Per device. */
     guide: GuideStep | null;
-    /** This device never calibrated: the first time it can aim, calibration starts by itself. */
+    /**
+     * This device never calibrated: whenever it can aim, calibration starts by itself,
+     * until one finishes.
+     */
     autoCalibrate: boolean;
   };
 }
@@ -42,6 +51,7 @@ export interface FishingView {
 export type FishingViewEvent =
   | { type: 'place'; place: Place }
   | { type: 'tools'; open: boolean }
+  | { type: 'settings'; open: boolean }
   | { type: 'page'; hidden: boolean }
   | { type: 'run'; runId: string | null }
   | { type: 'hold'; pressed: boolean; buttonRun: boolean }
@@ -50,8 +60,11 @@ export type FishingViewEvent =
   | { type: 'toggle-pause' }
   | { type: 'preference'; preference: Preference }
   | { type: 'capability'; capability: Capability }
+  /** Sensor access was just requested, inside the player's tap. */
+  | { type: 'ask' }
   /** Permission granted again: a refusal is forgotten, a ready sensor stays ready. */
   | { type: 'grant' }
+  /** Starting calibration (from the settings sheet) closes the sheet. */
   | { type: 'calibrating'; on: boolean }
   | { type: 'notice'; text: string | null }
   /** The player did a guide step's move; only the step being taught moves on. */
@@ -71,6 +84,7 @@ export function initialFishingView(
   return {
     place: 'city',
     toolsOpen: false,
+    settingsOpen: false,
     pageHidden: false,
     paused: true,
     pressed: false,
@@ -81,6 +95,8 @@ export function initialFishingView(
       capability: 'unknown',
       needsPermission: options.needsPermission,
       coarsePointer: options.coarsePointer,
+      asked: false,
+      refusals: 0,
       calibrating: false,
       notice: null,
       guide: options.guide,
@@ -89,23 +105,31 @@ export function initialFishingView(
   };
 }
 
-/** The river is on screen, no tools cover it and the page is in front. */
+/** The river is on screen, no tools or settings cover it and the page is in front. */
 export const canPlay = (view: FishingView) =>
-  view.place === 'river' && !view.toolsOpen && !view.pageHidden;
+  view.place === 'river' &&
+  !view.toolsOpen &&
+  !view.settingsOpen &&
+  !view.pageHidden;
 export const motionActive = (view: FishingView) =>
   view.motion.preference === 'motion' && view.motion.capability === 'ready';
 
 /**
  * Pure transitions. Invariants (unit-tested under random event sequences): outside play
- * input is paused and released; a held button implies play; calibration only runs while
- * motion is active and playable, before a run, and starts by itself at most once; the
- * guide only moves forward, one step per move, and only in motion play.
+ * input is paused and released; a held button implies play; the settings sheet is only
+ * open on the river with no tools over it; calibration only runs while motion is active
+ * and playable, before a run, and starts by itself only until one finishes; the guide
+ * only moves forward, one step per move, and only in motion play.
  */
 export function reduceFishingView(
   view: FishingView,
   event: FishingViewEvent,
 ): FishingView {
-  const next = step(view, event);
+  const stepped = step(view, event);
+  const next =
+    stepped.settingsOpen && (stepped.place !== 'river' || stepped.toolsOpen)
+      ? { ...stepped, settingsOpen: false }
+      : stepped;
   if (!canPlay(next) || next.runId !== view.runId)
     return settle({ ...next, paused: true, pressed: false }, view);
   return settle(next, view);
@@ -125,6 +149,8 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
       };
     case 'tools':
       return { ...view, toolsOpen: event.open };
+    case 'settings':
+      return { ...view, settingsOpen: event.open };
     case 'page':
       return { ...view, pageHidden: event.hidden };
     case 'run':
@@ -146,13 +172,26 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
     case 'preference':
       return motion({ preference: event.preference });
     case 'capability':
-      return motion({ capability: event.capability });
+      return motion({
+        capability: event.capability,
+        refusals:
+          view.motion.refusals + (event.capability === 'denied' ? 1 : 0),
+      });
+    case 'ask':
+      return motion({ asked: true });
     case 'grant':
       return view.motion.capability === 'denied'
         ? motion({ capability: 'unknown' })
         : view;
     case 'calibrating':
-      return motion({ calibrating: event.on });
+      return event.on
+        ? { ...motion({ calibrating: true }), settingsOpen: false }
+        : motion({
+            calibrating: false,
+            // A calibration that ran to its end, whatever it found.
+            autoCalibrate:
+              view.motion.autoCalibrate && !view.motion.calibrating,
+          });
     case 'notice':
       return motion({ notice: event.text });
     case 'guide':
@@ -167,24 +206,18 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
 }
 
 /**
- * Calibration needs play, motion and no run; a device never calibrated starts it the
- * first time that holds. Unchanged states keep their identity.
+ * Calibration needs play, motion and no run; a device never calibrated starts it
+ * whenever that holds, so one cut short (by the settings, say) starts again. Unchanged
+ * states keep their identity.
  */
 function settle(next: FishingView, previous: FishingView): FishingView {
   const aiming = canPlay(next) && motionActive(next) && next.runId === null;
-  const auto = next.motion.autoCalibrate && aiming;
-  const calibrating = aiming && (next.motion.calibrating || auto);
+  const calibrating =
+    aiming && (next.motion.calibrating || next.motion.autoCalibrate);
   const settled =
-    calibrating === next.motion.calibrating && !auto
+    calibrating === next.motion.calibrating
       ? next
-      : {
-          ...next,
-          motion: {
-            ...next.motion,
-            calibrating,
-            autoCalibrate: next.motion.autoCalibrate && !auto,
-          },
-        };
+      : { ...next, motion: { ...next.motion, calibrating } };
   return JSON.stringify(settled) === JSON.stringify(previous)
     ? previous
     : settled;

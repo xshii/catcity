@@ -1,115 +1,61 @@
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
-import {
-  expect,
-  test,
-  type Browser,
-  type BrowserContext,
-  type Page,
-} from '@playwright/test';
+import { expect, test, type Browser, type Page } from '@playwright/test';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
-import { enterRiver } from '../../harness/adapters/catcity/city-input';
-import {
-  closeRiverPanel,
-  openGear,
-} from '../../harness/adapters/catcity/navigation';
+import { reachWaterway } from '../../harness/adapters/catcity/city-input';
 import { FISHING } from '../../src/content/fishing';
 import { fishPoint } from '../../src/minigames/angling-motion';
 import { SCREEN_COPY } from '../../src/view/fishing/screen';
-import { DEFAULT_TUNING } from '../../src/view/motion/rod';
+import {
+  ASKED_IN_GESTURE,
+  askForSensors,
+  orient,
+  phoneContext,
+  seasoned,
+  sensorAsks,
+  sensorsOn,
+  spin,
+} from '../helpers/motion-phone';
 
-/** Synthetic sensors: Chromium exposes the events but never fires them itself. */
-async function orient(page: Page, gamma: number, beta: number) {
-  await page.evaluate(
-    (pose) => {
-      const event = new Event('deviceorientation');
-      Object.defineProperties(event, {
-        gamma: { value: pose.gamma },
-        beta: { value: pose.beta },
-      });
-      window.dispatchEvent(event);
-    },
-    { gamma, beta },
-  );
-}
-async function spin(page: Page, rates: number[]) {
-  await page.evaluate(
-    ({ rates, sign }) => {
-      for (const rate of rates) {
-        const event = new Event('devicemotion');
-        Object.defineProperty(event, 'rotationRate', {
-          value: { alpha: 0, beta: rate * sign, gamma: 0 },
-        });
-        window.dispatchEvent(event);
-      }
-    },
-    { rates, sign: FISHING.motion.gesture.pitchSign },
-  );
-}
-/** Enabling awaits a permission promise; feed still samples until the game hears them. */
-async function sensorsOn(page: Page, withOrientation = true) {
-  await expect
-    .poll(async () => {
-      if (withOrientation) await orient(page, 0, 0);
-      await spin(page, [0]);
-      return page.locator('#motion-mode-toggle').getAttribute('aria-pressed');
-    })
-    .toBe('true');
-}
 const step = (page: Page, ticks = 1) =>
   page.evaluate((n) => window.CAT_CITY_DEBUG!.stepFishing(n), ticks);
 
-/** Chromium gates sensors behind permissions; WebKit has no such permission names. */
-const grantSensors = (context: BrowserContext) =>
-  context
-    .grantPermissions(['accelerometer', 'gyroscope'], {
-      origin: localOrigin(testPorts().test),
-    })
-    .catch(() => undefined);
-/** A phone: coarse touch pointer at phone size. */
-const phoneContext = (browser: Browser) =>
-  browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-  });
-
 /**
- * A device that finished the first-cast guide and calibrated before (spec 033 F3), so the
- * tests here drive the rod directly. Written before every load of the page.
+ * A phone that must ask for its sensors (as iOS does) walks to the pond and taps
+ * 「进入钓点」: motion is the default (spec 034), so that very tap asks for both sensors,
+ * inside the gesture, with no card in between; then the sensors report.
  */
-const seasoned = (target: Page | BrowserContext) =>
-  target.addInitScript((tuning) => {
-    localStorage.setItem('cat-city.fishing-guide', 'done');
-    localStorage.setItem('cat-city.rod-tuning.v2', tuning);
-  }, JSON.stringify(DEFAULT_TUNING));
-
 async function inMotionRiver(
-  page: Page,
+  browser: Browser,
   { orientation = true, fresh = false } = {},
 ) {
-  await grantSensors(page.context());
-  if (!fresh) await seasoned(page);
-  await page.setViewportSize({ width: 390, height: 844 });
+  const context = await phoneContext(browser);
+  await askForSensors(context);
+  if (!fresh) await seasoned(context);
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
-  await enterRiver(page);
-  // Desktop browsers default to buttons; opting in asks for sensor permission.
-  await openGear(page, 'supplies');
-  await page.locator('#motion-mode-toggle').click();
-  await closeRiverPanel(page);
+  await reachWaterway(page);
+  expect(await sensorAsks(page)).toEqual([]);
+  await page.locator('#begin-fishing').tap();
+  await expect(page.locator('#visit-river')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect.poll(() => sensorAsks(page)).toEqual(ASKED_IN_GESTURE);
   await page.evaluate(() => window.CAT_CITY_DEBUG!.useManualFishingClock(true));
   await sensorsOn(page, orientation);
   await expect(page.locator('#motion-fishing')).toBeVisible();
   await expect(page.locator('#scene-ready')).toBeHidden();
+  return { page, context, errors };
 }
 
 test(
   'a swing casts, "!" asks for a lift, and following the fish ring lands it',
   { tag: '@motion-smoke' },
-  async ({ page }, testInfo) => {
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
-    await inMotionRiver(page);
+  async ({ browser }, testInfo) => {
+    const { page, context, errors } = await inMotionRiver(browser);
     const before = await readWorld(page);
     expect(before.fishing.active).toBeNull();
     // A quick flick down starts and casts the run.
@@ -188,6 +134,7 @@ test(
     expect(result.caught).toBe(true);
     await expect(page.locator('#fish-result')).toContainText('钓到了');
     expect(errors).toEqual([]);
+    await context.close();
   },
 );
 
@@ -203,53 +150,64 @@ async function toBite(page: Page) {
 }
 
 test('the fish ring is drawn on a square plane that matches the hit test', async ({
-  page,
-}) => {
-  await inMotionRiver(page);
-  const plane = (await page.locator('#motion-fishing').boundingBox())!;
-  expect(Math.abs(plane.width - plane.height)).toBeLessThanOrEqual(1);
-});
-
-test('after a reload mid-run, phones are asked to re-enable motion', async ({
   browser,
 }) => {
-  const context = await phoneContext(browser);
-  await grantSensors(context);
-  await seasoned(context);
-  const page = await context.newPage();
-  await page.goto(`${localOrigin(testPorts().test)}/`);
-  await ready(page);
-  await enterRiver(page);
-  await closeRiverPanel(page);
-  await expect(page.locator('#motion-onboarding')).toBeVisible();
-  await page.locator('#motion-enable').click();
-  await sensorsOn(page);
+  const { page, context } = await inMotionRiver(browser);
+  const plane = (await page.locator('#motion-fishing').boundingBox())!;
+  expect(Math.abs(plane.width - plane.height)).toBeLessThanOrEqual(1);
+  await context.close();
+});
+
+test('during a motion run the gear takes its own taps: the settings open and nothing strikes', async ({
+  browser,
+}) => {
+  const { page, context } = await inMotionRiver(browser);
+  await swing(page);
+  await toBite(page);
+  // The water around the gear takes taps as strikes now; the gear is over it.
+  await page.locator('#river-settings').tap({ timeout: 5000 });
+  await expect(page.locator('#river-settings-sheet')).toBeVisible();
+  expect((await readWorld(page)).fishing.active!.phase).toBe('hook');
+  await context.close();
+});
+
+test('after a reload mid-run, the first tap on the river asks for the sensors again', async ({
+  browser,
+}) => {
+  const { page, context } = await inMotionRiver(browser);
   await swing(page);
   expect((await readWorld(page)).fishing.active!.mode).toBe('motion');
   await page.reload();
   await ready(page);
-  // Sensors need a new tap after a reload; the card must return for the live run.
-  await expect(page.locator('#motion-onboarding')).toBeVisible();
+  // The restored run brings back the river without a tap: nothing is asked yet.
+  await expect(page.locator('#motion-fishing')).toBeVisible();
+  expect(await sensorAsks(page)).toEqual([]);
+  // A tap on the water asks, inside it, once; the paused run is not struck.
+  await page.locator('#motion-fishing').tap();
+  await expect.poll(() => sensorAsks(page)).toEqual(ASKED_IN_GESTURE);
+  expect((await readWorld(page)).fishing.active!.phase).toBe('waiting');
   await context.close();
 });
 
 test(
   'a first motion cast calibrates by itself, then is taught one step at a time',
   { tag: '@motion-smoke' },
-  async ({ page }, testInfo) => {
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
-    await inMotionRiver(page, { fresh: true });
+  async ({ browser }, testInfo) => {
+    const { page, context, errors } = await inMotionRiver(browser, {
+      fresh: true,
+    });
     const hint = page.locator('#motion-fishing-hint');
     const skip = page.locator('#motion-guide-skip');
-    // Never calibrated: aiming starts calibration without looking for the button.
+    const calibrate = page.locator('#settings-calibrate');
+    // Never calibrated: aiming starts calibration without looking for it in the settings.
     await expect(hint).toHaveText(SCREEN_COPY.hint.calibrating);
-    await expect(page.locator('#motion-calibrate')).toBeHidden();
-    // No flicks: it fails, says to use the button, and the guide carries on.
+    await expect(calibrate).toHaveJSProperty('hidden', true);
+    // No flicks: it fails, says where to calibrate, and the guide carries on.
     await expect(hint).toHaveText(SCREEN_COPY.calibrate.failed, {
       timeout: FISHING.motion.gesture.calibration.windowMs + 5000,
     });
-    await expect(page.locator('#motion-calibrate')).toBeVisible();
+    await expect(page.locator('#river-settings')).toBeVisible();
+    await expect(calibrate).toHaveJSProperty('hidden', false);
     await expect(hint).toHaveText(SCREEN_COPY.guide.aim);
     await expect(skip).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('motion-guide.png') });
@@ -283,5 +241,6 @@ test(
       await page.evaluate(() => localStorage.getItem('cat-city.fishing-guide')),
     ).toBe('done');
     expect(errors).toEqual([]);
+    await context.close();
   },
 );

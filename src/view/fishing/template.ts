@@ -8,7 +8,7 @@ export const ANGLING_MARKUP = `
     <div id="river-tools" hidden><div class="river-tools-heading"><h2 id="river-tools-title"></h2><button id="river-tools-close" aria-label="返回钓鱼">返回钓鱼 ↓</button></div>
     <section id="river-panel-gear" role="tabpanel" aria-labelledby="river-tab-gear" hidden>
     <div class="angling-title"><div><p class="eyebrow">ONE MORE CAST, TOGETHER</p><h2>钓具与鱼篓</h2></div><span id="fishing-level"></span></div>
-    <div class="fishing-settings"><p id="fishing-resources"></p><button id="haptics-toggle" aria-pressed="false">震动</button><button id="sound-toggle" aria-pressed="false">音效</button></div>
+    <p id="fishing-resources"></p>
     <div id="bait-tray" class="bait-tray"><button data-bait="BREAD">🍞<span>面包<small>常见鱼 · 无限</small></span></button><button data-bait="WORM">🪱<span>蚯蚓<small>鲈鱼 / 锦鲤</small></span></button><button data-bait="SHRIMP">🦐<span>虾饵<small>鲶鱼 / 月光鲤</small></span></button></div>
     <div class="fishing-prep"><label>钓点<select id="fish-location"></select></label><label>同行伙伴<select id="fish-companion"></select></label><label class="bait-select">鱼饵<select id="fish-bait"></select></label></div>
     <label class="direction-label">抛投方向 <output id="direction-value"></output><input type="range" id="fish-direction" min="-${FISHING.input.maxDirection}" max="${FISHING.input.maxDirection}" step="5" value="-30" aria-label="抛投方向"></label>
