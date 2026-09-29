@@ -64,7 +64,8 @@ export const FISHING = {
   bag: { capacity: 30 },
   bait: { max: 999, initial: { WORM: 6, SHRIMP: 3 } },
   skill: { baseXp: 10, xpPerStar: 5, xpPerLevel: 40, maxLevel: 10 },
-  companion: { catchMood: 3, giftMood: 3, favoriteGiftMood: 8, giftHunger: 10 },
+  /** Mood changes live in `content/mood.ts`. */
+  companion: { giftHunger: 10 },
   /** Motion fishing (spec 030), tuned in `motion.ts`; the button mode above is frozen. */
   motion: MOTION,
 } as const;

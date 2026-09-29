@@ -1,6 +1,7 @@
 import { CAT_BREEDS } from '../../content/breeds';
 import { CAT_DEFINITIONS } from '../../content/cats';
 import type { WorldState } from '../../core';
+import { moodBadge } from './mood';
 
 export function toViewModel(world: WorldState, selected: string | null) {
   const cat = world.cats.find((item) => item.id === selected);
@@ -8,11 +9,10 @@ export function toViewModel(world: WorldState, selected: string | null) {
     coins: world.coins.toLocaleString('en-US'),
     day: Math.floor(world.minute / 1440) + 1,
     time: `${String(Math.floor(world.minute / 60) % 24).padStart(2, '0')}:${String(world.minute % 60).padStart(2, '0')}`,
-    cafeBuilt: world.buildings.some((building) => building.type === 'CAT_CAFE'),
     cat: cat
       ? {
           ...cat,
-          moodLabel: cat.mood >= 60 ? '心情不错' : '想安静一会儿',
+          moodBadge: moodBadge(cat.mood),
           personalityLabel: `${CAT_BREEDS[cat.breedId].name} · ${CAT_DEFINITIONS[cat.definitionId].personalityLabel}`,
         }
       : null,

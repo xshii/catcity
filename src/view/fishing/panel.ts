@@ -37,6 +37,7 @@ import {
   BUTTON_PHASE_NAMES,
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
+import { moodNote, withMoodNote } from '../shell/mood';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -94,6 +95,9 @@ export function mountAngling(
   let detailsKey = '';
   let aimKey = '';
   let aimPower = FISHING.input.maxPower / 2;
+  // How the run that just ended changed its cat's mood band; read from the change itself.
+  let previousWorld = session.getSnapshot();
+  let resultMood = { runId: '', note: '' };
   const aimListeners = new Set<() => void>();
   // Every switchable state of the fishing screen (spec 015): one store, one render.
   const view = createFishingView(initialFishingView(motionStartup()));
@@ -134,14 +138,13 @@ export function mountAngling(
     const state = view.get();
     const screen = fishingScreen(state, run ?? null);
     const active = !!run;
+    const resultNote =
+      f.lastResult?.runId === resultMood.runId ? resultMood.note : '';
     const selectedCat =
       world.cats.find(
         (cat) => cat.id === (run?.catId ?? session.selectedEntity),
       ) ?? world.cats[0]!;
     const energy = selectedCat.needs.energy;
-    document
-      .querySelector('.shell')
-      ?.classList.toggle('motion-play', screen.motionPlay);
     get('scene-ready').hidden = !screen.readyToCast;
     get<HTMLButtonElement>('cast-start').disabled =
       active || energy < CAST_COST;
@@ -158,6 +161,7 @@ export function mountAngling(
       f.inventory,
       f.atlas,
       f.lastResult,
+      resultNote,
       world.cats.map((cat) => [
         cat.id,
         cat.fishGift,
@@ -228,8 +232,23 @@ export function mountAngling(
       const cat = world.cats.find((cat) => cat.id === companion.value)!;
       get('companion-specialty').textContent =
         `${cat.name} · ${CAT_BREEDS[cat.breedId].name}：${CAT_BREEDS[cat.breedId].fishingHint}。鱼饵、落点和钓点条件仍需满足。`;
-      renderFishingCatalog(world, cat, (command, message) =>
-        report(session.execute(command), message),
+      renderFishingCatalog(
+        world,
+        cat,
+        (command, message) => {
+          const before = session.getSnapshot();
+          const result = session.execute(command);
+          report(
+            result,
+            command.type === 'GIFT_FISH'
+              ? withMoodNote(
+                  message,
+                  moodNote(before, session.getSnapshot(), command.catId),
+                )
+              : message,
+          );
+        },
+        resultNote,
       );
     }
     if (run) {
@@ -260,7 +279,12 @@ export function mountAngling(
       control.setAttribute('aria-pressed', String(state.pressed));
       get('fish-pause').textContent = screen.pauseLabel;
     }
-    stage.render(world, selectedCat.id, (location.value || 'POND') as SpotId);
+    stage.render(
+      world,
+      selectedCat.id,
+      (location.value || 'POND') as SpotId,
+      resultNote,
+    );
     layout?.refresh();
     motion?.apply(screen, run ?? null);
     collections.refresh();
@@ -501,6 +525,18 @@ export function mountAngling(
   });
   // A world change or a view change: either way, one render applies the screen.
   session.subscribe(() => {
+    const world = session.getSnapshot();
+    const ended = world.fishing.lastResult;
+    if (
+      ended &&
+      ended.runId === previousWorld.fishing.active?.id &&
+      ended.runId !== previousWorld.fishing.lastResult?.runId
+    )
+      resultMood = {
+        runId: ended.runId,
+        note: moodNote(previousWorld, world, ended.catId),
+      };
+    previousWorld = world;
     stage.follow(session.getSnapshot());
     const runId = session.getSnapshot().fishing.active?.id ?? null;
     if (runId && runId !== view.get().runId) root.hidden = false;

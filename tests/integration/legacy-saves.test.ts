@@ -22,6 +22,8 @@ import v13Content6 from '../fixtures/save-v13-content6.json';
 import v13Content7 from '../fixtures/save-v13-content7.json';
 // A cat resting under the removed rest rule (save 13); idle cats recover by themselves now.
 import v13Rest from '../fixtures/save-v13-rest.json';
+// An active motion run from before runs recorded the cat's happy mood (save 14).
+import v14 from '../fixtures/save-v14.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -44,6 +46,7 @@ const incompatible = {
   v13Content6,
   v13Content7,
   v13Rest,
+  v14,
   future,
 };
 

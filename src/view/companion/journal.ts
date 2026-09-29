@@ -43,9 +43,6 @@ export function mountCompanionship(session: GameSession) {
         ? '“你记得我的口味，我也记得这份心意。”'
         : '“谢谢你想着我。”';
     }
-    get('chapter-progress').textContent = remembered
-      ? '我们的故事，已经有了第一页。'
-      : '今天的小愿望：一起留下一段回忆。';
   };
   session.subscribe(render);
   render();

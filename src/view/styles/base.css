@@ -32,32 +32,13 @@ input:focus-visible {
   margin: 0 auto;
   padding: 26px 36px 18px;
 }
-.topbar,
-.top-actions,
-.intro,
-.wallet,
 .map-heading,
-.map-footer,
-.cat-heading,
-footer {
+.cat-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.topbar {
-  border-bottom: 1px solid #deded1;
-  padding-bottom: 23px;
-}
-.brand {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  font-family: Georgia, serif;
-  font-size: 24px;
-  letter-spacing: 2px;
-  color: inherit;
-  text-decoration: none;
-}
+
 .brand-mark {
   width: 39px;
   height: 39px;
@@ -68,29 +49,7 @@ footer {
   border-radius: 13px 13px 18px 18px;
   font-size: 28px;
 }
-.brand small {
-  display: block;
-  font-family: sans-serif;
-  font-size: 8px;
-  letter-spacing: 2px;
-  margin-top: 4px;
-  color: #7d8774;
-}
-.top-actions {
-  gap: 24px;
-  font-size: 12px;
-}
-.offline {
-  color: #7d8674;
-}
-.offline i {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: #859c70;
-  border-radius: 50%;
-  margin-right: 6px;
-}
+
 .quiet {
   padding: 9px 17px;
   border: 1px solid #d6dacb;
@@ -98,9 +57,7 @@ footer {
   background: transparent;
   color: #506048;
 }
-.intro {
-  padding: 35px 0 28px;
-}
+
 .eyebrow {
   color: #92977e;
   letter-spacing: 2px;
@@ -115,19 +72,7 @@ h1 {
   letter-spacing: 1px;
   margin: 0 0 12px;
 }
-.subtitle {
-  color: #828979;
-  margin: 0;
-  font-size: 13px;
-}
-.wallet {
-  gap: 13px;
-  border: 1px solid #e1dfce;
-  border-radius: 14px;
-  padding: 15px 24px;
-  background: #fbf8ef;
-  min-width: 150px;
-}
+
 .coin {
   color: #d1ab62;
   background: #f4e7be;
@@ -139,17 +84,7 @@ h1 {
   place-items: center;
   font-size: 14px;
 }
-.wallet small {
-  display: block;
-  font-size: 10px;
-  color: #92917b;
-  margin-bottom: 3px;
-}
-.wallet strong {
-  font-family: Georgia, serif;
-  font-size: 25px;
-  font-weight: 500;
-}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 325px;
@@ -183,15 +118,7 @@ h1 {
 canvas {
   display: block;
 }
-.map-footer {
-  font-size: 11px;
-  padding: 0 24px 20px;
-  color: #7d886d;
-}
-aside {
-  display: grid;
-  gap: 17px;
-}
+
 .card {
   border: 1px solid #e3e1d4;
   background: #fcfaf3;
@@ -209,14 +136,7 @@ h2 {
   color: #87907e;
   margin: 13px 0;
 }
-.build-status {
-  background: #e7eddc;
-  color: #637956;
-  text-align: center;
-  font-size: 12px;
-  padding: 12px 5px;
-  border-radius: 8px;
-}
+
 .pill {
   background: #eef0e2;
   color: #87966f;
@@ -291,13 +211,7 @@ input::placeholder {
   font-size: 12px;
   border-radius: 8px;
 }
-footer {
-  border-top: 1px solid #deded1;
-  padding-top: 17px;
-  font-size: 9px;
-  color: #9da28d;
-  letter-spacing: 1.6px;
-}
+
 @media (max-width: 800px) {
   .shell {
     padding: 20px 18px;
@@ -305,56 +219,21 @@ footer {
   .layout {
     grid-template-columns: 1fr;
   }
-  aside {
-    grid-template-columns: 1fr 1fr;
-  }
-  .offline {
-    display: none;
-  }
+
   h1 {
     font-size: 26px;
   }
-  .wallet {
-    padding: 12px;
-    min-width: auto;
-  }
 }
 @media (max-width: 520px) {
-  aside {
-    grid-template-columns: 1fr;
-  }
-  .intro {
-    gap: 10px;
-  }
-  .subtitle {
-    font-size: 11px;
-    max-width: 220px;
-    line-height: 1.8;
-  }
-  .wallet {
-    padding: 10px;
-    gap: 7px;
-  }
-  .wallet strong {
-    font-size: 20px;
-  }
   .coin {
     display: none;
   }
-  .map-heading,
-  .map-footer {
+  .map-heading {
     padding-left: 14px;
     padding-right: 14px;
   }
 }
 
-/* The relationship demo keeps the city and companion in one quiet space. */
-aside {
-  grid-template-columns: 1fr;
-}
-.intro {
-  padding: 27px 0 24px;
-}
 .layout {
   grid-template-columns: minmax(0, 1fr) 350px;
   gap: 24px;
@@ -522,63 +401,13 @@ aside {
   line-height: 1.8;
   color: #a1967d;
 }
-.city-tools {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 24px;
-  margin-top: 22px;
-}
-.city-tools .build-card {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 20px 23px;
-  background: #f7f5e9;
-}
-.city-tools .eyebrow {
-  margin-bottom: 7px;
-  font-size: 8px;
-}
-.city-tools h2 {
-  font-size: 14px;
-}
-.city-tools p:not(.eyebrow) {
-  font-size: 10px;
-  color: #93977d;
-  margin-bottom: 0;
-  line-height: 1.8;
-}
-.city-tools .build-status {
-  margin-left: auto;
-  min-width: 133px;
-  font-size: 10px;
-  padding: 11px;
-}
-footer {
-  align-items: flex-start;
-  gap: 20px;
-}
-footer details {
-  max-width: 350px;
-  text-align: right;
-  letter-spacing: 0.2px;
-}
-footer summary {
-  cursor: pointer;
-}
-footer details p {
-  font-size: 11px;
-  line-height: 1.8;
-}
+
 @keyframes breathe {
   50% {
     transform: translateY(-2px) rotate(3deg);
   }
 }
 @media (max-width: 900px) {
-  .city-tools .build-card {
-    flex-wrap: wrap;
-  }
   .shell {
     padding: 22px 20px;
   }
@@ -589,60 +418,27 @@ footer details p {
   .card {
     padding: 18px;
   }
-  .city-tools {
-    grid-template-columns: 1fr 310px;
-    gap: 16px;
-  }
 }
 @media (max-width: 760px) {
-  .layout,
-  .city-tools {
+  .layout {
     grid-template-columns: 1fr;
   }
-  aside {
-    grid-template-columns: 1fr;
-  }
+
   .shell {
     padding: 18px 15px;
   }
-  .intro {
-    align-items: flex-start;
-  }
+
   h1 {
     font-size: 24px;
     letter-spacing: 0;
   }
-  .wallet {
-    padding: 10px;
-  }
-  .wallet strong {
-    font-size: 20px;
-  }
-  .wallet .coin {
-    display: none;
-  }
-  .brand {
-    font-size: 20px;
-  }
+
   .map-heading {
     padding: 16px 16px 0;
   }
-  .map-footer {
-    padding: 0 16px 18px;
-    font-size: 9px;
-    gap: 8px;
-  }
+
   .scene-tabs button {
     padding: 6px 15px;
-  }
-  .city-tools .build-card {
-    flex-wrap: wrap;
-  }
-  .city-tools .build-status {
-    margin: 0;
-  }
-  footer {
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -926,10 +722,6 @@ footer details p {
 .gray-cat {
   filter: grayscale(1);
 }
-.river-mode #game {
-  max-width: 460px;
-  margin: auto;
-}
 @media (max-width: 600px) {
   .angling {
     padding: 16px;
@@ -996,14 +788,6 @@ footer details p {
   position: relative;
   isolation: isolate;
 }
-#fishing-stage.is-river {
-  min-height: 580px;
-  background: #dce6cd;
-  scroll-margin-top: 12px;
-}
-.river-mode #game {
-  max-width: none;
-}
 #river-hud {
   position: absolute;
   inset: 0;
@@ -1036,10 +820,6 @@ footer details p {
   border: 1px solid #d3ddc0;
   padding: 8px 10px;
   border-radius: 18px;
-}
-#river-roster {
-  padding: 16px 20px 10px;
-  background: #f5f5e9;
 }
 .cat-energy-cards {
   display: flex;
@@ -1080,6 +860,15 @@ footer details p {
   font-size: 10px;
   color: #7a866e;
   margin-top: 4px;
+}
+.energy-cat .mood-hint,
+.cat-heading .mood-hint {
+  color: #6f8f55;
+}
+.cat-heading .mood-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
 }
 .energy-cat progress {
   display: block;
@@ -1272,12 +1061,6 @@ footer details p {
   opacity: 0.55;
 }
 @media (max-width: 600px) {
-  #fishing-stage.is-river {
-    min-height: 520px;
-  }
-  #river-roster {
-    padding: 12px;
-  }
   .river-caption {
     left: 7%;
     top: 4%;
@@ -1362,9 +1145,6 @@ footer details p {
   border-color: #c18c73;
 }
 @media (max-width: 600px) {
-  #fishing-stage.is-river[data-phase='ready'] {
-    min-height: 430px;
-  }
   .energy-cat svg {
     width: 40px;
   }

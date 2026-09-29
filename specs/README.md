@@ -78,4 +78,6 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 | 025 | [AGPL 源码链接](025-source-link/requirements.md)              | 提出   | 界面提供源码入口                                                 |
 | 026 | [合并后发布 Pages](026-pages-deploy/requirements.md)          | 提出   | 仓库已公开，可免费开通                                           |
 | 030 | [钓鱼操作重设计](030-fishing-gestures/requirements.md)        | 验证中 | 手机即鱼竿：甩竿、"！"上扬、竿尖追鱼圈；按钮版冻结；待实机调手感 |
+| 031 | [全屏布局](031-fullscreen-layout/requirements.md)             | 进行中 | 场景铺满全屏，顶部浮条 + 底部工具条，猫咪信息并入猫咪·聊天面板   |
+| 032 | [心情系统](032-mood/requirements.md)                          | 进行中 | 心情有涨有落、开心时一竿小加成、对话按档位换语气                 |
 | 029 | [内容候选池](029-content-backlog/requirements.md)             | 延后   | 撸猫、猫草、收容、医院、设施、摄影、料理等                       |

@@ -1,4 +1,7 @@
 import type { HarnessTask } from '../runner/contract';
+import { localOrigin, testPorts } from '../runner/test-ports';
+
+const ports = testPorts();
 
 export const cityLoopTask: HarnessTask = {
   id: 'm5-city-walk-fish',
@@ -62,9 +65,9 @@ export const cityLoopTask: HarnessTask = {
       '--host',
       '127.0.0.1',
       '--port',
-      '4175',
+      String(ports.acceptance),
       '--strictPort',
     ],
-    url: 'http://127.0.0.1:4175',
+    url: localOrigin(ports.acceptance),
   },
 };

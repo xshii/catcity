@@ -8,6 +8,7 @@ import type { CityActions } from './actions';
 import { drawCityMap } from '../art/city-map';
 import { RiverView } from '../art/river';
 import { aimAtPoint } from '../art/water-view';
+import { measureBarInsets } from './bars';
 import { boardSize, frameMap, MAP_VIEW, tileCenter } from './geometry';
 
 export class CityScene extends Phaser.Scene {
@@ -20,13 +21,15 @@ export class CityScene extends Phaser.Scene {
   private overview = false;
   /** Overview focus in world pixels; null centres the board. */
   private pan: { x: number; y: number } | null = null;
+  /** The framed focus: the world point in the middle of the open band between the bars. */
+  private focus = { x: 0, y: 0 };
   /** The map frame (#game) in CSS pixels. */
   private frame = { width: 0, height: 0 };
   private tiles = { width: 0, height: 0 };
   private drag: {
     x: number;
     y: number;
-    center: { x: number; y: number };
+    focus: { x: number; y: number };
     moved: boolean;
   } | null = null;
   constructor(
@@ -79,11 +82,10 @@ export class CityScene extends Phaser.Scene {
         this.aimOnWater(pointer);
         return;
       }
-      const { x, y } = this.cameras.main.midPoint;
       this.drag = {
         x: pointer.x,
         y: pointer.y,
-        center: { x, y },
+        focus: { ...this.focus },
         moved: false,
       };
     });
@@ -97,7 +99,7 @@ export class CityScene extends Phaser.Scene {
         drag.moved = true;
       if (!drag.moved || !this.overview) return;
       const zoom = this.cameras.main.zoom;
-      this.pan = { x: drag.center.x - dx / zoom, y: drag.center.y - dy / zoom };
+      this.pan = { x: drag.focus.x - dx / zoom, y: drag.focus.y - dy / zoom };
     });
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       const tap = this.drag && !this.drag.moved;
@@ -205,13 +207,16 @@ export class CityScene extends Phaser.Scene {
       : cat
         ? { x: cat.x, y: cat.y }
         : { x: board.width / 2, y: board.height / 2 };
-    const { scale, center } = frameMap(
+    const framed = frameMap(
       this.frame,
       this.tiles,
       !this.overview,
       focus,
+      measureBarInsets(),
     );
-    if (this.overview && this.pan) this.pan = center;
+    const { scale, center } = framed;
+    this.focus = framed.focus;
+    if (this.overview && this.pan) this.pan = framed.focus;
     camera.setZoom(scale * this.logicalPerCss()).centerOn(center.x, center.y);
   }
 
