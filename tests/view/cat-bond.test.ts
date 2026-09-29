@@ -7,13 +7,18 @@ import {
   openCats,
   showBagFish,
 } from '../helpers/view-player';
+import { BOND_LEVELS } from '../../src/content/care';
 import { createWorld, World } from '../../src/core/world';
 import { finishFishing } from '../unit/fishing-fixture';
 
-/** A world one shared moment short of 熟悉, as a save could hold it. */
+/** Thresholds are tuning: the second level's comes from the content table. */
+const [, second, third] = BOND_LEVELS;
+const short = second.bond - 1;
+
+/** A world one shared moment short of the second level, as a save could hold it. */
 function almostFamiliar() {
   const state = createWorld(42).getSnapshot();
-  state.cats[0]!.playerBond = 4;
+  state.cats[0]!.playerBond = short;
   return { 'cat-city.save.v1': new World(state).save() };
 }
 const say = async (selector: string) => {
@@ -32,7 +37,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     expect(text('#bond-name')).toBe('初识');
     expect(text('#bond-hearts')).toBe('♡♡♡♡');
     expect(text('#bond-next')).toBe('距「熟悉」还差 1');
-    expect([bar().value, bar().max]).toEqual([4, 5]);
+    expect([bar().value, bar().max]).toEqual([short, second.bond]);
     expect($('#bond-level').getAttribute('aria-label')).toBe(
       '关系：初识，距「熟悉」还差 1',
     );
@@ -43,7 +48,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     const game = openGame({ storage: almostFamiliar() });
     openCats('talk');
     await say('[data-message="今天很开心"]');
-    expect(game.world().cats[0]!.playerBond).toBe(5);
+    expect(game.world().cats[0]!.playerBond).toBe(second.bond);
     expect(text('#notice')).toBe(
       'Mochi 轻轻动了动耳朵，回应了你。和 Mochi 更熟了：熟悉。',
     );
@@ -52,7 +57,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     expect(text('#bond-news')).toBe('和 Mochi 更熟了：熟悉');
     expect(text('#bond-name')).toBe('熟悉');
     expect(text('#bond-hearts')).toBe('♥♡♡♡');
-    expect([bar().value, bar().max]).toEqual([0, 10]);
+    expect([bar().value, bar().max]).toEqual([0, third.bond - second.bond]);
     await say('[data-message="今天有点累"]');
     expect(text('#notice')).toBe('Mochi 轻轻动了动耳朵，回应了你。');
     expect(visible('#bond-news')).toBe(false);
@@ -69,7 +74,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     closeRiverPanel();
     click('#cast-start');
     catchFish(game);
-    expect(game.world().cats[0]!.playerBond).toBe(5);
+    expect(game.world().cats[0]!.playerBond).toBe(second.bond);
     expect(text('#fish-result')).toContain('和 Mochi 更熟了：熟悉。');
     expect(text('#catch-reveal')).toContain('和 Mochi 更熟了：熟悉');
     const fish = game.world().fishing.inventory[0]!;
@@ -95,7 +100,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     });
     finishFishing(played);
     const state = played.getSnapshot();
-    Object.assign(state.cats[0]!, { playerBond: 4, lastBondMinute: null });
+    Object.assign(state.cats[0]!, { playerBond: short, lastBondMinute: null });
     const next = openGame({
       storage: { 'cat-city.save.v1': new World(state).save() },
     });
@@ -103,7 +108,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     enterRiver(next);
     showBagFish(next, fish.id);
     click(`[data-gift-fish="${fish.id}"]`);
-    expect(next.world().cats[0]!.playerBond).toBe(5);
+    expect(next.world().cats[0]!.playerBond).toBe(second.bond);
     expect(text('#notice')).toContain('和 Mochi 更熟了：熟悉。');
   });
 });

@@ -64,7 +64,7 @@ export class RuleBasedDialogueProvider implements DialogueProvider {
       const responses = SMALL_TALK[moodBand(cat.mood)];
       text =
         responses[context.recentMemories.length % responses.length]! +
-        CLOSER_TALK[bondLevel(cat.playerBond)]!;
+        (CLOSER_TALK[bondLevel(cat.playerBond)] ?? '');
     }
     return { catId: cat.id, text };
   }

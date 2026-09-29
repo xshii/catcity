@@ -4,6 +4,7 @@ import { fishingFixture, finishFishing } from './fishing-fixture';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import { BOND_LEVELS, CARE, bondLevel } from '../../src/content/care';
 import { MOOD, moodRest } from '../../src/content/mood';
+import { MAX_STAT } from '../../src/core/limits';
 import { SAVE_VERSION, type CatEntity } from '../../src/core/schema';
 
 function edited(world: World, change: (cat: CatEntity) => void): World {
@@ -22,26 +23,42 @@ const begin = (world: World) =>
     aimDepth: 50,
   });
 
+/** Thresholds are tuning: every test reads them from the content table. */
+const top = BOND_LEVELS.length - 1;
+const topBond = BOND_LEVELS[top]!.bond;
+
 describe('bond levels (spec 036)', () => {
-  it('are named 初识, 熟悉, 信任, 亲密, 家人 from 0, 5, 15, 30 and 60', () => {
-    expect(BOND_LEVELS).toEqual([
-      { name: '初识', bond: 0 },
-      { name: '熟悉', bond: 5 },
-      { name: '信任', bond: 15 },
-      { name: '亲密', bond: 30 },
-      { name: '家人', bond: 60 },
+  it('are one table of named levels, rising from 0 within the bond range', () => {
+    expect(BOND_LEVELS.map((level) => level.name)).toEqual([
+      '初识',
+      '熟悉',
+      '信任',
+      '亲密',
+      '家人',
     ]);
+    expect(BOND_LEVELS[0].bond).toBe(0);
+    for (const [index, level] of BOND_LEVELS.entries()) {
+      expect(Number.isInteger(level.bond)).toBe(true);
+      expect(level.bond).toBeLessThanOrEqual(MAX_STAT);
+      if (index)
+        expect(level.bond).toBeGreaterThan(BOND_LEVELS[index - 1]!.bond);
+    }
   });
 
   it('derive from the bond alone, splitting exactly at each threshold', () => {
-    expect(
-      [0, 4, 5, 14, 15, 29, 30, 59, 60, 100].map((bond) => bondLevel(bond)),
-    ).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]);
+    for (const [index, level] of BOND_LEVELS.entries()) {
+      expect(bondLevel(level.bond)).toBe(index);
+      if (index) expect(bondLevel(level.bond - 1)).toBe(index - 1);
+    }
+    expect(bondLevel(MAX_STAT)).toBe(top);
   });
 
   it('add no saved field', () => {
     expect(SAVE_VERSION).toBe(17);
-    const world = edited(createWorld(42), (cat) => (cat.playerBond = 15));
+    const world = edited(
+      createWorld(42),
+      (cat) => (cat.playerBond = BOND_LEVELS[1].bond),
+    );
     expect(Object.keys(cat(loadWorld(world.save())))).toEqual(
       Object.keys(cat(createWorld(42))),
     );
@@ -132,45 +149,54 @@ describe('a closer cat rests at a higher mood', () => {
       cat.mood = mood;
     });
 
-  it('raises the resting mood by 3 for each level above 初识', () => {
-    expect([0, 4, 5, 15, 30, 60, 100].map(moodRest)).toEqual([
-      60, 60, 63, 66, 69, 72, 72,
-    ]);
+  it('raises the resting mood by the same step for each level above the first', () => {
+    for (const [index, level] of BOND_LEVELS.entries()) {
+      const rest = MOOD.rest + index * MOOD.restPerBondLevel;
+      expect(moodRest(level.bond)).toBe(rest);
+      if (index)
+        expect(moodRest(level.bond - 1)).toBe(rest - MOOD.restPerBondLevel);
+    }
     expect(moodRest(0)).toBe(MOOD.rest);
+    expect(moodRest(MAX_STAT)).toBe(moodRest(topBond));
+  });
+
+  it('never rests a cat in the happy band: happiness still takes shared moments', () => {
+    expect(moodRest(MAX_STAT) + MOOD.home).toBeLessThan(MOOD.happy);
   });
 
   it('drifts toward its own resting mood, never past it', () => {
-    for (const [bond, rest] of [
-      [0, 60],
-      [5, 63],
-      [60, 72],
-    ] as const)
+    for (const level of BOND_LEVELS) {
+      const rest = moodRest(level.bond);
       for (const start of [rest - 1, rest, rest + 1, 0, 100]) {
-        const world = withBond(bond, start);
+        const world = withBond(level.bond, start);
         advance(world, 60 * 60);
         expect(cat(world).mood).toBe(rest);
       }
+    }
   });
 
   it('never lowers a mood that today’s rule would have left alone', () => {
     // Between the old and the new resting mood the cat now drifts up instead of down.
-    const close = withBond(60, 66);
-    const stranger = withBond(0, 66);
+    const between = MOOD.rest + MOOD.drift;
+    expect(moodRest(topBond)).toBeGreaterThanOrEqual(between + MOOD.drift);
+    const close = withBond(topBond, between);
+    const stranger = withBond(0, between);
     advance(close, 60);
     advance(stranger, 60);
-    expect(cat(close).mood).toBe(66 + MOOD.drift);
-    expect(cat(stranger).mood).toBe(66 - MOOD.drift);
-    for (const mood of [0, 30, 59, 60, 72, 73, 90, 100]) {
-      const near = withBond(60, mood);
-      const far = withBond(0, mood);
-      advance(near, 60);
-      advance(far, 60);
-      expect(cat(near).mood).toBeGreaterThanOrEqual(cat(far).mood);
-    }
+    expect(cat(close).mood).toBe(between + MOOD.drift);
+    expect(cat(stranger).mood).toBe(between - MOOD.drift);
+    for (const level of BOND_LEVELS)
+      for (let mood = 0; mood <= 100; mood++) {
+        const near = withBond(level.bond, mood);
+        const far = withBond(0, mood);
+        advance(near, 60);
+        advance(far, 60);
+        expect(cat(near).mood).toBeGreaterThanOrEqual(cat(far).mood);
+      }
   });
 
   it('gives the same result in one advance as in minute steps, across a save', () => {
-    const world = withBond(30, 40);
+    const world = withBond(topBond, 40);
     const stepwise = loadWorld(world.save());
     advance(world, 600);
     for (let minute = 0; minute < 600; minute++) advance(stepwise, 1);
