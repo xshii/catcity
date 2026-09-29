@@ -136,5 +136,5 @@ export function mountCityActions(deps: {
     });
   };
   card.querySelector('#cancel-city-action')!.addEventListener('click', clear);
-  return { selectTile, selectCat, focusWaterway, clear, apply };
+  return { selectTile, selectCat, focusWaterway, clear, apply, run };
 }

@@ -1,9 +1,10 @@
 import type { PlaceState, Tools } from '../shell/place';
 import type { GameSession } from '../../application';
 import type { SpotId } from '../../content/fishing';
-import type { GameCommand } from '../../core';
+import type { GameCommand, Position } from '../../core';
 import { ERROR_MESSAGES } from '../shell/errors';
 import { mountCityActions } from './actions';
+import { catDrop } from './cat-drag';
 import { mountCityGuide } from './guide';
 import { mountOuting } from './outing';
 import { cityScreen } from './screen';
@@ -82,7 +83,16 @@ export function mountCity(deps: {
   });
   view.subscribe(render);
   render();
+  /** What letting a lifted cat go over the tile would do (spec 035). */
+  const dropOf = (catId: string, tile: Position | null) =>
+    catDrop(session.getSnapshot(), catId, tile, blocked);
+  const dropCat = (catId: string, tile: Position | null) => {
+    const drop = dropOf(catId, tile);
+    if (drop.kind === 'none') return;
+    session.select(catId);
+    actions.run(drop.intent);
+  };
   const { selectTile, selectCat, focusWaterway } = actions;
-  return { view, selectTile, selectCat, focusWaterway };
+  return { view, selectTile, selectCat, focusWaterway, dropOf, dropCat };
 }
 export type City = ReturnType<typeof mountCity>;
