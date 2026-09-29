@@ -194,6 +194,89 @@ test('browsers without vibration retain visual controls and do not change gamepl
   expect(errors).toEqual([]);
 });
 
+test('sound starts with the first gesture, a cast plays it, and switching it off is remembered', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  // A stand-in Web Audio that counts contexts and started sounds.
+  await page.addInitScript(() => {
+    const stats = { contexts: 0, starts: 0 };
+    const param = () => ({
+      value: 0,
+      setValueAtTime() {},
+      exponentialRampToValueAtTime() {},
+      setTargetAtTime() {},
+    });
+    const node = () => ({
+      gain: param(),
+      frequency: param(),
+      type: '',
+      buffer: null,
+      connect: (next: unknown) => next,
+      start: () => stats.starts++,
+      stop() {},
+    });
+    class StubAudioContext {
+      currentTime = 0;
+      sampleRate = 8000;
+      state = 'running';
+      destination = node();
+      constructor() {
+        stats.contexts++;
+      }
+      createGain = node;
+      createOscillator = node;
+      createBiquadFilter = node;
+      createBufferSource = node;
+      createBuffer = (_channels: number, length: number) => ({
+        getChannelData: () => new Float32Array(length),
+      });
+      resume = () => Promise.resolve();
+      suspend = () => Promise.resolve();
+    }
+    Object.assign(window, {
+      AudioContext: StubAudioContext,
+      soundStats: stats,
+    });
+  });
+  const stats = () =>
+    page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            soundStats: { contexts: number; starts: number };
+          }
+        ).soundStats,
+    );
+  await page.goto('/');
+  await ready(page);
+  expect(await stats()).toEqual({ contexts: 0, starts: 0 });
+  await enterRiver(page);
+  await openGear(page, 'supplies');
+  await expect(page.locator('#sound-toggle')).toHaveText('音效：开');
+  await closeRiverPanel(page);
+  expect(await stats()).toEqual({ contexts: 1, starts: 0 });
+  await page.locator('#cast-start').click();
+  await castOnce(page);
+  await expect.poll(async () => (await stats()).starts).toBeGreaterThan(0);
+
+  await openGear(page, 'supplies');
+  await page.locator('#sound-toggle').click();
+  await expect(page.locator('#sound-toggle')).toHaveText('音效：关');
+  await expect(page.locator('#sound-toggle')).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  await page.reload();
+  await ready(page);
+  await openGear(page, 'supplies');
+  await expect(page.locator('#sound-toggle')).toHaveText('音效：关');
+  // Gestures no longer start any audio while sound is off.
+  expect(await stats()).toEqual({ contexts: 0, starts: 0 });
+  expect(errors).toEqual([]);
+});
+
 test('city clock updates preserve the focused cat card and render fixture names literally', async ({
   page,
 }) => {
