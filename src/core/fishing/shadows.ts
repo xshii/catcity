@@ -75,3 +75,15 @@ export function shadowAt(
       nearest = shadow;
   return nearest;
 }
+
+/**
+ * The shadow a cast from this aim would land on at `spotId` now, or null: what a cast
+ * records and what the aiming preview shows (spec 033 F5b). Reads the world only.
+ */
+export function shadowUnderCast(
+  world: Pick<WorldState, 'seed' | 'minute'>,
+  spotId: SpotId,
+  cast: { direction: number; aimDepth: number; power: number },
+): FishShadow | null {
+  return shadowAt(fishShadows(world, spotId), cast);
+}
