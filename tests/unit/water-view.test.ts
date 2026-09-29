@@ -8,6 +8,7 @@ import {
   flightPoint,
   hookedFish,
   landingShare,
+  motionAim,
   planeBox,
   planePoint,
   shadowPoint,
@@ -15,8 +16,81 @@ import {
   WATER_VIEW,
   waterPoint,
 } from '../../src/view/art/water-view';
+import { createRodTip } from '../../src/view/motion/tip';
 
 const V = WATER_VIEW;
+
+describe('motion aiming: the pitch alone sets how far the cast lands', () => {
+  const G = FISHING.motion.gesture;
+  const S = FISHING.shadows;
+  /** A comfortable hold, the top of the phone raised 40°. */
+  const REST = 40;
+  /** The power the rod settles on, pitched this far back (+) or forward (−) from rest. */
+  const pitched = (degrees: number) => {
+    const tip = createRodTip();
+    tip.calibrate({ x: 0, y: REST });
+    let power = 0;
+    for (let reading = 0; reading < 60; reading++)
+      power = tip.power({ x: 0, y: REST + degrees });
+    return power;
+  };
+  const share = (degrees: number) => {
+    const { aimDepth, power } = motionAim(pitched(degrees));
+    return landingShare(aimDepth, power);
+  };
+
+  it('moves the landing from the nearest water to the farthest across the pitch range', () => {
+    expect(share(-G.powerRangeDeg)).toBe(V.reach.near);
+    expect(share(G.powerRangeDeg)).toBe(V.reach.far);
+    expect(share(0)).toBeCloseTo((V.reach.near + V.reach.far) / 2);
+    // Evenly: every degree moves it as far, and farther back is farther out.
+    const shares = Array.from({ length: 11 }, (_, i) =>
+      share(-G.powerRangeDeg + (i * G.powerRangeDeg) / 5),
+    );
+    const stride = (V.reach.far - V.reach.near) / 10;
+    shares
+      .slice(1)
+      .forEach((next, i) => expect(next - shares[i]!).toBeCloseTo(stride, 2));
+  });
+
+  it('reaches both ends without bending the wrist far or tipping the phone flat', () => {
+    expect(G.powerRangeDeg).toBeLessThanOrEqual(30);
+    expect(REST - G.powerRangeDeg).toBeGreaterThanOrEqual(10);
+  });
+
+  it('can land on a fish shadow anywhere shadows swim, ring on the shadow', () => {
+    for (let reach = S.reach.min; reach <= S.reach.max; reach += 10) {
+      const shadow = {
+        id: 'shadow',
+        direction: 0,
+        reach,
+        size: 'small',
+        speciesId: 'SILVER',
+      } as const;
+      const degrees = ((reach - 50) / 50) * G.powerRangeDeg;
+      const cast = { direction: 0, ...motionAim(pitched(degrees)) };
+      expect(shadowAt([shadow], cast)).toBe(shadow);
+      const ring = waterPoint(0, landingShare(cast.aimDepth, cast.power));
+      const drawn = shadowPoint(0, reach);
+      expect(ring.y).toBeCloseTo(drawn.y, 0);
+    }
+  });
+
+  it('says when the ring is at the near or far limit, where more pitch does nothing', () => {
+    const limit = (power: number) =>
+      castPreview(
+        { seed: 3, minute: 0 },
+        'POND',
+        { direction: 0, ...motionAim(power) },
+        { x: 372, y: 330 },
+      ).limit;
+    expect(limit(0)).toBe('near');
+    expect(limit(100)).toBe('far');
+    for (const power of [1, 50, 99]) expect(limit(power)).toBeNull();
+    expect(limit(pitched(-90))).toBe('near');
+    expect(limit(pitched(90))).toBe('far');
+  });
+});
 
 it('lands farther with more power or depth, always on the water', () => {
   expect(landingShare(50, 80)).toBeGreaterThan(landingShare(50, 30));
