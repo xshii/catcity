@@ -262,6 +262,7 @@ for (const viewport of [
     await openGear(page, 'supplies');
     await onScreen(page.locator('[data-buy-bait="WORM"]'));
     await onScreen(page.locator('#haptics-toggle'));
+    await onScreen(page.locator('#sound-toggle'));
     await singleScreen(page);
     await openGear(page, 'info');
     await onScreen(page.locator('#companion-specialty'));
