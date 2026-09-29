@@ -155,12 +155,13 @@ it('shares one frozen snapshot until the world changes; no view can write throug
 
 it('never shows a replaced world from an old snapshot', () => {
   const session = createTestSession();
+  const start = session.getSnapshot().minute;
   session.execute({ type: 'ADVANCE_TIME', minutes: 5 });
-  expect(session.getSnapshot().minute).toBe(5);
+  expect(session.getSnapshot().minute).toBe(start + 5);
   session.loadFixture(createWorld(7).save());
   expect(session.getSnapshot()).toEqual(createWorld(7).getSnapshot());
   session.execute({ type: 'ADVANCE_TIME', minutes: 5 });
-  expect(session.getSnapshot().minute).toBe(5);
+  expect(session.getSnapshot().minute).toBe(start + 5);
   session.resetDemo();
   expect(session.getSnapshot()).toEqual(createWorld(7).getSnapshot());
 });
