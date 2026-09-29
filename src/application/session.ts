@@ -5,6 +5,7 @@ import {
   loadWorld,
   MAX_TEXT,
   type World,
+  type WorldState,
   type CheckResult,
   type CommandResult,
   type GameCommand,
@@ -48,6 +49,8 @@ export class GameSession {
   /** Why saving stopped: a save that failed to load, or a newer save from another tab. */
   private blocked: 'rejected' | 'external' | null = null;
   private readonly listeners = new Set<() => void>();
+  /** The world as views read it; dropped whenever the world changes. */
+  private snapshot: WorldState | null = null;
   selectedEntity: string | null = null;
   storageError: string | null = null;
   lastDialogueFallback = false;
@@ -83,8 +86,9 @@ export class GameSession {
     this.initialSave = this.world.save();
   }
 
-  getSnapshot() {
-    return this.world.getSnapshot();
+  /** Deep-frozen and shared until the world changes: one copy per change, not per read. */
+  getSnapshot(): WorldState {
+    return (this.snapshot ??= deepFreeze(this.world.getSnapshot()));
   }
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
@@ -108,7 +112,10 @@ export class GameSession {
       command: parsed.data,
       result,
     });
-    if (result.ok) this.save();
+    if (result.ok) {
+      this.snapshot = null;
+      this.save();
+    }
     this.notify();
     return structuredClone(result);
   }
@@ -146,6 +153,7 @@ export class GameSession {
 
   resetDemo() {
     this.world = createWorld(this.world.getSnapshot().seed);
+    this.snapshot = null;
     this.epoch++;
     this.initialSave = this.world.save();
     this.entries = [];
@@ -197,6 +205,7 @@ export class GameSession {
   loadFixture(serialized: string) {
     const replacement = loadWorld(serialized);
     this.world = replacement;
+    this.snapshot = null;
     this.epoch++;
     this.initialSave = replacement.save();
     this.entries = [];
@@ -231,4 +240,13 @@ export class GameSession {
       ),
     };
   }
+}
+
+/** Snapshots are plain JSON data; freezing every level makes a write from a view throw. */
+function deepFreeze<T>(value: T): T {
+  if (typeof value === 'object' && value !== null) {
+    for (const child of Object.values(value)) deepFreeze(child);
+    Object.freeze(value);
+  }
+  return value;
 }
