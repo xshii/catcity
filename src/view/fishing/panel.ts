@@ -143,7 +143,7 @@ export function mountAngling(
   const settings = mountFishingSettings({
     view,
     plane: shell.game,
-    stage: stage.stage,
+    layer: root,
     choose: (mode) => motion.choose(mode),
   });
   const feedback = mountFishingFeedback(session, stage.stage, settings.haptics);

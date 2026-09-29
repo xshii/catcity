@@ -28,7 +28,8 @@
   border-radius: 0;
   background: var(--scrim);
 }
-.river-settings {
+/* Scoped by id: the sheet floats in the river layer, whose own button style loads later. */
+#river-settings-sheet {
   position: absolute;
   z-index: 36;
   top: var(--under-bar);
@@ -42,7 +43,7 @@
   background: var(--paper);
   box-shadow: var(--shadow-sheet);
 }
-.river-settings button {
+#river-settings-sheet button {
   min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--btn-secondary-border);
@@ -51,7 +52,7 @@
   color: var(--text);
   font-size: 13px;
 }
-.river-settings button:disabled {
+#river-settings-sheet button:disabled {
   cursor: default;
   opacity: 0.5;
 }
@@ -66,7 +67,7 @@
 .river-settings-heading h2 {
   font-size: 17px;
 }
-.river-settings-heading button {
+#river-settings-sheet .river-settings-heading button {
   width: 44px;
   padding: 0;
 }
@@ -84,14 +85,14 @@
   border-radius: var(--radius-pill);
   background: var(--surface-sunk);
 }
-.river-settings .river-settings-modes button {
+#river-settings-sheet .river-settings-modes button {
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-muted);
   font-size: 14px;
 }
-.river-settings .river-settings-modes button[aria-pressed='true'] {
+#river-settings-sheet .river-settings-modes button[aria-pressed='true'] {
   background: var(--surface);
   color: var(--text);
   font-weight: 600;

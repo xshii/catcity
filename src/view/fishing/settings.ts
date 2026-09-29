@@ -22,8 +22,11 @@ export function mountFishingSettings(deps: {
   view: FishingViewStore;
   /** The canvas box: the gear sits at the open water's top-left corner. */
   plane: HTMLElement;
-  /** The river screen, which the sheet and its shade cover. */
-  stage: HTMLElement;
+  /**
+   * Where the river's sheets float, like the tools panel: over the scene and its
+   * messages, under the bars. (The scene isolates its own layers.)
+   */
+  layer: HTMLElement;
   /** A fishing mode picked in the sheet; choosing motion asks inside this tap. */
   choose: (mode: Preference) => void;
 }) {
@@ -50,7 +53,6 @@ export function mountFishingSettings(deps: {
   shade.hidden = true;
   const sheet = document.createElement('section');
   sheet.id = 'river-settings-sheet';
-  sheet.className = 'river-settings';
   sheet.setAttribute('role', 'dialog');
   sheet.setAttribute('aria-labelledby', 'river-settings-title');
   sheet.hidden = true;
@@ -61,7 +63,7 @@ export function mountFishingSettings(deps: {
     '<p id="settings-mode-note" class="river-settings-note" hidden></p>' +
     `<button id="settings-calibrate" type="button" hidden>${SCREEN_COPY.calibrate.button}</button>` +
     '<div class="river-settings-toggles"><button id="sound-toggle" type="button" aria-pressed="false"></button><button id="haptics-toggle" type="button" aria-pressed="false"></button></div>';
-  deps.stage.append(shade, sheet);
+  deps.layer.append(shade, sheet);
   const $ = <T extends HTMLElement = HTMLButtonElement>(id: string) =>
     sheet.querySelector<T>(`#${id}`)!;
   const modes = {
