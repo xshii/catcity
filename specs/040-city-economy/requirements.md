@@ -1,6 +1,6 @@
 # 040 城市经济
 
-- 状态：验证中（代码与 headless 测试完成；2026-09-30 重新调参后 Playwright、Harness 与截图尚未重跑；完整 Gate 未在本片运行）
+- 状态：验证中（headless、城市相关 Chromium E2E、Harness 验收步骤与截图已在调参后重跑；完整 Gate 与 `npm run harness` 未在本片运行）
 - 来源：2026-09-29 用户："请你仔细设计一下这个数值系统不要太快速到顶"。设计背景见 [037 数值设计](../037-cat-life/numbers.md) 第 1、2、7 节与 [037 需求](../037-cat-life/requirements.md) 第 2、10 节。
 - 问题：金币只涨不花。猫咖 300 金币、每游戏小时固定 +10、数量不限、不需要客人，4× 速度下 7.5 分钟回本；建筑与猫无关，猫从不使用猫咖。
 
@@ -121,17 +121,17 @@
 
 ## 验收标准与证据
 
-| 标准                                                                                | 证据                                                                                      |
-| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 价格数列、取整、土地按距离计价；按顺位扣费，搬移免费；差 1 金币时拒绝且世界不变     | `tests/unit/city-economy.test.ts`（prices）                                               |
-| 客人：住所 3 格内、看住所不看位置、最近一家、同距离较早 ID、最多 5 位、无客人无收入 | `tests/unit/city-economy.test.ts`（cafe customers）                                       |
-| 每家猫咖沿用自己的计时；一次推进与分块推进、存档往返后结果相同                      | `tests/unit/city-economy.test.ts`、`tests/unit/city-loop.test.ts`、`tests/simulation/`    |
-| 随机命令序列下每条命令的金币变化都等于 content 规则算出的数                         | `tests/simulation/invariants.test.ts`                                                     |
-| 卡片与指引显示真实价格、客人、收入与缺多少金币；指引按新顺序推进                    | `tests/unit/city-screen.test.ts`                                                          |
-| 真实点击走完 安家 → 入住 → 猫咖 → 收入                                              | `tests/e2e/game.spec.ts`、`tests/e2e/main-page.spec.ts`                                   |
-| Harness 验收步骤：猫咖建在、搬到住所 3 格内，收入按 1 位客人、按结算周期结算        | `harness/adapters/catcity/browser.ts`（调参前用临时脚本跑过全部步骤与回放；调参后未重跑） |
-| 经济目标 A–D                                                                        | `tests/simulation/economy.test.ts`、`tests/helpers/city-player.ts`                        |
-| 390×844 截图                                                                        | `artifacts/040-city-economy/02`–`07`（不入库；是调参前的价格与文案，待重拍）              |
+| 标准                                                                                | 证据                                                                                                          |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 价格数列、取整、土地按距离计价；按顺位扣费，搬移免费；差 1 金币时拒绝且世界不变     | `tests/unit/city-economy.test.ts`（prices）                                                                   |
+| 客人：住所 3 格内、看住所不看位置、最近一家、同距离较早 ID、最多 5 位、无客人无收入 | `tests/unit/city-economy.test.ts`（cafe customers）                                                           |
+| 每家猫咖沿用自己的计时；一次推进与分块推进、存档往返后结果相同                      | `tests/unit/city-economy.test.ts`、`tests/unit/city-loop.test.ts`、`tests/simulation/`                        |
+| 随机命令序列下每条命令的金币变化都等于 content 规则算出的数                         | `tests/simulation/invariants.test.ts`                                                                         |
+| 卡片与指引显示真实价格、客人、收入与缺多少金币；指引按新顺序推进                    | `tests/unit/city-screen.test.ts`                                                                              |
+| 真实点击走完 安家 → 入住 → 猫咖 → 收入                                              | `tests/e2e/game.spec.ts`、`tests/e2e/main-page.spec.ts`                                                       |
+| Harness 验收步骤：猫咖建在、搬到住所 3 格内，收入按 1 位客人、按结算周期结算        | `harness/adapters/catcity/browser.ts`（用临时脚本在测试构建上跑过全部 13 步与回放，未运行 `npm run harness`） |
+| 经济目标 A–D                                                                        | `tests/simulation/economy.test.ts`、`tests/helpers/city-player.ts`                                            |
+| 390×844 截图                                                                        | `artifacts/040-city-economy/02`–`07`（不入库；调参后重拍）                                                    |
 
 ## 已知限制
 
