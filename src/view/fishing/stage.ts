@@ -11,6 +11,7 @@ import {
 import { MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
 import { moodBadge } from '../shell/mood';
+import { bondBadge } from '../shell/bond';
 import { catPortrait, fishIllustration } from '../art/illustrations';
 import { catPose } from '../art/cat-look';
 import { riverBackdrop } from '../art/river-palette';
@@ -38,7 +39,10 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   const rest = document.createElement('small');
   rest.className = 'rest-label';
   rest.textContent = '在休息';
-  text.append(name, energy, progress, activity, rest, mood, hint);
+  const bond = document.createElement('small');
+  bond.className = 'bond-line';
+  bond.setAttribute('role', 'img');
+  text.append(name, energy, progress, activity, rest, mood, hint, bond);
   button.append(text);
   button.addEventListener('click', () => select(cat.id));
   return {
@@ -68,6 +72,9 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
       mood.setAttribute('aria-label', badge.label);
       hint.textContent = badge.hint;
       hint.hidden = !badge.hint;
+      const level = bondBadge(cat.playerBond);
+      bond.textContent = `${level.hearts} ${level.name}`;
+      bond.setAttribute('aria-label', level.label);
     },
   };
 }
@@ -142,7 +149,8 @@ export function mountFishingStage(
       }
     },
     /**
-     * `resultNote`: how the last result changed the cat's mood band, if it did;
+     * `resultNote`: what the last result changed for the cat (mood band, bond level), if
+     * anything;
      * `showResult`: whether the last result is this visit's catch (`resultShown`).
      */
     render(

@@ -5,7 +5,10 @@ export interface SaveRepository {
   write(save: string): void;
 }
 export interface DialogueContext {
-  cat: Pick<CatEntity, 'id' | 'name' | 'mood' | 'personality' | 'preferences'>;
+  cat: Pick<
+    CatEntity,
+    'id' | 'name' | 'mood' | 'playerBond' | 'personality' | 'preferences'
+  >;
   message: string;
   recentMemories: CatEntity['memories'];
   fishingMemory: CatEntity['fishingMemory'];

@@ -1,3 +1,4 @@
+import { bondLevel } from '../content/care';
 import { fishById, SPOTS } from '../content/fishing';
 import { moodBand, type MoodBand } from '../content/mood';
 import type {
@@ -20,6 +21,15 @@ const SMALL_TALK: Record<MoodBand, readonly string[]> = {
   glum: ['今天有点闷……陪我坐一会，或者出去走走也好。'],
   low: ['……嗯。我在。'],
 };
+
+/** What a closer cat adds after its small talk, by bond level (spec 036); none at 初识. */
+const CLOSER_TALK: readonly string[] = [
+  '',
+  '你的脚步声，我已经能认出来了。',
+  '在你旁边，我可以放心地眯一会儿。',
+  '今天也想挨着你坐。',
+  '有你在的地方，就是家。',
+];
 
 export class RuleBasedDialogueProvider implements DialogueProvider {
   async generate(context: DialogueContext): Promise<DialogueProposal> {
@@ -52,7 +62,9 @@ export class RuleBasedDialogueProvider implements DialogueProvider {
       text = `喵……我是 ${cat.name}。有一点怕生，也有一点贪吃。你可以慢慢认识我。`;
     } else {
       const responses = SMALL_TALK[moodBand(cat.mood)];
-      text = responses[context.recentMemories.length % responses.length]!;
+      text =
+        responses[context.recentMemories.length % responses.length]! +
+        (CLOSER_TALK[bondLevel(cat.playerBond)] ?? '');
     }
     return { catId: cat.id, text };
   }

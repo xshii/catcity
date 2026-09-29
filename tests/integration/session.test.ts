@@ -190,3 +190,22 @@ it('reports the latest command and its outcome, as a copy', () => {
   session.resetDemo();
   expect(session.lastCommand()).toBeNull();
 });
+
+it('hands the provider the cat’s current bond with its mood (spec 036)', async () => {
+  const seen: unknown[] = [];
+  const session = createTestSession({
+    repository: repository(),
+    seed: 42,
+    dialogue: new MockDialogueProvider((context) => {
+      seen.push({ bond: context.cat.playerBond, mood: context.cat.mood });
+      return { catId: 'mochi', text: '喵' };
+    }),
+  });
+  await session.talk('mochi', '你好');
+  await session.talk('mochi', '还在吗');
+  const cat = createWorld(42).getSnapshot().cats[0]!;
+  expect(seen).toEqual([
+    { bond: 0, mood: cat.mood },
+    { bond: 1, mood: session.getSnapshot().cats[0]!.mood },
+  ]);
+});

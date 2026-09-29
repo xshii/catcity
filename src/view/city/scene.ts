@@ -14,12 +14,20 @@ import { RiverView } from '../art/river';
 import { aimAtPoint } from '../art/water-view';
 import { measureBarInsets } from './bars';
 import {
+  reduceMapGesture,
+  type MapGesture,
+  type MapPointerEvent,
+} from './cat-drag';
+import {
   boardSize,
   frameMap,
   MAP_VIEW,
   revealShift,
   tileCenter,
 } from './geometry';
+
+/** How a lifted cat looks (world px): raised over the finger, a little larger. */
+const LIFT = { rise: 40, scale: 1.15, riseMs: 140, left: 0.4 } as const;
 
 export class CityScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
@@ -40,11 +48,19 @@ export class CityScene extends Phaser.Scene {
   /** The map frame (#game) in CSS pixels. */
   private frame = { width: 0, height: 0 };
   private tiles = { width: 0, height: 0 };
-  private drag: {
-    x: number;
-    y: number;
-    focus: { x: number; y: number };
-    moved: boolean;
+  /** The press on the map now (spec 035): a tap, a pan or a lifted cat. */
+  private gesture: MapGesture = { phase: 'idle' };
+  /** The focus when the press began; a pan moves from it. */
+  private panFrom = { x: 0, y: 0 };
+  /** A lifted cat's ghost and the marks under it. */
+  private lift: {
+    catId: string;
+    ghost: CatArt;
+    marks: Phaser.GameObjects.Graphics;
+    since: number;
+    /** The tile and world last judged, and whether the cat may be sent there. */
+    judged: { tile: string; world: unknown } | null;
+    open: boolean;
   } | null = null;
   private frames = 0;
   constructor(
@@ -100,33 +116,30 @@ export class CityScene extends Phaser.Scene {
         this.aimOnWater(pointer);
         return;
       }
-      this.drag = {
-        x: pointer.x,
-        y: pointer.y,
-        focus: { ...this.focus },
-        moved: false,
-      };
+      this.panFrom = { ...this.focus };
+      const tile = this.tileUnder(pointer);
+      this.press({
+        type: 'down',
+        time: performance.now(),
+        point: this.cssPoint(pointer),
+        catId: (tile && this.catAt(tile)?.id) ?? null,
+      });
     });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      const drag = this.drag;
-      if (!drag || !pointer.isDown) return;
-      const dx = pointer.x - drag.x;
-      const dy = pointer.y - drag.y;
-      // Pointer coordinates are logical pixels; the threshold is in CSS pixels.
-      if (Math.hypot(dx, dy) / this.logicalPerCss() > MAP_VIEW.dragPx)
-        drag.moved = true;
-      if (!drag.moved || !this.city.view.get().overview) return;
-      const zoom = this.cameras.main.zoom;
-      this.pan = { x: drag.focus.x - dx / zoom, y: drag.focus.y - dy / zoom };
+      if (pointer.isDown) this.press(this.moved(pointer));
     });
-    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      const tap = this.drag && !this.drag.moved;
-      this.drag = null;
-      if (tap && !this.riverMode) this.tapMap(pointer);
-    });
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) =>
+      this.press(
+        pointer.wasCanceled
+          ? { type: 'cancel' }
+          : { ...this.moved(pointer), type: 'up' },
+      ),
+    );
+    // Released over the bars or the card: nothing on the map was chosen.
+    this.input.on('pointerupoutside', () => this.press({ type: 'cancel' }));
     this.game.canvas.setAttribute(
       'aria-label',
-      '猫咪城市地图：点击土地购买或建设；点击猫后在地块卡片上让它走过去；点击水域前往岸边；总览时拖动平移',
+      '猫咪城市地图：点击土地购买或建设；点击猫后在地块卡片上让它走过去，或长按猫提起、拖到地块上放开；点击水域前往岸边；总览时拖动平移',
     );
     this.game.canvas.setAttribute('role', 'img');
     this.fitCanvas();
@@ -160,15 +173,145 @@ export class CityScene extends Phaser.Scene {
     if (aim) this.aim.set(aim);
   }
 
-  private tapMap(pointer: Phaser.Input.Pointer) {
+  /** Pointer coordinates are logical pixels; gestures are measured in CSS pixels. */
+  private cssPoint(pointer: { x: number; y: number }) {
+    const ratio = this.logicalPerCss();
+    return { x: pointer.x / ratio, y: pointer.y / ratio };
+  }
+
+  /** The tile under a pointer; null off the board. */
+  private tileUnder(pointer: { x: number; y: number }): Position | null {
     const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const x = Math.floor((point.x - MAP_VIEW.padding) / MAP_VIEW.tile);
     const y = Math.floor((point.y - MAP_VIEW.padding) / MAP_VIEW.tile);
-    if (x < 0 || x >= this.tiles.width || y < 0 || y >= this.tiles.height)
-      return;
-    const cat = this.session
+    return x < 0 || x >= this.tiles.width || y < 0 || y >= this.tiles.height
+      ? null
+      : { x, y };
+  }
+
+  private catAt({ x, y }: Position) {
+    return this.session
       .getSnapshot()
       .cats.find((item) => item.position.x === x && item.position.y === y);
+  }
+
+  private moved(pointer: { x: number; y: number }) {
+    return {
+      type: 'move',
+      time: performance.now(),
+      point: this.cssPoint(pointer),
+      tile: this.tileUnder(pointer),
+    } as const;
+  }
+
+  /** Every pointer event goes through the pure gesture; the scene only acts on its phase. */
+  private press(event: MapPointerEvent) {
+    const gesture = reduceMapGesture(this.gesture, event);
+    this.gesture = gesture;
+    if (gesture.phase === 'lifted') {
+      this.drawLift(gesture);
+      return;
+    }
+    this.endLift();
+    if (gesture.phase === 'panning' && this.city.view.get().overview) {
+      const perCss = this.logicalPerCss() / this.cameras.main.zoom;
+      this.pan = {
+        x: this.panFrom.x - (gesture.point.x - gesture.start.x) * perCss,
+        y: this.panFrom.y - (gesture.point.y - gesture.start.y) * perCss,
+      };
+    }
+    if (gesture.phase !== 'tapped' && gesture.phase !== 'dropped') return;
+    this.gesture = { phase: 'idle' };
+    if (this.riverMode) return;
+    if (gesture.phase === 'dropped')
+      this.city.dropCat(gesture.catId, gesture.tile);
+    else if (gesture.tile) this.tapMap(gesture.tile);
+  }
+
+  /**
+   * The lifted cat's ghost rides above the finger; the tile under the finger is outlined
+   * green when the cat may be sent there and grey when not. The cat itself stays put.
+   */
+  private drawLift(gesture: Extract<MapGesture, { phase: 'lifted' }>) {
+    const { catId, tile } = gesture;
+    const cat = this.session.getSnapshot().cats.find(({ id }) => id === catId);
+    if (!cat || this.riverMode) return this.press({ type: 'cancel' });
+    if (!this.lift) {
+      this.lift = {
+        catId,
+        ghost: new CatArt(this, 0, 0, 1, cat.appearance.coat)
+          .setPose(catPose(this.session.getSnapshot(), cat))
+          .setDepth(8),
+        marks: this.add.graphics().setDepth(7),
+        since: performance.now(),
+        judged: null,
+        open: false,
+      };
+      this.cats.get(catId)?.setAlpha(LIFT.left);
+      this.game.canvas.dataset.lifted = catId;
+    }
+    const lift = this.lift;
+    const world = this.session.getSnapshot();
+    const under = JSON.stringify(tile);
+    if (lift.judged?.tile !== under || lift.judged.world !== world) {
+      lift.judged = { tile: under, world };
+      const drop = this.city.dropOf(catId, tile).kind;
+      lift.open = drop !== 'none';
+      this.game.canvas.dataset.drop = drop;
+    }
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const risen = still
+      ? 1
+      : Math.min(1, (performance.now() - lift.since) / LIFT.riseMs);
+    const ratio = this.logicalPerCss();
+    const at = this.cameras.main.getWorldPoint(
+      gesture.point.x * ratio,
+      gesture.point.y * ratio,
+    );
+    lift.ghost
+      .setPosition(at.x, at.y - LIFT.rise * risen)
+      .setScale(1 + (LIFT.scale - 1) * risen);
+    lift.marks.clear();
+    if (tile) {
+      const centre = tileCenter(tile.x, tile.y);
+      const colour = lift.open ? CITY_COLOURS.selected : CITY_COLOURS.blocked;
+      const side = MAP_VIEW.tile - 4;
+      lift.marks
+        .fillStyle(colour, 0.22)
+        .fillRoundedRect(
+          centre.x - side / 2,
+          centre.y - side / 2,
+          side,
+          side,
+          10,
+        )
+        .lineStyle(3, colour)
+        .strokeRoundedRect(
+          centre.x - side / 2,
+          centre.y - side / 2,
+          side,
+          side,
+          10,
+        );
+    }
+    // The shadow the lifted cat casts on the ground under the finger.
+    lift.marks
+      .fillStyle(CITY_COLOURS.line, 0.25)
+      .fillEllipse(at.x, at.y + 19, 30, 9);
+  }
+
+  private endLift() {
+    if (!this.lift) return;
+    this.lift.ghost.destroy();
+    this.lift.marks.destroy();
+    this.cats.get(this.lift.catId)?.setAlpha(1);
+    this.lift = null;
+    delete this.game.canvas.dataset.lifted;
+    delete this.game.canvas.dataset.drop;
+  }
+
+  private tapMap({ x, y }: Position) {
+    const cat = this.catAt({ x, y });
     if (cat) {
       this.city.selectCat(cat.id);
       // Letting the cat go says nothing: its selection ring disappears.
@@ -243,6 +386,15 @@ export class CityScene extends Phaser.Scene {
     }
     this.ambience.update(time);
     if (!this.frame.width || !this.frame.height || !this.tiles.width) return;
+    // Time passes under a still finger; a lifted cat stays under it while the camera follows.
+    if (this.gesture.phase === 'pressing')
+      this.press({ type: 'frame', time: performance.now() });
+    else if (this.gesture.phase === 'lifted')
+      this.press(
+        this.input.activePointer.isDown
+          ? this.moved(this.input.activePointer)
+          : { type: 'cancel' },
+      );
     const board = boardSize(this.tiles);
     const cat = this.followedCat();
     const { overview } = this.city.view.get();

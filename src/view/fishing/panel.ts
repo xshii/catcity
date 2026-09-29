@@ -27,7 +27,14 @@ import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
-import { castNotice, fishingScreen, resultShown, ringHeld } from './screen';
+import { mountFishingSettings } from './settings';
+import {
+  castNotice,
+  fishingScreen,
+  permissionNotice,
+  resultShown,
+  ringHeld,
+} from './screen';
 import {
   createFishingView,
   initialFishingView,
@@ -39,7 +46,8 @@ import {
   BUTTON_PHASE_NAMES,
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
-import { moodNote, withMoodNote } from '../shell/mood';
+import { withMoodNote } from '../shell/mood';
+import { outcomeNote } from '../shell/bond';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -98,11 +106,6 @@ export function mountAngling(
   ready.className = 'scene-ready';
   ready.append(castStart);
   stage.stage.append(ready);
-  const feedback = mountFishingFeedback(
-    session,
-    stage.stage,
-    get<HTMLButtonElement>('haptics-toggle'),
-  );
   const location = get<HTMLSelectElement>('fish-location');
   const companion = get<HTMLSelectElement>('fish-companion');
   const bait = get<HTMLSelectElement>('fish-bait');
@@ -137,7 +140,14 @@ export function mountAngling(
     type: 'run',
     runId: session.getSnapshot().fishing.active?.id ?? null,
   });
-  mountFishingSound(session, view, get<HTMLButtonElement>('sound-toggle'));
+  const settings = mountFishingSettings({
+    view,
+    plane: shell.game,
+    layer: root,
+    choose: (mode) => motion.choose(mode),
+  });
+  const feedback = mountFishingFeedback(session, stage.stage, settings.haptics);
+  mountFishingSound(session, view, settings.sound);
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
@@ -272,7 +282,7 @@ export function mountAngling(
             command.type === 'GIFT_FISH'
               ? withMoodNote(
                   message,
-                  moodNote(before, session.getSnapshot(), command.catId),
+                  outcomeNote(before, session.getSnapshot(), command.catId),
                 )
               : message,
           );
@@ -317,6 +327,7 @@ export function mountAngling(
       resultShown(state, run ?? null, world.fishing.lastResult),
     );
     layout.refresh();
+    settings.apply(screen.settings);
     motion.apply(screen, run ?? null);
     collections.refresh();
     const atDestination = atShore(destination, selectedCat.id);
@@ -391,10 +402,7 @@ export function mountAngling(
   const collections = mountFishingCollections(get);
   const motion = mountMotionFishing({
     view,
-    stage: stage.stage,
     plane: shell.game,
-    settings: layout.settings,
-    readySlot: ready,
     getRun: () => session.getSnapshot().fishing.active,
     previewAim: (preview) => aim.set(preview),
     // One swing starts and casts a motion run: nothing is spent before it.
@@ -444,7 +452,7 @@ export function mountAngling(
     notify(
       run
         ? '回到这一竿，准备好后继续操作。'
-        : '先选择落点，再准备抛竿；也可开启体感瞄准。',
+        : '先选择落点，再准备抛竿；钓鱼方式可在设置里切换。',
     );
   }
   function begin() {
@@ -559,7 +567,7 @@ export function mountAngling(
     )
       resultMood = {
         runId: ended.runId,
-        note: moodNote(previousWorld, world, ended.catId),
+        note: outcomeNote(previousWorld, world, ended.catId),
       };
     const held = ringHeld(previousWorld.fishing.active, world.fishing.active);
     const cast = castNotice(previousWorld.fishing.active, world.fishing.active);
@@ -573,7 +581,11 @@ export function mountAngling(
     if (held) view.dispatch({ type: 'guide', did: 'fight' });
     if (view.get() === before) render();
   });
+  let seenView = view.get();
   view.subscribe((state) => {
+    const refused = permissionNotice(seenView, state);
+    seenView = state;
+    if (refused) notify(refused);
     trace('view', { ...state });
     render();
   });

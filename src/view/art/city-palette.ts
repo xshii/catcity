@@ -67,6 +67,8 @@ export const CITY_COLOURS = {
   /** Shores of the chosen water; the chosen tile and the walking cat. */
   shore: T.accentStrong,
   selected: T.btnPrimaryBg,
+  /** Under a lifted cat: a tile it cannot be sent to. */
+  blocked: mix(T.paper, T.ink, 0.65),
   /** Walk routes use each cat's coat colour. */
   route: { cream: 0xc38d55, gray: 0x68758d },
   routeDot: T.paper,
