@@ -6,7 +6,7 @@ import {
   settle,
 } from '../../harness/adapters/catcity/city-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
-import { CITY_START } from '../../src/content/city';
+import { BUILDINGS, CITY_START } from '../../src/content/city';
 import type { Position } from '../../src/core';
 import { MAP_VIEW } from '../../src/view/city/geometry';
 
@@ -213,7 +213,10 @@ test('a new game guides the next step above the map and keeps one clock control'
   await expect(page.locator('#river-tools')).toBeHidden();
   await expect(page.locator('#clock-speed')).toBeFocused();
   expect((await readWorld(page)).minute).toBe(CITY_START.minute);
-  await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
+  await page.evaluate(
+    (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
+    BUILDINGS.CAT_CAFE.intervalMinutes,
+  );
   await expect(page.locator('#city-hint')).toContainText('池塘');
 
   await page.reload();

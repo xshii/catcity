@@ -18,6 +18,7 @@ import {
 import { ERROR_MESSAGES } from '../../src/view/shell/errors';
 import { advance, buildCafe } from '../helpers/world';
 
+const HOURS = BUILDINGS.CAT_CAFE.intervalMinutes / 60;
 const view = (...events: CityViewEvent[]) =>
   events.reduce(reduceCityView, initialCityView());
 const tile = (x: number, y: number): CityViewEvent => ({
@@ -256,7 +257,9 @@ describe('city screen', () => {
     const world = createWorld(42);
     buildCafe(world, { x: 4, y: 4 });
     const detail = () => screenOf(world, view(tile(4, 4))).card!.detail;
-    expect(detail()).toContain(`客人 0/${CAFE.seats} · 每小时 0 金币`);
+    expect(detail()).toContain(
+      `客人 0/${CAFE.seats} · 每 ${HOURS} 小时 0 金币`,
+    );
     expect(detail()).toContain(`${CAFE.range} 格内`);
     world.dispatch({
       type: 'BUILD_BUILDING',
@@ -272,7 +275,7 @@ describe('city screen', () => {
       buildingId: home,
     });
     expect(detail()).toBe(
-      `客人 2/${CAFE.seats} · 每小时 ${2 * CAFE.coinsPerCustomer} 金币 · Mochi、Pepper`,
+      `客人 2/${CAFE.seats} · 每 ${HOURS} 小时 ${2 * CAFE.coinsPerCustomer} 金币 · Mochi、Pepper`,
     );
   });
 
@@ -321,12 +324,12 @@ describe('city screen', () => {
     // A cafe on the suggested plot has Mochi as its customer.
     expect(buildCafe(world, progress().site!).ok).toBe(true);
     expect(guide()).toMatchObject({
-      hint: expect.stringContaining('速度'),
+      hint: expect.stringContaining(`营业满 ${HOURS} 小时`),
       instruction: expect.stringContaining(
-        `每游戏小时带来 ${CAFE.coinsPerCustomer} 金币`,
+        `每 ${HOURS} 游戏小时带来 ${CAFE.coinsPerCustomer} 金币`,
       ),
       speedTarget: true,
-      income: `猫咖 · 客人 1/${CAFE.seats} · 每游戏小时 ${CAFE.coinsPerCustomer} 金币 · 距离下笔收入 ${BUILDINGS.CAT_CAFE.intervalMinutes} 游戏分钟`,
+      income: `猫咖 · 客人 1/${CAFE.seats} · 每 ${HOURS} 小时 ${CAFE.coinsPerCustomer} 金币 · 距离下笔收入 ${BUILDINGS.CAT_CAFE.intervalMinutes} 游戏分钟`,
       steps: [{ complete: true }, { complete: false }, { complete: false }],
     });
     const coins = world.getSnapshot().coins;
@@ -379,7 +382,7 @@ describe('city screen', () => {
       action: '回地图找到猫咖',
       speedTarget: false,
       income: expect.stringContaining(
-        `客人 0/${CAFE.seats} · 每游戏小时 0 金币`,
+        `客人 0/${CAFE.seats} · 每 ${HOURS} 小时 0 金币`,
       ),
       steps: [{ complete: true }, { complete: false }, { complete: false }],
     });

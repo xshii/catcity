@@ -4,16 +4,17 @@ export const BUILDINGS = {
   CAT_CAFE: {
     type: 'CAT_CAFE',
     name: '猫咖',
-    basePrice: 300,
-    growth: [3, 2],
-    intervalMinutes: 60,
+    basePrice: 200,
+    growth: [2, 1],
+    /** Game minutes between two payments, counted from the cafe's build time. */
+    intervalMinutes: 120,
     homeCapacity: 0,
   },
   CAT_APARTMENT: {
     type: 'CAT_APARTMENT',
     name: '猫公寓',
-    basePrice: 250,
-    growth: [7, 5],
+    basePrice: 300,
+    growth: [9, 5],
     intervalMinutes: 60,
     homeCapacity: 2,
   },
@@ -22,7 +23,7 @@ export const BUILDINGS = {
  * A cafe earns from its customers (spec 040): cats whose home is within `range` tiles,
  * each cat at one cafe only, at most `seats` per cafe.
  */
-export const CAFE = { coinsPerCustomer: 2, range: 3, seats: 5 } as const;
+export const CAFE = { coinsPerCustomer: 1, range: 3, seats: 5 } as const;
 const PRICE_STEP = 5n;
 /**
  * The price of one more building when `existing` of its type stand: base × growth^existing,

@@ -1,5 +1,10 @@
 import { CARE } from '../../src/content/care';
-import { buildingPrice, CAFE, CITY_START } from '../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../src/content/city';
 import { advance, buildCafe } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
@@ -99,7 +104,8 @@ it('queues real shore travel, advancing income and idle cats recovery only on th
     CITY_START.coins -
       buildingPrice('CAT_CAFE', 0) -
       buildingPrice('CAT_APARTMENT', 0) +
-      CAFE.coinsPerCustomer * Math.floor(elapsed / 60),
+      CAFE.coinsPerCustomer *
+        Math.floor(elapsed / BUILDINGS.CAT_CAFE.intervalMinutes),
   );
   expect(state.cats.map((cat) => cat.needs.energy)).toEqual([
     // Walking costs a tile each; idle Pepper recovers every tick from the start.

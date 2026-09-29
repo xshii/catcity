@@ -1,5 +1,6 @@
 import { advance, buildCafe } from '../helpers/world';
 import {
+  BUILDINGS,
   buildingPrice,
   CAFE,
   CITY_COSTS,
@@ -79,7 +80,7 @@ it('buys land and a road before building a connected cafe, and preserves income 
     }).ok,
   ).toBe(true);
   coins -= buildingPrice('CAT_APARTMENT', 0);
-  advance(world, 55);
+  advance(world, BUILDINGS.CAT_CAFE.intervalMinutes - 5);
   const building = world.getSnapshot().buildings[0]!;
   expect(
     world.dispatch({
@@ -252,7 +253,7 @@ it('pays cafe income per instance and moves only into valid owned connected land
     buildingPrice('CAT_APARTMENT', 0) -
     buildingPrice('CAT_APARTMENT', 1);
   expect(world.getSnapshot().coins).toBe(built);
-  const paid = advance(world, 60);
+  const paid = advance(world, BUILDINGS.CAT_CAFE.intervalMinutes);
   expect(
     paid.ok &&
       paid.events.flatMap((event) =>

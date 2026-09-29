@@ -1,5 +1,10 @@
 import { advance, buildCafe } from '../helpers/world';
-import { buildingPrice, CAFE, CITY_START } from '../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../src/content/city';
 import { expect, it } from 'vitest';
 import { createWorld } from '../../src/core/world';
 import { assertWorld } from '../../src/core/schema';
@@ -34,7 +39,8 @@ it.each([0, 1, 42, 4294967295])(
       CITY_START.coins -
         buildingPrice('CAT_CAFE', 0) -
         buildingPrice('CAT_APARTMENT', 0) +
-        720 * CAFE.coinsPerCustomer,
+        ((30 * 24 * 60) / BUILDINGS.CAT_CAFE.intervalMinutes) *
+          CAFE.coinsPerCustomer,
     );
   },
 );

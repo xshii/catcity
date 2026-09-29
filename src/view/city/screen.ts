@@ -31,6 +31,11 @@ import type { CityView, CityViewEvent } from './view-state';
 
 const ROAD_NAMES = { DIRT: '土路', STONE: '石路' } as const;
 const { CAT_CAFE } = BUILDINGS;
+/** A cafe pays once per this many game hours. */
+const CAFE_HOURS = CAT_CAFE.intervalMinutes / 60;
+/** What a cafe with this many customers pays, in the player's words. */
+const cafePay = (customers: number) =>
+  `每 ${CAFE_HOURS} 小时 ${customers * CAFE.coinsPerCustomer} 金币`;
 /** What one more building of the type costs now. */
 const priceOf = (world: WorldState, type: (typeof BUILDING_IDS)[number]) =>
   buildingPrice(
@@ -247,7 +252,7 @@ function card(
     return done(
       title,
       building.type === 'CAT_CAFE'
-        ? `客人 ${customers.length}/${CAFE.seats} · 每小时 ${customers.length * CAFE.coinsPerCustomer} 金币${customers.length ? ` · ${customers.map((cat) => cat.name).join('、')}` : ` · 家在 ${CAFE.range} 格内的猫会来做客，搬移免费`}`
+        ? `客人 ${customers.length}/${CAFE.seats} · ${cafePay(customers.length)}${customers.length ? ` · ${customers.map((cat) => cat.name).join('、')}` : ` · 家在 ${CAFE.range} 格内的猫会来做客，搬移免费`}`
         : `住户 ${residents.length}/${BUILDINGS.CAT_APARTMENT.homeCapacity}${residents.length ? ` · ${residents.map((cat) => cat.name).join('、')}` : ' · 住在家旁边，体力恢复更快'}`,
     );
   }
@@ -380,7 +385,7 @@ export function guideProgress(world: WorldState) {
     cafes.find((building) => cafeCustomers(world, building.id).length) ??
     cafes[0];
   const customers = cafe ? cafeCustomers(world, cafe.id).length : 0;
-  // Derived, not recorded: a served cafe that has been open for a full hour.
+  // Derived, not recorded: a served cafe that has been open for a full payment interval.
   const earned =
     !!cafe &&
     customers > 0 &&
@@ -424,7 +429,7 @@ function cityGuide(world: WorldState) {
   const { housed, cafe, customers, earned, remembered, stage, placed } =
     guideProgress(world);
   const pick = (words: Record<typeof stage, string>) => words[stage];
-  const rate = `每位客人每游戏小时带来 ${CAFE.coinsPerCustomer} 金币`;
+  const rate = `每位客人每 ${CAFE_HOURS} 游戏小时带来 ${CAFE.coinsPerCustomer} 金币`;
   return {
     steps: [housed, earned, remembered].map((complete, index) => ({
       complete,
@@ -462,14 +467,14 @@ function cityGuide(world: WorldState) {
       cafe: placed
         ? `下一步：把猫咖搬到公寓 ${CAFE.range} 格内 · 搬移免费`
         : `下一步：在公寓 ${CAFE.range} 格内建一间猫咖`,
-      earn: '下一步：等猫咖营业满 1 小时 · 可点顶部「速度」调快',
+      earn: `下一步：等猫咖营业满 ${CAFE_HOURS} 小时 · 可点顶部「速度」调快`,
       remember: '下一步：点池塘，和 Mochi 一起钓一次鱼',
       grow: '点地建设 · 选猫后点地块，在卡片上让它走过去',
     }),
     /** Waiting for the first income points at the clock speed button. */
     speedTarget: stage === 'earn',
     income: cafe
-      ? `猫咖 · 客人 ${customers}/${CAFE.seats} · 每游戏小时 ${customers * CAFE.coinsPerCustomer} 金币 · 距离下笔收入 ${CAT_CAFE.intervalMinutes - ((world.minute - cafe.builtAtMinute) % CAT_CAFE.intervalMinutes)} 游戏分钟`
+      ? `猫咖 · 客人 ${customers}/${CAFE.seats} · ${cafePay(customers)} · 距离下笔收入 ${CAT_CAFE.intervalMinutes - ((world.minute - cafe.builtAtMinute) % CAT_CAFE.intervalMinutes)} 游戏分钟`
       : null,
   };
 }

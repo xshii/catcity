@@ -12,7 +12,8 @@ import { cafeCustomers } from '../../src/core/city';
 import { createWorld, loadWorld, type World } from '../../src/core/world';
 import { advance, buildCafe } from '../helpers/world';
 
-const HOUR = BUILDINGS.CAT_CAFE.intervalMinutes;
+/** Game minutes between two payments of a cafe. */
+const INTERVAL = BUILDINGS.CAT_CAFE.intervalMinutes;
 const rich = (coins: number) => {
   const save = JSON.parse(createWorld(42).save());
   save.world.coins = coins;
@@ -53,10 +54,10 @@ describe('prices (spec 040)', () => {
       Array.from({ length: count }, (_, existing) =>
         buildingPrice(type, existing),
       );
-    // 300 × 1.5^3 = 1012.5 lies exactly between: it rounds down.
-    expect(prices('CAT_CAFE', 6)).toEqual([300, 450, 675, 1010, 1520, 2280]);
+    expect(prices('CAT_CAFE', 6)).toEqual([200, 400, 800, 1600, 3200, 6400]);
+    // 300 × 1.8^n: 972 → 970, 1749.6 → 1750, 10203.1 → 10205, 18365.6 → 18365.
     expect(prices('CAT_APARTMENT', 8)).toEqual([
-      250, 350, 490, 685, 960, 1345, 1880, 2635,
+      300, 540, 970, 1750, 3150, 5670, 10205, 18365,
     ]);
     // Far beyond any city the price stays a growing multiple of 5.
     for (const type of ['CAT_CAFE', 'CAT_APARTMENT'] as const)
@@ -168,9 +169,9 @@ describe('cafe customers (spec 040)', () => {
     // Home and cafe are 4 tiles apart.
     expect(customers(world, cafe)).toEqual([]);
     const coins = world.getSnapshot().coins;
-    expect(income(world, HOUR)).toEqual([]);
+    expect(income(world, INTERVAL)).toEqual([]);
     expect(world.getSnapshot().coins).toBe(coins);
-    // Moved within range, it earns on its own clock: 30 minutes later is not a full hour.
+    // Moved within range, it earns on its own clock, not from the move.
     advance(world, 30);
     expect(
       world.dispatch({
@@ -180,7 +181,7 @@ describe('cafe customers (spec 040)', () => {
       }).ok,
     ).toBe(true);
     expect(customers(world, cafe)).toEqual(['mochi']);
-    expect(income(world, 29)).toEqual([]);
+    expect(income(world, INTERVAL - 31)).toEqual([]);
     expect(income(world, 1)).toEqual([[cafe, CAFE.coinsPerCustomer]]);
     expect(world.getSnapshot().coins).toBe(coins + CAFE.coinsPerCustomer);
   });
@@ -208,7 +209,7 @@ describe('cafe customers (spec 040)', () => {
     expect(customers(world, far!)).toEqual([]);
     expect(customers(world, near!)).toEqual(['mochi']);
     expect(customers(world, tied!)).toEqual([]);
-    expect(income(world, HOUR)).toEqual([[near, CAFE.coinsPerCustomer]]);
+    expect(income(world, INTERVAL)).toEqual([[near, CAFE.coinsPerCustomer]]);
     // The older cafe keeps the cat wherever the buildings stand in the list.
     const save = JSON.parse(world.save());
     save.world.buildings.reverse();
@@ -217,7 +218,7 @@ describe('cafe customers (spec 040)', () => {
     expect(customers(reordered, tied!)).toEqual([]);
   });
 
-  it('serves at most five cats and pays two coins for each', () => {
+  it('serves at most five cats and pays for each of them', () => {
     const world = rich(10_000);
     buildCafe(world, { x: 4, y: 3 });
     const cafe = world.getSnapshot().buildings[0]!.id;
@@ -242,7 +243,7 @@ describe('cafe customers (spec 040)', () => {
     }
     expect(world.getSnapshot().cats).toHaveLength(6);
     expect(CAFE.seats).toBe(5);
-    expect(income(world, HOUR)).toEqual([
+    expect(income(world, INTERVAL)).toEqual([
       [cafe, CAFE.seats * CAFE.coinsPerCustomer],
     ]);
   });
@@ -256,9 +257,9 @@ describe('cafe customers (spec 040)', () => {
       return world;
     };
     const whole = build();
-    advance(whole, 5 * HOUR + 7);
+    advance(whole, 5 * INTERVAL + 7);
     let pieces = build();
-    for (const minutes of [59, 1, 17, 200, 30]) {
+    for (const minutes of [INTERVAL - 1, 1, 17, 3 * INTERVAL, INTERVAL - 10]) {
       advance(pieces, minutes);
       pieces = loadWorld(pieces.save());
     }

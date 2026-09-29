@@ -1,5 +1,6 @@
 import { CARE } from '../../../src/content/care';
 import {
+  BUILDINGS,
   buildingPrice,
   CAFE,
   CITY_COSTS,
@@ -34,16 +35,17 @@ export async function ready(page: Page) {
 }
 export const readWorld = (page: Page) =>
   page.evaluate(() => window.CAT_CITY_DEBUG!.getWorldState());
-/** Full hours of play: a new game starts on a full hour, and income is paid on each. */
-const hoursSinceStart = (minute: number) =>
-  Math.floor((minute - CITY_START.minute) / 60);
+/** Game minutes between two payments of a cafe; the run's cafe is built at the start. */
+const INTERVAL = BUILDINGS.CAT_CAFE.intervalMinutes;
+const paymentsSinceStart = (minute: number) =>
+  Math.floor((minute - CITY_START.minute) / INTERVAL);
 /** Coins after each purchase of the run, from the prices in content (spec 040). */
 const AFTER_LAND = CITY_START.coins - landPrice({ x: 2, y: 5 });
 const AFTER_ROAD = AFTER_LAND - CITY_COSTS.placeRoad - CITY_COSTS.upgradeRoad;
 const AFTER_HOME = AFTER_ROAD - buildingPrice('CAT_APARTMENT', 0);
 const BUILT = AFTER_HOME - buildingPrice('CAT_CAFE', 0);
 /** Mochi is the cafe's only customer. */
-const HOURLY = CAFE.coinsPerCustomer;
+const PAYMENT = CAFE.coinsPerCustomer;
 
 export function createCatCityAdapter(): GameAdapter {
   let capturedReplay: ReplayRecord | undefined;
@@ -96,7 +98,7 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.getByTestId('coins')).toHaveText(String(BUILT));
         // Mochi's home is two tiles away: the cafe has its customer.
         await expect(page.locator('#city-action-detail')).toContainText(
-          `客人 1/${CAFE.seats} · 每小时 ${HOURLY} 金币 · Mochi`,
+          `客人 1/${CAFE.seats} · 每 ${INTERVAL / 60} 小时 ${PAYMENT} 金币 · Mochi`,
         );
         const world = await readWorld(page);
         assert.equal(world.buildings.length, 2);
@@ -117,11 +119,17 @@ export function createCatCityAdapter(): GameAdapter {
         await page.locator('#city-tab-guide').click();
         await page.getByRole('button', { name: '去调快时间' }).click();
         await expect(page.locator('#clock-speed')).toBeFocused();
-        await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
-        await expect(page.getByTestId('coins')).toHaveText(
-          String(BUILT + HOURLY),
+        await page.evaluate(
+          (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
+          INTERVAL,
         );
-        assert.equal((await readWorld(page)).minute, CITY_START.minute + 60);
+        await expect(page.getByTestId('coins')).toHaveText(
+          String(BUILT + PAYMENT),
+        );
+        assert.equal(
+          (await readWorld(page)).minute,
+          CITY_START.minute + INTERVAL,
+        );
       });
       await step('select-cat', async () => {
         const cat = (await readWorld(page)).cats[0]!;
@@ -199,7 +207,7 @@ export function createCatCityAdapter(): GameAdapter {
         const world = await readWorld(page);
         assert.equal(
           world.coins,
-          BUILT + hoursSinceStart(world.minute) * HOURLY,
+          BUILT + paymentsSinceStart(world.minute) * PAYMENT,
         );
         assert.equal(world.fishing.inventory.length, 1);
         assert.equal(world.cats[0]!.fishingMemory!.speciesId, 'SILVER');
@@ -238,15 +246,19 @@ export function createCatCityAdapter(): GameAdapter {
         // An idle cat recovers by itself on the city clock; nothing to press.
         const before = await readWorld(page);
         assert.ok(before.cats[0]!.needs.energy < 100);
-        await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
+        // One payment interval: exactly one payment of the cafe falls in it.
+        await page.evaluate(
+          (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
+          INTERVAL,
+        );
         const recovered = await readWorld(page);
-        assert.equal(recovered.minute, before.minute + 60);
+        assert.equal(recovered.minute, before.minute + INTERVAL);
         assert.equal(recovered.cats[0]!.needs.energy, 100);
-        assert.equal(recovered.coins, before.coins + HOURLY);
+        assert.equal(recovered.coins, before.coins + PAYMENT);
         // 8 coins came from the silver fish sold.
         assert.equal(
           recovered.coins,
-          BUILT + 8 + hoursSinceStart(recovered.minute) * HOURLY,
+          BUILT + 8 + paymentsSinceStart(recovered.minute) * PAYMENT,
         );
       });
       await step('save-reload', async () => {

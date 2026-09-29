@@ -16,7 +16,12 @@ import {
   showFish,
 } from '../../harness/adapters/catcity/navigation';
 import { ready, readWorld } from '../../harness/adapters/catcity/browser';
-import { buildingPrice, CAFE, CITY_START } from '../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../src/content/city';
 
 // The full build → dialogue → reload → replay loop runs as the harness acceptance
 // (`npm run harness -- acceptance`), which also checks console errors and replay.
@@ -198,12 +203,15 @@ test('city guide makes construction, income and the relationship activity discov
   // The guide points at the clock speed; the test build advances its clock explicitly.
   await page.getByRole('button', { name: '去调快时间' }).click();
   await expect(page.locator('#clock-speed')).toBeFocused();
-  await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
+  await page.evaluate(
+    (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
+    BUILDINGS.CAT_CAFE.intervalMinutes,
+  );
   await expect(page.getByTestId('coins')).toHaveText(
     String(built + CAFE.coinsPerCustomer),
   );
   await expect(page.locator('#cafe-income')).toContainText(
-    `客人 1/${CAFE.seats} · 每游戏小时 ${CAFE.coinsPerCustomer} 金币`,
+    `客人 1/${CAFE.seats} · 每 ${BUILDINGS.CAT_CAFE.intervalMinutes / 60} 小时 ${CAFE.coinsPerCustomer} 金币`,
   );
   await page.reload();
   await ready(page);

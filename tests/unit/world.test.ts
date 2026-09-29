@@ -1,11 +1,17 @@
 import { WORLD_LIMIT } from '../../src/core/limits';
-import { buildingPrice, CAFE, CITY_START } from '../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../src/content/city';
 import { advance, buildCafe, interact } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import type { GameCommand } from '../../src/core/commands';
 import { RandomService } from '../../src/core/random';
 
+const INTERVAL = BUILDINGS.CAT_CAFE.intervalMinutes;
 /** Mochi's home, then after `wait` minutes a cafe beside it; returns the coins left. */
 function servedCafe(world: World, wait: number): number {
   world.dispatch({
@@ -89,11 +95,11 @@ describe('headless world', () => {
   it('counts income from construction, including partial hours', () => {
     const world = createWorld(42);
     const built = servedCafe(world, 25);
-    advance(world, 59);
+    advance(world, INTERVAL - 1);
     expect(world.getSnapshot().coins).toBe(built);
     advance(world, 1);
     expect(world.getSnapshot().coins).toBe(built + CAFE.coinsPerCustomer);
-    advance(world, 120);
+    advance(world, 2 * INTERVAL);
     expect(world.getSnapshot().coins).toBe(built + 3 * CAFE.coinsPerCustomer);
   });
 
@@ -171,7 +177,7 @@ describe('headless world', () => {
       catId: 'mochi',
       buildingId: 'building-2',
     });
-    const result = advance(world, 60);
+    const result = advance(world, INTERVAL);
     expect(
       result.ok &&
         result.events.some((event) => event.type === 'IncomeGenerated'),
@@ -186,9 +192,11 @@ it('keeps time running when cafe income reaches the coin limit', () => {
   const save = JSON.parse(world.save());
   save.world.coins = WORLD_LIMIT - 1;
   const capped = loadWorld(JSON.stringify(save));
-  expect(capped.dispatch({ type: 'ADVANCE_TIME', minutes: 120 }).ok).toBe(true);
+  expect(
+    capped.dispatch({ type: 'ADVANCE_TIME', minutes: 2 * INTERVAL }).ok,
+  ).toBe(true);
   expect(capped.getSnapshot()).toMatchObject({
-    minute: save.world.minute + 120,
+    minute: save.world.minute + 2 * INTERVAL,
     coins: WORLD_LIMIT,
   });
 });

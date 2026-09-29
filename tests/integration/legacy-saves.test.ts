@@ -29,6 +29,8 @@ import v15 from '../fixtures/save-v15.json';
 // A motion fight under line tension from before runs recorded the fish shadow they
 // landed on (save 16).
 import v16 from '../fixtures/save-v16.json';
+// A cafe paid hourly without counting customers, at the old prices (content 8).
+import v17Content8 from '../fixtures/save-v17-content8.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -54,6 +56,7 @@ const incompatible = {
   v14,
   v15,
   v16,
+  v17Content8,
   future,
 };
 

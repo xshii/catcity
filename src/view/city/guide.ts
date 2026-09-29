@@ -1,5 +1,6 @@
 import type { Tools } from '../shell/place';
 import { STARTER_CAT_ID } from '../../content/cats';
+import { BUILDINGS } from '../../content/city';
 import type { GameSession } from '../../application';
 import type { CityActions } from './actions';
 import { guideProgress, type CityScreen } from './screen';
@@ -51,7 +52,7 @@ export function mountCityGuide(deps: {
       tools.close();
       clockSpeed.focus();
       notify(
-        '点顶部的「速度」切换 1× / 2× / 4×，有客人的猫咖营业满一小时就有收入。',
+        `点顶部的「速度」切换 1× / 2× / 4×，有客人的猫咖每营业 ${BUILDINGS.CAT_CAFE.intervalMinutes / 60} 小时结算一次收入。`,
       );
     } else if (stage === 'remember') {
       cityActions.focusWaterway('POND');
