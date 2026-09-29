@@ -12,6 +12,7 @@ import {
   SPOTS,
   SPOT_IDS,
   skillLevel,
+  skillXp,
   spotUnlocked,
   type BaitId,
   type SpotId,
@@ -221,7 +222,7 @@ export function mountAngling(
       const level = skillLevel(f.xp);
       get('fishing-level').textContent = `钓技 Lv.${level}`;
       get('fishing-resources').textContent =
-        `经验 ${f.xp}${level < 10 ? ` / ${level * 40} 升级` : ' · 已满级'} · 等级提高，绿色区间更宽`;
+        `经验 ${f.xp}${level < FISHING.skill.maxLevel ? ` / ${skillXp(level + 1)} 升级` : ' · 已满级'} · 等级提高，绿色区间更宽`;
       const spot =
         location.value || run?.spotId || selectedCat.fishingSpotId || 'POND';
       location.replaceChildren(

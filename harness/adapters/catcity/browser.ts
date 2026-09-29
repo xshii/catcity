@@ -1,4 +1,4 @@
-import { CARE } from '../../../src/content/care';
+import { BOND, CARE } from '../../../src/content/care';
 import { CITY_START } from '../../../src/content/city';
 import { catchFish } from './angling-input';
 import assert from 'node:assert/strict';
@@ -144,7 +144,7 @@ export function createCatCityAdapter(): GameAdapter {
         const cat = (await readWorld(page)).cats[0]!;
         assert.equal(cat.memories.length, 1);
         assert.equal(cat.memories[0]!.message, '你喜欢吃鱼吗？');
-        assert.equal(cat.playerBond, 1);
+        assert.equal(cat.playerBond, BOND.chat);
       });
       await step('shared-outing', async () => {
         await page.locator('#city-tab-outing').click();

@@ -10,6 +10,7 @@ import {
   showBagFish,
 } from '../helpers/view-player';
 import { pondDirection, progressSaves } from '../helpers/fishing-progress';
+import { skillXp } from '../../src/content/fishing';
 
 // Each test starts from progress played once through Core and plays one step in the page.
 let saves: ReturnType<typeof progressSaves>;
@@ -31,8 +32,12 @@ describe('skill and atlas unlock a new waterway; bait changes catches and Pepper
     closeRiverPanel();
     click('#cast-start');
     catchFish(game);
-    expect(game.world().fishing.xp).toBe(50);
+    expect(game.world().fishing.xp).toBe(skillXp(2));
     openGear(game);
+    expect(text('#fishing-level')).toBe('钓技 Lv.2');
+    expect(text('#fishing-resources')).toContain(
+      `经验 ${skillXp(2)} / ${skillXp(3)} 升级`,
+    );
     expect(spotOption('REEDS').disabled).toBe(false);
   });
 

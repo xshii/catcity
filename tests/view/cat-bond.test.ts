@@ -7,7 +7,7 @@ import {
   openCats,
   showBagFish,
 } from '../helpers/view-player';
-import { BOND_LEVELS } from '../../src/content/care';
+import { BOND, BOND_LEVELS } from '../../src/content/care';
 import { createWorld, World } from '../../src/core/world';
 import { finishFishing } from '../unit/fishing-fixture';
 
@@ -74,7 +74,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     closeRiverPanel();
     click('#cast-start');
     catchFish(game);
-    expect(game.world().cats[0]!.playerBond).toBe(second.bond);
+    expect(game.world().cats[0]!.playerBond).toBe(short + BOND.catch);
     expect(text('#fish-result')).toContain('和 Mochi 更熟了：熟悉。');
     expect(text('#catch-reveal')).toContain('和 Mochi 更熟了：熟悉');
     const fish = game.world().fishing.inventory[0]!;
@@ -88,7 +88,7 @@ describe('bond level in the cats panel (spec 036)', () => {
   });
 
   it('a gift that reaches a level says so in its notice', () => {
-    // A fish caught through Core, then the bond one short of the level and off cooldown.
+    // A fish caught through Core, then the bond one short of the level.
     const played = createWorld(42);
     played.dispatch({
       type: 'FISH_BEGIN',
@@ -100,7 +100,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     });
     finishFishing(played);
     const state = played.getSnapshot();
-    Object.assign(state.cats[0]!, { playerBond: short, lastBondMinute: null });
+    state.cats[0]!.playerBond = short;
     const next = openGame({
       storage: { 'cat-city.save.v1': new World(state).save() },
     });
@@ -108,7 +108,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     enterRiver(next);
     showBagFish(next, fish.id);
     click(`[data-gift-fish="${fish.id}"]`);
-    expect(next.world().cats[0]!.playerBond).toBe(second.bond);
+    expect(next.world().cats[0]!.playerBond).toBe(short + BOND.favoriteGift);
     expect(text('#notice')).toContain('和 Mochi 更熟了：熟悉。');
   });
 });
