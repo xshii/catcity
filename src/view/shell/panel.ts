@@ -36,16 +36,19 @@ export function mountPanel(
     </main>`;
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T;
+  // Set once the fishing screen is mounted: its catch card gives way to a notice.
+  let said = () => {};
   const notify = (message: string) => {
     const notice = get('notice');
     notice.textContent = message;
+    said();
     // Each message fades after a while (layout.css); a new one starts it over, which
     // needs a style flush between removing and adding the class.
     notice.classList.remove('fading');
     void notice.offsetWidth;
     notice.classList.add('fading');
   };
-  // The level a chat just reached, shown in the panel: it covers the notice while open.
+  // The level a chat just reached, shown in the panel: it stays after the notice fades.
   let bondNews = { catId: '', note: '' };
   const render = () => {
     const model = toViewModel(session.getSnapshot(), session.selectedEntity);
@@ -149,8 +152,10 @@ export function mountPanel(
       game: get('game'),
       visitCity: get('visit-city'),
       visitRiver: get('visit-river'),
+      notice: get('notice'),
     },
   );
+  said = angling.said;
   const city = mountCity({
     session,
     place,

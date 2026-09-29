@@ -31,6 +31,7 @@ import { mountFishingSettings } from './settings';
 import {
   castNotice,
   fishingScreen,
+  noticeShown,
   permissionNotice,
   resultShown,
   ringHeld,
@@ -326,6 +327,14 @@ export function mountAngling(
       resultNote,
       resultShown(state, run ?? null, world.fishing.lastResult),
     );
+    // Kept in the layout and fading on: the notice the card withdrew is only out of sight.
+    shell.notice.style.visibility = noticeShown(
+      state,
+      run ?? null,
+      world.fishing.lastResult,
+    )
+      ? ''
+      : 'hidden';
     layout.refresh();
     settings.apply(screen.settings);
     motion.apply(screen, run ?? null);
@@ -598,6 +607,8 @@ export function mountAngling(
     stage: stage.stage,
     enterAtSpot,
     tools: { close: layout.close, openTalk: layout.openTalk } satisfies Tools,
+    /** The notice bar was given a message: the catch card gives way to it. */
+    said: () => view.dispatch({ type: 'said' }),
     aim,
     fishingClock: controls.clock,
   };

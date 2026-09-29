@@ -343,6 +343,10 @@ function walking(cat: CatEntity) {
   return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。`;
 }
 
+/** Said as a cat is picked: the card's way to send it, and lifting it (spec 035). */
+export const selectedNotice = (name: string) =>
+  `已选中 ${name}：点一块地，在卡片上选「让 ${name} 走到这里」；也可以长按猫咪，拖到想去的地方。`;
+
 /** Owned free grass beside a road, the town centre first; `near` keeps it in cafe range. */
 function freeSite(world: WorldState, near?: Position): Position | null {
   const candidates = [{ x: 4, y: 4 }];

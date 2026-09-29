@@ -16,6 +16,10 @@ import {
   openSettings,
 } from '../helpers/view-player';
 
+/** The notice bar is not kept from showing (happy-dom misreads the bar's `:empty` rule). */
+const noticeShows = () =>
+  getComputedStyle($('#notice')).visibility !== 'hidden';
+
 describe('the button flow', () => {
   it('enters the river, casts, strikes, reels in, and leaves nothing behind', () => {
     const game = openGame();
@@ -50,6 +54,42 @@ describe('the button flow', () => {
     game.reload();
     enterRiver(game);
     expect(visible('#catch-reveal')).toBe(false);
+  });
+
+  it('the catch card withdraws the standing notice, and gives way to a later one', () => {
+    const game = openGame();
+    enterRiver(game);
+    expect(noticeShows()).toBe(true);
+    click('#cast-start');
+    expect(noticeShows()).toBe(true);
+    catchFish(game);
+    expect(visible('#catch-reveal')).toBe(true);
+    expect(noticeShows()).toBe(false);
+    // A notice raised while the card shows is never lost: the card goes.
+    openGear(game, 'supplies');
+    click('[data-buy-bait="WORM"]');
+    expect(text('#notice')).toBe('鱼饵已放进包里。');
+    expect(noticeShows()).toBe(true);
+    closeRiverPanel();
+    expect(noticeShows()).toBe(true);
+    expect(visible('#catch-reveal')).toBe(false);
+    // The catch itself stays in the tools' result line.
+    expect(text('#fish-result')).toContain('钓到了');
+  });
+
+  it('the next cast takes the catch card away and says its own notice', () => {
+    const game = openGame();
+    enterRiver(game);
+    click('#cast-start');
+    catchFish(game);
+    expect(visible('#catch-reveal')).toBe(true);
+    click('#cast-start');
+    expect(visible('#catch-reveal')).toBe(false);
+    expect(text('#notice')).toBe('落点已锁定，按住按钮蓄力，松开抛竿。');
+    expect(noticeShows()).toBe(true);
+    catchFish(game);
+    expect(visible('#catch-reveal')).toBe(true);
+    expect(noticeShows()).toBe(false);
   });
 
   it('a manual fishing clock advances exactly the stepped ticks and respects pause', () => {

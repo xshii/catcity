@@ -84,6 +84,8 @@ export interface FishingShell {
   game: HTMLElement;
   visitCity: HTMLElement;
   visitRiver: HTMLElement;
+  /** The notice bar: the fishing screen keeps it off the catch card. */
+  notice: HTMLElement;
 }
 
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */

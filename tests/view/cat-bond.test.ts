@@ -52,7 +52,7 @@ describe('bond level in the cats panel (spec 036)', () => {
     expect(text('#notice')).toBe(
       'Mochi 轻轻动了动耳朵，回应了你。和 Mochi 更熟了：熟悉。',
     );
-    // The open panel covers the notice, so the panel says it too.
+    // The notice fades; the panel says it too, and keeps it.
     expect(visible('#bond-news')).toBe(true);
     expect(text('#bond-news')).toBe('和 Mochi 更熟了：熟悉');
     expect(text('#bond-name')).toBe('熟悉');
