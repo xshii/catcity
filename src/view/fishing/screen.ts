@@ -13,7 +13,7 @@ export const SCREEN_COPY = {
   hint: {
     calibrating: '校准：向下快甩两次',
     paused: '已暂停 · 点「继续钓鱼」再继续',
-    aim: '左右瞄准 · 俯仰调力度 · 下甩抛竿',
+    aim: '左右瞄准 · 俯仰调远近 · 下甩抛竿',
     waiting: '拿稳鱼竿，等"！"再上扬',
     hook: '快速上扬提竿！',
     settle: '稳住，用圈罩住鱼',
@@ -33,8 +33,18 @@ export const SCREEN_COPY = {
   /** The cast power read out while aiming; the water shows it as the landing arc. */
   power: {
     label: '抛竿力度',
-    valueText: (power: number, low: number, high: number) =>
-      `力度 ${power}，精准区间 ${low}–${high}`,
+    /** At an end of the range the landing ring goes no further, and this says so. */
+    valueText: (power: number, low: number, high: number): string => {
+      const { limit } = SCREEN_COPY.power;
+      const end =
+        power <= 0
+          ? limit.near
+          : power >= FISHING.input.maxPower
+            ? limit.far
+            : '';
+      return `力度 ${power}，精准区间 ${low}–${high}${end && `，${end}`}`;
+    },
+    limit: { near: '已到最近', far: '已到最远' },
   },
   /** The ring turns green over a fish shadow, and a cast says so once (spec 033 F5b). */
   cast: {

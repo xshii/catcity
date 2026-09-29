@@ -29,6 +29,7 @@ import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
 import { mountFishingSettings } from './settings';
+import { motionAim } from '../art/water-view';
 import {
   castNotice,
   fishingScreen,
@@ -383,7 +384,8 @@ export function mountAngling(
     return {
       spotId: requestedSpot(),
       direction: Number(direction.value),
-      depth: Number(depth.value),
+      // The pitch alone sets how far a motion cast lands; buttons keep the depth field.
+      depth: live ? motionAim(aimPower).aimDepth : Number(depth.value),
       power: live ? aimPower : REST_POWER,
       live,
     };
@@ -431,6 +433,8 @@ export function mountAngling(
       direction.value = String(swingDirection);
       const begun = session.execute({
         ...beginCommand(Number(direction.value)),
+        // Where the ring showed: the pitch alone sets how far.
+        aimDepth: motionAim(power).aimDepth,
         mode: 'motion',
       });
       const run = session.getSnapshot().fishing.active;

@@ -48,6 +48,13 @@ export function landingShare(aimDepth: number, power: number): number {
 }
 
 /**
+ * A motion cast's aim (the pitch alone sets how far it lands): the depth follows the
+ * power, so the landing runs from the nearest water at power 0 to the farthest at 100
+ * and meets a shadow at the reach the power reads. The button flow keeps its depth field.
+ */
+export const motionAim = (power: number) => ({ aimDepth: power, power });
+
+/**
  * Canvas point of a fish shadow (spec 033) from Core's cast coordinates: `reach` is the
  * mean of aimed depth and power, so a cast meeting it head-on lands on this point.
  */
@@ -68,8 +75,9 @@ export function flightPoint(tip: Point, landing: Point, t: number): Point {
 
 /**
  * The aiming preview (spec 033 F5, F5b): the ring where this cast would land (the mapping
- * the shadows are drawn with), the float's flight onto it from the rod `tip`, and the fish
- * shadow Core says the cast would land on (the ring turns green on one), or null.
+ * the shadows are drawn with), the float's flight onto it from the rod `tip`, the fish
+ * shadow Core says the cast would land on (the ring turns green on one), or null, and
+ * whether the landing is at the near or far end of the water, where it goes no further.
  */
 export function castPreview(
   world: Pick<WorldState, 'seed' | 'minute'>,
@@ -77,10 +85,8 @@ export function castPreview(
   cast: { direction: number; aimDepth: number; power: number },
   tip: Point,
 ) {
-  const landing = waterPoint(
-    cast.direction,
-    landingShare(cast.aimDepth, cast.power),
-  );
+  const share = landingShare(cast.aimDepth, cast.power);
+  const landing = waterPoint(cast.direction, share);
   // Dash, gap, …, dash: the last dash ends on the ring.
   const steps = 2 * V.flight.dashes - 1;
   return {
@@ -90,6 +96,12 @@ export function castPreview(
       flightPoint(tip, landing, i / steps),
     ),
     shadow: shadowUnderCast(world, spotId, cast),
+    limit:
+      share <= V.reach.near
+        ? ('near' as const)
+        : share >= V.reach.far
+          ? ('far' as const)
+          : null,
   };
 }
 

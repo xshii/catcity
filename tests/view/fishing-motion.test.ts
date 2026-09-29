@@ -210,6 +210,10 @@ describe('motion fishing', () => {
     };
     pitch(0);
     expect(meter.getAttribute('aria-valuenow')).toBe('0');
+    // At either end the ring goes no further, and the meter says so.
+    expect(meter.getAttribute('aria-valuetext')).toContain(
+      SCREEN_COPY.power.limit.near,
+    );
     const precise = Math.round((band.min + band.max) / 2);
     pitch(precise);
     expect(meter.getAttribute('aria-valuetext')).toBe(
@@ -220,13 +224,18 @@ describe('motion fishing', () => {
     expect(text('#motion-legend')).toBe(SCREEN_COPY.cast.legend);
     pitch(100);
     expect(meter.getAttribute('aria-valuenow')).toBe('100');
+    expect(meter.getAttribute('aria-valuetext')).toContain(
+      SCREEN_COPY.power.limit.far,
+    );
     // The cast reads the power from just before the flick: hold the tilt that long.
     game.wait(G.powerLeadMs * 2);
     swing();
-    // Every motion cast is steady now, whatever its power (spec 033 F5b).
+    // Every motion cast is steady now, whatever its power (spec 033 F5b); the pitch alone
+    // set how far it lands, here the farthest water.
     expect(game.world().fishing.active).toMatchObject({
       mode: 'motion',
       power: 100,
+      aimDepth: 100,
       precision: true,
     });
     expect(visible('#motion-legend')).toBe(false);
@@ -239,36 +248,38 @@ describe('motion fishing', () => {
       inMotionRiver(game);
       const world = game.world();
       const shadows = fishShadows(world, 'POND');
-      // The depth slider rests at 50: a shadow within reach of the pitch, head-on.
-      const target = shadows.find((s) => s.reach >= 25 && s.reach <= 75)!;
+      // The pitch reaches every shadow head-on: the one farthest from the middle water.
+      const target = shadows.reduce((far, shadow) =>
+        Math.abs(shadow.reach - 50) > Math.abs(far.reach - 50) ? shadow : far,
+      );
       const aim = onShadow
         ? {
             direction: 5 * Math.round(target.direction / 5),
-            power: 2 * target.reach - 50,
+            power: target.reach,
+            aimDepth: target.reach,
           }
         : [-45, 0, 45]
             .flatMap((direction) =>
-              [10, 50, 90].map((power) => ({ direction, power })),
+              [10, 50, 90].map((power) => ({
+                direction,
+                power,
+                aimDepth: power,
+              })),
             )
-            .find(
-              (cast) =>
-                shadowUnderCast(world, 'POND', { ...cast, aimDepth: 50 }) ===
-                null,
-            )!;
+            .find((cast) => shadowUnderCast(world, 'POND', cast) === null)!;
       for (let i = 0; i < 30; i++)
         orient(
           (aim.direction / FISHING.input.maxDirection) * G.aimRangeDeg,
           ((aim.power - 50) / 50) * G.powerRangeDeg,
         );
       // The preview asks Core what the ring is over: green on a shadow, cream off it.
-      const said = shadowUnderCast(world, 'POND', { ...aim, aimDepth: 50 });
+      const said = shadowUnderCast(world, 'POND', aim);
       expect(said !== null).toBe(onShadow);
       game.wait(G.powerLeadMs * 2);
       swing();
       expect(game.world().fishing.active).toMatchObject({
         mode: 'motion',
         ...aim,
-        aimDepth: 50,
         shadow: said?.speciesId ?? null,
       });
       expect(text('#notice') === SCREEN_COPY.cast.onShadow).toBe(onShadow);
