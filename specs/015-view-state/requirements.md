@@ -33,4 +33,11 @@
   - 手机以 `?debug=1` 开启（本机记住，`?debug=0` 关闭，徽标提示），批量发回原始传感器读数、竿尖居中、手势、校准、钓鱼画面状态、命令结果与错误；只有试玩预览（`--mode device-log`）接收，写入 `artifacts/device-logs/`，请求与会话有大小上限，会话名不能越出目录。
   - `npm run device-trace` 把日志窗口切成 `tests/fixtures/device/*.json`；单测按原顺序经同一组纯函数重放，结果须等于 `expect`。合成日志验证了切片与重放（抛竿力度、校准阈值）。
   - 限制：尚无真实手机夹具，需要实机录制后补充；重放不覆盖 DOM 与 View 状态。
-- [ ] 第 4 步：城市页迁到同一模式；lint 禁止模块按 id 读取他人 DOM。
+- [x] 第 4 步：城市页迁到同一模式；lint 禁止模块按 id 读取他人 DOM。
+  - `view/city/view-state.ts`：城市画面的可切换状态（地点镜像、地图选择、搬迁中的建筑、选中的猫、总览/跟随）与纯 reducer；不变量——离开小城时没有任何选择；搬迁只能从选中的地块开始；选中猫时它就是行走者。随机 2 万步事件序列单测通过。总览的拖动平移是连续量，仍留在场景里。
+  - `view/city/screen.ts`：纯画面模型，决定操作卡（标题、说明、按钮及其意图、禁用原因）、"下一步"引导与指引页、总览键文案；按钮是否可用仍由 `GameSession.check` 试算。单测覆盖地块/道路/建筑/搬迁/猫/水域各卡片、原因去重、总览键与引导各阶段，河畔不显示操作卡。
+  - `view/city/panel.ts` 创建 store，一次渲染应用画面模型；`actions.ts`、`guide.ts`、`scene.ts` 不再各自保存选择、搬迁或总览状态，场景读取 store。选择对象从世界消失时在世界变化事件中清除，不在渲染中改状态。
+  - 场景切换键的按下态与 `.map-card` 的河畔样式改由页面挂载（`shell/panel.ts`）随地点更新，不再由城市场景查找。
+  - lint（`eslint.config.js` 的 `no-restricted-syntax`）：`src/view/**` 不得调用 `document.getElementById`、`querySelector(All)`、`getElementsBy*`；模块只在自己创建或被传入的元素内查找，其他模块的元素由挂载方以参数传入。钓鱼面板按 id 索引自己的模板，把元素交给图鉴、收藏与震动模块；地图框与场景切换键由页面传入。
+  - 例外：`shell/panel.ts`（页面挂载，写入页面结构并分发元素）、`city/bars.ts`（Harness 会把它单独放进页面执行）。尚未迁移、暂列例外：`shell/layout.ts`、`shell/navigation.ts`、`companion/journal.ts`，下一步改为接收元素参数。
+  - 面板开关仍由 `shell/navigation.ts` 持有（两场景共用，钓鱼 store 以 `tools` 事件镜像）；城市画面没有由它决定的显示，因此未放进城市 store。

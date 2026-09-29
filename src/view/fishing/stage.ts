@@ -61,13 +61,21 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   };
 }
 
+/** Page elements the fishing scene is handed by the shell: the map frame and the scene switch. */
+export interface FishingShell {
+  game: HTMLElement;
+  visitCity: HTMLElement;
+  visitRiver: HTMLElement;
+}
+
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */
 export function mountFishingStage(
   session: GameSession,
   place: PlaceState,
+  shell: FishingShell,
   access: { canEnter: () => boolean; onNeedTravel: () => void },
 ) {
-  const game = document.getElementById('game')!;
+  const { game } = shell;
   const stage = document.createElement('div');
   stage.id = 'fishing-stage';
   game.before(stage);
@@ -77,6 +85,7 @@ export function mountFishingStage(
   hud.hidden = true;
   hud.innerHTML = `<div class="river-caption"><span class="eyebrow">A LITTLE RIVERSIDE</span><h2 id="river-place"></h2><p id="river-tip">点击水面选择落点，再准备抛竿</p></div><span id="river-clock" class="river-clock"></span><div id="catch-reveal" class="catch-reveal" hidden></div>`;
   stage.append(hud);
+  const $ = (id: string) => hud.querySelector<HTMLElement>(`#${id}`)!;
   const roster = document.createElement('section');
   roster.id = 'river-roster';
   roster.setAttribute('aria-label', '猫咪体力');
@@ -84,7 +93,7 @@ export function mountFishingStage(
     '<div id="cat-energy-cards" class="cat-energy-cards"></div>';
   stage.before(roster);
   const cards = new Map<string, ReturnType<typeof createEnergyCard>>();
-  const cardContainer = document.getElementById('cat-energy-cards')!;
+  const cardContainer = roster.querySelector<HTMLElement>('#cat-energy-cards')!;
   let resultKey = '';
   let previousRun: string | undefined;
   // The class only styles the river; modules read and follow `place` directly.
@@ -103,10 +112,8 @@ export function mountFishingStage(
     show(true);
     return true;
   };
-  document.getElementById('visit-river')!.addEventListener('click', showRiver);
-  document
-    .getElementById('visit-city')!
-    .addEventListener('click', () => show(false));
+  shell.visitRiver.addEventListener('click', showRiver);
+  shell.visitCity.addEventListener('click', () => show(false));
   return {
     stage,
     showRiver,
@@ -126,14 +133,12 @@ export function mountFishingStage(
     render(world: WorldState, selected: string, spot: SpotId) {
       const run = world.fishing.active;
       const clock = toViewModel(world, selected);
-      document.getElementById('river-clock')!.textContent =
-        `第 ${clock.day} 天 · ${clock.time}`;
-      document.getElementById('river-place')!.textContent =
-        SPOTS[run?.spotId ?? spot].name;
+      $('river-clock').textContent = `第 ${clock.day} 天 · ${clock.time}`;
+      $('river-place').textContent = SPOTS[run?.spotId ?? spot].name;
       // The page continues the art of the water shown around it.
       stage.style.background =
         place.get() === 'river' ? riverBackdrop(run?.spotId ?? spot) : '';
-      document.getElementById('river-tip')!.textContent = run
+      $('river-tip').textContent = run
         ? {
             charge: '按住鱼竿蓄力，松开抛投',
             waiting: '看鱼漂，等鱼儿咬钩…',
@@ -161,7 +166,7 @@ export function mountFishingStage(
         card.button.remove();
         cards.delete(id);
       }
-      const reveal = document.getElementById('catch-reveal')!;
+      const reveal = $('catch-reveal');
       const result = world.fishing.lastResult;
       reveal.hidden = !!run || !result;
       if (result && resultKey !== JSON.stringify(result)) {

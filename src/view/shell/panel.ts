@@ -2,9 +2,7 @@ import type { PlaceState } from './place';
 import { STARTER_CAT_ID } from '../../content/cats';
 import type { GameSession } from '../../application';
 import { mountAngling } from '../fishing/panel';
-import { mountCityGuide } from '../city/guide';
-import { mountCityActions } from '../city/actions';
-import { mountOuting } from '../city/outing';
+import { mountCity } from '../city/panel';
 import { mountClockSpeed } from './clock-speed';
 import { mountCompanionship } from '../companion/journal';
 import { toViewModel } from './model';
@@ -123,20 +121,39 @@ export function mountPanel(
     session,
     place,
     notify,
-    (spotId) => cityActions.focusWaterway(spotId),
+    (spotId) => city.focusWaterway(spotId),
     trace,
+    {
+      game: get('game'),
+      visitCity: get('visit-city'),
+      visitRiver: get('visit-river'),
+    },
   );
-  const cityActions = mountCityActions(
+  const city = mountCity({
     session,
     place,
-    angling.tools,
+    tools: angling.tools,
     notify,
-    angling.enterAtSpot,
-  );
-  mountOuting(session, cityActions);
-  mountCityGuide(session, notify, cityActions, angling.tools, (message) => {
-    void talk(message);
+    enterFishing: angling.enterAtSpot,
+    talk: (message) => void talk(message),
+    elements: {
+      stage: angling.stage,
+      guide: get('city-guide'),
+      hint: get('city-hint'),
+      overview: get('city-overview'),
+      clockSpeed: get('clock-speed'),
+      outing: get('city-panel-outing'),
+    },
   });
+  // The scene switch and the map card follow the place.
+  const showPlace = () => {
+    const river = place.get() === 'river';
+    get('visit-city').setAttribute('aria-pressed', String(!river));
+    get('visit-river').setAttribute('aria-pressed', String(river));
+    document.querySelector('.map-card')!.classList.toggle('river-mode', river);
+  };
+  place.subscribe(showPlace);
+  showPlace();
   const clockSpeed = mountClockSpeed(
     place,
     get<HTMLButtonElement>('clock-speed'),
@@ -150,7 +167,7 @@ export function mountPanel(
   return {
     clockSpeed,
     notify,
-    cityActions,
+    city,
     aim: angling.aim,
     fishingClock: angling.fishingClock,
   };
