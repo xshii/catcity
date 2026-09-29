@@ -17,4 +17,4 @@
 | 体力耗尽暂停路线，空闲恢复体力后自动继续；新障碍重新寻路；多猫不重叠 | `tests/unit/city-walking.test.ts`                                 |
 | 空闲每 10 分钟恢复，公寓旁加倍；钓鱼与迈步中的猫不恢复               | `tests/unit/cat-recovery.test.ts`、`tests/unit/city-loop.test.ts` |
 | 一次推进与分块推进结果相同                                           | `tests/simulation/city.test.ts`、`tests/simulation/world.test.ts` |
-| 城市时钟推进时焦点卡片与恢复标记（zZ）正确                           | `tests/e2e/fishing-scene.spec.ts`                                 |
+| 城市时钟推进时焦点卡片与恢复标记（zZ）正确                           | `tests/view/fishing-buttons.test.ts`                              |
