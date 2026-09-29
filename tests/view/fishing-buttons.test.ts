@@ -159,7 +159,9 @@ describe('the button flow', () => {
     card.focus();
     advanceTime(10);
     expect(document.activeElement).toBe(card);
-    expect(visible('[data-cat-id="mochi"] .sleep-mark')).toBe(true);
+    // The curled portrait shows it; screen readers hear the words.
+    expect(visible('[data-cat-id="mochi"] .rest-label')).toBe(true);
+    expect(text('[data-cat-id="mochi"] .rest-label')).toBe('在休息');
     expect($<HTMLProgressElement>('[data-cat-id="mochi"] progress').value).toBe(
       tired + CARE.recovery.idle,
     );

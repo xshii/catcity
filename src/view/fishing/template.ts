@@ -1,5 +1,6 @@
 import { BAITS, FISHING } from '../../content/fishing';
 import type { AnglingRun } from '../../minigames/angling';
+import { SCREEN_COPY } from './screen';
 
 const CAST_COST = FISHING.cast.staminaCost;
 
@@ -37,7 +38,7 @@ export const BUTTON_PHASE_NAMES: Record<AnglingRun['phase'], string> = {
   escaped: '鱼溜走了',
 };
 export const BUTTON_PHASE_INSTRUCTIONS: Record<AnglingRun['phase'], string> = {
-  charge: '按住蓄力、松开抛投。绿色区落竿，会让这一竿更容易控制。',
+  charge: `按住蓄力、松开抛投。在绿区松开＝${SCREEN_COPY.cast.precise.buttons}。`,
   waiting: '浮漂动了就准备提竿，现在先松开。',
   hook: '白色游标进入绿色区间时，按一下！',
   fight: '按住增加张力，松开降低。跟着绿色区间，收线进度满就能钓上来。',

@@ -167,80 +167,27 @@
   padding: 6px 12px;
   background: var(--float-bg);
 }
-/*
- * Cast power set by slow pitch: a vertical meter just right of the plane, labelled
- * "力度 N" above, 强 at the top, 弱 at the bottom and 精准 beside the precise band.
- */
+/* Cast power for screen readers; the water shows it as the landing arc (spec 033 F5). */
 .motion-power {
   position: absolute;
-  right: -20px;
-  top: 10%;
-  width: 16px;
-  height: 78%;
-  color: var(--text);
-}
-.motion-power-track {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  background: var(--float-bg);
-  box-shadow: inset 0 0 0 1px var(--line-strong);
+  width: 1px;
+  height: 1px;
   overflow: hidden;
+  clip-path: inset(50%);
 }
-.motion-power-band {
+/* What the green zone on the water gives, across from the calibrate button. */
+.motion-precise {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: var(--band-low);
-  height: var(--band-size);
-  background: var(--leaf);
-}
-.motion-power-level {
-  position: absolute;
-  left: -5px;
-  right: -5px;
-  bottom: var(--power);
-  height: 6px;
-  border-radius: 3px;
-  background: var(--alert);
-  box-shadow: 0 0 0 2px var(--surface);
-  transform: translateY(50%);
-}
-.motion-power-value,
-.motion-power-end,
-.motion-power-precise {
-  position: absolute;
-  white-space: nowrap;
-  line-height: 1;
-  padding: 2px 4px;
+  right: 4px;
+  top: 4px;
+  margin: 0;
+  padding: 4px 10px;
   border-radius: 999px;
   background: var(--surface-float);
-}
-/* Right-aligned with the track: the phone's edge is just beyond it. */
-.motion-power-value {
-  right: -4px;
-  bottom: calc(100% + 24px);
-  font-size: 13px;
-}
-.motion-power-end {
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  font-weight: 600;
-}
-.motion-power-strong {
-  bottom: calc(100% + 7px);
-}
-.motion-power-weak {
-  top: calc(100% + 7px);
-}
-.motion-power-precise {
-  right: calc(100% + 6px);
-  bottom: calc(var(--band-low) + var(--band-size) / 2);
-  transform: translateY(50%);
-  font-size: 10px;
-  font-weight: 600;
   color: var(--text-good);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 /* The way back to motion fishing, under the cast button while motion is off. */
 #motion-quick {
