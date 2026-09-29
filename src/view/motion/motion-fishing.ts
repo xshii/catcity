@@ -76,7 +76,6 @@ export function motionStartup() {
 export interface MotionFishingDeps {
   /** Preference, capability, calibration and pause live in the fishing view state. */
   view: FishingViewStore;
-  stage: HTMLElement;
   /** The canvas box: the overlay's 100×100 water plane scales with it. */
   plane: HTMLElement;
   getRun: () => AnglingRun | null;

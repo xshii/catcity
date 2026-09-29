@@ -402,7 +402,6 @@ export function mountAngling(
   const collections = mountFishingCollections(get);
   const motion = mountMotionFishing({
     view,
-    stage: stage.stage,
     plane: shell.game,
     getRun: () => session.getSnapshot().fishing.active,
     previewAim: (preview) => aim.set(preview),
