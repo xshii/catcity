@@ -36,9 +36,12 @@ export function mountPanel(
     </main>`;
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T;
+  // Set once the fishing screen is mounted: its catch card gives way to a notice.
+  let said = () => {};
   const notify = (message: string) => {
     const notice = get('notice');
     notice.textContent = message;
+    said();
     // Each message fades after a while (layout.css); a new one starts it over, which
     // needs a style flush between removing and adding the class.
     notice.classList.remove('fading');
@@ -152,6 +155,7 @@ export function mountPanel(
       notice: get('notice'),
     },
   );
+  said = angling.said;
   const city = mountCity({
     session,
     place,

@@ -267,7 +267,8 @@ export function castNotice(
 
 /**
  * The catch card shows "this catch": a result the player watched a run end in, on this
- * page and this visit to the river. A save's last result from before is not one.
+ * page and this visit to the river, until a notice is raised over it. A save's last
+ * result from before is not one.
  */
 export const resultShown = (
   view: FishingView,
@@ -276,15 +277,15 @@ export const resultShown = (
 ) => !run && !!result && result.runId === view.watched;
 
 /**
- * The notice bar and the catch card float in the same place under the scene bar, so the
- * bar is not shown while the card is what the player looks at. A panel open over the card
- * shows its notices itself.
+ * The notice bar and the catch card float in the same place under the scene bar, so never
+ * both: the card withdraws the notice that stood when it appeared, and a notice raised
+ * later takes the card away (the view's `said`), so none is lost.
  */
 export const noticeShown = (
   view: FishingView,
   run: AnglingRun | null,
   result: { runId: string } | null,
-) => view.toolsOpen || !resultShown(view, run, result);
+) => !resultShown(view, run, result);
 
 type HoldRun = Pick<AnglingRun, 'id' | 'mode' | 'phase' | 'hold'>;
 /** Core counted the ring over the fish on this world change: the guide's last step. */

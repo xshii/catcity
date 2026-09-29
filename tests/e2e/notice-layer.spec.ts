@@ -114,7 +114,7 @@ for (const viewport of [
   });
 }
 
-test('the catch card shows without a notice over it', async ({
+test('the catch card withdraws the standing notice and gives way to a later one', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -127,19 +127,18 @@ test('the catch card shows without a notice over it', async ({
   await page.locator('#cast-start').click();
   await catchFish(page);
   await expect(page.locator('#catch-reveal')).toBeVisible();
-  // A fresh notice, raised from a panel over the card.
-  await openGear(page, 'supplies');
-  await page.locator('[data-buy-bait="WORM"]').click();
-  await expect(page.locator('#notice')).toBeVisible();
-  await closeRiverPanel(page);
-  await expect(page.locator('#catch-reveal')).toBeVisible();
-  await expect(page.locator('#notice')).toHaveText('鱼饵已放进包里。');
+  // The cast's notice is withdrawn, not only faded.
+  await expect(page.locator('#notice')).not.toBeEmpty();
   await expect(page.locator('#notice')).toBeHidden();
   await page.screenshot({ path: testInfo.outputPath('catch-card.png') });
-  // The next cast takes the card away and says its own notice.
-  await page.locator('#cast-start').click();
-  await expect(page.locator('#catch-reveal')).toBeHidden();
+  // A notice raised while the card shows is not lost: the card goes.
+  await openGear(page, 'supplies');
+  await page.locator('[data-buy-bait="WORM"]').click();
+  await closeRiverPanel(page);
+  await expect(page.locator('#notice')).toHaveText('鱼饵已放进包里。');
   await expect(page.locator('#notice')).toBeVisible();
+  await expect(page.locator('#catch-reveal')).toBeHidden();
+  await page.screenshot({ path: testInfo.outputPath('notice-after-card.png') });
 });
 
 test('picking a cat says it can also be lifted and dragged, clear of the hint and the card', async ({

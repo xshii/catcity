@@ -56,7 +56,7 @@ describe('the button flow', () => {
     expect(visible('#catch-reveal')).toBe(false);
   });
 
-  it('shows no notice over the catch card; a panel over the card and the next cast show theirs', () => {
+  it('the catch card withdraws the standing notice, and gives way to a later one', () => {
     const game = openGame();
     enterRiver(game);
     expect(noticeShows()).toBe(true);
@@ -65,16 +65,31 @@ describe('the button flow', () => {
     catchFish(game);
     expect(visible('#catch-reveal')).toBe(true);
     expect(noticeShows()).toBe(false);
+    // A notice raised while the card shows is never lost: the card goes.
     openGear(game, 'supplies');
     click('[data-buy-bait="WORM"]');
     expect(text('#notice')).toBe('鱼饵已放进包里。');
     expect(noticeShows()).toBe(true);
     closeRiverPanel();
-    expect(noticeShows()).toBe(false);
+    expect(noticeShows()).toBe(true);
+    expect(visible('#catch-reveal')).toBe(false);
+    // The catch itself stays in the tools' result line.
+    expect(text('#fish-result')).toContain('钓到了');
+  });
+
+  it('the next cast takes the catch card away and says its own notice', () => {
+    const game = openGame();
+    enterRiver(game);
+    click('#cast-start');
+    catchFish(game);
+    expect(visible('#catch-reveal')).toBe(true);
     click('#cast-start');
     expect(visible('#catch-reveal')).toBe(false);
     expect(text('#notice')).toBe('落点已锁定，按住按钮蓄力，松开抛竿。');
     expect(noticeShows()).toBe(true);
+    catchFish(game);
+    expect(visible('#catch-reveal')).toBe(true);
+    expect(noticeShows()).toBe(false);
   });
 
   it('a manual fishing clock advances exactly the stepped ticks and respects pause', () => {
