@@ -24,8 +24,11 @@ import v13Content7 from '../fixtures/save-v13-content7.json';
 import v13Rest from '../fixtures/save-v13-rest.json';
 // An active motion run from before runs recorded the cat's happy mood (save 14).
 import v14 from '../fixtures/save-v14.json';
-// An active motion run from before runs recorded the fish shadow they landed on (save 15).
+// A motion fight from before runs tracked line tension (save 15).
 import v15 from '../fixtures/save-v15.json';
+// A motion fight under line tension from before runs recorded the fish shadow they
+// landed on (save 16).
+import v16 from '../fixtures/save-v16.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -50,6 +53,7 @@ const incompatible = {
   v13Rest,
   v14,
   v15,
+  v16,
   future,
 };
 

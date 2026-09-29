@@ -21,7 +21,7 @@ function feed(
   return rates
     .map((rate, i) =>
       rod.push(
-        { t: start + i * 20, pitchRate: rate * G.pitchSign, power: power(i) },
+        { t: start + i * 20, rate: rate * G.pitchSign, power: power(i) },
         want,
       ),
     )
@@ -173,9 +173,7 @@ describe('one-tap flick calibration', () => {
     // The tuned rod casts on such a flick.
     const rod = createRodGestures(result.tuning);
     const casts = flick(500)
-      .map((rate, i) =>
-        rod.push({ t: i * 20, pitchRate: rate, power: 60 }, 'cast'),
-      )
+      .map((rate, i) => rod.push({ t: i * 20, rate, power: 60 }, 'cast'))
       .filter(Boolean);
     expect(casts).toEqual([{ kind: 'cast', power: 60 }]);
   });

@@ -272,7 +272,13 @@ describe('a shadow at the landing point', () => {
       // Everything but the bite: the strike window, hold and time limit.
       const bounds = (cast: AnglingRun) => {
         const b = motionBounds(fight(cast));
-        return [b.strikeWindow, b.holdTarget, b.fightLimit, b.startHold];
+        return [
+          b.strikeWindow,
+          b.holdTarget,
+          b.fightLimit,
+          b.startHold,
+          b.maxTension,
+        ];
       };
       expect(bounds(aimed)).toEqual(bounds(plain));
       expect(ringRadius(fight(aimed))).toBe(ringRadius(fight(plain)));

@@ -48,6 +48,18 @@
 
 ## 进度
 
-- [x] F2 鱼影（2026-09-29，分支 `feat/fish-shadows`）：`core/fishing/shadows.ts` 的 `fishShadows(world, spotId)`（经 `core/index.ts` 导出）按世界种子、钓点、游戏小时推导每钓点 3 条鱼影（方向、`reach` = (近远 + 力度)/2、体型、隐藏鱼种），不存档；`shadowAt` 判定落点半径 12 内最近的一条。抛竿（`FISH_CAST` 与按钮松开蓄力）由 Core 判定并记一竿的 `shadow`，`minigames/angling.ts` 据此（鱼影只会让结果更好：星级低于原规则本来的鱼时不理会）：饵合口且品种允许 → 该鱼、等待减半（含假咬口），面包轻抛不出补给；饵不对 → 原规则、咬口推迟 40 tick；其余按原规则。每种鱼吃的饵在 `content/fishing/catalog.ts` 的 `baits`，数值在 `FISHING.shadows`。saveVersion 16，v15 进行中一竿存档作拒绝 fixture。画面：`view/art/river.ts` 瞄准时（含按钮蓄力）按体型画深色鱼影、原地轻游，抛出后隐藏；坐标映射 `water-view.ts` 的 `shadowPoint`。原先瞄准时落点下的装饰鱼影只在遛鱼时显示。
-  - 测试：`tests/unit/fish-shadows.test.ts`（推导与每小时刷新、命中半径、咬口/嗅饵/品种不允许、补给、遛鱼参数不变、分块等价、Core 抛竿与按钮松开、存档往返与篡改拒绝）；`tests/unit/water-view.test.ts`（鱼影画在正中命中的落点）；`tests/simulation/shadow-balance.test.ts`（见 [钓鱼设计](../../docs/fishing-design.md) 鱼影一节的数值）；`legacy-saves.test.ts` 加 v15。两处既有断言因落点碰上鱼影改为新结果：30 天模拟第 0 天左抛落在鲫鱼鱼影（银鱼 14、鲫鱼 16、金币 1304），断线垃圾测试的鱼种取 `shadow ?? 'SILVER'`。
+- [x] F1 Core（2026-09-29，分支 `feat/fight-tug`）：冲刺中竿尖须在鱼身后超过 3 个单位（水面 y > 鱼 y + 3），否则张力每 tick 按星级 +0/4/6/8/10/12；不冲刺时每 tick −1；适应期不变；张力到 100 断线脱钩（`line-break`）。复用 run 的 `tension` 字段（提竿时归零），存档校验：适应期为 0、之后每 tick 至多涨一次拉力、不到 100；saveVersion 16，v15 遛鱼中存档作拒绝 fixture。数值在 `content/fishing/motion.ts` 的 `fight.tug`。
+- [x] F1 平衡（`tests/simulation/fight-balance.test.ts`）：模拟玩家看到预警（同样有延迟）后把竿尖往回拉 7 个单位直到冲刺结束。约束：老练玩家往回拉时 3–5★ 比关闭拉锯至多低 10 个百分点；无视冲刺的老练玩家 5★ 至少低 20 个百分点。实测（100 条，新手 / 熟练 / 老练，0–5★）：
+
+  | 模拟玩家     | 拉锯前                            | 拉锯后（往回拉）                  | 拉锯后（无视冲刺）              |
+  | ------------ | --------------------------------- | --------------------------------- | ------------------------------- |
+  | 新手 0.4 秒  | 100 / 100 / 100 / 95 / 2 / 0      | 100 / 100 / 100 / 94 / 2 / 0      | 100 / 100 / 100 / 94 / 2 / 0    |
+  | 熟练 0.25 秒 | 100 / 100 / 100 / 100 / 100 / 32  | 100 / 100 / 100 / 100 / 100 / 29  | 100 / 100 / 100 / 100 / 64 / 16 |
+  | 老练 0.15 秒 | 100 / 100 / 100 / 100 / 100 / 100 | 100 / 100 / 100 / 100 / 100 / 100 | 100 / 100 / 100 / 100 / 65 / 63 |
+
+- [x] F1 画面：圈外缘随张力由金变红（CSS 变量 `--tension`）；预警与冲刺中提示"往回拉！"（`SCREEN_COPY.hint.pull`，由 `fishingScreen` 按下一 tick 的鱼判断）。
+- [ ] F1 画面：鱼影随累计进度靠近、变大。
+- [x] F2 鱼影（2026-09-29，分支 `feat/fish-shadows`）：`core/fishing/shadows.ts` 的 `fishShadows(world, spotId)`（经 `core/index.ts` 导出）按世界种子、钓点、游戏小时推导每钓点 3 条鱼影（方向、`reach` = (近远 + 力度)/2、体型、隐藏鱼种），不存档；`shadowAt` 判定落点半径 12 内最近的一条。抛竿（`FISH_CAST` 与按钮松开蓄力）由 Core 判定并记一竿的 `shadow`，`minigames/angling.ts` 据此（鱼影只会让结果更好：星级低于原规则本来的鱼时不理会）：饵合口且品种允许 → 该鱼、等待减半（含假咬口），面包轻抛不出补给；饵不对 → 原规则、咬口推迟 40 tick；其余按原规则。每种鱼吃的饵在 `content/fishing/catalog.ts` 的 `baits`，数值在 `FISHING.shadows`。saveVersion 17（F1 之后），v15、v16 进行中一竿存档作拒绝 fixture。画面：`view/art/river.ts` 瞄准时（含按钮蓄力）按体型画深色鱼影、原地轻游，抛出后隐藏；坐标映射 `water-view.ts` 的 `shadowPoint`。原先瞄准时落点下的装饰鱼影只在遛鱼时显示。
+  - 测试：`tests/unit/fish-shadows.test.ts`（推导与每小时刷新、命中半径、咬口/嗅饵/品种不允许、补给、遛鱼参数不变、分块等价、Core 抛竿与按钮松开、存档往返与篡改拒绝）；`tests/unit/water-view.test.ts`（鱼影画在正中命中的落点）；`tests/simulation/shadow-balance.test.ts`（见 [钓鱼设计](../../docs/fishing-design.md) 鱼影一节的数值）；`legacy-saves.test.ts` 加 v16（F1 的遛鱼中张力存档）。两处既有断言因落点碰上鱼影改为新结果：30 天模拟第 0 天左抛落在鲫鱼鱼影（银鱼 14、鲫鱼 16、金币 1304），断线垃圾测试的鱼种取 `shadow ?? 'SILVER'`。
   - 已决定（用户："鱼影只会让结果更好"）：先按原规则算出本来的鱼，鱼影星级不低于它才起作用（咬口/嗅饵）；单测覆盖所有钓点、饵、品种与落点下有鱼影不降星、不把鱼换成补给。照原线索抛、不看鱼影不再吃亏（英短 4–5★ 65%→66%，布偶 100%）。
+- [ ] F3–F5。

@@ -48,6 +48,17 @@ export const MOTION = {
     /** The hit test is this much wider than the drawn ring to absorb tilt noise. */
     toleranceUnits: 1,
     precisionRadiusBonus: 1,
+    /**
+     * Tug of war (spec 033): while the fish dashes, the rod tip must stay more than
+     * `marginUnits` behind it (larger plane y, toward the player) or the line tension
+     * rises by `risePerTick` per star; between dashes it eases by `easePerTick`.
+     * Full tension (100) snaps the line. Settling in leaves it slack.
+     */
+    tug: {
+      marginUnits: 3,
+      risePerTick: [0, 4, 6, 8, 10, 12],
+      easePerTick: 1,
+    },
   },
   /**
    * The fish's correlated random walk: straight runs, a turn between runs, rests and
@@ -86,10 +97,14 @@ export const MOTION = {
       cooldownTicks: 40,
     },
   },
+  /** The water plane's centre: where the rod tip rests and aims without a reading. */
+  planeCentre: { x: 50, y: 50 },
+  /** How the phone answers as a rod: vibration pulses (ms), and how long a finger drag on the water outlives the tilt. */
+  feel: { castVibrateMs: 20, nibbleVibrateMs: 15, fingerHoldMs: 1000 },
   /**
    * Rod gestures from the gyroscope rate about `axis` of the screen as held (°/s): pitch,
-   * roll or yaw. Holding the phone upright and facing the water, tipping the top away
-   * (down) lowers beta, so down reads negative.
+   * roll or yaw. Gestures read the screen-frame rate (`screenRates`), so any hold agrees:
+   * facing the water, tipping the top away (down) reads a negative pitch rate.
    * Slow pitch sets the power; a quick flick down casts; a quick flick up strikes.
    * One-tap calibration replaces the axis, sign and flick threshold with the player's own.
    */

@@ -1,5 +1,11 @@
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
-import { expect, test, type Page } from '@playwright/test';
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from '@playwright/test';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { enterRiver } from '../../harness/adapters/catcity/city-input';
 import {
@@ -50,14 +56,23 @@ async function sensorsOn(page: Page, withOrientation = true) {
 const step = (page: Page, ticks = 1) =>
   page.evaluate((n) => window.CAT_CITY_DEBUG!.stepFishing(n), ticks);
 
-async function inMotionRiver(page: Page) {
-  // Chromium gates sensors behind permissions; WebKit has no such permission names.
-  await page
-    .context()
+/** Chromium gates sensors behind permissions; WebKit has no such permission names. */
+const grantSensors = (context: BrowserContext) =>
+  context
     .grantPermissions(['accelerometer', 'gyroscope'], {
       origin: localOrigin(testPorts().test),
     })
     .catch(() => undefined);
+/** A phone: coarse touch pointer at phone size. */
+const phoneContext = (browser: Browser) =>
+  browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+
+async function inMotionRiver(page: Page, { orientation = true } = {}) {
+  await grantSensors(page.context());
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
@@ -67,7 +82,7 @@ async function inMotionRiver(page: Page) {
   await page.locator('#motion-mode-toggle').click();
   await closeRiverPanel(page);
   await page.evaluate(() => window.CAT_CITY_DEBUG!.useManualFishingClock(true));
-  await sensorsOn(page);
+  await sensorsOn(page, orientation);
   await expect(page.locator('#motion-fishing')).toBeVisible();
   await expect(page.locator('#scene-ready')).toBeHidden();
 }
@@ -91,10 +106,7 @@ test(
     expect(cast.cats[0]!.needs.energy).toBe(
       before.cats[0]!.needs.energy - FISHING.cast.staminaCost,
     );
-    for (let i = 0; i < 200; i++) {
-      if ((await readWorld(page)).fishing.active!.phase === 'hook') break;
-      await step(page, 1);
-    }
+    await toBite(page);
     await expect(page.locator('#motion-bite')).toBeVisible();
     // The manual clock can bring the bite (sooner on a fish shadow) inside the cooldown
     // that keeps the cast's rebound from striking; a real bite comes long after it.
@@ -179,7 +191,8 @@ test('players can switch back to the frozen button flow on this device', async (
 });
 
 /** A quick flick of the tip down: the cast gesture. */
-const swing = (page: Page) => spin(page, [0, 300, 700, 900, 100, 0]);
+const FLICK = [0, 300, 700, 900, 100, 0];
+const swing = (page: Page) => spin(page, FLICK);
 async function toBite(page: Page) {
   for (let i = 0; i < 200; i++) {
     if ((await readWorld(page)).fishing.active!.phase === 'hook') return;
@@ -243,19 +256,7 @@ test('the fish ring is drawn on a square plane that matches the hit test', async
 test('a phone without orientation readings can still cast straight ahead', async ({
   page,
 }) => {
-  await page
-    .context()
-    .grantPermissions(['accelerometer', 'gyroscope'], {
-      origin: localOrigin(testPorts().test),
-    })
-    .catch(() => undefined);
-  await page.goto(`${localOrigin(testPorts().test)}/`);
-  await ready(page);
-  await enterRiver(page);
-  await openGear(page, 'supplies');
-  await page.locator('#motion-mode-toggle').click();
-  await closeRiverPanel(page);
-  await sensorsOn(page, false);
+  await inMotionRiver(page, { orientation: false });
   await swing(page);
   expect((await readWorld(page)).fishing.active).toMatchObject({
     mode: 'motion',
@@ -266,16 +267,8 @@ test('a phone without orientation readings can still cast straight ahead', async
 test('after a reload mid-run, phones are asked to re-enable motion', async ({
   browser,
 }) => {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-  });
-  await context
-    .grantPermissions(['accelerometer', 'gyroscope'], {
-      origin: localOrigin(testPorts().test),
-    })
-    .catch(() => undefined);
+  const context = await phoneContext(browser);
+  await grantSensors(context);
   const page = await context.newPage();
   await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
@@ -297,7 +290,6 @@ test('one-tap calibration lets a phone with a reversed pitch cast', async ({
   page,
 }) => {
   await inMotionRiver(page);
-  const flick = [0, 300, 700, 900, 100, 0];
   const quiet = Array<number>(12).fill(0);
   const reversed = (rates: number[]) =>
     spin(
@@ -305,11 +297,11 @@ test('one-tap calibration lets a phone with a reversed pitch cast', async ({
       rates.map((r) => -r),
     );
   // Before calibrating, the reversed flick is not a cast.
-  await reversed(flick);
+  await reversed(FLICK);
   expect((await readWorld(page)).fishing.active).toBeNull();
   await page.locator('#motion-calibrate').click();
   await expect(page.locator('#motion-fishing-hint')).toContainText('校准');
-  for (const rates of [flick, quiet, flick, quiet]) {
+  for (const rates of [FLICK, quiet, FLICK, quiet]) {
     await reversed(rates);
     // A flick ends after a quiet spell measured in event time, so let time pass.
     await page.waitForTimeout(FISHING.motion.gesture.calibration.quietMs + 50);
@@ -317,10 +309,10 @@ test('one-tap calibration lets a phone with a reversed pitch cast', async ({
   await expect(page.locator('#motion-fishing-hint')).toContainText('校准完成');
   await expect(page.locator('#motion-fishing-hint')).toContainText('下甩 900');
   // Flicks just after calibrating still belong to it; after the settle, one casts.
-  await reversed(flick);
+  await reversed(FLICK);
   expect((await readWorld(page)).fishing.active).toBeNull();
   await page.waitForTimeout(FISHING.motion.gesture.calibration.settleMs);
-  await reversed(flick);
+  await reversed(FLICK);
   expect((await readWorld(page)).fishing.active).toMatchObject({
     mode: 'motion',
     phase: 'waiting',
@@ -338,10 +330,18 @@ test('slow pitch sets the power the flick casts with', async ({
   const { powerRangeDeg } = FISHING.motion.gesture;
   // Tilt the tip back slowly, as far as the power range goes.
   for (let i = 0; i < 30; i++) await orient(page, 0, powerRangeDeg);
-  await expect(page.locator('#motion-power')).toHaveAttribute(
-    'aria-valuenow',
-    '100',
+  const meter = page.locator('#motion-power');
+  await expect(meter).toHaveAttribute('aria-valuenow', '100');
+  // The meter explains itself: its value, its ends and the precise band.
+  const band = FISHING.cast.precisionPower;
+  await expect(meter.locator('.motion-power-value')).toHaveText('力度 100');
+  await expect(meter).toHaveAttribute(
+    'aria-valuetext',
+    `力度 100，精准区间 ${band.min}–${band.max}`,
   );
+  await expect(meter.locator('.motion-power-strong')).toHaveText('强');
+  await expect(meter.locator('.motion-power-weak')).toHaveText('弱');
+  await expect(meter.locator('.motion-power-precise')).toHaveText('精准');
   await page.screenshot({ path: testInfo.outputPath('motion-aim.png') });
   // The cast reads the power from just before the flick: hold the tilt that long, as a
   // player does, or a fast machine flicks within the lead and reads the earlier power.
@@ -373,11 +373,7 @@ test('a phone in button mode can switch to motion right from the river', async (
 test('a phone that has not chosen yet sees the motion card, not the manual cast', async ({
   browser,
 }) => {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-  });
+  const context = await phoneContext(browser);
   const page = await context.newPage();
   await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);

@@ -5,9 +5,10 @@ import { shadowWait, type AnglingRun } from './angling';
 
 /**
  * Motion fishing (spec 030): nibbles and a bite after the cast, a timed lift, then a
- * fight where the player keeps the rod-tip point inside a moving, breathing fish ring.
- * Numbers live in `content/fishing/motion.ts`.
- * Everything derives from the run's seed, stars and ticks, so nothing extra is saved.
+ * fight where the player keeps the rod-tip point inside a moving, breathing fish ring
+ * and pulls back against its dashes (spec 033). Numbers live in `content/fishing/motion.ts`.
+ * Everything derives from the run's seed, stars and ticks; only the hold and the line
+ * tension are saved.
  */
 const M = FISHING.motion;
 const PLANE = 100;
@@ -174,6 +175,10 @@ export function fishPath(run: AnglingRun, ticks: number): FishState[] {
   return path;
 }
 
+const risePerTick = (run: AnglingRun) => pick(F.tug.risePerTick, run);
+/** The tension that snaps the line. */
+const SNAP = 100;
+
 const holdTarget = (run: AnglingRun) =>
   pick(F.holdTicks, run) * F.hold.insideGain;
 /** A perfect strike pre-fills part of the hold. */
@@ -215,6 +220,8 @@ export function motionBounds(run: AnglingRun) {
     maxHold:
       strikeHold(run) +
       Math.max(0, run.phaseTick - F.graceTicks) * F.hold.insideGain,
+    /** Slack while settling in, then at most one pull per tick. */
+    maxTension: Math.max(0, run.phaseTick - F.graceTicks) * risePerTick(run),
   };
 }
 
@@ -253,8 +260,17 @@ export function stepMotionRun(
       run.hold = inside
         ? run.hold + F.hold.insideGain
         : Math.max(0, run.hold - F.hold.outsideLoss);
+      // A dash pulls: the rod tip must be behind the fish (toward the player) to hold it.
+      const behind = point !== null && point.y > fish.y + F.tug.marginUnits;
+      if (!fish.dashing)
+        run.tension = Math.max(0, run.tension - F.tug.easePerTick);
+      else if (!behind)
+        run.tension = Math.min(SNAP, run.tension + risePerTick(run));
       if (run.hold >= holdTarget(run)) run.phase = 'caught';
-      else if (run.phaseTick >= F.graceTicks + F.limitTicks) {
+      else if (run.tension >= SNAP) {
+        run.phase = 'escaped';
+        run.reason = 'line-break';
+      } else if (run.phaseTick >= F.graceTicks + F.limitTicks) {
         run.phase = 'escaped';
         run.reason = 'escaped';
       }
@@ -280,6 +296,7 @@ export function strikeMotionRun(input: AnglingRun): AnglingRun {
     ...input,
     strike: perfect ? 'perfect' : 'good',
     phaseTick: 0,
+    tension: 0,
   };
   run.hold = strikeHold(run);
   run.phase = run.catchKind === 'fish' ? 'fight' : 'caught';

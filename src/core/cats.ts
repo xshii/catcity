@@ -3,6 +3,7 @@ import {
   CAT_START,
   type CatDefinitionId,
 } from '../content/cats';
+import { CommandError } from './commands';
 import type { CatEntity, Position, WorldState } from './schema';
 
 /** Creates a fresh resident from its template; saves carry the instance thereafter. */
@@ -37,6 +38,13 @@ export function instantiateCat(
     home: null,
     lastBondMinute: null,
   };
+}
+
+/** The cat a command names; a missing one rejects the command. */
+export function requireCat(world: WorldState, id: string): CatEntity {
+  const cat = world.cats.find((cat) => cat.id === id);
+  if (!cat) throw new CommandError('CAT_NOT_FOUND');
+  return cat;
 }
 
 /**

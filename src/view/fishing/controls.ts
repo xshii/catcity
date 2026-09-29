@@ -85,7 +85,7 @@ export function mountFishingControls(deps: FishingControlsDeps) {
     const ticks = run.phase === 'waiting' ? scale : 1;
     if (run.mode === 'motion') {
       if (run.phase === 'charge') return false;
-      const point = deps.rodTip() ?? { x: 50, y: 50 };
+      const point = deps.rodTip() ?? FISHING.motion.planeCentre;
       session.execute({
         type: 'FISH_MOTION_CONTROL',
         runId: run.id,

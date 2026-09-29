@@ -1,8 +1,8 @@
 {
-  "saveVersion": 15,
+  "saveVersion": 16,
   "contentVersion": 8,
   "world": {
-    "seed": 42,
+    "seed": 43,
     "minute": 0,
     "coins": 1000,
     "nextId": 2,
@@ -205,7 +205,7 @@
             "x": 1,
             "y": 2
           },
-          "terrain": "RIVER",
+          "terrain": "GRASS",
           "owned": false,
           "road": null
         },
@@ -349,7 +349,7 @@
             "x": 7,
             "y": 3
           },
-          "terrain": "GRASS",
+          "terrain": "POND",
           "owned": false,
           "road": null
         },
@@ -358,7 +358,7 @@
             "x": 8,
             "y": 3
           },
-          "terrain": "GRASS",
+          "terrain": "POND",
           "owned": false,
           "road": null
         },
@@ -385,7 +385,7 @@
             "x": 1,
             "y": 4
           },
-          "terrain": "RIVER",
+          "terrain": "GRASS",
           "owned": false,
           "road": null
         },
@@ -529,7 +529,7 @@
             "x": 7,
             "y": 5
           },
-          "terrain": "POND",
+          "terrain": "GRASS",
           "owned": false,
           "road": null
         },
@@ -538,7 +538,7 @@
             "x": 8,
             "y": 5
           },
-          "terrain": "POND",
+          "terrain": "GRASS",
           "owned": false,
           "road": null
         },
@@ -565,7 +565,7 @@
             "x": 1,
             "y": 6
           },
-          "terrain": "GRASS",
+          "terrain": "RIVER",
           "owned": false,
           "road": null
         },
@@ -619,7 +619,7 @@
             "x": 7,
             "y": 6
           },
-          "terrain": "POND",
+          "terrain": "GRASS",
           "owned": false,
           "road": null
         },
@@ -628,7 +628,7 @@
             "x": 8,
             "y": 6
           },
-          "terrain": "POND",
+          "terrain": "GRASS",
           "owned": false,
           "road": null
         },
@@ -745,7 +745,7 @@
             "x": 1,
             "y": 8
           },
-          "terrain": "RIVER",
+          "terrain": "GRASS",
           "owned": false,
           "road": null
         },
@@ -938,7 +938,7 @@
         "home": null,
         "position": {
           "x": 7,
-          "y": 3
+          "y": 5
         },
         "lastBondMinute": null,
         "fishingSpotId": "POND",
@@ -957,7 +957,7 @@
       },
       "xp": 0,
       "baits": {
-        "WORM": 5,
+        "WORM": 6,
         "SHRIMP": 3
       },
       "active": {
@@ -967,15 +967,15 @@
         "catchKind": "fish",
         "lengthMm": 336,
         "lootAmount": 0,
-        "seed": 2246822493,
-        "baitId": "WORM",
+        "seed": 2246822492,
+        "baitId": "BREAD",
         "spotId": "POND",
         "direction": 30,
         "aimDepth": 50,
         "skillLevel": 1,
         "phase": "fight",
-        "tick": 117,
-        "phaseTick": 40,
+        "tick": 224,
+        "phaseTick": 133,
         "power": 60,
         "cursor": 0,
         "pressed": false,
@@ -983,14 +983,14 @@
         "speciesId": "CRUCIAN",
         "weight": 499,
         "precision": true,
-        "tension": 50,
+        "tension": 4,
         "progress": 0,
         "lineHealth": 100,
         "reason": "none",
         "mode": "motion",
         "strike": "perfect",
         "spooked": false,
-        "hold": 21,
+        "hold": 0,
         "happy": false
       },
       "inventory": [],

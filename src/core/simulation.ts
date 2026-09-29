@@ -6,6 +6,7 @@ import type { GameEvent } from './commands';
 import type { CatEntity, WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
 import { catIdle } from './cats';
+import { gridDistance } from './city/map';
 
 export function simulate(
   world: WorldState,
@@ -66,10 +67,5 @@ function nearHome(world: WorldState, cat: CatEntity): boolean {
   const home = world.buildings.find(
     (building) => building.id === cat.home && building.type === 'CAT_APARTMENT',
   );
-  return (
-    !!home &&
-    Math.abs(cat.position.x - home.position.x) +
-      Math.abs(cat.position.y - home.position.y) ===
-      1
-  );
+  return !!home && gridDistance(cat.position, home.position) === 1;
 }
