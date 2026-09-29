@@ -3,6 +3,8 @@ export { createWorld, loadWorld, World } from './world';
 export { commandSchema } from './commands';
 export { MAX_STAT, MAX_TEXT } from './limits';
 export { catIdle } from './cats';
+export { fishShadows } from './fishing/shadows';
+export type { FishShadow } from './fishing/shadows';
 export type {
   GameCommand,
   CommandResult,

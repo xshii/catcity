@@ -63,9 +63,10 @@ it('simulates 30 days of catch/sell/recover cycles without impossible values or 
     world = loadWorld(save);
     expect(world.save()).toBe(save);
   }
-  expect(world.getSnapshot().fishing.atlas.SILVER.count).toBe(15);
-  expect(world.getSnapshot().fishing.atlas.CRUCIAN.count).toBe(15);
-  expect(world.getSnapshot().coins).toBe(1300);
+  // Day 0's left cast lands on a crucian shadow (spec 033); the rest follow the aim.
+  expect(world.getSnapshot().fishing.atlas.SILVER.count).toBe(14);
+  expect(world.getSnapshot().fishing.atlas.CRUCIAN.count).toBe(16);
+  expect(world.getSnapshot().coins).toBe(1304);
 });
 
 it('runs each fish difficulty deterministically and preserves held-input chunk equivalence', () => {

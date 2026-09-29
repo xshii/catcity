@@ -126,7 +126,8 @@ it('settles line-break trash once across weak and strong casts, save/load and re
           }).ok,
         ).toBe(true);
       }
-      expect(world.getSnapshot().fishing.active!.phase).toBe('fight');
+      const hooked = world.getSnapshot().fishing.active!;
+      expect(hooked.phase).toBe('fight');
       const before = world.save();
       expect(
         world.dispatch({
@@ -145,7 +146,8 @@ it('settles line-break trash once across weak and strong casts, save/load and re
       expect(state.fishing.lastResult).toMatchObject({
         caught: false,
         reason: 'line-break',
-        speciesId: 'SILVER',
+        // A left cast hooks silver unless it lands on a shadow (spec 033).
+        speciesId: hooked.shadow ?? 'SILVER',
       });
       expect(state.fishing.inventory).toEqual([]);
       expect(state.fishing.xp).toBe(0);

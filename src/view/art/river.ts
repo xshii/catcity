@@ -1,8 +1,13 @@
 import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
-import type { WorldState } from '../../core';
+import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { catArt } from './cat';
-import { landingShare, WATER_VIEW, waterPoint } from './water-view';
+import {
+  landingShare,
+  shadowPoint,
+  WATER_VIEW,
+  waterPoint,
+} from './water-view';
 import { BANK, BANK_STRIP, DOCK, MOON_TINT, SAND, SKY } from './river-palette';
 
 const V = WATER_VIEW;
@@ -17,6 +22,8 @@ const WATER_COLOUR: Record<SpotId, number> = {
 const ROD_BASE = { x: 430, y: V.size };
 const ROD_TIP = { x: 372, y: 330 };
 const COMPANION = { x: 196, y: 560, scale: 1.7 };
+/** Fish shadow body length by size class, at the dock's scale. */
+const SHADOW_LENGTH = { small: 46, medium: 64, large: 88 } as const;
 
 /**
  * The fishing scene in first person (spec 030): looking out from the dock over the water
@@ -28,6 +35,8 @@ export class RiverView {
   private water: Phaser.GameObjects.Graphics;
   private scenery: Record<SpotId, Phaser.GameObjects.Graphics>;
   private marker: Phaser.GameObjects.Graphics;
+  private shadowLayer: Phaser.GameObjects.Graphics;
+  private shadows: FishShadow[] = [];
   private float: Phaser.GameObjects.Container;
   private fishShadow: Phaser.GameObjects.Graphics;
   private bite: Phaser.GameObjects.Text;
@@ -54,6 +63,7 @@ export class RiverView {
       COAST: this.drawCoast(scene.add.graphics()),
     };
     const dock = this.drawDock(scene.add.graphics());
+    this.shadowLayer = scene.add.graphics();
     this.marker = scene.add.graphics();
     this.fishShadow = scene.add.graphics();
     this.fishShadow
@@ -80,6 +90,7 @@ export class RiverView {
       sky,
       this.water,
       ...Object.values(this.scenery),
+      this.shadowLayer,
       this.marker,
       this.fishShadow,
       this.float,
@@ -225,6 +236,7 @@ export class RiverView {
       );
       g.lineBetween(x - length / 2, y, x + length / 2, y);
     }
+    this.drawShadows(t);
     if (kind === 'MOON')
       for (let i = 0; i < 6; i++)
         g.fillStyle(0xf1e9ce, 0.16).fillEllipse(
@@ -233,6 +245,34 @@ export class RiverView {
           60 - i * 7,
           4,
         );
+  }
+
+  /**
+   * Core's fish shadows for this spot and hour (spec 033): dark silhouettes by size that
+   * drift gently around their place, well inside the radius a cast must land within.
+   */
+  private drawShadows(t: number) {
+    const g = this.shadowLayer.clear();
+    for (const [i, shadow] of this.shadows.entries()) {
+      const sway = Math.sin(t / 3 + i * 2.1);
+      const { x, y, scale } = shadowPoint(
+        shadow.direction + sway * 3,
+        shadow.reach + Math.cos(t / 4 + i) * 2,
+      );
+      const length = SHADOW_LENGTH[shadow.size] * scale;
+      // The tail trails the way it swims.
+      const tail = Math.cos(t / 3 + i * 2.1) >= 0 ? -1 : 1;
+      g.fillStyle(0x1d3440, 0.36)
+        .fillEllipse(x, y, length, length * 0.36)
+        .fillTriangle(
+          x + tail * length * 0.4,
+          y,
+          x + tail * length * 0.72,
+          y - length * 0.2,
+          x + tail * length * 0.72,
+          y + length * 0.2,
+        );
+    }
   }
 
   render(
@@ -246,7 +286,6 @@ export class RiverView {
     },
   ) {
     const active = world.fishing.active;
-    const recent = world.fishing.lastResult;
     const spotId = active?.spotId ?? preview.spotId;
     if (this.waterKind !== spotId) {
       this.waterKind = spotId;
@@ -254,6 +293,13 @@ export class RiverView {
     }
     for (const [id, layer] of Object.entries(this.scenery))
       layer.setVisible(id === spotId);
+    // Shadows show while aiming and hide once the line is in the water.
+    const shadows =
+      active && active.phase !== 'charge' ? [] : fishShadows(world, spotId);
+    if (JSON.stringify(shadows) !== JSON.stringify(this.shadows)) {
+      this.shadows = shadows;
+      this.waterFrame = -1;
+    }
     this.animateWater(this.scene.time.now);
     const cat =
       world.cats.find((cat) => cat.id === (active?.catId ?? preview.catId)) ??
@@ -314,7 +360,8 @@ export class RiverView {
       .setVisible(active?.phase === 'hook')
       .setPosition(land.x, land.y - 45 * land.scale);
     this.fishShadow
-      .setVisible(active?.phase === 'fight' || (!active && !recent))
+      // Only the hooked fish: aiming shows Core's real shadows instead.
+      .setVisible(active?.phase === 'fight')
       .setPosition(
         land.x - 20 * land.scale + Math.sin((active?.tick ?? 0) / 10) * 16,
         land.y + 24 * land.scale,

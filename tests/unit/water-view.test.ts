@@ -1,8 +1,11 @@
 import { expect, it } from 'vitest';
-import { FISHING } from '../../src/content/fishing';
+import { FISHING, SPOT_IDS } from '../../src/content/fishing';
+import { fishShadows } from '../../src/core';
+import { shadowAt } from '../../src/core/fishing/shadows';
 import {
   aimAtPoint,
   landingShare,
+  shadowPoint,
   WATER_VIEW,
   waterPoint,
 } from '../../src/view/art/water-view';
@@ -61,4 +64,25 @@ it('puts the square fight plane over open water', () => {
     const half = V.nearHalf + (V.horizonHalf - V.nearHalf) * share;
     expect(Math.abs(x - V.centerX)).toBeLessThanOrEqual(half);
   }
+});
+
+it('draws each fish shadow where a cast that meets it head-on lands', () => {
+  for (let hour = 0; hour < 20; hour++)
+    for (const spotId of SPOT_IDS)
+      for (const shadow of fishShadows({ seed: 9, minute: hour * 60 }, spotId))
+        for (const power of [30, 60, 90]) {
+          const aimDepth = 2 * shadow.reach - power;
+          if (aimDepth < 0 || aimDepth > FISHING.input.maxDepth) continue;
+          const cast = { direction: shadow.direction, aimDepth, power };
+          expect(shadowAt([shadow], cast)).toBe(shadow);
+          const drawn = shadowPoint(shadow.direction, shadow.reach);
+          const landing = waterPoint(
+            shadow.direction,
+            landingShare(aimDepth, power),
+          );
+          expect(drawn.x).toBeCloseTo(landing.x);
+          expect(drawn.y).toBeCloseTo(landing.y);
+          expect(drawn.y).toBeGreaterThan(V.horizonY);
+          expect(drawn.y).toBeLessThan(V.nearY);
+        }
 });
