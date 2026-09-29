@@ -8,6 +8,7 @@ import {
   showBagFish,
 } from '../helpers/view-player';
 import { BOND, BOND_LEVELS } from '../../src/content/care';
+import { gameDay } from '../../src/core/bond';
 import { createWorld, World } from '../../src/core/world';
 import { finishFishing } from '../unit/fishing-fixture';
 
@@ -111,5 +112,39 @@ describe('bond level in the cats panel (spec 036)', () => {
     click(`[data-gift-fish="${fish.id}"]`);
     expect(next.world().cats[0]!.playerBond).toBe(short + BOND.favoriteGift);
     expect(text('#notice')).toContain('和 Mochi 更熟了：熟悉。');
+  });
+
+  it('a gift past the day’s three is taken kindly and changes neither bond nor mood', () => {
+    const played = createWorld(42);
+    played.dispatch({
+      type: 'FISH_BEGIN',
+      catId: 'mochi',
+      spotId: 'POND',
+      baitId: 'BREAD',
+      direction: -30,
+      aimDepth: 50,
+    });
+    finishFishing(played);
+    const state = played.getSnapshot();
+    Object.assign(state.cats[0]!, {
+      mood: 50,
+      giftBond: { day: gameDay(state.minute), count: BOND.giftsPerDay },
+    });
+    const game = openGame({
+      storage: { 'cat-city.save.v1': new World(state).save() },
+    });
+    const before = game.world().cats[0]!;
+    const fish = game.world().fishing.inventory[0]!;
+    enterRiver(game);
+    showBagFish(game, fish.id);
+    click(`[data-gift-fish="${fish.id}"]`);
+    const after = game.world();
+    expect(after.fishing.inventory).toHaveLength(0);
+    expect(after.cats[0]!.fishGift!.fishId).toBe(fish.id);
+    expect(after.cats[0]!.playerBond).toBe(before.playerBond);
+    expect(after.cats[0]!.mood).toBe(before.mood);
+    expect(text('#notice')).toBe(
+      'Mochi 今天已经吃饱啦，这条先收下，明天再好好谢你。',
+    );
   });
 });
