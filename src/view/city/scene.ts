@@ -258,6 +258,7 @@ export class CityScene extends Phaser.Scene {
       aimDepth: aim.depth,
       power: aim.power,
       spotId: aim.spotId,
+      ringCentre: this.aim.ringCentre(),
     });
     const { selection, walker } = this.city.view.get();
     const signature = JSON.stringify([
