@@ -302,6 +302,12 @@ export function stepAngling(
   return run;
 }
 
+/** A cast of this power is precise: it makes the fight a little easier. */
+export function precisePower(power: number): boolean {
+  const { min, max } = FISHING.cast.precisionPower;
+  return power >= min && power <= max;
+}
+
 /**
  * Source-independent cast input shared by button release and motion adapters; `shadow`
  * is the fish of the shadow at the landing point, found by Core.
@@ -313,11 +319,10 @@ export function castAngling(
 ): AnglingRun {
   if (input.phase !== 'charge') throw new Error('Cast requires charge phase');
   if (!percent(power)) throw new Error('Invalid cast power');
-  const { min, max } = FISHING.cast.precisionPower;
   const run: AnglingRun = {
     ...input,
     power,
-    precision: power >= min && power <= max,
+    precision: precisePower(power),
     phase: 'waiting',
     phaseTick: 0,
     tick: input.tick + 1,

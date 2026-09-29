@@ -1,4 +1,5 @@
 import { FISHING } from '../../content/fishing';
+import { precisePower } from '../../minigames/angling';
 
 /**
  * First-person water geometry (spec 030) on the square river canvas: the player stands on
@@ -20,6 +21,11 @@ export const WATER_VIEW = {
   aimSpread: 0.8,
   /** The motion fight plane: a square over the open water, as canvas shares. */
   plane: { left: 0.2, top: 0.25, side: 0.6 },
+  /**
+   * The aiming preview's flight (spec 033 F5): its dashes, and how far its top rises as a
+   * share of its climb up the screen.
+   */
+  arc: { dashes: 12, lift: 0.6 },
 } as const;
 
 const V = WATER_VIEW;
@@ -41,6 +47,42 @@ export function landingShare(aimDepth: number, power: number): number {
  */
 export function shadowPoint(direction: number, reach: number) {
   return waterPoint(direction, landingShare(reach, reach));
+}
+
+/**
+ * The aiming preview (spec 033 F5): the ring where this aim and power land (the mapping
+ * the shadows use, so a ring on a shadow is a cast Core finds on it), the dashed flight
+ * arcing onto it `from` the rod, the green stretch of water where precise power lands
+ * at this aim, and whether this power is precise (Core's rule).
+ */
+export function castPreview(
+  direction: number,
+  aimDepth: number,
+  power: number,
+  from: { x: number; y: number },
+) {
+  const landing = waterPoint(direction, landingShare(aimDepth, power));
+  const top = V.arc.lift * (from.y - landing.y);
+  // Dash, gap, …, dash: the last dash ends on the ring.
+  const steps = 2 * V.arc.dashes - 1;
+  const arc = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps;
+    return {
+      x: from.x + (landing.x - from.x) * t,
+      y: from.y + (landing.y - from.y) * t - 4 * t * (1 - t) * top,
+    };
+  });
+  const { min, max } = FISHING.cast.precisionPower;
+  return {
+    landing,
+    /** Dash from each even point to the next. */
+    arc,
+    band: {
+      low: waterPoint(direction, landingShare(aimDepth, min)),
+      high: waterPoint(direction, landingShare(aimDepth, max)),
+    },
+    precise: precisePower(power),
+  };
 }
 
 /** Canvas point and perspective scale of a landing `share` out at `direction`. */

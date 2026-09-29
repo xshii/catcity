@@ -8,6 +8,12 @@ import {
   type GuideStep,
 } from './view-state';
 
+/** What a precise cast gives in each mode (spec 033 F5); Core decides `precision`. */
+const PRECISE_CAST = {
+  motion: '稳投：遛鱼圈更大',
+  buttons: '稳投：提竿和收线的绿区更宽',
+} as const;
+
 /** Player-facing words of the fishing screen's switchable controls. */
 export const SCREEN_COPY = {
   quick: {
@@ -35,7 +41,7 @@ export const SCREEN_COPY = {
   /** The first motion cast, one step at a time (spec 033 F3). */
   guide: {
     aim: '1/5 左右瞄准：左右转动手机',
-    power: '2/5 后仰加力：手机慢慢往后仰，看右侧力度',
+    power: '2/5 后仰加力：手机慢慢往后仰，把落点圈推进绿区',
     cast: '3/5 下甩抛竿：朝水面快速下甩',
     strike: '4/5 等"！"再上扬：看到"！"就快速抬起手机',
     fight: '5/5 用圈罩住鱼：倾斜手机，让圈跟住鱼',
@@ -47,15 +53,18 @@ export const SCREEN_COPY = {
     enable: '开启体感钓鱼',
     buttons: '改用按钮',
   },
-  /** The cast power meter shown while aiming. */
+  /** The cast power read out while aiming; the water shows it as the landing arc. */
   power: {
     label: '抛竿力度',
-    heading: (power: number) => `力度 ${power}`,
-    strong: '强',
-    weak: '弱',
-    precise: '精准',
     valueText: (power: number, low: number, high: number) =>
       `力度 ${power}，精准区间 ${low}–${high}`,
+  },
+  /** The precise band: what it gives, and what the cast just made of it (spec 033 F5). */
+  cast: {
+    legend: `绿区＝${PRECISE_CAST.motion}`,
+    precise: PRECISE_CAST,
+    loose: '不在绿区，没有稳投加成',
+    notice: (power: number, note: string) => `力度 ${power} · ${note}`,
   },
   calibrate: {
     button: '校准甩竿',
@@ -203,6 +212,27 @@ export function aimedSteps(aim: {
   if (Math.abs(aim.direction) >= GUIDE_AIM.direction) steps.push('aim');
   if (aim.power >= GUIDE_AIM.power) steps.push('power');
   return steps;
+}
+
+type CastRun = Pick<
+  AnglingRun,
+  'id' | 'mode' | 'phase' | 'power' | 'precision'
+>;
+/**
+ * Said once as a run is cast (spec 033 F5): its power and whether Core counted it a
+ * precise cast, with what that gives in its mode; null for any other change.
+ */
+export function castNotice(
+  before: CastRun | null,
+  after: CastRun | null,
+): string | null {
+  if (!after || before?.id !== after.id) return null;
+  if (before.phase !== 'charge' || after.phase === 'charge') return null;
+  const words = SCREEN_COPY.cast;
+  return words.notice(
+    after.power,
+    after.precision ? words.precise[after.mode] : words.loose,
+  );
 }
 
 type HoldRun = Pick<AnglingRun, 'id' | 'mode' | 'phase' | 'hold'>;

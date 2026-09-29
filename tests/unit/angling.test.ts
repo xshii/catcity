@@ -9,8 +9,10 @@ import { describe, expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
 import { FISHING, fishById } from '../../src/content/fishing';
 import {
+  castAngling,
   greenZone,
   initialAngling,
+  precisePower,
   stepAngling,
 } from '../../src/minigames/angling';
 
@@ -271,6 +273,27 @@ describe('skill-based angling', () => {
     expect(run.phase).toBe('escaped');
     expect(run.reason).toBe('missed-hook');
   });
+});
+
+it('counts a cast precise exactly for the power the aiming preview marks green', () => {
+  const run = initialAngling({
+    happy: false,
+    mode: 'motion',
+    catBreed: 'RAGDOLL',
+    spotId: 'POND',
+    aimDepth: 50,
+    id: 'angling-1',
+    catId: 'mochi',
+    seed: 42,
+    baitId: 'BREAD',
+    direction: 0,
+    skillLevel: 1,
+  });
+  const { min, max } = FISHING.cast.precisionPower;
+  for (let power = 0; power <= FISHING.input.maxPower; power++) {
+    expect(precisePower(power)).toBe(power >= min && power <= max);
+    expect(castAngling(run, power).precision).toBe(precisePower(power));
+  }
 });
 
 it('unlocks distinct waterways through skill and discoveries, with real bait/direction conditions', () => {

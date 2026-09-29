@@ -27,7 +27,7 @@ import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
-import { fishingScreen, ringHeld } from './screen';
+import { castNotice, fishingScreen, ringHeld, SCREEN_COPY } from './screen';
 import {
   createFishingView,
   initialFishingView,
@@ -345,13 +345,17 @@ export function mountAngling(
       for (const listener of aimListeners) listener();
     }
   };
-  const currentAim = (): Aim => ({
-    spotId: requestedSpot(),
-    direction: Number(direction.value),
-    depth: Number(depth.value),
+  const currentAim = (): Aim => {
     // Only motion aiming sets the power before a run; the button flow charges it.
-    power: motionActive(view.get()) ? aimPower : REST_POWER,
-  });
+    const live = motionActive(view.get());
+    return {
+      spotId: requestedSpot(),
+      direction: Number(direction.value),
+      depth: Number(depth.value),
+      power: live ? aimPower : REST_POWER,
+      live,
+    };
+  };
   const aim: AimControl = {
     get: currentAim,
     set(next) {
@@ -409,7 +413,8 @@ export function mountAngling(
         power,
       });
       view.dispatch({ type: result.ok ? 'resume' : 'pause' });
-      report(result, `甩竿力度 ${power}% · 拿稳鱼竿，等"！"再上扬。`);
+      // A cast is announced with the world change, as in the button flow.
+      if (!result.ok) report(result, '');
       return result.ok;
     },
     strike: () => {
@@ -442,7 +447,11 @@ export function mountAngling(
     }
     if (!stage.showRiver()) return;
     const result = session.execute(beginCommand(Number(direction.value)));
-    report(result, '落点已锁定，按住按钮蓄力，松开抛竿。');
+    // The control says how to charge; this says what the green on its bar gives.
+    report(
+      result,
+      `落点已锁定。在绿区松开＝${SCREEN_COPY.cast.precise.buttons}。`,
+    );
   }
   layout.travelButton.addEventListener('click', () => {
     const spotId = requestedSpot();
@@ -549,7 +558,9 @@ export function mountAngling(
         note: moodNote(previousWorld, world, ended.catId),
       };
     const held = ringHeld(previousWorld.fishing.active, world.fishing.active);
+    const cast = castNotice(previousWorld.fishing.active, world.fishing.active);
     previousWorld = world;
+    if (cast) notify(cast);
     stage.follow(session.getSnapshot());
     const runId = session.getSnapshot().fishing.active?.id ?? null;
     if (runId && runId !== view.get().runId) root.hidden = false;

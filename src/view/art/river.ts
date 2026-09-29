@@ -2,12 +2,7 @@ import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { catArt } from './cat';
-import {
-  landingShare,
-  shadowPoint,
-  WATER_VIEW,
-  waterPoint,
-} from './water-view';
+import { castPreview, shadowPoint, WATER_VIEW, waterPoint } from './water-view';
 import { BANK, BANK_STRIP, DOCK, MOON_TINT, SAND, SKY } from './river-palette';
 
 const V = WATER_VIEW;
@@ -22,6 +17,10 @@ const WATER_COLOUR: Record<SpotId, number> = {
 const ROD_BASE = { x: 430, y: V.size };
 const ROD_TIP = { x: 372, y: 330 };
 const COMPANION = { x: 196, y: 560, scale: 1.7 };
+/** The aiming ring and its flight; greens mark where precise power lands, and a ring on it. */
+const AIM = 0xfff4c0;
+const PRECISE_BAND = 0x5f9c5a;
+const PRECISE_RING = 0x3d7a37;
 /** Fish shadow body length by size class, at the dock's scale. */
 const SHADOW_LENGTH = { small: 46, medium: 64, large: 88 } as const;
 
@@ -282,6 +281,8 @@ export class RiverView {
       direction: number;
       aimDepth: number;
       power: number;
+      /** The rod sets the power now (motion aiming). */
+      live: boolean;
       spotId: SpotId;
     },
   ) {
@@ -317,27 +318,53 @@ export class RiverView {
       this.root.addAt(this.companion, this.root.getIndex(this.rod));
     }
     const cast = !!active && active.phase !== 'charge';
-    const land = waterPoint(
+    const aim = castPreview(
       active?.direction ?? preview.direction,
-      landingShare(
-        active?.aimDepth ?? preview.aimDepth,
-        // A charging button run previews its live power.
-        active?.power ?? preview.power,
-      ),
+      active?.aimDepth ?? preview.aimDepth,
+      // A charging button run previews its live power.
+      active?.power ?? preview.power,
+      ROD_BASE,
     );
-    // Aiming: a flattened ring where the cast would land.
+    const land = aim.landing;
+    // Aiming: a flattened ring where the cast would land. While the power is live (motion
+    // aiming, a charging button run) a dashed flight arcs onto it from the rod, over the
+    // green water where precise power lands; ring and flight turn green on it (spec 033 F5).
+    const live = !active ? preview.live : active.phase === 'charge';
+    const colour = live && aim.precise ? PRECISE_RING : AIM;
     this.marker.clear().setVisible(!cast);
-    if (!cast)
+    if (!cast) {
+      if (live) {
+        // A strip of water a little narrower than the ring, so a ring on it shows.
+        const { low, high } = aim.band;
+        const half = (point: typeof low) => 24 * point.scale;
+        this.marker
+          .fillStyle(PRECISE_BAND, 0.5)
+          .fillPoints([
+            { x: low.x - half(low), y: low.y },
+            { x: high.x - half(high), y: high.y },
+            { x: high.x + half(high), y: high.y },
+            { x: low.x + half(low), y: low.y },
+          ])
+          .lineStyle(3, colour, 0.9);
+        for (let i = 0; i + 1 < aim.arc.length; i += 2)
+          this.marker.lineBetween(
+            aim.arc[i]!.x,
+            aim.arc[i]!.y,
+            aim.arc[i + 1]!.x,
+            aim.arc[i + 1]!.y,
+          );
+      }
       this.marker
-        .lineStyle(3, 0xfff4c0, 0.9)
+        .lineStyle(3, colour, 0.9)
         .strokeEllipse(land.x, land.y, 56 * land.scale, 20 * land.scale)
-        .lineStyle(2, 0xfff4c0, 0.9)
+        .lineStyle(2, colour, 0.9)
         .lineBetween(
           land.x,
           land.y - 8 * land.scale,
           land.x,
           land.y + 8 * land.scale,
         );
+    }
     const flight =
       active?.phase === 'waiting' ? Math.min(1, active.phaseTick / 10) : 1;
     const bob =

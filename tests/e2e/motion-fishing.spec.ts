@@ -349,21 +349,31 @@ test('slow pitch sets the power the flick casts with', async ({
 }, testInfo) => {
   await inMotionRiver(page);
   const { powerRangeDeg } = FISHING.motion.gesture;
-  // Tilt the tip back slowly, as far as the power range goes.
-  for (let i = 0; i < 30; i++) await orient(page, 0, powerRangeDeg);
+  // The water shows the power as the landing arc (spec 033 F5); the meter reads it out.
   const meter = page.locator('#motion-power');
-  await expect(meter).toHaveAttribute('aria-valuenow', '100');
-  // The meter explains itself: its value, its ends and the precise band.
   const band = FISHING.cast.precisionPower;
-  await expect(meter.locator('.motion-power-value')).toHaveText('力度 100');
+  // Tilt the tip forward slowly, then back into the precise band, then as far back as
+  // the power range goes.
+  const pitch = async (power: number) => {
+    for (let i = 0; i < 30; i++)
+      await orient(page, 0, ((power - 50) / 50) * powerRangeDeg);
+  };
+  await pitch(0);
+  await expect(meter).toHaveAttribute('aria-valuenow', '0');
+  const precise = Math.round((band.min + band.max) / 2);
+  await pitch(precise);
   await expect(meter).toHaveAttribute(
     'aria-valuetext',
-    `力度 100，精准区间 ${band.min}–${band.max}`,
+    `力度 ${precise}，精准区间 ${band.min}–${band.max}`,
   );
-  await expect(meter.locator('.motion-power-strong')).toHaveText('强');
-  await expect(meter.locator('.motion-power-weak')).toHaveText('弱');
-  await expect(meter.locator('.motion-power-precise')).toHaveText('精准');
+  // The green water says what a precise cast gives.
+  await expect(page.locator('#motion-precise')).toHaveText(
+    SCREEN_COPY.cast.legend,
+  );
+  await expect(page.locator('#motion-precise')).toBeInViewport({ ratio: 1 });
   await page.screenshot({ path: testInfo.outputPath('motion-aim.png') });
+  await pitch(100);
+  await expect(meter).toHaveAttribute('aria-valuenow', '100');
   // The cast reads the power from just before the flick: hold the tilt that long, as a
   // player does, or a fast machine flicks within the lead and reads the earlier power.
   await page.waitForTimeout(FISHING.motion.gesture.powerLeadMs * 2);
@@ -371,7 +381,13 @@ test('slow pitch sets the power the flick casts with', async ({
   expect((await readWorld(page)).fishing.active).toMatchObject({
     mode: 'motion',
     power: 100,
+    precision: false,
   });
+  // Said once: past the green, so no precise-cast bonus.
+  await expect(page.locator('#notice')).toHaveText(
+    SCREEN_COPY.cast.notice(100, SCREEN_COPY.cast.loose),
+  );
+  await expect(page.locator('#motion-precise')).toBeHidden();
 });
 
 test('a phone in button mode can switch to motion right from the river', async ({
