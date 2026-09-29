@@ -32,7 +32,7 @@
 ## 界面
 
 - 地块卡的建造按钮显示下一座的真实价格（"猫咖 · 400"）；买地按钮显示这块地的价格（"买下土地 · 75 金币"）。
-- 猫咖卡显示客人与每小时收入："客人 2/5 · 每 2 小时 2 金币 · Mochi、Pepper"；没有客人时说明"家在 3 格内的猫会来做客，搬移免费"。
+- 猫咖卡显示客人与每次结算的收入："客人 2/5 · 每 2 小时 2 金币 · Mochi、Pepper"；没有客人时说明"家在 3 格内的猫会来做客，搬移免费"。
 - 金币不足时按钮禁用，原因带真实数字："金币不足：需要 400，现有 25。"（仍由 Core 的试算判定，View 只补上数字）。
 - 指引页收入行："猫咖 · 客人 1/5 · 每 2 小时 1 金币 · 距离下笔收入 120 游戏分钟"。原来的"累计赚取 N 金币"去掉：客人会变，累计值无法由存档推导，而本片不新增存档字段。
 
@@ -121,17 +121,17 @@
 
 ## 验收标准与证据
 
-| 标准                                                                                | 证据                                                                                   |
-| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 价格数列、取整、土地按距离计价；按顺位扣费，搬移免费；差 1 金币时拒绝且世界不变     | `tests/unit/city-economy.test.ts`（prices）                                            |
-| 客人：住所 3 格内、看住所不看位置、最近一家、同距离较早 ID、最多 5 位、无客人无收入 | `tests/unit/city-economy.test.ts`（cafe customers）                                    |
-| 每家猫咖沿用自己的计时；一次推进与分块推进、存档往返后结果相同                      | `tests/unit/city-economy.test.ts`、`tests/unit/city-loop.test.ts`、`tests/simulation/` |
-| 随机命令序列下每条命令的金币变化都等于 content 规则算出的数                         | `tests/simulation/invariants.test.ts`                                                  |
-| 卡片与指引显示真实价格、客人、收入与缺多少金币；指引按新顺序推进                    | `tests/unit/city-screen.test.ts`                                                       |
-| 真实点击走完 安家 → 入住 → 猫咖 → 收入                                              | `tests/e2e/game.spec.ts`、`tests/e2e/main-page.spec.ts`                                |
-| Harness 验收步骤：猫咖建在、搬到住所 3 格内，收入按 1 位客人结算                    | `harness/adapters/catcity/browser.ts`（本片用临时脚本跑过全部步骤与回放）              |
-| 经济目标                                                                            | `tests/simulation/economy.test.ts`（一条未通过）                                       |
-| 390×844 截图                                                                        | `artifacts/040-city-economy/02`–`07`（不入库）                                         |
+| 标准                                                                                | 证据                                                                                      |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 价格数列、取整、土地按距离计价；按顺位扣费，搬移免费；差 1 金币时拒绝且世界不变     | `tests/unit/city-economy.test.ts`（prices）                                               |
+| 客人：住所 3 格内、看住所不看位置、最近一家、同距离较早 ID、最多 5 位、无客人无收入 | `tests/unit/city-economy.test.ts`（cafe customers）                                       |
+| 每家猫咖沿用自己的计时；一次推进与分块推进、存档往返后结果相同                      | `tests/unit/city-economy.test.ts`、`tests/unit/city-loop.test.ts`、`tests/simulation/`    |
+| 随机命令序列下每条命令的金币变化都等于 content 规则算出的数                         | `tests/simulation/invariants.test.ts`                                                     |
+| 卡片与指引显示真实价格、客人、收入与缺多少金币；指引按新顺序推进                    | `tests/unit/city-screen.test.ts`                                                          |
+| 真实点击走完 安家 → 入住 → 猫咖 → 收入                                              | `tests/e2e/game.spec.ts`、`tests/e2e/main-page.spec.ts`                                   |
+| Harness 验收步骤：猫咖建在、搬到住所 3 格内，收入按 1 位客人、按结算周期结算        | `harness/adapters/catcity/browser.ts`（调参前用临时脚本跑过全部步骤与回放；调参后未重跑） |
+| 经济目标 A–D                                                                        | `tests/simulation/economy.test.ts`、`tests/helpers/city-player.ts`                        |
+| 390×844 截图                                                                        | `artifacts/040-city-economy/02`–`07`（不入库；是调参前的价格与文案，待重拍）              |
 
 ## 已知限制
 
