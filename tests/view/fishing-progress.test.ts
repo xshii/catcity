@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import { FISHING } from '../../src/content/fishing';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { $, choose, click, openGame, text } from '../helpers/view-rig';
 import {
   catchFish,
@@ -10,28 +9,36 @@ import {
   reachWaterway,
   showBagFish,
 } from '../helpers/view-player';
+import { pondDirection, progressSaves } from '../helpers/fishing-progress';
 
+// Each test starts from progress played once through Core and plays one step in the page.
+let saves: ReturnType<typeof progressSaves>;
+beforeAll(() => {
+  saves = progressSaves();
+});
+const openAt = (save: string) =>
+  openGame({ storage: { 'cat-city.save.v1': save } });
 const spotOption = (spotId: string) =>
   $<HTMLOptionElement>(`#fish-location option[value="${spotId}"]`);
 
-describe('fishing progress', () => {
-  it('skill and atlas unlock a new waterway; bait changes catches and Pepper receives a favorite fish', () => {
-    const game = openGame();
+describe('skill and atlas unlock a new waterway; bait changes catches and Pepper receives a favorite fish', () => {
+  it('the catch that brings skill and atlas far enough opens the reeds', () => {
+    const game = openAt(saves.oneCatchShort);
     enterRiver(game);
     openGear(game);
     expect(spotOption('REEDS').disabled).toBe(true);
-    for (let cast = 0; cast < 4; cast++) {
-      openGear(game);
-      // The slider's ends, where Home and End put it: left, then right of the pond.
-      const end = FISHING.input.maxDirection * (cast % 2 ? 1 : -1);
-      choose('#fish-direction', String(end));
-      closeRiverPanel();
-      click('#cast-start');
-      catchFish(game);
-    }
+    choose('#fish-direction', String(pondDirection(3)));
+    closeRiverPanel();
+    click('#cast-start');
+    catchFish(game);
     expect(game.world().fishing.xp).toBe(50);
     openGear(game);
     expect(spotOption('REEDS').disabled).toBe(false);
+  });
+
+  it('choosing the reeds sends the cat walking there on the city clock', () => {
+    const game = openAt(saves.reedsOpen);
+    openGear(game);
     const beforeTravel = game.world();
     choose('#fish-location', 'REEDS');
     expect($('#visit-city').getAttribute('aria-pressed')).toBe('true');
@@ -46,6 +53,13 @@ describe('fishing progress', () => {
     enterRiver(game);
     openGear(game);
     expect($<HTMLButtonElement>('#travel-to-spot').disabled).toBe(true);
+  });
+
+  it('worms at the reeds catch a perch without another walk', () => {
+    const game = openAt(saves.atReeds);
+    const arrived = game.world();
+    enterRiver(game);
+    openGear(game);
     choose('#fish-bait', 'WORM');
     closeRiverPanel();
     expect($<HTMLButtonElement>('#cast-start').disabled).toBe(false);
@@ -53,10 +67,17 @@ describe('fishing progress', () => {
     catchFish(game);
     const world = game.world();
     expect(world.minute).toBe(arrived.minute);
-    const perch = world.fishing.inventory.find(
-      (fish) => fish.speciesId === 'PERCH',
-    )!;
-    expect(perch).toBeDefined();
+    expect(
+      world.fishing.inventory.find((fish) => fish.speciesId === 'PERCH'),
+    ).toBeDefined();
+  });
+
+  it('Pepper, invited and chosen, shows her tastes and takes the perch as a favorite', () => {
+    const game = openAt(saves.perchAtReeds);
+    const perch = game
+      .world()
+      .fishing.inventory.find((fish) => fish.speciesId === 'PERCH')!;
+    enterRiver(game);
     openCats();
     click('#invite-pepper');
     closeRiverPanel();

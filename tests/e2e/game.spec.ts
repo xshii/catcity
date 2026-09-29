@@ -1,8 +1,7 @@
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { SAVE_VERSION } from '../../src/core/schema';
-import { createWorld } from '../../src/core';
-import { greenZone } from '../../src/minigames/angling';
-import { FISHING, type BaitId, type SpotId } from '../../src/content/fishing';
+import { loadWorld } from '../../src/core';
+import { progressSaves } from '../helpers/fishing-progress';
 import {
   enterRiver,
   reachWaterway,
@@ -217,63 +216,11 @@ test('city guide makes construction, income and the relationship activity discov
 });
 
 /**
- * The progress tests/view/fishing-progress.test.ts plays through the page, played here
- * through Core: four pond catches (left, right), the walk to the reeds, a perch on
- * worms, and Pepper invited.
+ * At the reeds with a perch in the bag and Pepper invited; the page steps to this
+ * progress are played in tests/view/fishing-progress.test.ts.
  */
 function progressSave() {
-  const world = createWorld(42);
-  const land = (spotId: SpotId, baitId: BaitId, direction: number) => {
-    expect(
-      world.dispatch({
-        type: 'FISH_BEGIN',
-        catId: 'mochi',
-        baitId,
-        direction,
-        spotId,
-        aimDepth: 50,
-      }).ok,
-    ).toBe(true);
-    for (
-      let tick = 0;
-      tick < 600 && world.getSnapshot().fishing.active;
-      tick++
-    ) {
-      const run = world.getSnapshot().fishing.active!;
-      const zone = greenZone(run);
-      const pressed =
-        run.phase === 'charge'
-          ? run.tick < 23
-          : run.phase === 'hook'
-            ? run.cursor >= zone.low && run.cursor <= zone.high
-            : run.phase === 'fight' && run.tension < (zone.low + zone.high) / 2;
-      expect(
-        world.dispatch({
-          type: 'FISH_CONTROL',
-          runId: run.id,
-          pressed,
-          ticks: 1,
-        }).ok,
-      ).toBe(true);
-    }
-    expect(world.getSnapshot().fishing.lastResult!.caught).toBe(true);
-  };
-  for (let cast = 0; cast < 4; cast++)
-    land('POND', 'BREAD', FISHING.input.maxDirection * (cast % 2 ? 1 : -1));
-  expect(
-    world.dispatch({
-      type: 'TRAVEL_TO_FISHING_SPOT',
-      catId: 'mochi',
-      spotId: 'REEDS',
-    }).ok,
-  ).toBe(true);
-  for (
-    let minute = 0;
-    minute < 120 && world.getSnapshot().cats[0]!.walk;
-    minute++
-  )
-    expect(world.dispatch({ type: 'ADVANCE_TIME', minutes: 1 }).ok).toBe(true);
-  land('REEDS', 'WORM', FISHING.input.maxDirection);
+  const world = loadWorld(progressSaves().perchAtReeds);
   expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
   return world;
 }
