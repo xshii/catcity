@@ -26,7 +26,7 @@ export function mountPanel(
         <section id="city-save" class="city-save" aria-label="保存"><p>进度会自动保存在这台设备；也可以现在手动保存一次。</p><button id="save" class="quiet">保存进度</button></section>
         <div class="city-map-hint"><span id="city-hint" aria-live="polite"></span><button id="city-overview" class="quiet" aria-pressed="false">总览地图</button></div><div id="game"></div></section>
         <aside hidden><section class="card cat-card"><p class="eyebrow">YOUR LITTLE COMPANION</p><div class="cat-heading"><div class="cat-avatar" aria-hidden="true"><svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><path d="M12 31L10 9l17 12h10L54 9l-2 22" fill="#efdbb2"/><path d="M15 26l-2-12 10 9M41 23l10-9-2 12" fill="#dda996"/><ellipse cx="32" cy="34" rx="23" ry="20" fill="#f7e7c6"/><g class="portrait-eyes" fill="#605942"><ellipse cx="23" cy="32" rx="2" ry="3"/><ellipse cx="41" cy="32" rx="2" ry="3"/></g><path d="M29 38h6l-3 4z" fill="#ca9785"/><path d="M32 42v3m0 0l-4 2m4-2l4 2" fill="none" stroke="#a38a6b" stroke-linecap="round"/><ellipse cx="17" cy="39" rx="4" ry="2" fill="#e8bba4"/><ellipse cx="47" cy="39" rx="4" ry="2" fill="#e8bba4"/></svg></div><div><h2 id="cat-name">认识 Mochi</h2><span class="pill" id="mood" role="img" aria-label="第一位居民">第一位居民</span><small id="mood-hint" class="mood-hint" hidden></small></div><span class="tiny-heart">♡</span></div><p id="cat-description">点击地图上的奶油色小猫，或者在这里打个招呼。</p><button id="meet-cat" class="quiet">认识 Mochi</button>
-        <div id="cat-detail" hidden><div class="traits" id="traits"></div><p id="reunion" class="reunion"></p><div id="bond-level" class="bond-level" role="img"><span id="bond-hearts" class="bond-hearts"></span><strong id="bond-name"></strong><progress id="bond-progress"></progress><small id="bond-next" class="bond-next"></small></div><p class="bond" id="bond"></p><div id="dialogue" data-testid="dialogue" class="speech" aria-live="polite"></div>
+        <div id="cat-detail" hidden><div class="traits" id="traits"></div><p id="reunion" class="reunion"></p><div id="bond-level" class="bond-level" role="img"><span id="bond-hearts" class="bond-hearts"></span><strong id="bond-name"></strong><progress id="bond-progress"></progress><small id="bond-next" class="bond-next"></small><small id="bond-news" class="bond-news" hidden></small></div><p class="bond" id="bond"></p><div id="dialogue" data-testid="dialogue" class="speech" aria-live="polite"></div>
         <div class="quick-talk"><button data-message="今天有点累">今天有点累</button><button data-message="今天很开心">有个好消息</button><button data-message="还记得我们钓鱼吗？">聊聊我们的回忆</button></div>
         <form id="dialogue-form"><label for="message">和 Mochi 说句话</label><div class="input-row"><input id="message" maxlength="500" placeholder="今天想和它说些什么？" autocomplete="off" required /><button id="send" type="submit" aria-label="发送">↗</button></div></form></div>
         </section>
@@ -45,6 +45,8 @@ export function mountPanel(
     void notice.offsetWidth;
     notice.classList.add('fading');
   };
+  // The level a chat just reached, shown in the panel: it covers the notice while open.
+  let bondNews = { catId: '', note: '' };
   const render = () => {
     const model = toViewModel(session.getSnapshot(), session.selectedEntity);
     get('coins').textContent = model.coins;
@@ -72,6 +74,9 @@ export function mountPanel(
       get<HTMLProgressElement>('bond-progress').max = bond.progress.max;
       get<HTMLProgressElement>('bond-progress').value = bond.progress.value;
       get('bond-next').textContent = bond.next;
+      const news = bondNews.catId === model.cat.id ? bondNews.note : '';
+      get('bond-news').textContent = news;
+      get('bond-news').hidden = !news;
     }
     get('save-recovery').hidden = !session.storageError;
     get('reset-demo').hidden = !session.saveRejected;
@@ -104,12 +109,11 @@ export function mountPanel(
         get<HTMLInputElement>('message').value = '';
         const after = session.getSnapshot();
         const name = after.cats.find((cat) => cat.id === catId)?.name ?? '小猫';
+        bondNews = { catId, note: bondNote(before, after, catId) };
         notify(
-          withMoodNote(
-            `${name} 轻轻动了动耳朵，回应了你。`,
-            bondNote(before, after, catId),
-          ),
+          withMoodNote(`${name} 轻轻动了动耳朵，回应了你。`, bondNews.note),
         );
+        render();
       } else
         notify(
           result.error === 'INVALID_INTERACTION' ||

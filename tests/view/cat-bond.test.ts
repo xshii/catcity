@@ -47,15 +47,20 @@ describe('bond level in the cats panel (spec 036)', () => {
     expect(text('#notice')).toBe(
       'Mochi 轻轻动了动耳朵，回应了你。和 Mochi 更熟了：熟悉。',
     );
+    // The open panel covers the notice, so the panel says it too.
+    expect(visible('#bond-news')).toBe(true);
+    expect(text('#bond-news')).toBe('和 Mochi 更熟了：熟悉');
     expect(text('#bond-name')).toBe('熟悉');
     expect(text('#bond-hearts')).toBe('♥♡♡♡');
     expect([bar().value, bar().max]).toEqual([0, 10]);
     await say('[data-message="今天有点累"]');
     expect(text('#notice')).toBe('Mochi 轻轻动了动耳朵，回应了你。');
+    expect(visible('#bond-news')).toBe(false);
     game.reload();
     expect(text('#notice')).not.toContain('更熟了');
     openCats('talk');
     expect(text('#bond-name')).toBe('熟悉');
+    expect(visible('#bond-news')).toBe(false);
   });
 
   it('a shared catch that reaches a level says so with the result, a gift after it does not', () => {
