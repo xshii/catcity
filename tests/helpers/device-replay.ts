@@ -70,7 +70,7 @@ export function replayDeviceTrace(trace: DeviceTrace): DeviceTrace['expect'] {
     const event = gestures.push(
       {
         t: reading.t,
-        pitchRate: rates(reading, trace.rateAxes)[tuning.axis],
+        rate: rates(reading, trace.rateAxes)[tuning.axis],
         power,
       },
       trace.want,

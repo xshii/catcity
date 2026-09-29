@@ -9,7 +9,7 @@ import {
   SPOTS,
 } from '../../content/fishing';
 import type { GameCommand } from '../../core';
-import type { CatEntity, WorldState } from '../../core';
+import { MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { fishIllustration } from '../art/illustrations';
 
 type FishAction = Extract<GameCommand, { type: 'SELL_FISH' | 'GIFT_FISH' }>;
@@ -27,7 +27,7 @@ export function renderFishingCatalog(
   get('fish-supplies').textContent =
     `垃圾 ${f.supplies.trash} 件 · 罐头 ${f.supplies.cans} 份 · 已打开金币袋 ${f.supplies.coinBags} 个`;
   get<HTMLButtonElement>('use-can').disabled =
-    f.supplies.cans === 0 || cat.needs.energy === 100;
+    f.supplies.cans === 0 || cat.needs.energy === MAX_STAT;
   get<HTMLButtonElement>('recycle-trash').disabled = f.supplies.trash === 0;
   get('fish-tastes').textContent =
     `${cat.name} 喜欢：${cat.favoriteFish.map((id) => fishById(id).name).join('、')}。${cat.fishGift ? `上次收到${fishById(cat.fishGift.speciesId).name}，${cat.fishGift.favorite ? '特别开心。' : '轻轻说了谢谢。'}` : '鱼可以卖出，也可以留给喜欢它的猫。'}`;

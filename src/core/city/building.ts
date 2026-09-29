@@ -10,6 +10,7 @@ import { isWalkable, touchesNetwork } from './path';
 import { replanWalk } from './walking';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { WorldState } from '../schema';
+import { requireCat } from '../cats';
 
 type CityCommand = Extract<
   GameCommand,
@@ -35,8 +36,7 @@ export function applyCity(
     world.coins -= cost;
   };
   if (command.type === 'ASSIGN_HOME') {
-    const cat = world.cats.find((cat) => cat.id === command.catId);
-    if (!cat) throw new CommandError('CAT_NOT_FOUND');
+    const cat = requireCat(world, command.catId);
     const building = world.buildings.find(
       (building) => building.id === command.buildingId,
     );

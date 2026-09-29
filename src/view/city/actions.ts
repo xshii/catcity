@@ -12,7 +12,7 @@ import {
 import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
 import { onShore, samePosition, spotAt, tileAt } from '../../core/city';
 import type { GameCommand } from '../../core';
-import type { CatEntity, Position } from '../../core';
+import { MAX_STAT, type CatEntity, type Position } from '../../core';
 import { ERROR_MESSAGES } from '../shell/errors';
 import './actions.css';
 
@@ -135,7 +135,7 @@ export function mountCityActions(
       const catId = selected.catId;
       const cat = world.cats.find((item) => item.id === catId);
       if (!cat) return clear();
-      title.textContent = `${cat.name} · 体力 ${cat.needs.energy}/100`;
+      title.textContent = `${cat.name} · 体力 ${cat.needs.energy}/${MAX_STAT}`;
       detail.textContent = walking(cat);
       button('city-cat-chat', '聊一会', tools.openTalk);
       if (cat.walk) wait();
@@ -149,7 +149,7 @@ export function mountCityActions(
       const arrived =
         unlocked && !cat.walk && onShore(world.map, spotId, cat.position);
       const condition = `需钓技 ${spot.level} 级与 ${spot.species} 种图鉴。`;
-      title.textContent = `${spot.name} · ${cat.name} ${cat.needs.energy}/100`;
+      title.textContent = `${spot.name} · ${cat.name} ${cat.needs.energy}/${MAX_STAT}`;
       detail.textContent = !unlocked
         ? `${condition}猫只能在草地岸边钓鱼。`
         : arrived

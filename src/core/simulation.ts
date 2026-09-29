@@ -5,6 +5,7 @@ import type { GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
 import { catIdle } from './cats';
+import { gridDistance } from './city/map';
 
 export function simulate(
   world: WorldState,
@@ -40,10 +41,7 @@ export function simulate(
             building.id === cat.home && building.type === 'CAT_APARTMENT',
         );
         const nearHome =
-          home &&
-          Math.abs(cat.position.x - home.position.x) +
-            Math.abs(cat.position.y - home.position.y) ===
-            1;
+          home && gridDistance(cat.position, home.position) === 1;
         const before = cat.needs.energy;
         cat.needs.energy = Math.min(
           MAX_STAT,

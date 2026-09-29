@@ -5,6 +5,7 @@ import { onShore, samePosition } from './map';
 import { findWalkingPath, isWalkable, walkingMinutes } from './path';
 import { CommandError, type GameEvent } from '../commands';
 import type { CatEntity, Position, WorldState } from '../schema';
+import { requireCat } from '../cats';
 
 export function atFishingShore(
   world: WorldState,
@@ -37,8 +38,7 @@ export function queueWalk(
   destination: Position,
   spotId: SpotId | null = null,
 ): GameEvent[] {
-  const cat = world.cats.find((item) => item.id === catId);
-  if (!cat) throw new CommandError('CAT_NOT_FOUND');
+  const cat = requireCat(world, catId);
   if (world.fishing.active?.catId === catId) throw new CommandError('CAT_BUSY');
   if (samePosition(cat.position, destination))
     throw new CommandError('ALREADY_AT_DESTINATION');

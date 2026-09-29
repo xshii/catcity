@@ -1,7 +1,8 @@
 import { WORLD_LIMIT } from '../../src/core/limits';
 import { advance, buildCafe, interact } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
-import { createWorld, loadWorld } from '../../src/core/world';
+import { createWorld, loadWorld, World } from '../../src/core/world';
+import type { GameCommand } from '../../src/core/commands';
 import { RandomService } from '../../src/core/random';
 
 describe('headless world', () => {
@@ -180,4 +181,34 @@ it('checks a command without applying it: same outcome as dispatch, world unchan
   });
   expect(world.save()).toBe(before);
   expect(world.dispatch(build).ok).toBe(true);
+});
+
+it('rejects every command naming a missing cat and leaves the world unchanged', () => {
+  // USE_CAN checks the supplies before the cat, so the world has a can.
+  const state = createWorld(42).getSnapshot();
+  state.fishing.supplies.cans = 1;
+  const world = new World(state);
+  const commands: GameCommand[] = [
+    { type: 'WALK_CAT', catId: 'ghost', destination: { x: 4, y: 5 } },
+    { type: 'ASSIGN_HOME', catId: 'ghost', buildingId: 'b-1' },
+    { type: 'TRAVEL_TO_FISHING_SPOT', catId: 'ghost', spotId: 'POND' },
+    { type: 'USE_CAN', catId: 'ghost' },
+    {
+      type: 'FISH_BEGIN',
+      catId: 'ghost',
+      baitId: 'BREAD',
+      direction: 0,
+      aimDepth: 50,
+      spotId: 'POND',
+    },
+    { type: 'INTERACT', catId: 'ghost', message: 'hi', reply: 'mew' },
+  ];
+  const before = world.save();
+  for (const command of commands) {
+    expect(world.dispatch(command)).toEqual({
+      ok: false,
+      error: 'CAT_NOT_FOUND',
+    });
+    expect(world.save()).toBe(before);
+  }
 });

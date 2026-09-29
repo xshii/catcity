@@ -1,5 +1,6 @@
 import { FISHING } from '../../content/fishing';
 import type { AnglingRun } from '../../minigames/angling';
+import { motionSchedule } from '../../minigames/angling-motion';
 import { canPlay, motionActive, type FishingView } from './view-state';
 
 /** Player-facing words of the fishing screen's switchable controls. */
@@ -26,6 +27,16 @@ export const SCREEN_COPY = {
     fight: '倾斜手机，让圈罩住鱼',
   },
   pause: { pause: '暂停', resume: '继续钓鱼' },
+  card: {
+    text: '开启体感钓鱼：面向水面，左右瞄准，慢慢俯仰调力度，快速下甩抛竿，看到"！"快速上扬。',
+    enable: '开启体感钓鱼',
+    buttons: '改用按钮',
+  },
+  calibrate: {
+    button: '校准甩竿',
+    done: (peak: number) => `校准完成：下甩 ${peak}°/s`,
+    failed: '没感到两次一致的下甩，再试一次',
+  },
 } as const;
 
 type Run = Pick<AnglingRun, 'mode' | 'phase' | 'phaseTick'>;
@@ -88,6 +99,10 @@ export function fishingScreen(view: FishingView, run: Run | null) {
     overlayPhase: motionRun?.phase ?? 'aim',
     calibrateButton: aiming && !view.motion.calibrating,
     powerMeter: aiming,
+    /** The "!" that asks for a lift. */
+    bite: overlay && motionRun?.phase === 'hook',
+    /** The fish, the player's ring and the hold meter. */
+    fight: overlay && motionRun?.phase === 'fight',
     hint: hint(view, motionRun),
     pauseLabel: view.paused
       ? SCREEN_COPY.pause.resume
@@ -95,6 +110,36 @@ export function fishingScreen(view: FishingView, run: Run | null) {
   };
 }
 export type FishingScreen = ReturnType<typeof fishingScreen>;
+
+const strikable = (run: Run) =>
+  run.mode === 'motion' && (run.phase === 'waiting' || run.phase === 'hook');
+
+/**
+ * The rod gesture that counts now: a cast before a run, a lift while a motion run waits
+ * for or has a bite; none while motion is off, play is covered or the run is paused.
+ */
+export function motionWant(
+  view: FishingView,
+  run: Run | null,
+): 'cast' | 'lift' | null {
+  if (!motionActive(view) || !canPlay(view)) return null;
+  if (!run) return 'cast';
+  return !view.paused && strikable(run) ? 'lift' : null;
+}
+
+/** Tapping the water strikes too, so a lost sensor stream never strands a bite. */
+export const tapStrikes = (view: FishingView, run: Run | null) =>
+  !!run && !view.paused && strikable(run);
+
+/** The fake nibble a waiting motion run shows now, by index; null between nibbles. */
+export function motionNibble(run: AnglingRun | null): number | null {
+  if (run?.mode !== 'motion' || run.phase !== 'waiting') return null;
+  const index = motionSchedule(run).nibbles.findIndex(
+    (at) =>
+      run.phaseTick >= at && run.phaseTick < at + FISHING.motion.nibbleTicks,
+  );
+  return index === -1 ? null : index;
+}
 
 function hint(view: FishingView, motionRun: Run | null): string {
   const words = SCREEN_COPY.hint;

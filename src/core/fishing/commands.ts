@@ -1,5 +1,6 @@
 import { CITY_START } from '../../content/city';
 import { atFishingShore, resumeWalk } from '../city/walking';
+import { gridDistance } from '../city/map';
 import {
   BAITS,
   catchXp,
@@ -9,7 +10,7 @@ import {
   spotOpen,
   type BaitId,
 } from '../../content/fishing';
-import { instantiateCat } from '../cats';
+import { instantiateCat, requireCat } from '../cats';
 import {
   castAngling,
   initialAngling,
@@ -54,8 +55,7 @@ export function applyAngling(
     const key = command.type === 'USE_CAN' ? 'cans' : 'trash';
     if (!fishing.supplies[key]) throw new CommandError('NO_SUPPLIES');
     if (command.type === 'USE_CAN') {
-      const cat = world.cats.find((cat) => cat.id === command.catId);
-      if (!cat) throw new CommandError('CAT_NOT_FOUND');
+      const cat = requireCat(world, command.catId);
       if (cat.needs.energy === MAX_STAT) throw new CommandError('STAMINA_FULL');
       cat.needs.energy = Math.min(
         MAX_STAT,
@@ -71,8 +71,7 @@ export function applyAngling(
     if (world.cats.length >= MAX_CATS) throw new CommandError('CAT_LIMIT');
     // Newcomers arrive at the free tile nearest the starter crossroads.
     const { crossroads } = CITY_START;
-    const distance = (p: Position) =>
-      Math.abs(p.x - crossroads.x) + Math.abs(p.y - crossroads.y);
+    const distance = (p: Position) => gridDistance(p, crossroads);
     const position = world.map.tiles
       .map((tile) => tile.position)
       .filter((p) => isWalkable(world, p))
@@ -91,8 +90,7 @@ export function applyAngling(
     emit('bait-bought', command.baitId);
   } else if (command.type === 'FISH_BEGIN') {
     if (fishing.active) throw new CommandError('ALREADY_FISHING');
-    const cat = world.cats.find((cat) => cat.id === command.catId);
-    if (!cat) throw new CommandError('CAT_NOT_FOUND');
+    const cat = requireCat(world, command.catId);
     if (!spotOpen(command.spotId, fishing))
       throw new CommandError('SPOT_LOCKED');
     if (!atFishingShore(world, cat, command.spotId))
@@ -213,8 +211,7 @@ export function applyAngling(
       world.coins += fishById(fish.speciesId).price;
       emit('sold', fish.id);
     } else {
-      const cat = world.cats.find((cat) => cat.id === command.catId);
-      if (!cat) throw new CommandError('CAT_NOT_FOUND');
+      const cat = requireCat(world, command.catId);
       const favorite = cat.favoriteFish.includes(fish.speciesId);
       cat.fishGift = {
         fishId: fish.id,
