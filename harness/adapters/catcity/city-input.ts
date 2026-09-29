@@ -26,12 +26,18 @@ async function observeWorld(page: Page): Promise<WorldState> {
   });
 }
 
-const settle = (page: Page) =>
+/** Test builds draw at 15 fps (src/view/index.ts): wait out three game frames. */
+const SETTLE_MS = 3 * (1000 / 15);
+export const settle = (page: Page) =>
   page.evaluate(
-    () =>
+    (ms) =>
       new Promise((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        setTimeout(
+          () => requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ms,
+        ),
       ),
+    SETTLE_MS,
   );
 
 /**
