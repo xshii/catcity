@@ -118,6 +118,57 @@ describe('fishing view state', () => {
     ).toBe(true);
   });
 
+  it('opens the settings sheet only on the river, where it covers play like the tools', () => {
+    const open: FishingViewEvent = { type: 'settings', open: true };
+    expect(replay(start(), open).settingsOpen).toBe(false);
+    const playing = replay(
+      atRiver(),
+      { type: 'run', runId: 'a' },
+      {
+        type: 'resume',
+      },
+    );
+    const sheet = replay(playing, open);
+    expect(sheet).toMatchObject({ settingsOpen: true, paused: true });
+    expect(canPlay(sheet)).toBe(false);
+    // Closing it asks the player to resume, as closing the tools does.
+    expect(replay(sheet, { type: 'settings', open: false })).toMatchObject({
+      settingsOpen: false,
+      paused: true,
+    });
+    // Leaving the river or opening the tools closes it.
+    for (const away of [
+      { type: 'place', place: 'city' },
+      { type: 'tools', open: true },
+    ] as FishingViewEvent[])
+      expect(replay(sheet, away).settingsOpen).toBe(false);
+    expect(
+      replay(atRiver(), { type: 'tools', open: true }, open).settingsOpen,
+    ).toBe(false);
+  });
+
+  it('starting calibration from the settings sheet closes it and calibrates', () => {
+    const sheet = replay(atRiver(), ready, { type: 'settings', open: true });
+    expect(sheet.motion.calibrating).toBe(false);
+    expect(replay(sheet, { type: 'calibrating', on: true })).toMatchObject({
+      settingsOpen: false,
+      motion: { calibrating: true },
+    });
+  });
+
+  it('remembers that sensors were asked for on this page', () => {
+    expect(start().motion.asked).toBe(false);
+    const asked = replay(start(), { type: 'ask' });
+    expect(asked.motion.asked).toBe(true);
+    // A refusal, a retry's grant or a reading never makes it ask by itself again.
+    for (const later of [
+      { type: 'capability', capability: 'denied' },
+      { type: 'grant' },
+      ready,
+    ] as FishingViewEvent[])
+      expect(replay(asked, later).motion.asked).toBe(true);
+  });
+
   it('keeps a ready sensor ready and lets a refusal be retried', () => {
     const ready = replay(start(), { type: 'capability', capability: 'ready' });
     expect(motionActive(ready)).toBe(true);
@@ -240,6 +291,7 @@ describe('fishing view state', () => {
       pick<FishingViewEvent>([
         { type: 'place', place: pick(['city', 'river'] as const) },
         { type: 'tools', open: pick([true, false]) },
+        { type: 'settings', open: pick([true, false]) },
         { type: 'page', hidden: pick([true, false]) },
         { type: 'run', runId: pick([null, 'a', 'b']) },
         {
@@ -264,6 +316,7 @@ describe('fishing view state', () => {
           ] as const),
         },
         { type: 'grant' },
+        { type: 'ask' },
         { type: 'calibrating', on: pick([true, false]) },
         { type: 'notice', text: pick([null, 'x']) },
         { type: 'guide', did: pick(GUIDE_STEPS) },
@@ -310,6 +363,11 @@ describe('fishing view state', () => {
         expect(state.paused).toBe(true);
         expect(state.pressed).toBe(false);
       }
+      if (state.settingsOpen) {
+        expect(state.place).toBe('river');
+        expect(state.toolsOpen).toBe(false);
+      }
+      if (before.motion.asked) expect(state.motion.asked).toBe(true);
       if (state.pressed) expect(state.paused).toBe(false);
       if (state.motion.calibrating) {
         expect(canPlay(state)).toBe(true);
