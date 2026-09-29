@@ -1,4 +1,5 @@
 import { WORLD_LIMIT } from '../../src/core/limits';
+import { CITY_START } from '../../src/content/city';
 import { advance, buildCafe, interact } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
@@ -12,7 +13,8 @@ describe('headless world', () => {
     expect(snapshot).toMatchObject({
       seed: 42,
       coins: 1000,
-      minute: 0,
+      // A new game opens at 07:00 on day 1, in the morning light.
+      minute: 7 * 60,
       map: { width: 10, height: 10 },
     });
     expect(snapshot.cats[0]).toMatchObject({
@@ -112,7 +114,7 @@ describe('headless world', () => {
     expect(cat.memories).toHaveLength(50);
     expect(cat.memories.at(-1)).toMatchObject({
       kind: 'conversation',
-      minute: 0,
+      minute: CITY_START.minute,
       message: 'hello 54',
     });
     expect(cat.playerBond).toBe(1);

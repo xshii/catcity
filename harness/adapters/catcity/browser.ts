@@ -1,4 +1,5 @@
 import { CARE } from '../../../src/content/care';
+import { CITY_START } from '../../../src/content/city';
 import { catchFish } from './angling-input';
 import assert from 'node:assert/strict';
 import { expect, type Page } from '@playwright/test';
@@ -27,6 +28,9 @@ export async function ready(page: Page) {
 }
 export const readWorld = (page: Page) =>
   page.evaluate(() => window.CAT_CITY_DEBUG!.getWorldState());
+/** Full hours of play: a new game starts on a full hour, and income is paid on each. */
+const hoursSinceStart = (minute: number) =>
+  Math.floor((minute - CITY_START.minute) / 60);
 
 export function createCatCityAdapter(): GameAdapter {
   let capturedReplay: ReplayRecord | undefined;
@@ -94,7 +98,7 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.locator('#clock-speed')).toBeFocused();
         await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
         await expect(page.getByTestId('coins')).toHaveText('340');
-        assert.equal((await readWorld(page)).minute, 60);
+        assert.equal((await readWorld(page)).minute, CITY_START.minute + 60);
       });
       await step('select-cat', async () => {
         const cat = (await readWorld(page)).cats[0]!;
@@ -170,7 +174,7 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.locator('#memory-fact')).toContainText('银鱼');
         await expect(page.locator('#memory-fact')).toBeVisible();
         const world = await readWorld(page);
-        assert.equal(world.coins, 330 + Math.floor(world.minute / 60) * 10);
+        assert.equal(world.coins, 330 + hoursSinceStart(world.minute) * 10);
         assert.equal(world.fishing.inventory.length, 1);
         assert.equal(world.cats[0]!.fishingMemory!.speciesId, 'SILVER');
         await openBag(page);
@@ -215,7 +219,7 @@ export function createCatCityAdapter(): GameAdapter {
         assert.equal(recovered.coins, before.coins + 10);
         assert.equal(
           recovered.coins,
-          338 + Math.floor(recovered.minute / 60) * 10,
+          338 + hoursSinceStart(recovered.minute) * 10,
         );
       });
       await step('save-reload', async () => {

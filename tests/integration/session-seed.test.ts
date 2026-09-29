@@ -1,4 +1,5 @@
 import { createTestSession } from '../helpers/session';
+import { CITY_START } from '../../src/content/city';
 import { expect, it } from 'vitest';
 
 it('keeps the chosen map seed through persistence and an explicit reset', () => {
@@ -17,6 +18,6 @@ it('keeps the chosen map seed through persistence and an explicit reset', () => 
   expect(restored.getSnapshot().map).toEqual(initialMap);
   restored.resetDemo();
   expect(restored.getSnapshot().seed).toBe(187);
-  expect(restored.getSnapshot().minute).toBe(0);
+  expect(restored.getSnapshot().minute).toBe(CITY_START.minute);
   expect(restored.getSnapshot().map).toEqual(initialMap);
 });

@@ -40,7 +40,7 @@ it('accepts two-dimensional aim and explicit power while spending energy and bai
   });
   expect(after.cats[0]!.needs.energy).toBe(92);
   expect(after.fishing.baits.WORM).toBe(5);
-  expect(after.minute).toBe(0);
+  expect(after.minute).toBe(before.minute);
   expect(after.nextId).toBe(before.nextId);
   const cast = world.save();
   expect(world.dispatch({ type: 'FISH_CAST', runId, power: 100 })).toEqual({
