@@ -149,6 +149,7 @@ export function mountPanel(
       game: get('game'),
       visitCity: get('visit-city'),
       visitRiver: get('visit-river'),
+      notice: get('notice'),
     },
   );
   const city = mountCity({

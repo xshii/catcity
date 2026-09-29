@@ -14,6 +14,7 @@ import {
   fishingScreen,
   motionNibble,
   motionWant,
+  noticeShown,
   permissionNotice,
   resultShown,
   ringHeld,
@@ -721,5 +722,27 @@ describe('the catch card', () => {
     // Back from the city, the card is no longer "this" catch.
     const away = replay(ended, { type: 'place', place: 'city' }, river);
     expect(resultShown(away, null, result)).toBe(false);
+  });
+
+  it('keeps the notice bar off the card: no notice while the card is what shows', () => {
+    const watched = view({}, river, { type: 'run', runId: 'r' });
+    // The cast's notice shows through the run.
+    expect(noticeShown(watched, runOf('motion'), null)).toBe(true);
+    const ended = replay(watched, { type: 'run', runId: null });
+    expect(resultShown(ended, null, result)).toBe(true);
+    expect(noticeShown(ended, null, result)).toBe(false);
+    // A panel open over the card shows its own notices (a gift's, say).
+    const tools = replay(ended, { type: 'tools', open: true });
+    expect(noticeShown(tools, null, result)).toBe(true);
+    expect(
+      noticeShown(replay(tools, { type: 'tools', open: false }), null, result),
+    ).toBe(false);
+    // The next cast takes the card away; so does leaving the river.
+    const next = replay(ended, { type: 'run', runId: 'next' });
+    expect(noticeShown(next, runOf('buttons'), result)).toBe(true);
+    const away = replay(ended, { type: 'place', place: 'city' });
+    expect(noticeShown(away, null, result)).toBe(true);
+    // A save's earlier result shows no card, so notices show.
+    expect(noticeShown(view({}, river), null, result)).toBe(true);
   });
 });

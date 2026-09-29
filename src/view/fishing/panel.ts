@@ -31,6 +31,7 @@ import { mountFishingSettings } from './settings';
 import {
   castNotice,
   fishingScreen,
+  noticeShown,
   permissionNotice,
   resultShown,
   ringHeld,
@@ -326,6 +327,14 @@ export function mountAngling(
       resultNote,
       resultShown(state, run ?? null, world.fishing.lastResult),
     );
+    // Kept in the layout and fading on: a notice is only out of sight under the card.
+    shell.notice.style.visibility = noticeShown(
+      state,
+      run ?? null,
+      world.fishing.lastResult,
+    )
+      ? ''
+      : 'hidden';
     layout.refresh();
     settings.apply(screen.settings);
     motion.apply(screen, run ?? null);

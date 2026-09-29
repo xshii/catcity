@@ -275,6 +275,17 @@ export const resultShown = (
   result: { runId: string } | null,
 ) => !run && !!result && result.runId === view.watched;
 
+/**
+ * The notice bar and the catch card float in the same place under the scene bar, so the
+ * bar is not shown while the card is what the player looks at. A panel open over the card
+ * shows its notices itself.
+ */
+export const noticeShown = (
+  view: FishingView,
+  run: AnglingRun | null,
+  result: { runId: string } | null,
+) => view.toolsOpen || !resultShown(view, run, result);
+
 type HoldRun = Pick<AnglingRun, 'id' | 'mode' | 'phase' | 'hold'>;
 /** Core counted the ring over the fish on this world change: the guide's last step. */
 export const ringHeld = (before: HoldRun | null, after: HoldRun | null) =>

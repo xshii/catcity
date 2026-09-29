@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { catchFish } from '../../harness/adapters/catcity/angling-input';
 import { enterRiver } from '../../harness/adapters/catcity/city-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import {
@@ -112,3 +113,31 @@ for (const viewport of [
     expect(notice.y).toBeLessThan(viewport.height / 2);
   });
 }
+
+test('the catch card shows without a notice over it', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() =>
+    localStorage.setItem('cat-city.fishing-input', 'buttons'),
+  );
+  await page.goto('/');
+  await ready(page);
+  await enterRiver(page);
+  await page.locator('#cast-start').click();
+  await catchFish(page);
+  await expect(page.locator('#catch-reveal')).toBeVisible();
+  // A fresh notice, raised from a panel over the card.
+  await openGear(page, 'supplies');
+  await page.locator('[data-buy-bait="WORM"]').click();
+  await expect(page.locator('#notice')).toBeVisible();
+  await closeRiverPanel(page);
+  await expect(page.locator('#catch-reveal')).toBeVisible();
+  await expect(page.locator('#notice')).toHaveText('鱼饵已放进包里。');
+  await expect(page.locator('#notice')).toBeHidden();
+  await page.screenshot({ path: testInfo.outputPath('catch-card.png') });
+  // The next cast takes the card away and says its own notice.
+  await page.locator('#cast-start').click();
+  await expect(page.locator('#catch-reveal')).toBeHidden();
+  await expect(page.locator('#notice')).toBeVisible();
+});
