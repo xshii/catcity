@@ -104,6 +104,39 @@ describe('rule dialogue reads current relationship facts', () => {
     expect(new Set(recall).size).toBe(1);
   });
 
+  it('adds one closing line per bond level to small talk, none for a new friend (spec 036)', async () => {
+    const reply = async (message: string, playerBond: number, mood = 70) => {
+      const input = context(message);
+      input.cat = { ...input.cat, playerBond, mood };
+      input.fishingMemory = {
+        runId: 'fishing-1',
+        speciesId: 'SILVER',
+        spotId: 'POND',
+        minute: 20,
+      };
+      return (await provider.generate(input)).text;
+    };
+    const bonds = [0, 5, 15, 30, 60];
+    const smallTalk = await Promise.all(bonds.map((bond) => reply('嗯', bond)));
+    expect(new Set(smallTalk).size).toBe(bonds.length);
+    // A new friend hears exactly today's line; every level keeps it and adds its own.
+    expect(smallTalk[0]).toBe(
+      '嗯，我在听。可以慢慢说，也可以邀请我一起去河边待一会。',
+    );
+    for (const text of smallTalk.slice(1)) {
+      expect(text.startsWith(smallTalk[0]!)).toBe(true);
+      expect(text.length).toBeLessThanOrEqual(500);
+    }
+    // Within a level the line is the same; the mood still sets the tone before it.
+    expect(await reply('嗯', 14)).toBe(smallTalk[1]);
+    expect(await reply('嗯', 100)).toBe(smallTalk[4]);
+    expect(await reply('嗯', 60, 10)).toContain('……嗯。我在。');
+    const recall = await Promise.all(
+      bonds.map((bond) => reply('还记得第一次钓鱼吗？', bond)),
+    );
+    expect(new Set(recall).size).toBe(1);
+  });
+
   it('uses the selected cat identity and tastes independently', async () => {
     const input = context('喜欢什么鱼？');
     input.cat = { ...input.cat, id: 'pepper', name: 'Pepper' };

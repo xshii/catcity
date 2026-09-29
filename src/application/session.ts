@@ -181,6 +181,7 @@ export class GameSession {
           id: cat.id,
           name: cat.name,
           mood: cat.mood,
+          playerBond: cat.playerBond,
           personality: cat.personality,
           preferences: cat.preferences,
         },
