@@ -4,6 +4,7 @@ import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 import {
   generateCityMap,
+  gridDistance,
   shoreTiles,
   spotAt,
   tileAt,
@@ -119,4 +120,11 @@ it('invites Pepper on the free walkable tile nearest the starter crossroads', ()
     );
     expect(closer).toEqual([]);
   }
+});
+
+it('counts grid steps along rows and columns, never diagonally', () => {
+  expect(gridDistance({ x: 2, y: 3 }, { x: 2, y: 3 })).toBe(0);
+  expect(gridDistance({ x: 2, y: 3 }, { x: 3, y: 3 })).toBe(1);
+  expect(gridDistance({ x: 2, y: 3 }, { x: 3, y: 4 })).toBe(2);
+  expect(gridDistance({ x: 5, y: 1 }, { x: 2, y: 3 })).toBe(5);
 });

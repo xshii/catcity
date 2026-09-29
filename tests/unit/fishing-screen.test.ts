@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { FISHING } from '../../src/content/fishing';
-import { fishingScreen, SCREEN_COPY } from '../../src/view/fishing/screen';
+import { createWorld } from '../../src/core/world';
+import { motionSchedule } from '../../src/minigames/angling-motion';
+import {
+  fishingScreen,
+  motionNibble,
+  motionWant,
+  SCREEN_COPY,
+  tapStrikes,
+} from '../../src/view/fishing/screen';
 import {
   initialFishingView,
   reduceFishingView,
@@ -9,18 +17,19 @@ import {
   type FishingViewEvent,
 } from '../../src/view/fishing/view-state';
 import type { AnglingRun } from '../../src/minigames/angling';
+import { replay } from '../helpers/fishing-view';
 
 const view = (
   options: { phone?: boolean; preference?: 'motion' | 'buttons' } = {},
   ...events: FishingViewEvent[]
 ) =>
-  events.reduce(
-    reduceFishingView,
+  replay(
     initialFishingView({
       preference: options.preference ?? 'motion',
       needsPermission: options.phone ?? true,
       coarsePointer: options.phone ?? true,
     }),
+    ...events,
   );
 const river: FishingViewEvent = { type: 'place', place: 'river' };
 const ready: FishingViewEvent = { type: 'capability', capability: 'ready' };
@@ -28,7 +37,7 @@ const runOf = (
   mode: 'buttons' | 'motion',
   phase: AnglingRun['phase'] = 'waiting',
   phaseTick = 0,
-) => ({ id: 'r', mode, phase, phaseTick }) as AnglingRun;
+) => ({ id: 'r', mode, phase, phaseTick });
 
 describe('fishing screen', () => {
   it('shows nothing of the river in the city, whatever the run or sensors', () => {
@@ -148,7 +157,7 @@ describe('fishing screen', () => {
       { type: 'run', runId: 'r' },
       { type: 'resume' },
     );
-    const hint = (state: FishingView, run: AnglingRun | null) =>
+    const hint = (state: FishingView, run: ReturnType<typeof runOf> | null) =>
       fishingScreen(state, run).hint;
     expect(hint(motion, null)).toBe(SCREEN_COPY.hint.aim);
     expect(hint(playing, runOf('motion', 'waiting'))).toBe(
@@ -216,5 +225,101 @@ describe('fishing screen', () => {
         runOf('buttons'),
       ).pauseLabel,
     ).toBe(SCREEN_COPY.pause.pause);
+  });
+
+  it('shows the bite mark while hooked and the fight marks while fighting', () => {
+    const motion = view({}, river, ready);
+    for (const phase of ['waiting', 'hook', 'fight', 'caught'] as const)
+      expect(fishingScreen(motion, runOf('motion', phase))).toMatchObject({
+        bite: phase === 'hook',
+        fight: phase === 'fight',
+      });
+    // Never for a button run or off the river.
+    expect(fishingScreen(motion, runOf('buttons', 'hook')).bite).toBe(false);
+    expect(fishingScreen(view({}, ready), runOf('motion', 'fight')).fight).toBe(
+      false,
+    );
+  });
+
+  it('counts a cast before a run and a lift while a motion run waits or is hooked', () => {
+    const playing = view(
+      {},
+      river,
+      ready,
+      { type: 'run', runId: 'r' },
+      { type: 'resume' },
+    );
+    expect(motionWant(view({}, river, ready), null)).toBe('cast');
+    expect(motionWant(playing, runOf('motion', 'waiting'))).toBe('lift');
+    expect(motionWant(playing, runOf('motion', 'hook'))).toBe('lift');
+    for (const phase of ['charge', 'fight', 'caught', 'escaped'] as const)
+      expect(motionWant(playing, runOf('motion', phase))).toBeNull();
+    // A button run, a paused run, motion off, or tools over the river: nothing counts.
+    expect(motionWant(playing, runOf('buttons', 'hook'))).toBeNull();
+    expect(
+      motionWant(
+        reduceFishingView(playing, { type: 'pause' }),
+        runOf('motion'),
+      ),
+    ).toBeNull();
+    expect(motionWant(view({}, river), null)).toBeNull();
+    expect(
+      motionWant(view({}, river, ready, { type: 'tools', open: true }), null),
+    ).toBeNull();
+  });
+
+  it('lets a water tap strike an unpaused motion run that waits or is hooked', () => {
+    // No sensors needed: the tap is the fallback when they fail.
+    const playing = view(
+      {},
+      river,
+      { type: 'run', runId: 'r' },
+      { type: 'resume' },
+    );
+    expect(tapStrikes(playing, runOf('motion', 'waiting'))).toBe(true);
+    expect(tapStrikes(playing, runOf('motion', 'hook'))).toBe(true);
+    expect(tapStrikes(playing, runOf('motion', 'fight'))).toBe(false);
+    expect(tapStrikes(playing, runOf('buttons', 'hook'))).toBe(false);
+    expect(tapStrikes(playing, null)).toBe(false);
+    expect(
+      tapStrikes(
+        reduceFishingView(playing, { type: 'pause' }),
+        runOf('motion', 'hook'),
+      ),
+    ).toBe(false);
+  });
+
+  it('names the nibble a waiting motion run shows, and nothing between them', () => {
+    const world = createWorld(42);
+    const begun = world.dispatch({
+      type: 'FISH_BEGIN',
+      catId: 'mochi',
+      spotId: 'POND',
+      baitId: 'WORM',
+      direction: 0,
+      aimDepth: 50,
+      mode: 'motion',
+    });
+    expect(begun.ok).toBe(true);
+    const runId = world.getSnapshot().fishing.active!.id;
+    expect(world.dispatch({ type: 'FISH_CAST', runId, power: 60 }).ok).toBe(
+      true,
+    );
+    const waiting = world.getSnapshot().fishing.active!;
+    const { nibbles } = motionSchedule(waiting);
+    expect(nibbles.length).toBeGreaterThan(0);
+    const at = (phaseTick: number, phase: AnglingRun['phase'] = 'waiting') =>
+      motionNibble({ ...waiting, phase, phaseTick });
+    for (const [index, start] of nibbles.entries()) {
+      expect(at(start)).toBe(index);
+      expect(at(start + FISHING.motion.nibbleTicks - 1)).toBe(index);
+      expect(at(start + FISHING.motion.nibbleTicks)).toBeNull();
+    }
+    expect(at(nibbles[0]! - 1)).toBeNull();
+    expect(at(nibbles[0]!, 'hook')).toBeNull();
+    expect(
+      motionNibble({ ...waiting, mode: 'buttons', phaseTick: nibbles[0]! }),
+    ).toBeNull();
+    expect(motionNibble(null)).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { CITY_START } from '../content/city';
 import { WORLD_LIMIT } from './limits';
-import { generateCityMap, shoreTiles, tileAt } from './city/map';
+import { generateCityMap, gridDistance, shoreTiles, tileAt } from './city/map';
 import { initialFishing } from './fishing/schema';
 import { instantiateCat } from './cats';
 import { STARTER_CAT_ID } from '../content/cats';
@@ -78,7 +78,7 @@ export function createWorld(seed: number): World {
   const map = generateCityMap(seed);
   const { crossroads } = CITY_START;
   const distanceFromStarterRoad = (position: Position) =>
-    Math.abs(position.x - crossroads.x) + Math.abs(position.y - crossroads.y);
+    gridDistance(position, crossroads);
   const start = shoreTiles(map, 'POND')
     .filter((position) => !tileAt(map, position)?.owned)
     .sort(

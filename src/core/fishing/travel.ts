@@ -4,14 +4,14 @@ import { shoreTiles } from '../city/map';
 import { findWalkingPath, walkingMinutes } from '../city/path';
 import { atFishingShore, queueWalk } from '../city/walking';
 import type { WorldState } from '../schema';
+import { requireCat } from '../cats';
 
 /** Queue a real route to the nearest reachable shore; only the clock moves cats. */
 export function travelToFishingSpot(
   world: WorldState,
   command: Extract<GameCommand, { type: 'TRAVEL_TO_FISHING_SPOT' }>,
 ): GameEvent[] {
-  const cat = world.cats.find((cat) => cat.id === command.catId);
-  if (!cat) throw new CommandError('CAT_NOT_FOUND');
+  const cat = requireCat(world, command.catId);
   if (world.fishing.active?.catId === cat.id)
     throw new CommandError('ALREADY_FISHING');
   if (!spotOpen(command.spotId, world.fishing))

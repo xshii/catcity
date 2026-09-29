@@ -8,11 +8,14 @@ import {
   SPOTS,
   type SpotId,
 } from '../../content/fishing';
-import { catIdle, type CatEntity, type WorldState } from '../../core';
+import { catIdle, MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
 import { moodBadge } from '../shell/mood';
 import { catPortrait, fishIllustration } from '../art/illustrations';
 import { riverBackdrop } from '../art/river-palette';
+
+/** The river caption before a run. */
+const READY_TIP = '点击水面选择落点，再准备抛竿';
 
 function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   const button = document.createElement('button');
@@ -24,7 +27,7 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   const name = document.createElement('strong');
   const energy = document.createElement('small');
   const progress = document.createElement('progress');
-  progress.max = 100;
+  progress.max = MAX_STAT;
   const activity = document.createElement('small');
   const mood = document.createElement('small');
   mood.className = 'mood-line';
@@ -39,24 +42,19 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   button.addEventListener('click', () => select(cat.id));
   return {
     button,
-    update(
-      cat: CatEntity,
-      world: WorldState,
-      selected: string,
-      fishing: boolean,
-    ) {
+    update(cat: CatEntity, world: WorldState, selected: string) {
       if (coat !== cat.appearance.coat) {
         coat = cat.appearance.coat;
         button.querySelector('svg')!.remove();
         button.insertAdjacentHTML('afterbegin', catPortrait(coat));
       }
       button.setAttribute('aria-pressed', String(cat.id === selected));
-      button.disabled = fishing;
+      button.disabled = !!world.fishing.active;
       name.textContent = cat.name;
-      energy.textContent = `${CAT_BREEDS[cat.breedId].name} · ${cat.needs.energy}/100`;
+      energy.textContent = `${CAT_BREEDS[cat.breedId].name} · ${cat.needs.energy}/${MAX_STAT}`;
       progress.value = cat.needs.energy;
       progress.setAttribute('aria-label', `${cat.name} 体力`);
-      const recovering = catIdle(world, cat) && cat.needs.energy < 100;
+      const recovering = catIdle(world, cat) && cat.needs.energy < MAX_STAT;
       activity.textContent = cat.walk
         ? `步行中 · 剩 ${cat.walk.route.length} 格`
         : cat.fishingSpotId
@@ -94,7 +92,7 @@ export function mountFishingStage(
   const hud = document.createElement('div');
   hud.id = 'river-hud';
   hud.hidden = true;
-  hud.innerHTML = `<div class="river-caption"><span class="eyebrow">A LITTLE RIVERSIDE</span><h2 id="river-place"></h2><p id="river-tip">点击水面选择落点，再准备抛竿</p></div><span id="river-clock" class="river-clock"></span><div id="catch-reveal" class="catch-reveal" hidden></div>`;
+  hud.innerHTML = `<div class="river-caption"><span class="eyebrow">A LITTLE RIVERSIDE</span><h2 id="river-place"></h2><p id="river-tip">${READY_TIP}</p></div><span id="river-clock" class="river-clock"></span><div id="catch-reveal" class="catch-reveal" hidden></div>`;
   stage.append(hud);
   const $ = (id: string) => hud.querySelector<HTMLElement>(`#${id}`)!;
   const roster = document.createElement('section');
@@ -164,7 +162,7 @@ export function mountFishingStage(
             caught: '钓到了！',
             escaped: '鱼儿溜走了',
           }[run.phase]
-        : '点击水面选择落点，再准备抛竿';
+        : READY_TIP;
       stage.dataset.phase = run?.phase ?? 'ready';
       // Keep button identity across clock ticks so keyboard focus and touch targets survive.
       let next = cardContainer.firstElementChild;
@@ -174,7 +172,7 @@ export function mountFishingStage(
           card = createEnergyCard(cat, (id) => session.select(id));
           cards.set(cat.id, card);
         }
-        card.update(cat, world, selected, !!run);
+        card.update(cat, world, selected);
         if (card.button !== next) cardContainer.insertBefore(card.button, next);
         next = card.button.nextElementSibling;
       }

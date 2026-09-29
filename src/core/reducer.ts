@@ -5,7 +5,7 @@ import { applyCity } from './city/building';
 import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
 import { rewardBond } from './bond';
-import { instantiateCat } from './cats';
+import { instantiateCat, requireCat } from './cats';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { simulate } from './simulation';
@@ -49,8 +49,7 @@ export function applyCommand(
       simulate(world, command.minutes, events);
       break;
     case 'INTERACT': {
-      const cat = world.cats.find((item) => item.id === command.catId);
-      if (!cat) throw new CommandError('CAT_NOT_FOUND');
+      const cat = requireCat(world, command.catId);
       cat.memories.push({
         id: `memory-${world.nextId++}`,
         kind: 'conversation',

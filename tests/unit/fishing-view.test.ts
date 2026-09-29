@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RandomService } from '../../src/core/random';
+import { replay } from '../helpers/fishing-view';
 import {
   canPlay,
   createFishingView,
@@ -12,10 +13,8 @@ import {
 
 const phone = { needsPermission: true, coarsePointer: true };
 const start = () => initialFishingView({ preference: 'motion', ...phone });
-const run = (state: FishingView, ...events: FishingViewEvent[]) =>
-  events.reduce(reduceFishingView, state);
 const atRiver = (state = start()) =>
-  run(state, { type: 'place', place: 'river' });
+  replay(state, { type: 'place', place: 'river' });
 
 describe('fishing view state', () => {
   it('starts paused in the city with nothing held or calibrating', () => {
@@ -37,40 +36,44 @@ describe('fishing view state', () => {
   });
 
   it('holds a button run only where play is possible, and holding resumes it', () => {
-    const river = run(atRiver(), { type: 'run', runId: 'a' });
-    const held = run(river, { type: 'hold', pressed: true, buttonRun: true });
+    const river = replay(atRiver(), { type: 'run', runId: 'a' });
+    const held = replay(river, {
+      type: 'hold',
+      pressed: true,
+      buttonRun: true,
+    });
     expect(held).toMatchObject({ pressed: true, paused: false });
     expect(
-      run(held, { type: 'hold', pressed: false, buttonRun: true }),
+      replay(held, { type: 'hold', pressed: false, buttonRun: true }),
     ).toMatchObject({
       pressed: false,
       paused: false,
     });
     // Not for a motion run, not with tools open, not in the city.
     expect(
-      run(river, { type: 'hold', pressed: true, buttonRun: false }).pressed,
+      replay(river, { type: 'hold', pressed: true, buttonRun: false }).pressed,
     ).toBe(false);
     expect(
-      run(
+      replay(
         river,
         { type: 'tools', open: true },
         { type: 'hold', pressed: true, buttonRun: true },
       ).pressed,
     ).toBe(false);
     expect(
-      run(start(), { type: 'hold', pressed: true, buttonRun: true }).pressed,
+      replay(start(), { type: 'hold', pressed: true, buttonRun: true }).pressed,
     ).toBe(false);
   });
 
   it('pauses, releases and stops calibrating whenever play stops or a new run starts', () => {
-    const playing = run(
+    const playing = replay(
       atRiver(),
       { type: 'capability', capability: 'ready' },
       { type: 'calibrating', on: true },
       { type: 'run', runId: 'a' },
     );
     expect(playing.motion.calibrating).toBe(false);
-    const live = run(
+    const live = replay(
       playing,
       { type: 'resume' },
       { type: 'hold', pressed: true, buttonRun: true },
@@ -82,42 +85,54 @@ describe('fishing view state', () => {
       { type: 'run', runId: 'b' },
       { type: 'pause' },
     ] as FishingViewEvent[])
-      expect(run(live, stop)).toMatchObject({ paused: true, pressed: false });
+      expect(replay(live, stop)).toMatchObject({
+        paused: true,
+        pressed: false,
+      });
     // The same run id again changes nothing.
-    expect(run(live, { type: 'run', runId: 'a' })).toEqual(live);
+    expect(replay(live, { type: 'run', runId: 'a' })).toEqual(live);
   });
 
   it('resumes only where play is possible and toggles pause', () => {
-    const river = run(atRiver(), { type: 'run', runId: 'a' });
-    expect(run(river, { type: 'resume' }).paused).toBe(false);
+    const river = replay(atRiver(), { type: 'run', runId: 'a' });
+    expect(replay(river, { type: 'resume' }).paused).toBe(false);
     expect(
-      run(river, { type: 'tools', open: true }, { type: 'resume' }).paused,
+      replay(river, { type: 'tools', open: true }, { type: 'resume' }).paused,
     ).toBe(true);
-    expect(run(river, { type: 'toggle-pause' }).paused).toBe(false);
+    expect(replay(river, { type: 'toggle-pause' }).paused).toBe(false);
     expect(
-      run(river, { type: 'toggle-pause' }, { type: 'toggle-pause' }).paused,
+      replay(river, { type: 'toggle-pause' }, { type: 'toggle-pause' }).paused,
     ).toBe(true);
   });
 
   it('keeps a ready sensor ready and lets a refusal be retried', () => {
-    const ready = run(start(), { type: 'capability', capability: 'ready' });
+    const ready = replay(start(), { type: 'capability', capability: 'ready' });
     expect(motionActive(ready)).toBe(true);
-    expect(run(ready, { type: 'grant' }).motion.capability).toBe('ready');
-    const denied = run(start(), { type: 'capability', capability: 'denied' });
-    expect(run(denied, { type: 'grant' }).motion.capability).toBe('unknown');
-    const buttons = run(ready, { type: 'preference', preference: 'buttons' });
+    expect(replay(ready, { type: 'grant' }).motion.capability).toBe('ready');
+    const denied = replay(start(), {
+      type: 'capability',
+      capability: 'denied',
+    });
+    expect(replay(denied, { type: 'grant' }).motion.capability).toBe('unknown');
+    const buttons = replay(ready, {
+      type: 'preference',
+      preference: 'buttons',
+    });
     expect(motionActive(buttons)).toBe(false);
   });
 
   it('calibrates only while motion is active and playable', () => {
     expect(
-      run(atRiver(), { type: 'calibrating', on: true }).motion.calibrating,
+      replay(atRiver(), { type: 'calibrating', on: true }).motion.calibrating,
     ).toBe(false);
-    const ready = run(atRiver(), { type: 'capability', capability: 'ready' });
-    const calibrating = run(ready, { type: 'calibrating', on: true });
+    const ready = replay(atRiver(), {
+      type: 'capability',
+      capability: 'ready',
+    });
+    const calibrating = replay(ready, { type: 'calibrating', on: true });
     expect(calibrating.motion.calibrating).toBe(true);
     expect(
-      run(calibrating, { type: 'preference', preference: 'buttons' }).motion
+      replay(calibrating, { type: 'preference', preference: 'buttons' }).motion
         .calibrating,
     ).toBe(false);
   });
