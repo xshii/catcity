@@ -1,8 +1,11 @@
 import type { GameSession } from '../../application';
 
 /** Best-effort device feedback. Never feeds timing or hardware results into Core. */
-export function mountFishingFeedback(session: GameSession, stage: HTMLElement) {
-  const button = document.getElementById('haptics-toggle') as HTMLButtonElement;
+export function mountFishingFeedback(
+  session: GameSession,
+  stage: HTMLElement,
+  button: HTMLButtonElement,
+) {
   const supported = typeof navigator.vibrate === 'function';
   let enabled = supported;
   let previous = session.getSnapshot().fishing;

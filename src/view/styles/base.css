@@ -861,6 +861,15 @@ input::placeholder {
   color: #7a866e;
   margin-top: 4px;
 }
+.energy-cat .mood-hint,
+.cat-heading .mood-hint {
+  color: #6f8f55;
+}
+.cat-heading .mood-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+}
 .energy-cat progress {
   display: block;
   width: 100%;

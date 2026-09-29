@@ -1,4 +1,5 @@
 import { FISHING, fishById } from '../content/fishing';
+import { MOOD } from '../content/mood';
 import { RandomService, streamSeed } from '../core/random';
 import type { AnglingRun } from './angling';
 
@@ -46,7 +47,8 @@ export function motionSchedule(run: AnglingRun): {
 
 const strikeWindow = (run: AnglingRun) =>
   pick(M.strikeWindowTicks, run) -
-  (run.spooked ? M.spook.windowPenaltyTicks : 0);
+  (run.spooked ? M.spook.windowPenaltyTicks : 0) +
+  (run.happy ? MOOD.bonus.strikeWindowTicks : 0);
 
 const F = M.fight;
 const W = M.walk;
@@ -175,7 +177,10 @@ const strikeHold = (run: AnglingRun) =>
     ? Math.round((holdTarget(run) * M.perfect.holdBonusPercent) / 100)
     : 0;
 
-/** Ring radius: shrinks toward its minimum as the hold fills, breathing all the while. */
+/**
+ * Ring radius: shrinks toward its minimum as the hold fills, breathing all the while; a
+ * happy run's ring is a little larger throughout.
+ */
 export function ringRadius(run: AnglingRun): number {
   const size = pick(F.radius, run);
   const min = size.min + (run.precision ? F.precisionRadiusBonus : 0);
@@ -186,7 +191,10 @@ export function ringRadius(run: AnglingRun): number {
   const breath =
     (Math.abs(phase - periodTicks / 2) * 4 * amplitude) / periodTicks -
     amplitude;
-  return Math.max(min, Math.round(base + breath));
+  return (
+    Math.max(min, Math.round(base + breath)) +
+    (run.happy ? MOOD.bonus.ringRadius : 0)
+  );
 }
 
 /** Phase limits a saved motion run must stay within (used by save validation). */

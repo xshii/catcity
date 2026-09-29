@@ -1,8 +1,9 @@
 import { MAX_STAT, WORLD_LIMIT } from './limits';
 import { CARE } from '../content/care';
+import { MOOD } from '../content/mood';
 import { BUILDINGS } from '../content/city';
 import type { GameEvent } from './commands';
-import type { WorldState } from './schema';
+import type { CatEntity, WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
 import { catIdle } from './cats';
 import { gridDistance } from './city/map';
@@ -36,22 +37,35 @@ export function simulate(
     if (minute % CARE.recovery.tickMinutes === 0)
       for (const cat of world.cats) {
         if (!catIdle(world, cat)) continue;
-        const home = world.buildings.find(
-          (building) =>
-            building.id === cat.home && building.type === 'CAT_APARTMENT',
-        );
-        const nearHome =
-          home && gridDistance(cat.position, home.position) === 1;
         const before = cat.needs.energy;
         cat.needs.energy = Math.min(
           MAX_STAT,
-          before + (nearHome ? CARE.recovery.home : CARE.recovery.idle),
+          before +
+            (nearHome(world, cat) ? CARE.recovery.home : CARE.recovery.idle),
         );
         if (cat.needs.energy > before) {
           events.push({ type: 'EnergyRecovered', minute, entityId: cat.id });
           resumeWalk(world, cat);
         }
       }
+    if (minute % MOOD.tickMinutes === 0)
+      for (const cat of world.cats) {
+        const toward =
+          cat.mood > MOOD.rest
+            ? Math.max(MOOD.rest, cat.mood - MOOD.drift)
+            : Math.min(MOOD.rest, cat.mood + MOOD.drift);
+        cat.mood = Math.min(
+          MAX_STAT,
+          toward + (nearHome(world, cat) ? MOOD.home : 0),
+        );
+      }
     advanceWalking(world, events);
   }
+}
+
+function nearHome(world: WorldState, cat: CatEntity): boolean {
+  const home = world.buildings.find(
+    (building) => building.id === cat.home && building.type === 'CAT_APARTMENT',
+  );
+  return !!home && gridDistance(cat.position, home.position) === 1;
 }

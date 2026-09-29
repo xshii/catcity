@@ -113,3 +113,18 @@ it('stops the whole log folder at its limit, whatever the session', async () => 
     [`${SESSION}.jsonl`, 'aaaaaaaa-0000-0000-0000-000000000000.jsonl'].sort(),
   );
 });
+
+it('lets only what fits through when batches reach the folder limit together', async () => {
+  // Each line is 63 bytes: two fit in 150, a third does not, however they interleave.
+  const { post, directory } = await receiver(150);
+  const sessions = ['aaaaaaaa', 'bbbbbbbb', 'cccccccc'].map(
+    (prefix) => `${prefix}-0000-0000-0000-000000000000`,
+  );
+  const statuses = await Promise.all(
+    sessions.map((session) =>
+      post(JSON.stringify({ session, entries: [{ kind: 'motion', b: 1 }] })),
+    ),
+  );
+  expect(statuses.sort()).toEqual([204, 204, 507]);
+  expect(await readdir(directory)).toHaveLength(2);
+});

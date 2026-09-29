@@ -1,6 +1,7 @@
 import { CAT_BREEDS } from '../../content/breeds';
 import { CAT_DEFINITIONS } from '../../content/cats';
 import type { WorldState } from '../../core';
+import { moodBadge } from './mood';
 
 export function toViewModel(world: WorldState, selected: string | null) {
   const cat = world.cats.find((item) => item.id === selected);
@@ -11,7 +12,7 @@ export function toViewModel(world: WorldState, selected: string | null) {
     cat: cat
       ? {
           ...cat,
-          moodLabel: cat.mood >= 60 ? '心情不错' : '想安静一会儿',
+          moodBadge: moodBadge(cat.mood),
           personalityLabel: `${CAT_BREEDS[cat.breedId].name} · ${CAT_DEFINITIONS[cat.definitionId].personalityLabel}`,
         }
       : null,

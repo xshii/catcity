@@ -1,28 +1,32 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import { extractDeviceTrace, type TraceWant } from './device-trace';
+import {
+  DEVICE_FIXTURES,
+  extractDeviceTrace,
+  isTraceWant,
+  TRACE_WANTS,
+} from './device-trace';
 
 const [path, name, want, from, to] = process.argv.slice(2);
 if (
   !path ||
   !name ||
   !/^[a-z0-9-]+$/.test(name) ||
-  !['cast', 'lift', 'calibrate'].includes(want ?? '') ||
+  !isTraceWant(want) ||
   !Number.isFinite(Number(from)) ||
   !Number.isFinite(Number(to))
 )
   throw new Error(
-    'Usage: npm run device-trace -- artifacts/device-logs/<session>.jsonl <fixture-name> <cast|lift|calibrate> <from-ms> <to-ms>',
+    `Usage: npm run device-trace -- artifacts/device-logs/<session>.jsonl <fixture-name> <${TRACE_WANTS.join('|')}> <from-ms> <to-ms>`,
   );
 const trace = extractDeviceTrace(await readFile(path, 'utf8'), {
   session: basename(path, '.jsonl'),
-  want: want as TraceWant,
+  want,
   from: Number(from),
   to: Number(to),
 });
-const directory = 'tests/fixtures/device';
-await mkdir(directory, { recursive: true });
-const target = join(directory, `${name}.json`);
+await mkdir(DEVICE_FIXTURES, { recursive: true });
+const target = join(DEVICE_FIXTURES, `${name}.json`);
 await writeFile(target, JSON.stringify(trace, null, 2) + '\n');
 console.log(
   JSON.stringify({

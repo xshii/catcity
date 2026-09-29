@@ -19,7 +19,7 @@ import {
 import { greenZone } from '../../minigames/angling';
 import { CARE } from '../../content/care';
 import { mountFishingFeedback } from './feedback';
-import { mountFishingStage } from './stage';
+import { mountFishingStage, type FishingShell } from './stage';
 import { renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
@@ -38,6 +38,7 @@ import {
   BUTTON_PHASE_NAMES,
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
+import { moodNote, withMoodNote } from '../shell/mood';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -52,13 +53,16 @@ export function mountAngling(
   notify: (text: string) => void,
   onNeedTravel: (spotId: SpotId) => void,
   trace: Trace,
+  shell: FishingShell,
 ) {
   const atShore = (spotId: SpotId, catId: string) => {
     const world = session.getSnapshot();
     const cat = world.cats.find((item) => item.id === catId);
     return !!cat && !cat.walk && onShore(world.map, spotId, cat.position);
   };
-  const stage = mountFishingStage(session, place, {
+  // Asked only after mounting, once the location field exists.
+  const requestedSpot = () => (location.value as SpotId) || 'POND';
+  const stage = mountFishingStage(session, place, shell, {
     canEnter: () => {
       const world = session.getSnapshot();
       return atShore(
@@ -76,8 +80,15 @@ export function mountAngling(
   root.hidden = true;
   stage.stage.after(root);
   root.innerHTML = ANGLING_MARKUP;
+  // The markup's elements by id, kept while the layout moves them into its panels.
+  const owned = new Map(
+    Array.from(root.querySelectorAll<HTMLElement>('[id]'), (element) => [
+      element.id,
+      element,
+    ]),
+  );
   const get = <T extends HTMLElement = HTMLElement>(id: string) =>
-    document.getElementById(id) as T;
+    owned.get(id) as T;
   const live = get('angling-live');
   stage.stage.append(live);
   const castStart = get<HTMLButtonElement>('cast-start');
@@ -86,7 +97,11 @@ export function mountAngling(
   ready.className = 'scene-ready';
   ready.append(castStart);
   stage.stage.append(ready);
-  const feedback = mountFishingFeedback(session, stage.stage);
+  const feedback = mountFishingFeedback(
+    session,
+    stage.stage,
+    get<HTMLButtonElement>('haptics-toggle'),
+  );
   const location = get<HTMLSelectElement>('fish-location');
   const companion = get<HTMLSelectElement>('fish-companion');
   const bait = get<HTMLSelectElement>('fish-bait');
@@ -97,8 +112,6 @@ export function mountAngling(
   const green = get('angling-green');
   const pause = get('fish-pause');
   const invite = get('invite-pepper');
-  /** The spot the panel asks for. */
-  const requestedSpot = () => (location.value || 'POND') as SpotId;
   /** The FISH_BEGIN the panel's choices ask for; the button flow leaves `mode` out. */
   const beginCommand = (castDirection: number) =>
     ({
@@ -112,6 +125,9 @@ export function mountAngling(
   let detailsKey = '';
   let aimKey = '';
   let aimPower = REST_POWER;
+  // How the run that just ended changed its cat's mood band; read from the change itself.
+  let previousWorld = session.getSnapshot();
+  let resultMood = { runId: '', note: '' };
   const aimListeners = new Set<() => void>();
   // Every switchable state of the fishing screen (spec 015): one store, one render.
   const view = createFishingView(initialFishingView(motionStartup()));
@@ -152,6 +168,8 @@ export function mountAngling(
     const state = view.get();
     const screen = fishingScreen(state, run ?? null);
     const active = !!run;
+    const resultNote =
+      f.lastResult?.runId === resultMood.runId ? resultMood.note : '';
     const selectedCat =
       world.cats.find(
         (cat) => cat.id === (run?.catId ?? session.selectedEntity),
@@ -171,6 +189,7 @@ export function mountAngling(
       f.inventory,
       f.atlas,
       f.lastResult,
+      resultNote,
       world.cats.map((cat) => [
         cat.id,
         cat.fishGift,
@@ -239,8 +258,24 @@ export function mountAngling(
       const cat = world.cats.find((cat) => cat.id === companion.value)!;
       get('companion-specialty').textContent =
         `${cat.name} · ${CAT_BREEDS[cat.breedId].name}：${CAT_BREEDS[cat.breedId].fishingHint}。鱼饵、落点和钓点条件仍需满足。`;
-      renderFishingCatalog(world, cat, (command, message) =>
-        report(session.execute(command), message),
+      renderFishingCatalog(
+        get,
+        world,
+        cat,
+        (command, message) => {
+          const before = session.getSnapshot();
+          const result = session.execute(command);
+          report(
+            result,
+            command.type === 'GIFT_FISH'
+              ? withMoodNote(
+                  message,
+                  moodNote(before, session.getSnapshot(), command.catId),
+                )
+              : message,
+          );
+        },
+        resultNote,
       );
     }
     if (run) {
@@ -272,18 +307,20 @@ export function mountAngling(
       pause.textContent = screen.pauseLabel;
     }
     const destination = requestedSpot();
-    stage.render(world, selectedCat.id, destination);
+    stage.render(world, selectedCat.id, destination, resultNote);
     layout.refresh();
     motion.apply(screen, run ?? null);
     collections.refresh();
     const atDestination = atShore(destination, selectedCat.id);
-    get('travel-duration').textContent = atDestination
+    layout.travelDuration.textContent = atDestination
       ? `已在${SPOTS[destination].name}`
       : selectedCat.walk
         ? `步行中 · 剩 ${selectedCat.walk.route.length} 格 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`
         : `需要先走到岸边 · 耗时取决于道路 · 每格消耗 ${CARE.walkEnergyPerTile} 体力`;
-    travel.disabled = active || atDestination;
-    travel.textContent = atDestination ? '已经抵达' : '出发去钓点 →';
+    layout.travelButton.disabled = active || atDestination;
+    layout.travelButton.textContent = atDestination
+      ? '已经抵达'
+      : '出发去钓点 →';
     castStart.disabled = active || energy < CAST_COST || !atDestination;
     castStart.textContent = atDestination
       ? `准备抛竿 ↗ · 抛出耗 ${CAST_COST} 体力`
@@ -338,14 +375,12 @@ export function mountAngling(
   const layout = mountFishingLayout(session, place, () =>
     view.dispatch({ type: 'tools', open: layout.isOpen() }),
   );
-  // The layout builds the travel button.
-  const travel = get<HTMLButtonElement>('travel-to-spot');
-  const collections = mountFishingCollections();
+  const collections = mountFishingCollections(get);
   const motion = mountMotionFishing({
     view,
     stage: stage.stage,
-    plane: get('game'),
-    settings: get('gear-page-supplies'),
+    plane: shell.game,
+    settings: layout.settings,
     readySlot: ready,
     getRun: () => session.getSnapshot().fishing.active,
     previewAim: (preview) => aim.set(preview),
@@ -407,7 +442,7 @@ export function mountAngling(
     const result = session.execute(beginCommand(Number(direction.value)));
     report(result, '落点已锁定，按住按钮蓄力，松开抛竿。');
   }
-  travel.addEventListener('click', () => {
+  layout.travelButton.addEventListener('click', () => {
     const spotId = requestedSpot();
     const result = session.execute({
       type: 'TRAVEL_TO_FISHING_SPOT',
@@ -500,6 +535,18 @@ export function mountAngling(
   });
   // A world change or a view change: either way, one render applies the screen.
   session.subscribe(() => {
+    const world = session.getSnapshot();
+    const ended = world.fishing.lastResult;
+    if (
+      ended &&
+      ended.runId === previousWorld.fishing.active?.id &&
+      ended.runId !== previousWorld.fishing.lastResult?.runId
+    )
+      resultMood = {
+        runId: ended.runId,
+        note: moodNote(previousWorld, world, ended.catId),
+      };
+    previousWorld = world;
     stage.follow(session.getSnapshot());
     const runId = session.getSnapshot().fishing.active?.id ?? null;
     if (runId && runId !== view.get().runId) root.hidden = false;
@@ -517,6 +564,7 @@ export function mountAngling(
   stage.follow(session.getSnapshot());
   render();
   return {
+    stage: stage.stage,
     enterAtSpot,
     tools: { close: layout.close, openTalk: layout.openTalk } satisfies Tools,
     aim,

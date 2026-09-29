@@ -83,6 +83,27 @@ describe('rule dialogue reads current relationship facts', () => {
     expect(text).not.toContain('记得呀');
   });
 
+  it('changes its tone with the mood band but never the facts it recalls', async () => {
+    const reply = async (message: string, mood: number) => {
+      const input = context(message);
+      input.cat = { ...input.cat, mood };
+      input.fishingMemory = {
+        runId: 'fishing-1',
+        speciesId: 'SILVER',
+        spotId: 'POND',
+        minute: 20,
+      };
+      return (await provider.generate(input)).text;
+    };
+    const moods = [90, 70, 40, 10];
+    const smallTalk = await Promise.all(moods.map((mood) => reply('嗯', mood)));
+    expect(new Set(smallTalk).size).toBe(moods.length);
+    const recall = await Promise.all(
+      moods.map((mood) => reply('还记得第一次钓鱼吗？', mood)),
+    );
+    expect(new Set(recall).size).toBe(1);
+  });
+
   it('uses the selected cat identity and tastes independently', async () => {
     const input = context('喜欢什么鱼？');
     input.cat = { ...input.cat, id: 'pepper', name: 'Pepper' };

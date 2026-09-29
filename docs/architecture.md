@@ -4,23 +4,23 @@
 
 ## 目录与责任
 
-| 位置                                     | 责任与边界                                                                     |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
-| `src/core/`                              | World、命令/状态 schema、统一时钟、RNG、模拟与关系规则；纯 TypeScript          |
-| `src/core/city/`                         | 地图、建设、寻路、行走、城市状态校验                                           |
-| `src/core/fishing/`                      | 钓鱼命令、旅行资格、结果结算、持久状态与校验                                   |
-| `src/content/`                           | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`、`cats`；与实例分离 |
-| `src/minigames/angling.ts`               | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界                |
-| `src/application/`                       | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验        |
-| `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                   |
-| `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼交互、面板与只读状态呈现                                             |
-| `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                             |
-| `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                    |
-| `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                       |
-| `src/view/styles/base.css`               | 共用视觉基础；玩法布局样式留在对应 View 模块                                   |
-| `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                        |
-| `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                  |
-| `tests/`                                 | 按 unit / simulation / integration / e2e 分层，旧存档仅作拒绝 fixture          |
+| 位置                                     | 责任与边界                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| `src/core/`                              | World、命令/状态 schema、统一时钟、RNG、模拟与关系规则；纯 TypeScript                  |
+| `src/core/city/`                         | 地图、建设、寻路、行走、城市状态校验                                                   |
+| `src/core/fishing/`                      | 钓鱼命令、旅行资格、结果结算、持久状态与校验                                           |
+| `src/content/`                           | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`、`cats`、`mood`；与实例分离 |
+| `src/minigames/angling.ts`               | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界                        |
+| `src/application/`                       | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验                |
+| `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                           |
+| `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼交互、面板与只读状态呈现                                                     |
+| `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                     |
+| `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                            |
+| `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                               |
+| `src/view/styles/base.css`               | 共用视觉基础；玩法布局样式留在对应 View 模块                                           |
+| `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                                |
+| `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                          |
+| `tests/`                                 | 按 unit / simulation / integration / e2e 分层，旧存档仅作拒绝 fixture                  |
 
 `src/main.ts` 注入具体依赖并连接 View、Debug 与平台时间。`src/view/index.ts` 的 `mountGameView(session)` 封装 Phaser/面板装配。Core/content 不依赖 DOM、Phaser、网络、真实时钟、模型 SDK、全局单例或 `Math.random()`。View 不拥有可变世界引用；快照不能写回世界。
 
@@ -38,7 +38,7 @@
 
 Core 派生资源消耗、奖励和关系变化，不接受客户端自报鱼种、价格、分数或亲密度。命令拒绝必须保持金币、地图、实体、计数器和 RNG 完全不变。诊断轨迹在 Application，不能用事件日志代替存档。
 
-场景选择、当前面板、分页、镜头、预瞄、按住状态、输入暂停、动画、传感器权限属于 View。钓鱼画面的可切换状态集中在 `view/fishing/view-state.ts`（纯 reducer，不变量由随机事件序列单测守护），显示由纯函数 `view/fishing/screen.ts` 决定，DOM 只应用它，任何状态或世界变化都走同一次渲染（spec 015）。当前场景由 `view/shell/place.ts` 的地点状态统一持有，模块订阅它或调用 `Tools`（关闭面板、打开聊天），不通过点击别的模块的按钮或观察其样式类通信。它们只能转换为已知命令；硬件读数与动画不能决定奖励。每个 DOM 内容有单一渲染责任，例如对白分页由 shell 布局管理，事实回忆由 companion 管理。
+场景选择、当前面板、分页、镜头、预瞄、按住状态、输入暂停、动画、传感器权限属于 View。钓鱼画面的可切换状态集中在 `view/fishing/view-state.ts`（纯 reducer，不变量由随机事件序列单测守护），显示由纯函数 `view/fishing/screen.ts` 决定，DOM 只应用它，任何状态或世界变化都走同一次渲染（spec 015）；城市画面同样由 `view/city/view-state.ts` 与 `view/city/screen.ts` 组成。View 模块不在 document 上按 id 查找别的模块的元素，只在自己创建或被传入的元素内查找（lint 强制，例外见 spec 015）。当前场景由 `view/shell/place.ts` 的地点状态统一持有，模块订阅它或调用 `Tools`（关闭面板、打开聊天），不通过点击别的模块的按钮或观察其样式类通信。它们只能转换为已知命令；硬件读数与动画不能决定奖励。每个 DOM 内容有单一渲染责任，例如对白分页由 shell 布局管理，事实回忆由 companion 管理。
 
 ## 时间与确定性
 
@@ -50,7 +50,7 @@ Core 派生资源消耗、奖励和关系变化，不接受客户端自报鱼种
 
 ## 存档契约
 
-当前信封为 **saveVersion 14 / contentVersion 8**。运行时严格验证字段与语义，包括地图、位置、路线、引用、时间、鱼池及记录一致性；读档不重新生成地形或个体。当前版本必须精确往返并能继续未完成操作，包括体感遛鱼的累计进度。
+当前信封为 **saveVersion 15 / contentVersion 8**。运行时严格验证字段与语义，包括地图、位置、路线、引用、时间、鱼池及记录一致性；读档不重新生成地形或个体。当前版本必须精确往返并能继续未完成操作，包括体感遛鱼的累计进度。
 
 原型不向后兼容，不保留旧命令别名、迁移层或缺字段默认补全。旧、损坏及未来版本拒绝读取，浏览器保留原数据并阻止自动覆盖；显式重置才创建新世界。写入失败只提示重试，不提供重置；其他标签页写入新存档后，本页停止保存并提示刷新。校验会按种子与抛竿输入重新推导进行中一竿的遭遇，猫的身份与喜好必须与模板一致。存储键 `cat-city.save.v1` 是固定位置，信封版本决定格式。
 

@@ -11,19 +11,22 @@ import {
 import type { GameCommand } from '../../core';
 import { MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { fishIllustration } from '../art/illustrations';
+import { withMoodNote } from '../shell/mood';
 
 type FishAction = Extract<GameCommand, { type: 'SELL_FISH' | 'GIFT_FISH' }>;
 
 /** Read-only catalogue rendering; clicks return commands to the application adapter. */
 export function renderFishingCatalog(
+  /** The fishing markup's elements by id. */
+  get: <T extends HTMLElement = HTMLElement>(id: string) => T,
   world: WorldState,
   cat: CatEntity,
   onAction: (command: FishAction, message: string) => void,
+  /** How the last result changed its cat's mood band, if it did (spec 032). */
+  resultNote: string,
 ) {
   const f = world.fishing;
   const discovered = discoveredSpecies(f.atlas);
-  const get = <T extends HTMLElement = HTMLElement>(id: string) =>
-    document.getElementById(id) as T;
   get('fish-supplies').textContent =
     `垃圾 ${f.supplies.trash} 件 · 罐头 ${f.supplies.cans} 份 · 已打开金币袋 ${f.supplies.coinBags} 个`;
   get<HTMLButtonElement>('use-can').disabled =
@@ -89,10 +92,14 @@ export function renderFishingCatalog(
   );
   const result = f.lastResult;
   get('fish-result').textContent = result
-    ? result.caught
-      ? result.speciesId
-        ? `钓到了！${fishStars(fishById(result.speciesId).stars)} ${fishById(result.speciesId).name} · ${result.weight}g · ${(result.lengthMm / 10).toFixed(1)} cm · 可卖 ${fishById(result.speciesId).price} 金币，已放入鱼篓。`
-        : `钓到了${LOOT[result.catchKind as keyof typeof LOOT]}！${result.catchKind === 'coins' ? `已打开，获得 ${result.lootAmount} 金币。` : result.catchKind === 'can' ? '罐头已收好，需要时可以恢复体力。' : '已收入鱼篓补给。'}`
-      : `${result.reason === 'missed-hook' ? '错过了提竿时机' : result.reason === 'line-break' ? '张力太极端，鱼儿挣脱了' : '鱼儿溜走了'}。${result.trashAmount ? '钓到一件垃圾，已收好，可回收换取 3 金币。' : '调整一下，再试一竿吧。'}`
+    ? withMoodNote(resultText(result), resultNote)
     : '';
+}
+
+function resultText(result: NonNullable<WorldState['fishing']['lastResult']>) {
+  return result.caught
+    ? result.speciesId
+      ? `钓到了！${fishStars(fishById(result.speciesId).stars)} ${fishById(result.speciesId).name} · ${result.weight}g · ${(result.lengthMm / 10).toFixed(1)} cm · 可卖 ${fishById(result.speciesId).price} 金币，已放入鱼篓。`
+      : `钓到了${LOOT[result.catchKind as keyof typeof LOOT]}！${result.catchKind === 'coins' ? `已打开，获得 ${result.lootAmount} 金币。` : result.catchKind === 'can' ? '罐头已收好，需要时可以恢复体力。' : '已收入鱼篓补给。'}`
+    : `${result.reason === 'missed-hook' ? '错过了提竿时机' : result.reason === 'line-break' ? '张力太极端，鱼儿挣脱了' : '鱼儿溜走了'}。${result.trashAmount ? '钓到一件垃圾，已收好，可回收换取 3 金币。' : '调整一下，再试一竿吧。'}`;
 }

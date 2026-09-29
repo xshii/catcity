@@ -340,6 +340,9 @@ test('slow pitch sets the power the flick casts with', async ({
   await expect(meter.locator('.motion-power-weak')).toHaveText('弱');
   await expect(meter.locator('.motion-power-precise')).toHaveText('精准');
   await page.screenshot({ path: testInfo.outputPath('motion-aim.png') });
+  // The cast reads the power from just before the flick: hold the tilt that long, as a
+  // player does, or a fast machine flicks within the lead and reads the earlier power.
+  await page.waitForTimeout(FISHING.motion.gesture.powerLeadMs * 2);
   await swing(page);
   expect((await readWorld(page)).fishing.active).toMatchObject({
     mode: 'motion',

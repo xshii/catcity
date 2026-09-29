@@ -10,6 +10,7 @@ import {
   spotOpen,
   type BaitId,
 } from '../../content/fishing';
+import { MOOD } from '../../content/mood';
 import { instantiateCat, requireCat } from '../cats';
 import {
   castAngling,
@@ -115,6 +116,7 @@ export function applyAngling(
       seed: runSeed(world.seed, serial),
       skillLevel: skillLevel(fishing.xp),
       mode,
+      happy: cat.mood >= MOOD.happy,
     });
     emit('started', fishing.active.id);
   } else if (
@@ -196,8 +198,11 @@ export function applyAngling(
           spotId: next.spotId,
           minute: world.minute,
         };
-        cat.mood = Math.min(MAX_STAT, cat.mood + COMPANION.catchMood);
+        cat.mood = Math.min(MAX_STAT, cat.mood + MOOD.catch);
         rewardBond(cat, world.minute);
+      } else if (next.phase === 'escaped') {
+        const cat = world.cats.find((cat) => cat.id === next.catId)!;
+        cat.mood = Math.max(0, cat.mood - MOOD.escape);
       }
       fishing.active = null;
     }
@@ -221,7 +226,7 @@ export function applyAngling(
       };
       cat.mood = Math.min(
         MAX_STAT,
-        cat.mood + (favorite ? COMPANION.favoriteGiftMood : COMPANION.giftMood),
+        cat.mood + (favorite ? MOOD.favoriteGift : MOOD.gift),
       );
       cat.needs.hunger = Math.max(0, cat.needs.hunger - COMPANION.giftHunger);
       rewardBond(cat, world.minute);
