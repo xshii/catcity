@@ -81,9 +81,17 @@ export const FISHING = {
   trash: { maxStars: 2, baseChancePercent: 60, chancePerStarPercent: 15 },
   bag: { capacity: 30 },
   bait: { max: 999, initial: { WORM: 6, SHRIMP: 3 } },
-  skill: { baseXp: 10, xpPerStar: 5, xpPerLevel: 40, maxLevel: 10 },
-  /** Mood changes live in `content/mood.ts`. */
-  companion: { giftHunger: 10 },
+  /**
+   * Level n takes `curve × (n − 1) × n × (n + 1) / 3` XP in all (spec 038): each level
+   * costs more than the last. A happy cat's catch earns `happyXpPercent` of the XP.
+   */
+  skill: {
+    baseXp: 10,
+    xpPerStar: 5,
+    curve: 27,
+    maxLevel: 10,
+    happyXpPercent: 150,
+  },
   /** Motion fishing (spec 030), tuned in `motion.ts`; the button mode above is frozen. */
   motion: MOTION,
 } as const;

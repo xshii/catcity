@@ -91,10 +91,38 @@ describe('hourly drift', () => {
     expect(moodOf(world)).toBe(MOOD.rest + MOOD.home);
     const full = atHome(100);
     advance(full, 60);
-    expect(moodOf(full)).toBe(100 - MOOD.drift + MOOD.home);
+    expect(moodOf(full)).toBe(100 - MOOD.highDrift + MOOD.home);
     const glum = atHome(40);
     advance(glum, 60);
     expect(moodOf(glum)).toBe(40 + MOOD.drift + MOOD.home);
+  });
+
+  it('drifts down faster from the happy line up (spec 038)', () => {
+    expect(MOOD.highDrift).toBeGreaterThan(MOOD.drift);
+    // Where the cat just under the line lands: no happier cat lands below it.
+    const floor = MOOD.happy - 1 - MOOD.drift;
+    for (const [start, after] of [
+      [100, 100 - MOOD.highDrift],
+      [MOOD.happy + MOOD.highDrift, MOOD.happy],
+      [MOOD.happy + 1, floor],
+      [MOOD.happy, floor],
+      [MOOD.happy - 1, floor],
+      [MOOD.happy - 2, floor - 1],
+    ] as const) {
+      const world = withMood(start);
+      advance(world, 60);
+      expect(moodOf(world), `from ${start}`).toBe(after);
+    }
+  });
+
+  it('never leaves a happier cat below a less happy one after the hour', () => {
+    let previous = 0;
+    for (let mood = MOOD.rest; mood <= 100; mood++) {
+      const world = withMood(mood);
+      advance(world, 60);
+      expect(moodOf(world), `from ${mood}`).toBeGreaterThanOrEqual(previous);
+      previous = moodOf(world);
+    }
   });
 
   it('gives the same result in one advance as in minute steps', () => {
@@ -115,13 +143,16 @@ describe('hourly drift', () => {
 });
 
 describe('chat', () => {
-  it('lifts mood only when the hourly bond reward is granted', () => {
+  it('lifts mood at most once per game hour', () => {
     const world = withMood(70);
     expect(interact(world, 'mochi', '你好', '喵').ok).toBe(true);
     expect(moodOf(world)).toBe(70 + MOOD.chat);
     interact(world, 'mochi', '还在吗', '喵');
     expect(moodOf(world)).toBe(70 + MOOD.chat);
-    advance(world, 60);
+    advance(world, MOOD.chatCooldownMinutes - 1);
+    interact(world, 'mochi', '还在吗', '喵');
+    expect(moodOf(world)).toBe(70 + MOOD.chat);
+    advance(world, 1);
     const drifted = moodOf(world);
     interact(world, 'mochi', '又见面了', '喵');
     expect(moodOf(world)).toBe(drifted + MOOD.chat);
@@ -130,11 +161,137 @@ describe('chat', () => {
     expect(moodOf(full)).toBe(100);
   });
 
+  it('keeps its hour whatever the bond earned: once a day there, hourly here', () => {
+    const world = withMood(40, fishingFixture(42));
+    // A catch takes nothing from the chat's hour.
+    world.dispatch({
+      type: 'FISH_BEGIN',
+      catId: 'mochi',
+      spotId: 'POND',
+      baitId: 'BREAD',
+      direction: -30,
+      aimDepth: 50,
+    });
+    finishFishing(world);
+    interact(world, 'mochi', '你好', '喵');
+    expect(moodOf(world)).toBe(40 + MOOD.catch + MOOD.chat);
+    const bond = world.getSnapshot().cats[0]!.playerBond;
+    advance(world, MOOD.chatCooldownMinutes);
+    const drifted = moodOf(world);
+    interact(world, 'mochi', '又见面了', '喵');
+    expect(moodOf(world)).toBe(drifted + MOOD.chat);
+    expect(world.getSnapshot().cats[0]!.playerBond).toBe(bond);
+    expect(loadWorld(world.save()).save()).toBe(world.save());
+  });
+
   it('leaves mood alone when the command is rejected', () => {
     const world = withMood(70);
     const before = world.save();
     expect(interact(world, 'ghost', '你好', '喵').ok).toBe(false);
     expect(world.save()).toBe(before);
+  });
+});
+
+describe('a happy cat takes half of every gain (spec 038)', () => {
+  const half = (amount: number) => Math.max(1, Math.floor(amount / 2));
+  /** Mood gained from a catch, then a favourite gift, then a chat, each from `mood`. */
+  const gains = (mood: number) => {
+    let world = fishingFixture(42);
+    const steps = [
+      (world: World) => {
+        world.dispatch({
+          type: 'FISH_BEGIN',
+          catId: 'mochi',
+          spotId: 'POND',
+          baitId: 'BREAD',
+          direction: -30,
+          aimDepth: 50,
+        });
+        finishFishing(world);
+      },
+      (world: World) =>
+        world.dispatch({
+          type: 'GIFT_FISH',
+          fishId: world.getSnapshot().fishing.inventory[0]!.id,
+          catId: 'mochi',
+        }),
+      (world: World) => interact(world, 'mochi', '你好', '喵'),
+    ];
+    return steps.map((step) => {
+      world = withMood(mood, world);
+      step(world);
+      return moodOf(world) - mood;
+    });
+  };
+
+  it('in full below the happy line, up to just under it', () => {
+    expect(gains(40)).toEqual([MOOD.catch, MOOD.favoriteGift, MOOD.chat]);
+    // A catch from here would run into the top of the range.
+    expect(gains(MOOD.happy - 1).slice(1)).toEqual([
+      MOOD.favoriteGift,
+      MOOD.chat,
+    ]);
+  });
+
+  it('halved, rounded down and at least 1, from the happy line up', () => {
+    // A catch gives a happy cat nothing: it never lifts mood past the line.
+    expect(gains(MOOD.happy)).toEqual([
+      0,
+      half(MOOD.favoriteGift),
+      half(MOOD.chat),
+    ]);
+    expect(half(MOOD.chat)).toBe(1);
+    expect(half(MOOD.favoriteGift)).toBe(4);
+  });
+
+  it('a gift of another fish and the hour at home too', () => {
+    const world = withMood(MOOD.happy, fishingFixture(42));
+    world.dispatch({ type: 'INVITE_PEPPER' });
+    world.dispatch({
+      type: 'FISH_BEGIN',
+      catId: 'mochi',
+      spotId: 'POND',
+      baitId: 'BREAD',
+      direction: -30,
+      aimDepth: 50,
+    });
+    finishFishing(world);
+    const happy = edited(world, (cats) => (cats[1]!.mood = MOOD.happy));
+    happy.dispatch({
+      type: 'GIFT_FISH',
+      fishId: happy.getSnapshot().fishing.inventory[0]!.id,
+      catId: happy.getSnapshot().cats[1]!.id,
+    });
+    expect(happy.getSnapshot().cats[1]!.fishGift!.favorite).toBe(false);
+    expect(moodOf(happy, 1)).toBe(MOOD.happy + half(MOOD.gift));
+    const home = atHome(90);
+    advance(home, 60);
+    expect(moodOf(home)).toBe(90 - MOOD.highDrift + half(MOOD.home));
+  });
+
+  it('leaves losses whole', () => {
+    const world = withMood(MOOD.happy + 5, fishingFixture(42));
+    world.dispatch({
+      type: 'FISH_BEGIN',
+      catId: 'mochi',
+      spotId: 'POND',
+      baitId: 'BREAD',
+      direction: -30,
+      aimDepth: 50,
+      mode: 'motion',
+    });
+    const runId = world.getSnapshot().fishing.active!.id;
+    world.dispatch({ type: 'FISH_CAST', runId, power: 60 });
+    for (let n = 0; n < 200 && world.getSnapshot().fishing.active; n++)
+      world.dispatch({
+        type: 'FISH_MOTION_CONTROL',
+        runId,
+        x: 50,
+        y: 50,
+        ticks: 4,
+      });
+    expect(world.getSnapshot().fishing.lastResult!.caught).toBe(false);
+    expect(moodOf(world)).toBe(MOOD.happy + 5 - MOOD.escape);
   });
 });
 
@@ -164,14 +321,72 @@ describe('fishing', () => {
   };
 
   it('keeps the catch and gift rewards', () => {
-    const world = withMood(50, fishingFixture(42));
+    const world = withMood(30, fishingFixture(42));
     begin(world, 'buttons');
     finishFishing(world);
-    expect(moodOf(world)).toBe(50 + MOOD.catch);
+    expect(moodOf(world)).toBe(30 + MOOD.catch);
     const fish = world.getSnapshot().fishing.inventory[0]!;
     // Silver is Mochi's favourite.
     world.dispatch({ type: 'GIFT_FISH', fishId: fish.id, catId: 'mochi' });
-    expect(moodOf(world)).toBe(50 + MOOD.catch + MOOD.favoriteGift);
+    expect(moodOf(world)).toBe(30 + MOOD.catch + MOOD.favoriteGift);
+  });
+
+  it('lifts mood with every catch, but never into the happy band (spec 038)', () => {
+    const top = MOOD.happy - 1;
+    for (const [start, after] of [
+      [top - MOOD.catch - 1, top - 1],
+      [top - MOOD.catch, top],
+      [top - 1, top],
+      [top, top],
+      // A happy cat stays as it is: a catch neither lifts nor lowers it.
+      [MOOD.happy, MOOD.happy],
+      [85, 85],
+      [100, 100],
+    ] as const) {
+      const world = withMood(start, fishingFixture(42));
+      begin(world, 'buttons');
+      finishFishing(world);
+      expect(moodOf(world), `from ${start}`).toBe(after);
+      expect(loadWorld(world.save()).save()).toBe(world.save());
+    }
+  });
+
+  it('catch after catch stops at the line; a gift crosses it', () => {
+    const world = withMood(70, fishingFixture(42));
+    for (let cast = 0; cast < 5; cast++) {
+      begin(world, 'buttons');
+      finishFishing(world);
+    }
+    expect(moodOf(world)).toBe(MOOD.happy - 1);
+    expect(moodBand(moodOf(world))).toBe('calm');
+    const fish = world.getSnapshot().fishing.inventory[0]!;
+    world.dispatch({ type: 'GIFT_FISH', fishId: fish.id, catId: 'mochi' });
+    expect(moodOf(world)).toBe(MOOD.happy - 1 + MOOD.favoriteGift);
+    // A chat crosses it too.
+    const chatty = withMood(MOOD.happy - 1);
+    interact(chatty, 'mochi', '你好', '喵');
+    expect(moodOf(chatty)).toBe(MOOD.happy - 1 + MOOD.chat);
+  });
+
+  it('a fish that gets away costs mood every time', () => {
+    const world = withMood(50, fishingFixture(42));
+    for (const lost of [1, 2]) {
+      begin(world);
+      missBite(world);
+      expect(moodOf(world)).toBe(50 - lost * MOOD.escape);
+    }
+  });
+
+  it('keeps no record of the catch: the cat saves the same fields as before it', () => {
+    const world = withMood(50, fishingFixture(42));
+    const fields = Object.keys(world.getSnapshot().cats[0]!);
+    begin(world, 'buttons');
+    finishFishing(world);
+    expect(Object.keys(world.getSnapshot().cats[0]!)).toEqual(fields);
+    expect(fields).not.toContain('lastCatchMoodMinute');
+    const state = JSON.parse(world.save());
+    state.world.cats[0].lastCatchMoodMinute = null;
+    expect(() => loadWorld(JSON.stringify(state))).toThrow();
   });
 
   it('costs the run cat a little when the fish gets away, not on a cancel', () => {
@@ -229,7 +444,7 @@ describe('walking', () => {
     Object.assign(state.cats[0]!, {
       position: { x: 5, y: 5 },
       fishingSpotId: null,
-      needs: { hunger: 30, energy: 1 },
+      needs: { energy: 1 },
       mood: 70,
     });
     const world = new World(state);

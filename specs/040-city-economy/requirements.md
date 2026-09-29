@@ -28,7 +28,7 @@
 
 ## 存档
 
-没有新增存档字段，`SAVE_VERSION` 不变（17）。价格由建筑数量推导，客人由住所与建筑位置推导。价格与收入规则变了，`CONTENT_VERSION` 8 → 9，做法与 014 改路价时（6 → 7）相同：content 8 的存档作为拒绝 fixture（`tests/fixtures/save-v17-content8.json`），玩家需要显式重置。
+没有新增存档字段；本片不改 `SAVE_VERSION`（合并 main 后为 18，来自 038）。价格由建筑数量推导，客人由住所与建筑位置推导。价格与收入规则变了，`CONTENT_VERSION` 9 → 10（main 的步行耗时已占用 9），做法与 014 改路价时相同：save 18 / content 9 的存档作为拒绝 fixture（`tests/fixtures/save-v18-content9.json`，由 main 的代码生成），玩家需要显式重置。
 
 ## 界面
 

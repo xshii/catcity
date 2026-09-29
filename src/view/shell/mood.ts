@@ -9,7 +9,7 @@ export const MOOD_COPY = {
     glum: { glyph: '😾', label: '有点闷' },
     low: { glyph: '😿', label: '低落' },
   } satisfies Record<MoodBand, { glyph: string; label: string }>,
-  happyHint: '开心：遛鱼圈更大',
+  happyHint: '开心：遛鱼圈更大，经验更多',
   rose: '心情好起来了',
   fell: '心情落了一点',
 } as const;

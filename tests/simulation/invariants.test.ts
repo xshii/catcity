@@ -6,6 +6,8 @@ import {
   landPrice,
   ROAD_PRICE,
 } from '../../src/content/city';
+import { BOND } from '../../src/content/care';
+import { MOOD } from '../../src/content/mood';
 import { BAITS, FISHING, fishById, SPOT_IDS } from '../../src/content/fishing';
 import { createWorld, loadWorld } from '../../src/core';
 import type { CommandResult, GameCommand, WorldState } from '../../src/core';
@@ -267,15 +269,28 @@ function play(seed: number) {
       expect(moodMayChange(command), `mood: ${where}`).toBe(true);
       moodMoves.add(`${command.type}${change > 0 ? '+' : '-'}`);
     }
-    // The bond only grows, one at a time, from chat, a gift or a run's end (spec 036).
+    // The bond only grows, by its source's points and one more from a happy cat, from
+    // chat, a gift or a run's end (specs 036, 038).
     for (const [index, cat] of before.cats.entries()) {
       const grown = after.cats[index]!.playerBond - cat.playerBond;
       if (!grown) continue;
-      expect(grown, `bond: ${where}`).toBe(1);
+      const points =
+        command.type === 'INTERACT'
+          ? [BOND.chat]
+          : command.type === 'GIFT_FISH'
+            ? [BOND.gift, BOND.favoriteGift]
+            : ['FISH_CONTROL', 'FISH_MOTION_CONTROL'].includes(command.type)
+              ? [BOND.catch]
+              : [];
+      // A catch reads the happy of its run; a gift or a chat the mood of the moment.
+      const happy =
+        command.type === 'INTERACT' || command.type === 'GIFT_FISH'
+          ? cat.mood >= MOOD.happy
+          : before.fishing.active!.happy;
       expect(
-        ['INTERACT', 'GIFT_FISH', 'FISH_CONTROL', 'FISH_MOTION_CONTROL'],
+        points.map((base) => base + (happy ? BOND.happy : 0)),
         `bond: ${where}`,
-      ).toContain(command.type);
+      ).toContain(grown);
     }
     // Recovery during a walk only happens once the walk stopped for lack of energy.
     if (result.ok)

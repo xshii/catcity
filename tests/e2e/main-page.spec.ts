@@ -309,7 +309,9 @@ test('a selected cat walks only through an explicit action; apartments list 入�
   // Tapping land opens its card with the walk as one clearly named action.
   await clickTile(page, 4, 4);
   await expect(page.locator('#city-selection-label')).toContainText('空地');
-  await expect(page.locator('#walk-here')).toHaveText('让 Mochi 走到这里');
+  await expect(page.locator('#walk-here')).toHaveText(
+    /^让 Mochi 走到这里 · 约 \d+ 分钟$/,
+  );
   await expect(page.locator('[data-build-type=CAT_CAFE]')).toBeVisible();
   expect(await readWorld(page)).toEqual(before);
   await page.locator('#walk-here').click();

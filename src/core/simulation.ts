@@ -1,11 +1,12 @@
 import { MAX_STAT, WORLD_LIMIT } from './limits';
 import { CARE } from '../content/care';
-import { MOOD, moodRest } from '../content/mood';
+import { MOOD, moodAfterDrift, moodRest } from '../content/mood';
 import { BUILDINGS, CAFE } from '../content/city';
 import type { GameEvent } from './commands';
 import type { CatEntity, WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
 import { catIdle } from './cats';
+import { liftMood } from './mood';
 import { gridDistance } from './city/map';
 import { cafeAssignment } from './city/customers';
 
@@ -53,14 +54,11 @@ export function simulate(
     if (minute % MOOD.tickMinutes === 0)
       for (const cat of world.cats) {
         const rest = moodRest(cat.playerBond);
-        const toward =
+        cat.mood =
           cat.mood > rest
-            ? Math.max(rest, cat.mood - MOOD.drift)
+            ? Math.max(rest, moodAfterDrift(cat.mood))
             : Math.min(rest, cat.mood + MOOD.drift);
-        cat.mood = Math.min(
-          MAX_STAT,
-          toward + (nearHome(world, cat) ? MOOD.home : 0),
-        );
+        if (nearHome(world, cat)) liftMood(cat, MOOD.home);
       }
     advanceWalking(world, events);
   }

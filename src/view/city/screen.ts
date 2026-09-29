@@ -19,9 +19,11 @@ import {
   samePosition,
   tileAt,
   touchesNetwork,
+  walkMinutes,
 } from '../../core/city';
 import {
   MAX_STAT,
+  travelMinutes,
   type CatEntity,
   type ErrorCode,
   type GameCommand,
@@ -204,15 +206,18 @@ function card(
         spotId,
       } as const;
       const onTheWay = cat.walk?.spotId === spotId;
+      const reason = !unlocked
+        ? condition
+        : onTheWay
+          ? `${cat.name} 已经在路上了。`
+          : blocked(travel);
       button(
         'walk-to-waterway',
-        onTheWay ? '正在走向岸边' : `让 ${cat.name} 走到岸边`,
+        onTheWay
+          ? '正在走向岸边'
+          : `让 ${cat.name} 走到岸边${reason ? '' : took(travelMinutes(world, cat.id, spotId))}`,
         command(travel, `${cat.name} 出发了，可以看着它沿路线走到岸边。`),
-        !unlocked
-          ? condition
-          : onTheWay
-            ? `${cat.name} 已经在路上了。`
-            : blocked(travel),
+        reason,
       );
     }
     if (cat.walk) wait();
@@ -334,25 +339,30 @@ function card(
       catId: walker.id,
       destination: position,
     } as const;
+    const reason = blocked(walk);
     button(
       'walk-here',
-      `让 ${walker.name} 走到这里`,
+      `让 ${walker.name} 走到这里${reason ? '' : took(walkMinutes(world, walker.id, position))}`,
       command(walk, `${walker.name} 出发了，沿路线走过去。`, {
         type: 'select',
         selection: { kind: 'cat', catId: walker.id },
       }),
-      blocked(walk),
+      reason,
     );
   }
   return done(title, detail);
 }
+
+/** How long a walk Core accepts takes, beside its button. */
+const took = (minutes: number | null) =>
+  minutes === null ? '' : ` · 约 ${minutes} 分钟`;
 
 function walking(cat: CatEntity) {
   if (cat.walk && cat.needs.energy === 0)
     return '体力耗尽，路线已暂停；歇一会儿会自己接着走。';
   if (cat.walk)
     return `正在走路 · 还剩 ${cat.walk.route.length} 格 · 每格 ${CARE.walkEnergyPerTile} 体力`;
-  return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。`;
+  return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。草地 ${WALK_MINUTES.GRASS} 分钟/格 · 土路 ${WALK_MINUTES.DIRT} · 石路 ${WALK_MINUTES.STONE}。`;
 }
 
 /** Said as a cat is picked: the card's way to send it, and lifting it (spec 035). */

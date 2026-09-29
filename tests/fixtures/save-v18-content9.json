@@ -1,11 +1,11 @@
 {
-  "saveVersion": 17,
-  "contentVersion": 8,
+  "saveVersion": 18,
+  "contentVersion": 9,
   "world": {
     "seed": 42,
-    "minute": 424,
-    "coins": 1000,
-    "nextId": 1,
+    "minute": 480,
+    "coins": 460,
+    "nextId": 3,
     "map": {
       "width": 10,
       "height": 10,
@@ -913,7 +913,26 @@
         }
       ]
     },
-    "buildings": [],
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_APARTMENT",
+        "position": {
+          "x": 4,
+          "y": 4
+        },
+        "builtAtMinute": 420
+      },
+      {
+        "id": "building-2",
+        "type": "CAT_CAFE",
+        "position": {
+          "x": 4,
+          "y": 3
+        },
+        "builtAtMinute": 420
+      }
+    ],
     "cats": [
       {
         "id": "mochi",
@@ -928,42 +947,22 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 70,
+        "mood": 68,
         "needs": {
-          "hunger": 30,
           "energy": 100
         },
         "memories": [],
         "playerBond": 0,
-        "home": null,
+        "home": "building-1",
         "position": {
           "x": 7,
           "y": 3
         },
-        "lastBondMinute": null,
-        "fishingSpotId": null,
-        "walk": {
-          "destination": {
-            "x": 7,
-            "y": 0
-          },
-          "route": [
-            {
-              "x": 7,
-              "y": 2
-            },
-            {
-              "x": 7,
-              "y": 1
-            },
-            {
-              "x": 7,
-              "y": 0
-            }
-          ],
-          "nextStepMinute": 430,
-          "spotId": null
-        },
+        "chatBond": null,
+        "giftBond": null,
+        "lastChatMoodMinute": null,
+        "fishingSpotId": "POND",
+        "walk": null,
         "breedId": "RAGDOLL",
         "favoriteFish": ["SILVER", "CRUCIAN"],
         "fishingMemory": null,

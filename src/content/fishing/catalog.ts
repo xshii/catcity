@@ -177,7 +177,7 @@ export const SPOTS: Record<
   },
   MOON: {
     name: '月光湖',
-    level: 4,
+    level: 5,
     species: 4,
     fish: ['CRUCIAN', 'PERCH', 'KOI', 'MOON_CARP'],
     hint: '月色中的远水，寻找稀有鱼影',

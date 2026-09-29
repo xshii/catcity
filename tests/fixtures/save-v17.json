@@ -3,9 +3,9 @@
   "contentVersion": 8,
   "world": {
     "seed": 42,
-    "minute": 424,
+    "minute": 480,
     "coins": 1000,
-    "nextId": 1,
+    "nextId": 4,
     "map": {
       "width": 10,
       "height": 10,
@@ -928,45 +928,37 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 70,
+        "mood": 73,
         "needs": {
           "hunger": 30,
           "energy": 100
         },
-        "memories": [],
-        "playerBond": 0,
+        "memories": [
+          {
+            "id": "memory-3",
+            "kind": "conversation",
+            "minute": 480,
+            "message": "你好",
+            "reply": "喵"
+          }
+        ],
+        "playerBond": 2,
         "home": null,
         "position": {
           "x": 7,
           "y": 3
         },
-        "lastBondMinute": null,
-        "fishingSpotId": null,
-        "walk": {
-          "destination": {
-            "x": 7,
-            "y": 0
-          },
-          "route": [
-            {
-              "x": 7,
-              "y": 2
-            },
-            {
-              "x": 7,
-              "y": 1
-            },
-            {
-              "x": 7,
-              "y": 0
-            }
-          ],
-          "nextStepMinute": 430,
-          "spotId": null
-        },
+        "lastBondMinute": 480,
+        "fishingSpotId": "POND",
+        "walk": null,
         "breedId": "RAGDOLL",
         "favoriteFish": ["SILVER", "CRUCIAN"],
-        "fishingMemory": null,
+        "fishingMemory": {
+          "runId": "angling-1",
+          "speciesId": "SILVER",
+          "spotId": "POND",
+          "minute": 420
+        },
         "fishGift": null
       }
     ],
@@ -976,18 +968,25 @@
         "cans": 0,
         "coinBags": 0
       },
-      "xp": 0,
+      "xp": 10,
       "baits": {
         "WORM": 6,
         "SHRIMP": 3
       },
       "active": null,
-      "inventory": [],
+      "inventory": [
+        {
+          "id": "fish-2",
+          "speciesId": "SILVER",
+          "weight": 170,
+          "lengthMm": 155
+        }
+      ],
       "atlas": {
         "SILVER": {
-          "count": 0,
-          "bestWeight": 0,
-          "bestLengthMm": 0
+          "count": 1,
+          "bestWeight": 170,
+          "bestLengthMm": 155
         },
         "CRUCIAN": {
           "count": 0,
@@ -1025,7 +1024,20 @@
           "bestLengthMm": 0
         }
       },
-      "lastResult": null
+      "lastResult": {
+        "runId": "angling-1",
+        "catId": "mochi",
+        "spotId": "POND",
+        "minute": 420,
+        "caught": true,
+        "trashAmount": 0,
+        "speciesId": "SILVER",
+        "catchKind": "fish",
+        "lengthMm": 155,
+        "lootAmount": 0,
+        "weight": 170,
+        "reason": "none"
+      }
     }
   }
 }

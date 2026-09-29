@@ -5,8 +5,11 @@ import {
   CAFE,
   CITY_TIME,
   landPrice,
+  WALK_MINUTES,
 } from '../../src/content/city';
+import { travelMinutes } from '../../src/core';
 import type { GameCommand, WorldState } from '../../src/core';
+import { walkMinutes } from '../../src/core/city';
 import { createWorld, loadWorld, type World } from '../../src/core/world';
 import {
   cityScreen,
@@ -139,15 +142,17 @@ describe('city screen', () => {
     });
   });
 
-  it('offers a picked cat a walk to the tile, which then selects the cat', () => {
+  it('offers a picked cat a walk to the tile with its minutes, which then selects the cat', () => {
     const world = createWorld(42);
+    const minutes = walkMinutes(world.getSnapshot(), 'mochi', { x: 4, y: 4 });
+    expect(minutes).toBeGreaterThan(0);
     const walk = screenOf(
       world,
       view({ type: 'cat', catId: 'mochi' }, tile(4, 4)),
     ).card!.buttons.at(-1)!;
     expect(walk).toMatchObject({
       id: 'walk-here',
-      text: '让 Mochi 走到这里',
+      text: `让 Mochi 走到这里 · 约 ${minutes} 分钟`,
       reason: null,
       intent: {
         kind: 'command',
@@ -160,6 +165,44 @@ describe('city screen', () => {
       },
     });
     expect(ids(world, view(tile(4, 4)))).not.toContain('walk-here');
+    // The walk takes what the button said.
+    world.dispatch({
+      type: 'WALK_CAT',
+      catId: 'mochi',
+      destination: { x: 4, y: 4 },
+    });
+    advance(world, minutes! - 1);
+    expect(world.getSnapshot().cats[0]!.walk).not.toBeNull();
+    advance(world, 1);
+    expect(world.getSnapshot().cats[0]!.walk).toBeNull();
+  });
+
+  it('names no minutes on a walk Core would refuse', () => {
+    const world = createWorld(42);
+    const { x, y } = world.getSnapshot().cats[0]!.position;
+    const stay = screenOf(
+      world,
+      view({ type: 'cat', catId: 'mochi' }, tile(x, y)),
+    ).card!.buttons.at(-1)!;
+    expect(stay).toMatchObject({
+      id: 'walk-here',
+      text: '让 Mochi 走到这里',
+      reason: ERROR_MESSAGES.ALREADY_AT_DESTINATION,
+    });
+  });
+
+  it('names the three walking speeds once, on the card of a cat that can be sent', () => {
+    const world = createWorld(42);
+    const picked = view({ type: 'cat', catId: 'mochi' });
+    const pace = `草地 ${WALK_MINUTES.GRASS} 分钟/格 · 土路 ${WALK_MINUTES.DIRT} · 石路 ${WALK_MINUTES.STONE}`;
+    expect(pace).toBe('草地 6 分钟/格 · 土路 3 · 石路 2');
+    expect(screenOf(world, picked).card!.detail).toContain(pace);
+    world.dispatch({
+      type: 'WALK_CAT',
+      catId: 'mochi',
+      destination: { x: 4, y: 4 },
+    });
+    expect(screenOf(world, picked).card!.detail).not.toContain('分钟/格');
   });
 
   it('shows the cat card with chat, and waiting only while it walks', () => {
@@ -209,6 +252,19 @@ describe('city screen', () => {
     expect(ids(world, view(water('POND', 7, 4)))).toEqual([
       'walk-to-waterway',
       'city-wait',
+    ]);
+    // Away from the shore, the way back says how long it takes.
+    advance(world, 120);
+    const minutes = travelMinutes(world.getSnapshot(), 'mochi', 'POND');
+    expect(minutes).toBeGreaterThan(0);
+    expect(
+      screenOf(world, view(water('POND', 7, 4))).card!.buttons,
+    ).toMatchObject([
+      {
+        id: 'walk-to-waterway',
+        text: `让 Mochi 走到岸边 · 约 ${minutes} 分钟`,
+        reason: null,
+      },
     ]);
   });
 

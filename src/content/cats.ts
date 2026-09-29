@@ -54,5 +54,5 @@ export const CAT_DEFINITIONS: Record<
 /** Every new resident starts with these needs and mood. */
 export const CAT_START = {
   mood: 70,
-  needs: { hunger: 30, energy: 100 },
+  needs: { energy: 100 },
 } as const;
