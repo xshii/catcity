@@ -408,7 +408,7 @@ for (const viewport of [
     await enterRiver(page);
     await sensorsOn(page);
     const gear = page.locator('#river-settings');
-    const legend = page.locator('#motion-precise');
+    const legend = page.locator('#motion-legend');
     const hint = page.locator('#motion-fishing-hint');
     for (const control of [gear, legend, hint]) await onScreen(control);
     const box = (await gear.boundingBox())!;

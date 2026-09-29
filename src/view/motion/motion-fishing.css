@@ -181,8 +181,8 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
-/* What the green zone on the water gives, across from the settings gear. */
-.motion-precise {
+/* What a green landing ring means, across from the settings gear. */
+.motion-legend {
   position: absolute;
   right: 4px;
   top: 4px;

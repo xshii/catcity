@@ -34,7 +34,6 @@ import {
   permissionNotice,
   resultShown,
   ringHeld,
-  SCREEN_COPY,
 } from './screen';
 import {
   createFishingView,
@@ -412,9 +411,10 @@ export function mountAngling(
         notify('先让猫走到岸边，再甩竿。');
         return false;
       }
+      // Cast where the ring showed it would land: the slider keeps the aim in its steps.
       direction.value = String(swingDirection);
       const begun = session.execute({
-        ...beginCommand(swingDirection),
+        ...beginCommand(Number(direction.value)),
         mode: 'motion',
       });
       const run = session.getSnapshot().fishing.active;
@@ -462,11 +462,7 @@ export function mountAngling(
     }
     if (!stage.showRiver()) return;
     const result = session.execute(beginCommand(Number(direction.value)));
-    // The control says how to charge; this says what the green on its bar gives.
-    report(
-      result,
-      `落点已锁定。在绿区松开＝${SCREEN_COPY.cast.precise.buttons}。`,
-    );
+    report(result, '落点已锁定，按住按钮蓄力，松开抛竿。');
   }
   layout.travelButton.addEventListener('click', () => {
     const spotId = requestedSpot();

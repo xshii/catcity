@@ -503,28 +503,26 @@ export class RiverView {
     this.companion.setPose(catPose(world, cat)).animate(this.root.visible);
     const cast = !!active && active.phase !== 'charge';
     const aim = castPreview(
-      active?.direction ?? preview.direction,
-      active?.aimDepth ?? preview.aimDepth,
-      // A charging button run previews its live power.
-      active?.power ?? preview.power,
+      world,
+      spotId,
+      {
+        direction: active?.direction ?? preview.direction,
+        aimDepth: active?.aimDepth ?? preview.aimDepth,
+        // A charging button run previews its live power.
+        power: active?.power ?? preview.power,
+      },
       ROD_TIP,
     );
     const land = aim.landing;
-    // Aiming: a flattened ring where the cast would land. While the power is live (motion
-    // aiming, a charging button run) the float's flight arcs onto it dashed from the rod
-    // tip, over the green zone where precise power lands; ring and flight turn green on
-    // it (spec 033 F5).
+    // Aiming: a flattened ring where the cast would land, green when Core says it would
+    // land on a fish shadow. While the power is live (motion aiming, a charging button
+    // run) the float's flight arcs onto it dashed from the rod tip (spec 033 F5, F5b).
     const live = !active ? preview.live : active.phase === 'charge';
-    const colour = live && aim.precise ? AIM.precise : AIM.ring;
+    const colour = aim.shadow ? AIM.onShadow : AIM.ring;
     this.marker.clear().setVisible(!cast);
     if (!cast) {
       if (live) {
-        this.marker
-          .fillStyle(AIM.zone.fill, 0.4)
-          .fillPoints(aim.zone.outline, true)
-          .lineStyle(2, AIM.zone.edge, 0.45)
-          .strokePoints(aim.zone.outline, true, true)
-          .lineStyle(3, colour, 0.9);
+        this.marker.lineStyle(3, colour, 0.9);
         for (let i = 0; i + 1 < aim.arc.length; i += 2)
           this.marker.lineBetween(
             aim.arc[i]!.x,
