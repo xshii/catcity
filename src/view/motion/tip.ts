@@ -1,6 +1,9 @@
 import { FISHING } from '../../content/fishing';
+import type { AnglingRun } from '../../minigames/angling';
 
 const G = FISHING.motion.gesture;
+const CENTRE = FISHING.motion.planeCentre;
+const REST_POWER = FISHING.input.maxPower / 2;
 type Tilt = { x: number; y: number };
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -13,13 +16,13 @@ const clamp = (value: number, min: number, max: number) =>
 export function createRodTip() {
   let zero: Tilt = { x: 0, y: 0 };
   // The calibrated pose is the centre, so the first reading eases in from there.
-  let smoothed: Tilt = { x: 50, y: 50 };
-  let power = 50;
+  let smoothed: Tilt = { ...CENTRE };
+  let power = REST_POWER;
   return {
     calibrate(pose: Tilt) {
       zero = { ...pose };
-      smoothed = { x: 50, y: 50 };
-      power = 50;
+      smoothed = { ...CENTRE };
+      power = REST_POWER;
     },
     point(tilt: Tilt): { x: number; y: number } {
       const target = {
@@ -58,7 +61,7 @@ export function createRodTip() {
  * which would skew the whole fight. A fight restored without a bite pose uses the current.
  */
 export function centreOnPhase(
-  phase: string | null,
+  phase: AnglingRun['phase'] | null,
   held: Tilt | null,
   pose: Tilt | null,
 ): { held: Tilt | null; centre: 'current' | Tilt | null } {

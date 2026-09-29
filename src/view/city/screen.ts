@@ -10,7 +10,12 @@ import {
 } from '../../content/city';
 import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
 import { onShore, samePosition, tileAt } from '../../core/city';
-import type { CatEntity, GameCommand, WorldState } from '../../core';
+import {
+  MAX_STAT,
+  type CatEntity,
+  type GameCommand,
+  type WorldState,
+} from '../../core';
 import type { CityView, CityViewEvent } from './view-state';
 
 const ROAD_NAMES = { DIRT: '土路', STONE: '石路' } as const;
@@ -131,7 +136,10 @@ function card(
     if (!cat) return null;
     button('city-cat-chat', '聊一会', { kind: 'talk' });
     if (cat.walk) wait();
-    return done(`${cat.name} · 体力 ${cat.needs.energy}/100`, walking(cat));
+    return done(
+      `${cat.name} · 体力 ${cat.needs.energy}/${MAX_STAT}`,
+      walking(cat),
+    );
   }
   if (selected.kind === 'water') {
     const { spotId } = selected;
@@ -168,7 +176,7 @@ function card(
     }
     if (cat.walk) wait();
     return done(
-      `${spot.name} · ${cat.name} ${cat.needs.energy}/100`,
+      `${spot.name} · ${cat.name} ${cat.needs.energy}/${MAX_STAT}`,
       !unlocked
         ? `${condition}猫只能在草地岸边钓鱼。`
         : arrived

@@ -2,7 +2,7 @@ import { BUILDINGS, CITY_START, WALK_MINUTES } from '../../content/city';
 
 const SLOWEST_STEP = Math.max(...Object.values(WALK_MINUTES));
 import { SPOT_IDS, spotOpen } from '../../content/fishing';
-import { onShore, samePosition, shoreTiles, tileAt } from './map';
+import { gridDistance, onShore, samePosition, shoreTiles, tileAt } from './map';
 import { connectedRoads, neighbors } from './path';
 import type { Position, WorldState } from '../schema';
 
@@ -100,9 +100,7 @@ export function assertCity(world: WorldState): void {
     for (const position of walk.route) {
       const key = `${position.x},${position.y}`;
       if (
-        Math.abs(previous.x - position.x) +
-          Math.abs(previous.y - position.y) !==
-          1 ||
+        gridDistance(previous, position) !== 1 ||
         tileAt(world.map, position)?.terrain !== 'GRASS' ||
         world.buildings.some((building) =>
           samePosition(building.position, position),

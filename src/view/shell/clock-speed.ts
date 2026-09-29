@@ -1,4 +1,5 @@
 import { CITY_TIME } from '../../content/city';
+import { readPref, savePref } from '../../platform/local-prefs';
 import type { PlaceState } from './place';
 
 export type ClockSpeed = (typeof CITY_TIME.speeds)[number];
@@ -16,12 +17,8 @@ export const nextClockSpeed = (speed: ClockSpeed): ClockSpeed =>
 export function readClockSpeed(
   storage: () => Pick<Storage, 'getItem'>,
 ): ClockSpeed {
-  try {
-    const stored = storage().getItem(SPEED_KEY);
-    return CITY_TIME.speeds.find((speed) => String(speed) === stored) ?? NORMAL;
-  } catch {
-    return NORMAL;
-  }
+  const stored = readPref(SPEED_KEY, storage);
+  return CITY_TIME.speeds.find((speed) => String(speed) === stored) ?? NORMAL;
 }
 
 /**
@@ -42,11 +39,7 @@ export function mountClockSpeed(place: PlaceState, button: HTMLButtonElement) {
   };
   const set = (next: ClockSpeed) => {
     speed = next;
-    try {
-      localStorage.setItem(SPEED_KEY, String(next));
-    } catch {
-      // Storage may be blocked; the speed still applies to this page.
-    }
+    savePref(SPEED_KEY, String(next));
     render();
   };
   button.addEventListener('click', () => set(nextClockSpeed(speed)));
