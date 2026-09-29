@@ -157,8 +157,21 @@ export function createCatCityAdapter(): GameAdapter {
         await reachWaterway(page);
         const arrived = await readWorld(page);
         assert.ok(arrived.minute > walkingFrom.minute);
+        // The walk costs one energy per tile; the waits may add idle recovery after it.
+        const from = walkingFrom.cats[0]!;
+        const to = arrived.cats[0]!;
+        const tiles =
+          Math.abs(to.position.x - from.position.x) +
+          Math.abs(to.position.y - from.position.y);
+        assert.ok(tiles > 0, 'the cat walked to the shore');
+        const recovered =
+          Math.ceil(
+            (arrived.minute - walkingFrom.minute) / CARE.recovery.tickMinutes,
+          ) * CARE.recovery.home;
         assert.ok(
-          arrived.cats[0]!.needs.energy < walkingFrom.cats[0]!.needs.energy,
+          to.needs.energy <=
+            Math.min(100, from.needs.energy - tiles + recovered),
+          `energy ${to.needs.energy} after at least ${tiles} tiles`,
         );
         await page.locator('#begin-fishing').click();
         await expect(page.locator('#cast-start')).toBeVisible();

@@ -28,7 +28,7 @@ export const ROAD_PRICE = {
   DIRT: CITY_COSTS.placeRoad,
   STONE: CITY_COSTS.placeRoad + CITY_COSTS.upgradeRoad,
 } as const;
-export const WALK_MINUTES = { GRASS: 10, DIRT: 5, STONE: 3 } as const;
+export const WALK_MINUTES = { GRASS: 6, DIRT: 3, STONE: 2 } as const;
 /**
  * Waiting on the action card, and the city clock speeds: game minutes per real second
  * while the page is in the foreground (tapping cycles through them).
