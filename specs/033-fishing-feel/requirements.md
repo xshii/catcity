@@ -59,4 +59,8 @@
 
 - [x] F1 画面：圈外缘随张力由金变红（CSS 变量 `--tension`）；预警与冲刺中提示"往回拉！"（`SCREEN_COPY.hint.pull`，由 `fishingScreen` 按下一 tick 的鱼判断）。
 - [ ] F1 画面：鱼影随累计进度靠近、变大。
-- [ ] F2–F5。
+- [x] F4 音效（2026-09-29，分支 `feat/sound`）：`view/fishing/sound.ts` 用 Web Audio 现场合成（正弦/三角波、滤波噪声、柔和包络，总音量 0.35 再经 4 kHz 低通，不引入音频文件与依赖）：甩竿呼声 + 0.45 秒后入水声、浮漂两下轻点（假咬口）、咬钩"噗"、收线嗡声（音高、音量与起伏随遛鱼进度：按钮局 `progress`，体感局 `hold / holdTarget`；暂停、离开河畔或关音效即停）、鱼线吃紧、上鱼水花 + 三音小钟、断线（`line-break`，两种模式）。哪次变化出哪个声音由纯函数 `soundCues(之前, 之后)`（`view/fishing/sound-cues.ts`）推导，只认同一竿内的变化，读档与刷新不重播；吃紧：按钮局张力越过安全上限，体感局拉锯张力每越过 25 一次。音频上下文在首次用户手势（pointerdown/pointerup/touchend/keydown）后才创建，页面隐藏时挂起；支持时设 `navigator.audioSession.type = 'ambient'` 跟随静音键；无 Web Audio 时全部静默。Phaser 仍关闭音频。
+  - 设置："钓具 → 补充 / 设置"震动开关旁的"音效：开/关"，默认开，按设备记住（`cat-city.sound`）。
+  - 测试：`tests/unit/fishing-sound.test.ts`（经 Core 的真实快照：钓到、按钮断线、体感假咬口与咬钩、体感张力台阶、未中与收竿无结束音、读档不重播；收线嗡声与设置文案）；E2E `fishing-scene.spec.ts` 用替身 AudioContext 验证手势前不创建、抛竿发声、关闭后刷新仍为关且不再创建上下文；`river-layout.spec.ts` 检查开关在屏内。
+  - 未做：iOS 用轻微震屏、闪光代替振动（F4 第 3 条；Android 沿用现有震动）；实际音色与音量需实机试听。
+- [ ] F2、F3、F5。

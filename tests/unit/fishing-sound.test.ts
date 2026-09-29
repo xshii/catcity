@@ -75,6 +75,23 @@ function toButtonFight(game: ReturnType<typeof listening>, runId: string) {
   }
   throw new Error('No fight reached');
 }
+/** Casts a motion run, waits through its nibbles for the bite and strikes it. */
+function toMotionFight(game: ReturnType<typeof listening>) {
+  const runId = begin(game, 'motion');
+  game.dispatch({ type: 'FISH_CAST', runId, power: 60 });
+  const schedule = motionSchedule(game.getSnapshot().fishing.active!);
+  for (let tick = 0; tick < schedule.bite; tick++)
+    game.dispatch({
+      type: 'FISH_MOTION_CONTROL',
+      runId,
+      x: 50,
+      y: 50,
+      ticks: 1,
+    });
+  game.dispatch({ type: 'FISH_STRIKE', runId });
+  expect(game.getSnapshot().fishing.active!.phase).toBe('fight');
+  return schedule;
+}
 const playing = (...events: FishingViewEvent[]) =>
   replay(
     initialFishingView({
@@ -111,27 +128,29 @@ describe('fishing sounds', () => {
 
   it('a motion run sounds every fake nibble, then the bite; a strike is silent', () => {
     const game = listening(fishingFixture(42));
-    const runId = begin(game, 'motion');
-    game.dispatch({ type: 'FISH_CAST', runId, power: 60 });
-    const { nibbles, bite } = motionSchedule(
-      game.getSnapshot().fishing.active!,
-    );
+    const { nibbles } = toMotionFight(game);
     expect(nibbles.length).toBeGreaterThan(0);
-    for (let tick = 0; tick < bite; tick++)
-      game.dispatch({
-        type: 'FISH_MOTION_CONTROL',
-        runId,
-        x: 50,
-        y: 50,
-        ticks: 1,
-      });
-    game.dispatch({ type: 'FISH_STRIKE', runId });
-    expect(game.getSnapshot().fishing.active!.phase).toBe('fight');
     expect(game.heard).toEqual([
       'cast',
       ...nibbles.map(() => 'nibble' as const),
       'bite',
     ]);
+  });
+
+  it('a motion fight strains each time its tug tension climbs past a step', () => {
+    const game = listening(fishingFixture(42));
+    toMotionFight(game);
+    const fishing = game.getSnapshot().fishing;
+    const at = (tension: number) => ({
+      ...fishing,
+      active: { ...fishing.active!, tension },
+    });
+    expect(soundCues(at(0), at(10))).toEqual([]);
+    expect(soundCues(at(20), at(26))).toEqual(['strain']);
+    expect(soundCues(at(26), at(34))).toEqual([]);
+    expect(soundCues(at(34), at(24))).toEqual([]);
+    expect(soundCues(at(24), at(25))).toEqual(['strain']);
+    expect(soundCues(at(70), at(82))).toEqual(['strain']);
   });
 
   it('a missed bite and a rod put away make no ending sound', () => {
@@ -191,18 +210,7 @@ describe('reeling hum', () => {
 
   it('follows the hold of a motion fight', () => {
     const game = listening(fishingFixture(42));
-    const runId = begin(game, 'motion');
-    game.dispatch({ type: 'FISH_CAST', runId, power: 60 });
-    const { bite } = motionSchedule(game.getSnapshot().fishing.active!);
-    for (let tick = 0; tick < bite; tick++)
-      game.dispatch({
-        type: 'FISH_MOTION_CONTROL',
-        runId,
-        x: 50,
-        y: 50,
-        ticks: 1,
-      });
-    game.dispatch({ type: 'FISH_STRIKE', runId });
+    toMotionFight(game);
     const run = game.getSnapshot().fishing.active!;
     const level = reelLevel(playing({ type: 'resume' }), run)!;
     expect(level).toBeGreaterThan(0);

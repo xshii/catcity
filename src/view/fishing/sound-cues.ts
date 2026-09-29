@@ -17,14 +17,17 @@ export const soundOn = (stored: string | null) => stored !== 'off';
 export const soundLabel = (supported: boolean, on: boolean) =>
   supported ? `音效：${on ? '开' : '关'}` : '此浏览器不支持音效';
 
+/** A motion fight's line sounds its strain each time its tension climbs past a step. */
+const STRAIN_STEP = 25;
 /**
- * The line is straining: the button fight's tension above its safe range, where the line
- * wears. Motion fights have no line tension yet (spec 033 F1 adds it).
+ * How strained the line is, in steps: a button fight is strained above its safe range,
+ * where the line wears; a motion fight by its tug-of-war tension (spec 033 F1).
  */
-const lineStrained = (run: AnglingRun | null) =>
-  run?.mode === 'buttons' &&
-  run.phase === 'fight' &&
-  run.tension > FISHING.fight.safeTension.max;
+const strainSteps = (run: AnglingRun) => {
+  if (run.phase !== 'fight') return 0;
+  if (run.mode === 'motion') return Math.floor(run.tension / STRAIN_STEP);
+  return run.tension > FISHING.fight.safeTension.max ? 1 : 0;
+};
 
 /**
  * The sounds one world change calls for, from the fishing state before and after it.
@@ -39,7 +42,7 @@ export function soundCues(previous: Fishing, next: Fishing): SoundCue[] {
     const nibble = motionNibble(run);
     if (nibble !== null && nibble !== motionNibble(before)) cues.push('nibble');
     if (before.phase !== 'hook' && run.phase === 'hook') cues.push('bite');
-    if (lineStrained(run) && !lineStrained(before)) cues.push('strain');
+    if (strainSteps(run) > strainSteps(before)) cues.push('strain');
   }
   const ended = next.lastResult;
   if (
