@@ -8,7 +8,7 @@ import {
   MAP_VIEW,
   tileCenter,
 } from '../../../src/view/city/geometry';
-import { measureBarInsets } from '../../../src/view/city/bars';
+import { BAR_SELECTORS, barInsets } from '../../../src/view/city/bars';
 
 /** Read-only observation works in test and in a production build without its bridge. */
 async function observeWorld(page: Page): Promise<WorldState> {
@@ -26,12 +26,18 @@ async function observeWorld(page: Page): Promise<WorldState> {
   });
 }
 
-const settle = (page: Page) =>
+/** Test builds draw at 15 fps (src/view/index.ts): wait out three game frames. */
+const SETTLE_MS = 3 * (1000 / 15);
+export const settle = (page: Page) =>
   page.evaluate(
-    () =>
+    (ms) =>
       new Promise((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        setTimeout(
+          () => requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ms,
+        ),
       ),
+    SETTLE_MS,
   );
 
 /**
@@ -53,7 +59,21 @@ export async function clickTile(page: Page, x: number, y: number) {
   const { map } = await observeWorld(page);
   const bounds = await page.locator('#game').boundingBox();
   if (!bounds) throw new Error('Map frame must have bounds');
-  const insets = await page.evaluate(measureBarInsets);
+  // Measured through Playwright rather than code sent into the page (production builds).
+  const spans = async (selector: string) => {
+    const boxes = [];
+    for (const bar of await page.locator(selector).all())
+      if (await bar.isVisible()) {
+        const box = (await bar.boundingBox())!;
+        boxes.push({ top: box.y, bottom: box.y + box.height });
+      }
+    return boxes;
+  };
+  const insets = barInsets(
+    { top: bounds.y, bottom: bounds.y + bounds.height },
+    await spans(BAR_SELECTORS.top),
+    await spans(BAR_SELECTORS.bottom),
+  );
   const band = {
     top: insets.top,
     bottom: bounds.height - insets.bottom,
