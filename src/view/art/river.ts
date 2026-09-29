@@ -4,6 +4,7 @@ import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { catArt } from './cat';
 import {
   castPreview,
+  flightPoint,
   planePoint,
   shadowPoint,
   showsShadows,
@@ -26,8 +27,8 @@ const ROD_TIP = { x: 372, y: 330 };
 const COMPANION = { x: 196, y: 560, scale: 1.7 };
 /** The aiming ring and its flight; greens mark where precise power lands, and a ring on it. */
 const AIM = 0xfff4c0;
-const PRECISE_BAND = 0x5f9c5a;
-const PRECISE_RING = 0x3d7a37;
+const PRECISE_ZONE = { fill: 0x7fa37a, edge: 0x557d51 };
+const PRECISE_RING = 0x4f7a4b;
 /** Fish shadow body length by size class, at the dock's scale. */
 const SHADOW_LENGTH = { small: 46, medium: 64, large: 88 } as const;
 
@@ -330,28 +331,23 @@ export class RiverView {
       active?.aimDepth ?? preview.aimDepth,
       // A charging button run previews its live power.
       active?.power ?? preview.power,
-      ROD_BASE,
+      ROD_TIP,
     );
     const land = aim.landing;
     // Aiming: a flattened ring where the cast would land. While the power is live (motion
-    // aiming, a charging button run) a dashed flight arcs onto it from the rod, over the
-    // green water where precise power lands; ring and flight turn green on it (spec 033 F5).
+    // aiming, a charging button run) the float's flight arcs onto it dashed from the rod
+    // tip, over the green zone where precise power lands; ring and flight turn green on
+    // it (spec 033 F5).
     const live = !active ? preview.live : active.phase === 'charge';
     const colour = live && aim.precise ? PRECISE_RING : AIM;
     this.marker.clear().setVisible(!cast);
     if (!cast) {
       if (live) {
-        // A strip of water a little narrower than the ring, so a ring on it shows.
-        const { low, high } = aim.band;
-        const half = (point: typeof low) => 24 * point.scale;
         this.marker
-          .fillStyle(PRECISE_BAND, 0.5)
-          .fillPoints([
-            { x: low.x - half(low), y: low.y },
-            { x: high.x - half(high), y: high.y },
-            { x: high.x + half(high), y: high.y },
-            { x: low.x + half(low), y: low.y },
-          ])
+          .fillStyle(PRECISE_ZONE.fill, 0.4)
+          .fillPoints(aim.zone.outline, true)
+          .lineStyle(2, PRECISE_ZONE.edge, 0.45)
+          .strokePoints(aim.zone.outline, true, true)
           .lineStyle(3, colour, 0.9);
         for (let i = 0; i + 1 < aim.arc.length; i += 2)
           this.marker.lineBetween(
@@ -363,7 +359,12 @@ export class RiverView {
       }
       this.marker
         .lineStyle(3, colour, 0.9)
-        .strokeEllipse(land.x, land.y, 56 * land.scale, 20 * land.scale)
+        .strokeEllipse(
+          land.x,
+          land.y,
+          V.ring.width * land.scale,
+          V.ring.height * land.scale,
+        )
         .lineStyle(2, colour, 0.9)
         .lineBetween(
           land.x,
@@ -387,16 +388,13 @@ export class RiverView {
           : 0;
     this.float.setVisible(cast);
     if (held) this.float.setPosition(held.x, held.y).setScale(held.scale);
-    else
+    else {
+      // The flight the aiming preview drew.
+      const flown = flightPoint(ROD_TIP, land, flight);
       this.float
-        .setPosition(
-          ROD_TIP.x + (land.x - ROD_TIP.x) * flight,
-          ROD_TIP.y +
-            (land.y - ROD_TIP.y) * flight -
-            Math.sin(flight * Math.PI) * 60 +
-            bob,
-        )
+        .setPosition(flown.x, flown.y + bob)
         .setScale(land.scale * (active?.phase === 'hook' ? 1.5 : 1));
+    }
     this.bite
       .setVisible(active?.phase === 'hook')
       .setPosition(land.x, land.y - 45 * land.scale);

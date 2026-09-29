@@ -5,6 +5,7 @@ import { shadowAt } from '../../src/core/fishing/shadows';
 import {
   aimAtPoint,
   castPreview,
+  flightPoint,
   landingShare,
   planePoint,
   shadowPoint,
@@ -118,9 +119,10 @@ it('puts a fight-plane point on the canvas where the overlay ring is drawn', () 
 });
 
 describe('the landing preview while aiming (spec 033 F5)', () => {
-  const ROD = { x: 430, y: V.size };
+  /** A rod tip over the water, as the river art has it. */
+  const TIP = { x: 372, y: 330 };
   const preview = (direction: number, depth: number, power: number) =>
-    castPreview(direction, depth, power, ROD);
+    castPreview(direction, depth, power, TIP);
   const on = (point: { x: number; y: number }) => ({
     x: expect.closeTo(point.x, 6),
     y: expect.closeTo(point.y, 6),
@@ -161,46 +163,73 @@ describe('the landing preview while aiming (spec 033 F5)', () => {
     expect(checked).toBeGreaterThan(0);
   });
 
-  it('draws a dashed flight from the rod that arcs above the water onto the ring', () => {
+  it('flies the float from the rod tip in an arc onto the landing', () => {
+    const landing = { x: 200, y: 400 };
+    expect(flightPoint(TIP, landing, 0)).toEqual(TIP);
+    expect(flightPoint(TIP, landing, 1)).toEqual(on(landing));
+    // Midway it rises above the straight line by the lift.
+    expect(flightPoint(TIP, landing, 0.5)).toEqual(
+      on({ x: 286, y: 365 - V.flight.lift }),
+    );
+  });
+
+  it('previews exactly the flight the float will take, dashed, from the tip onto the ring', () => {
     for (const direction of [-45, 0, 45])
       for (const power of [0, 50, 100]) {
         const { arc, landing } = preview(direction, 50, power);
-        expect(arc[0]).toEqual(on(ROD));
+        expect(arc[0]).toEqual(TIP);
         expect(arc.at(-1)).toEqual(on(landing));
         // Dash, gap, …, dash: an even number of points, so the last dash ends on the ring.
-        expect(arc).toHaveLength(2 * V.arc.dashes);
-        // It rises above the ring before coming down onto it, within the canvas.
-        expect(Math.min(...arc.map((point) => point.y))).toBeLessThan(
-          landing.y - 20,
+        expect(arc).toHaveLength(2 * V.flight.dashes);
+        arc.forEach((point, i) =>
+          expect(point).toEqual(
+            flightPoint(TIP, landing, i / (arc.length - 1)),
+          ),
         );
         for (const point of arc) {
           expect(point.y).toBeGreaterThan(V.horizonY);
-          expect(point.y).toBeLessThanOrEqual(V.size);
           expect(point.x).toBeGreaterThanOrEqual(0);
           expect(point.x).toBeLessThanOrEqual(V.size);
         }
       }
-    // More power flies farther up the water, and the flight follows the aim sideways.
+    // It follows the aim sideways and reaches farther with power.
+    expect(preview(-30, 50, 60).arc[12]!.x).toBeLessThan(
+      preview(30, 50, 60).arc[12]!.x,
+    );
     expect(preview(0, 50, 90).arc.at(-1)!.y).toBeLessThan(
       preview(0, 50, 20).arc.at(-1)!.y,
     );
-    expect(preview(-30, 50, 60).arc[10]!.x).toBeLessThan(
-      preview(30, 50, 60).arc[10]!.x,
-    );
   });
 
-  it('marks green the water where precise power lands, and says when the ring is on it', () => {
+  it('lays a rounded green zone, wider than the ring, where precise power lands', () => {
     const { maxDirection, maxDepth, maxPower } = FISHING.input;
     for (const direction of [-maxDirection, -20, 0, maxDirection])
       for (const depth of [0, 40, maxDepth]) {
         const at = (power: number) =>
           waterPoint(direction, landingShare(depth, power));
+        const { zone } = preview(direction, depth, 50);
+        expect(zone.low).toEqual(at(PRECISE.min));
+        expect(zone.high).toEqual(at(PRECISE.max));
+        // Across each end it is wider than the ring there, and it rounds off past it.
+        const xs = zone.outline.map((point) => point.x);
+        const ys = zone.outline.map((point) => point.y);
+        for (const end of [zone.low, zone.high]) {
+          const across = zone.outline
+            .filter((point) => Math.abs(point.y - end.y) < 1e-9)
+            .map((point) => point.x);
+          expect(Math.max(...across) - Math.min(...across)).toBeGreaterThan(
+            V.ring.width * end.scale,
+          );
+        }
+        expect(Math.max(...ys)).toBeGreaterThan(zone.low.y);
+        expect(Math.min(...ys)).toBeLessThan(zone.high.y);
+        expect(Math.min(...xs)).toBeGreaterThanOrEqual(0);
+        expect(Math.max(...xs)).toBeLessThanOrEqual(V.size);
         for (let power = 0; power <= maxPower; power++) {
-          const { band, landing, precise } = preview(direction, depth, power);
-          expect(band).toEqual({ low: at(PRECISE.min), high: at(PRECISE.max) });
-          // The green runs out along the aim; precise casts land on it, others do not.
+          const { landing, precise } = preview(direction, depth, power);
+          // Precise casts land on it, others do not.
           const onGreen =
-            landing.y <= band.low.y + 1e-9 && landing.y >= band.high.y - 1e-9;
+            landing.y <= zone.low.y + 1e-9 && landing.y >= zone.high.y - 1e-9;
           expect(onGreen).toBe(power >= PRECISE.min && power <= PRECISE.max);
           // The ring turns green exactly when Core would count the cast precise.
           expect(precise).toBe(precisePower(power));

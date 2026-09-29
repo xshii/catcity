@@ -21,12 +21,14 @@ export const WATER_VIEW = {
   aimSpread: 0.8,
   /** The motion fight plane: a square over the open water, as canvas shares. */
   plane: { left: 0.2, top: 0.25, side: 0.6 },
-  /**
-   * The aiming preview's flight (spec 033 F5): its dashes, and how far its top rises as a
-   * share of its climb up the screen.
-   */
-  arc: { dashes: 12, lift: 0.6 },
+  /** The aiming ring (width × height at the dock's scale), flattened by perspective. */
+  ring: { width: 56, height: 20 },
+  /** A cast's flight from the rod tip: how high it rises midway; its preview's dashes. */
+  flight: { lift: 60, dashes: 12 },
+  /** The precise zone (spec 033 F5): its width over the ring's; points per rounded end. */
+  zone: { widen: 1.25, capPoints: 9 },
 } as const;
+type Point = { x: number; y: number };
 
 const V = WATER_VIEW;
 const clamp = (value: number, min: number, max: number) =>
@@ -50,37 +52,53 @@ export function shadowPoint(direction: number, reach: number) {
 }
 
 /**
+ * Where a cast's float is `t` (0 the rod tip … 1 the landing) into its flight. The float
+ * flies this path when cast, and the aiming preview draws it dashed (spec 033 F5).
+ */
+export function flightPoint(tip: Point, landing: Point, t: number): Point {
+  return {
+    x: tip.x + (landing.x - tip.x) * t,
+    y: tip.y + (landing.y - tip.y) * t - Math.sin(t * Math.PI) * V.flight.lift,
+  };
+}
+
+/**
  * The aiming preview (spec 033 F5): the ring where this aim and power land (the mapping
- * the shadows use, so a ring on a shadow is a cast Core finds on it), the dashed flight
- * arcing onto it `from` the rod, the green stretch of water where precise power lands
- * at this aim, and whether this power is precise (Core's rule).
+ * the shadows use, so a ring on a shadow is a cast Core finds on it), the float's flight
+ * onto it from the rod `tip`, the green zone of water where precise power lands at this
+ * aim, and whether this power is precise (Core's rule).
  */
 export function castPreview(
   direction: number,
   aimDepth: number,
   power: number,
-  from: { x: number; y: number },
+  tip: Point,
 ) {
   const landing = waterPoint(direction, landingShare(aimDepth, power));
-  const top = V.arc.lift * (from.y - landing.y);
   // Dash, gap, …, dash: the last dash ends on the ring.
-  const steps = 2 * V.arc.dashes - 1;
-  const arc = Array.from({ length: steps + 1 }, (_, i) => {
-    const t = i / steps;
-    return {
-      x: from.x + (landing.x - from.x) * t,
-      y: from.y + (landing.y - from.y) * t - 4 * t * (1 - t) * top,
-    };
-  });
+  const steps = 2 * V.flight.dashes - 1;
   const { min, max } = FISHING.cast.precisionPower;
+  const low = waterPoint(direction, landingShare(aimDepth, min));
+  const high = waterPoint(direction, landingShare(aimDepth, max));
+  // Each end rounds off like the flattened ring: the near end bulges down, the far up.
+  const cap = (end: typeof low, bulge: 1 | -1) => {
+    const across = (V.ring.width / 2) * V.zone.widen * end.scale;
+    const deep = across * (V.ring.height / V.ring.width);
+    return Array.from({ length: V.zone.capPoints }, (_, i) => {
+      const angle = (Math.PI * i) / (V.zone.capPoints - 1);
+      return {
+        x: end.x - bulge * across * Math.cos(angle),
+        y: end.y + bulge * deep * Math.sin(angle),
+      };
+    });
+  };
   return {
     landing,
-    /** Dash from each even point to the next. */
-    arc,
-    band: {
-      low: waterPoint(direction, landingShare(aimDepth, min)),
-      high: waterPoint(direction, landingShare(aimDepth, max)),
-    },
+    /** The flight, dashed from each even point to the next. */
+    arc: Array.from({ length: steps + 1 }, (_, i) =>
+      flightPoint(tip, landing, i / steps),
+    ),
+    zone: { low, high, outline: [...cap(low, 1), ...cap(high, -1)] },
     precise: precisePower(power),
   };
 }
