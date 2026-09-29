@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CITY_START } from '../../src/content/city';
 import { $, click, openGame, text, visible } from '../helpers/view-rig';
 
 describe('city panels', () => {
@@ -56,5 +57,82 @@ describe('city panels', () => {
     click('#begin-fishing');
     expect($('#visit-river').getAttribute('aria-pressed')).toBe('true');
     expect(visible('#invite-pepper')).toBe(false);
+  });
+
+  // In the browser the clock changes the world every second (pages.spec.ts lost its
+  // click to a card rebuilt under it); a player's tap spans press and release.
+  describe('the action card keeps its buttons', () => {
+    const buttons = () =>
+      Array.from(
+        document.querySelectorAll<HTMLButtonElement>(
+          '#city-action-buttons button',
+        ),
+      );
+    const tick = (game: ReturnType<typeof openGame>) =>
+      expect(
+        game.session.execute({ type: 'ADVANCE_TIME', minutes: 1 }).ok,
+      ).toBe(true);
+    /** The guide selects the plot it recommends. */
+    const openPlot = () => {
+      click('#city-tab-guide');
+      click('#city-action');
+      expect(buttons().map((button) => button.id)).toEqual([
+        'build-cat_cafe',
+        'build-cat_apartment',
+        'place-road',
+      ]);
+    };
+
+    it('through clock ticks that do not change the card', () => {
+      const game = openGame();
+      openPlot();
+      const before = buttons();
+      before[1]!.focus();
+      for (let second = 0; second < 5; second++) tick(game);
+      expect(game.world().minute).toBeGreaterThan(CITY_START.minute);
+      const after = buttons();
+      expect(after).toHaveLength(before.length);
+      after.forEach((button, index) => expect(button).toBe(before[index]));
+      expect(before.every((button) => button.isConnected)).toBe(true);
+      expect(document.activeElement).toBe(before[1]);
+      // The kept buttons still work.
+      click('#build-cat_apartment');
+      expect(game.world().buildings).toHaveLength(1);
+    });
+
+    it('and updates them in place when only a label or a reason changes', () => {
+      const game = openGame();
+      openPlot();
+      click('#build-cat_apartment');
+      expect(buttons().map((button) => button.id)).toEqual([
+        'move-building',
+        'assign-home-mochi',
+      ]);
+      const [move, moveIn] = buttons();
+      expect(moveIn!.disabled).toBe(false);
+      click('#assign-home-mochi');
+      // Mochi lives here now: the same button, disabled, with its reason.
+      expect(buttons()).toEqual([move, moveIn]);
+      expect(buttons()[1]).toBe(moveIn);
+      expect(moveIn!.disabled).toBe(true);
+      expect(moveIn!.isConnected).toBe(true);
+      expect(text('#city-action-reason')).not.toBe('');
+      tick(game);
+      expect(buttons()[1]).toBe(moveIn);
+    });
+
+    it('and shows other buttons for another card, each doing its own work', () => {
+      const game = openGame();
+      openPlot();
+      const plot = buttons();
+      click('#build-cat_cafe');
+      expect(buttons().map((button) => button.id)).toEqual(['move-building']);
+      expect(plot.every((button) => !button.isConnected)).toBe(true);
+      expect(game.world().buildings.map((building) => building.type)).toEqual([
+        'CAT_CAFE',
+      ]);
+      click('#cancel-city-action');
+      expect(visible('#city-action-card')).toBe(false);
+    });
   });
 });
