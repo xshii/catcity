@@ -3,6 +3,7 @@ import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { CatArt } from './cat';
 import { catPose } from './cat-look';
+import { rodPose, rodShape, rodStance, type RodStance } from './rod-pose';
 import {
   castPreview,
   flightPoint,
@@ -116,6 +117,12 @@ export class RiverView {
   private fishShadow: Phaser.GameObjects.Graphics;
   private bite: Phaser.GameObjects.Text;
   private rod: Phaser.GameObjects.Graphics;
+  /** The rod's lifting motion (spec 033 F6): its stance, since when, from what lift. */
+  private lift = { stance: 'rest' as RodStance, since: 0, from: 0, pull: 0 };
+  /** The run last seen active: only its catch is landed. */
+  private watched: string | null = null;
+  /** The fishing line from the rod tip to the float, while one is cast. */
+  private line: { width: number; colour: number } | null = null;
   private companion: CatArt;
   private coat = 'cream';
   private waterKind: SpotId = 'POND';
@@ -196,7 +203,10 @@ export class RiverView {
         yoyo: true,
         repeat: -1,
       });
-    const animate = (time: number) => this.animateWater(time);
+    const animate = (time: number) => {
+      this.animateWater(time);
+      if (this.root.visible) this.drawRod(time);
+    };
     scene.events.on('update', animate);
     scene.events.once('shutdown', () => scene.events.off('update', animate));
   }
@@ -584,21 +594,54 @@ export class RiverView {
         .setScale(fish.scale)
         .setAlpha(far + (near - far) * fish.near);
     }
-    this.rod
-      .clear()
-      .lineStyle(5, ROD)
-      .lineBetween(ROD_BASE.x, ROD_BASE.y, ROD_TIP.x, ROD_TIP.y);
-    if (cast)
-      this.rod
-        .lineStyle(
-          active.phase === 'fight' ? 2 : 1,
+    const now = this.scene.time.now;
+    const stance = rodStance(world.fishing, this.watched);
+    if (stance !== this.lift.stance)
+      this.lift = {
+        ...this.lift,
+        stance,
+        since: now,
+        from: this.rodPose(now).lift,
+      };
+    if (active) this.watched = active.id;
+    // The rod bends with the line tension (a motion fight's dash pull).
+    if (active?.phase === 'fight') this.lift.pull = active.tension / 100;
+    this.line = cast
+      ? {
+          width: active.phase === 'fight' ? 2 : 1,
           // Only the button flow has line tension to warn about.
-          active.mode === 'buttons' &&
+          colour:
+            active.mode === 'buttons' &&
             (active.tension > 85 || active.tension < 15)
-            ? LINE.tight
-            : LINE.colour,
-          0.9,
-        )
-        .lineBetween(ROD_TIP.x, ROD_TIP.y, this.float.x, this.float.y - 4);
+              ? LINE.tight
+              : LINE.colour,
+        }
+      : null;
+    this.drawRod(now);
+  }
+
+  private rodPose(time: number) {
+    return rodPose(
+      { ...this.lift, ms: time - this.lift.since },
+      this.reducedMotion,
+    );
+  }
+
+  /** The rod in its pose at `time`, and the line from its tip to the float. */
+  private drawRod(time: number) {
+    const points = rodShape(this.rodPose(time), ROD_BASE, ROD_TIP, this.float);
+    this.rod.clear().lineStyle(5, ROD);
+    for (let i = 1; i < points.length; i++)
+      this.rod.lineBetween(
+        points[i - 1]!.x,
+        points[i - 1]!.y,
+        points[i]!.x,
+        points[i]!.y,
+      );
+    const tip = points.at(-1)!;
+    if (this.line)
+      this.rod
+        .lineStyle(this.line.width, this.line.colour, 0.9)
+        .lineBetween(tip.x, tip.y, this.float.x, this.float.y - 4);
   }
 }
