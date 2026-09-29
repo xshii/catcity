@@ -166,6 +166,8 @@ function createSynth(context: AudioContext) {
       tone(at, 0.16, 0.2, 380, 110);
       noise(at, 0.12, 0.07, 'lowpass', 900, 200);
     },
+    // The hook sets quietly: the reeling hum starts instead.
+    strike: () => {},
     // The line sings: two close tones beat against each other.
     strain: (at) => {
       tone(at, 0.35, 0.035, 620, 700, 'triangle');
