@@ -51,7 +51,7 @@
   --focus-ring: #b36a45;
 
   /* Feedback on the water (the ring's tension mix stays red over gold) */
-  --good: #5f9c5a;
+  --good: var(--sage);
   --alert: #d9644c;
   --alert-soft: #e3a58f;
   --accent-strong: #e0a068;

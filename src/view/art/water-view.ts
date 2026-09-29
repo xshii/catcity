@@ -27,6 +27,11 @@ export const WATER_VIEW = {
   flight: { lift: 60, dashes: 12 },
   /** The precise zone (spec 033 F5): its width over the ring's; points per rounded end. */
   zone: { widen: 1.25, capPoints: 9 },
+  /**
+   * A button fight's hooked fish: below and behind the float, swaying (at the dock's
+   * scale), and at full progress `approach` of the way from there to the dock.
+   */
+  hooked: { below: 24, behind: 20, sway: 16, approach: 0.35 },
 } as const;
 type Point = { x: number; y: number };
 
@@ -126,6 +131,27 @@ export function planePoint(point: { x: number; y: number }) {
     x: V.size * (left + (side * point.x) / 100),
     y,
     scale: depthScale((V.nearY - y) / (V.nearY - V.horizonY)),
+  };
+}
+
+/**
+ * A button fight's hooked fish under the float `landing` (spec 033 F1): it sways as it
+ * pulls, and as the fight's `progress` (0–100) fills it grows and swims part of the way
+ * to the dock, so it looks closer; `near` (0–1) is how far along that is.
+ */
+export function hookedFish(
+  landing: { x: number; y: number; scale: number },
+  progress: number,
+  tick: number,
+) {
+  const { below, behind, sway, approach } = V.hooked;
+  const near = clamp(progress / 100, 0, 1);
+  const y = landing.y + below * landing.scale;
+  return {
+    x: landing.x - behind * landing.scale + Math.sin(tick / 10) * sway,
+    y: y + Math.max(0, V.nearY - y) * approach * near,
+    scale: landing.scale * (1 + near),
+    near,
   };
 }
 

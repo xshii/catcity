@@ -170,8 +170,9 @@ const { tiltRangeDeg } = FISHING.motion.gesture;
  * Tilt the rod tip over the fish as drawn until the run ends. The fight centres the tip
  * on the pose held at the bite, here level.
  */
-export function followFish(game: Game) {
+export function followFish(game: Game, eachTick?: () => void) {
   for (let i = 0; i < 800 && game.world().fishing.active; i++) {
+    eachTick?.();
     const fish = $('#motion-fish').style;
     const x = ((parseFloat(fish.left) - 50) / 50) * tiltRangeDeg;
     const y = ((parseFloat(fish.top) - 50) / 50) * tiltRangeDeg;

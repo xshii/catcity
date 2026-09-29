@@ -6,6 +6,7 @@ import {
   aimAtPoint,
   castPreview,
   flightPoint,
+  hookedFish,
   landingShare,
   planePoint,
   shadowPoint,
@@ -99,6 +100,54 @@ it('keeps the fish shadows in the water until a fish is hooked', () => {
     expect(showsShadows({ phase })).toBe(true);
   // The fight shows the hooked fish instead.
   expect(showsShadows({ phase: 'fight' })).toBe(false);
+});
+
+describe('the hooked fish of a button fight (spec 033 F1)', () => {
+  const tick = 7;
+  it('sways below the float and, as the fight fills, grows and comes toward the dock', () => {
+    for (const share of [V.reach.near, 0.5, V.reach.far]) {
+      const landing = waterPoint(20, share);
+      const start = hookedFish(landing, 0, tick);
+      expect(start).toMatchObject({ scale: landing.scale, near: 0 });
+      expect(start.y).toBeCloseTo(landing.y + V.hooked.below * landing.scale);
+      let last = start;
+      for (let progress = 10; progress <= 100; progress += 10) {
+        const fish = hookedFish(landing, progress, tick);
+        expect(fish.x).toBe(start.x);
+        expect(fish.y).toBeGreaterThanOrEqual(last.y);
+        expect(fish.scale).toBeGreaterThan(last.scale);
+        expect(fish.near).toBeCloseTo(progress / 100);
+        last = fish;
+      }
+      // At the end it has come part of the way, and stays on the water.
+      expect(last.scale).toBeCloseTo(2 * landing.scale);
+      expect(last.y).toBeLessThan(V.nearY);
+      if (start.y < V.nearY)
+        expect(last.y).toBeCloseTo(
+          start.y + (V.nearY - start.y) * V.hooked.approach,
+        );
+    }
+  });
+
+  it('keeps out-of-range progress within the fight', () => {
+    const landing = waterPoint(0, 0.5);
+    expect(hookedFish(landing, -20, tick)).toEqual(
+      hookedFish(landing, 0, tick),
+    );
+    expect(hookedFish(landing, 140, tick)).toEqual(
+      hookedFish(landing, 100, tick),
+    );
+  });
+
+  it('sways side to side with the fight tick only', () => {
+    const landing = waterPoint(0, 0.5);
+    const xs = [0, 8, 16, 24].map((t) => hookedFish(landing, 50, t).x);
+    expect(new Set(xs).size).toBe(xs.length);
+    for (const x of xs)
+      expect(
+        Math.abs(x - (landing.x - V.hooked.behind * landing.scale)),
+      ).toBeLessThanOrEqual(V.hooked.sway);
+  });
 });
 
 it('puts a fight-plane point on the canvas where the overlay ring is drawn', () => {

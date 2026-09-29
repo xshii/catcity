@@ -150,9 +150,14 @@ export function mountFishingStage(
       const clock = toViewModel(world, selected);
       $('river-clock').textContent = `第 ${clock.day} 天 · ${clock.time}`;
       $('river-place').textContent = SPOTS[run?.spotId ?? spot].name;
-      // The page continues the art of the water shown around it.
+      // The page continues the art of the water shown around it, in the hour's light.
       stage.style.background =
-        place.get() === 'river' ? riverBackdrop(run?.spotId ?? spot) : '';
+        place.get() === 'river'
+          ? riverBackdrop(
+              run?.spotId ?? spot,
+              Math.floor(world.minute / 60) % 24,
+            )
+          : '';
       $('river-tip').textContent = run
         ? {
             charge: '按住鱼竿蓄力，松开抛投',

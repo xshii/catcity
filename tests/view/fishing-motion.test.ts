@@ -60,6 +60,28 @@ describe('motion fishing', () => {
     backToCity();
   });
 
+  it('the hooked fish looks nearer as the hold fills (spec 033 F1)', () => {
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    swing();
+    toBite(game);
+    game.wait(G.liftCooldownMs);
+    lift();
+    const near: number[] = [];
+    followFish(game, () => {
+      if (game.world().fishing.active?.phase !== 'fight') return;
+      // The overlay scales the fish by how full the hold is: the progress bar's share.
+      const shown = Number($('#motion-fish').style.getPropertyValue('--near'));
+      const bar = $<HTMLProgressElement>('#motion-hold').value;
+      expect(Math.abs(shown * 100 - bar)).toBeLessThanOrEqual(0.5);
+      near.push(shown);
+    });
+    expect(game.world().fishing.lastResult!.caught).toBe(true);
+    expect(Math.min(...near)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...near)).toBeLessThanOrEqual(1);
+    expect(near.at(-1)!).toBeGreaterThan(near[0]! + 0.5);
+  });
+
   it('players can switch back to the frozen button flow on this device', () => {
     const game = openGame({ storage: SEASONED });
     inMotionRiver(game);
