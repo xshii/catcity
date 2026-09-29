@@ -26,19 +26,20 @@ async function observeWorld(page: Page): Promise<WorldState> {
   });
 }
 
-/** Test builds draw at 15 fps (src/view/index.ts): wait out three game frames. */
-const SETTLE_MS = 3 * (1000 / 15);
-export const settle = (page: Page) =>
-  page.evaluate(
-    (ms) =>
-      new Promise((resolve) =>
-        setTimeout(
-          () => requestAnimationFrame(() => requestAnimationFrame(resolve)),
-          ms,
-        ),
-      ),
-    SETTLE_MS,
-  );
+/**
+ * Wait until the game has drawn three more frames, so scene switches and camera moves
+ * have applied before the canvas is read. Counts the scene's own frames (`data-frame`
+ * on the canvas), so a slow or busy machine waits longer instead of reading a stale view.
+ */
+export async function settle(page: Page) {
+  const canvas = page.locator('#game canvas');
+  const drawn = async () =>
+    Number(await canvas.getAttribute('data-frame')) || 0;
+  const start = await drawn();
+  await expect
+    .poll(drawn, { timeout: 5_000, intervals: [20] })
+    .toBeGreaterThanOrEqual(start + 3);
+}
 
 /**
  * How far the floating bars reach over the map frame, measured through Playwright rather
