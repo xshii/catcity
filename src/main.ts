@@ -3,7 +3,7 @@ import { RuleBasedDialogueProvider } from './providers/rule-dialogue';
 import { BrowserSaveRepository, SAVE_KEY } from './platform/storage';
 import { STARTER_CAT_ID } from './content/cats';
 import { mountGameView } from './view';
-import { startDeviceLog } from './platform/device-log';
+import { commandLogEntry, startDeviceLog } from './platform/device-log';
 
 const initialSeed =
   import.meta.env.MODE === 'test'
@@ -31,7 +31,7 @@ function deviceLog() {
 }
 const trace = deviceLog();
 if (trace) {
-  // Each command notifies once; the per-tick fishing controls only when they change play.
+  // Each command is logged once, however often the session notifies.
   let logged = -1;
   session.subscribe(() => {
     const entry = session.lastCommand();
@@ -39,29 +39,8 @@ if (trace) {
     if (!entry) logged = -1;
     if (!entry || entry.sequence === logged) return;
     logged = entry.sequence;
-    const { command, result } = entry;
-    const tick =
-      command.type === 'FISH_CONTROL' || command.type === 'FISH_MOTION_CONTROL';
-    // Every tick reports a 'control' change; only phase changes matter here.
-    const phaseChange = result.ok
-      ? result.events.some(
-          (event) =>
-            event.type !== 'FishingChanged' || event.action !== 'control',
-        )
-      : true;
-    if (tick && !phaseChange) return;
-    trace('command', {
-      // Chat text stays on the device; the log keeps only who was talked to.
-      command: tick
-        ? command.type
-        : command.type === 'INTERACT'
-          ? { type: command.type, catId: command.catId }
-          : command,
-      ...(result.ok
-        ? { ok: true, events: result.events }
-        : { ok: false, error: result.error }),
-      run: session.getSnapshot().fishing.active,
-    });
+    const data = commandLogEntry(entry, session.getSnapshot().fishing.active);
+    if (data) trace('command', data);
   });
 }
 const view = mountGameView(session, trace ?? (() => {}));

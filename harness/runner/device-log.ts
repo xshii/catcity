@@ -7,6 +7,8 @@ import { z } from 'zod';
 /** Where a device that opted in posts its log batches (relative to the page). */
 const DEVICE_LOG_ROUTE = '/__device-log';
 const MAX_BODY_BYTES = 512 * 1024;
+/** Entries one request may carry. */
+const MAX_BATCH_ENTRIES = 10_000;
 /** One page session never grows past this; a runaway page cannot fill the disk. */
 const MAX_SESSION_BYTES = 20 * 1024 * 1024;
 /** Nor can many sessions: the whole log folder stops growing here. */
@@ -17,7 +19,7 @@ const batchSchema = z.object({
   dropped: z.number().int().min(0).optional(),
   entries: z
     .array(z.looseObject({ kind: z.string().min(1).max(40) }))
-    .max(10_000),
+    .max(MAX_BATCH_ENTRIES),
 });
 
 async function readBody(request: IncomingMessage): Promise<string | null> {
@@ -31,7 +33,7 @@ async function readBody(request: IncomingMessage): Promise<string | null> {
   return size > MAX_BODY_BYTES ? null : Buffer.concat(chunks).toString('utf8');
 }
 
-/** Bytes already logged in the folder, read once when the receiver starts writing. */
+/** Bytes already logged in the folder, read once when the receiver first checks the limit. */
 async function folderBytes(directory: string) {
   const files = await readdir(directory).catch(() => []);
   const sizes = await Promise.all(
@@ -56,7 +58,17 @@ export function createDeviceLogHandler(
 ) {
   const now = options.now ?? (() => new Date());
   const maxTotal = options.maxTotalBytes ?? MAX_TOTAL_BYTES;
+  /** The folder's bytes with every accepted batch counted; each check chains on the last. */
   let used: Promise<number> | null = null;
+  /** Counts `bytes` against the folder limit when they fit; one check at a time. */
+  const reserve = (bytes: number) => {
+    const check = (used ?? folderBytes(directory)).then((total) => ({
+      total,
+      fits: total + bytes <= maxTotal,
+    }));
+    used = check.then(({ total, fits }) => (fits ? total + bytes : total));
+    return check.then(({ fits }) => fits);
+  };
   return async (request: IncomingMessage, response: ServerResponse) => {
     const answer = (status: number) => response.writeHead(status).end();
     if (request.method !== 'POST') return answer(405);
@@ -71,7 +83,6 @@ export function createDeviceLogHandler(
     const received = now().toISOString();
     const file = join(directory, `${batch.session}.jsonl`);
     await mkdir(directory, { recursive: true });
-    used ??= folderBytes(directory);
     const size = await stat(file).then(
       (info) => info.size,
       () => 0,
@@ -84,9 +95,7 @@ export function createDeviceLogHandler(
       .join('');
     const bytes = Buffer.byteLength(lines);
     if (size + bytes > MAX_SESSION_BYTES) return answer(413);
-    const total = await used;
-    if (total + bytes > maxTotal) return answer(507);
-    used = Promise.resolve(total + bytes);
+    if (!(await reserve(bytes))) return answer(507);
     await appendFile(file, lines);
     answer(204);
   };

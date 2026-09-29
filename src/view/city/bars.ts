@@ -1,21 +1,34 @@
+/** The floating bars over the city map (spec 031): scene bar and hint, tool bar and card. */
+export const BAR_SELECTORS = {
+  top: '#map-heading, .city-map-hint',
+  bottom: '#city-tools-nav, #city-action-card',
+} as const;
+
+interface Span {
+  top: number;
+  bottom: number;
+}
+
 /**
- * How far the floating bars reach over the city map frame (#game), in CSS px (spec 031):
- * the scene bar and the next-step hint at the top, the tool bar and an open action card
- * at the bottom. The camera keeps the board between them.
- *
- * Self-contained on purpose: the harness passes this very function to `page.evaluate`, so
- * real clicks aim with the same insets the scene frames with, even in production builds.
+ * How far the bars reach over the map frame, in CSS px; the camera keeps the board
+ * between them. Pure, so the scene and the harness's real clicks share it.
  */
-export function measureBarInsets(): { top: number; bottom: number } {
-  const game = document.getElementById('game')!.getBoundingClientRect();
-  const covered = (selector: string) =>
+export function barInsets(frame: Span, top: Span[], bottom: Span[]) {
+  return {
+    top: Math.max(0, ...top.map((bar) => bar.bottom - frame.top)),
+    bottom: Math.max(0, ...bottom.map((bar) => frame.bottom - bar.top)),
+  };
+}
+
+/** The insets of the bars shown now. */
+export function measureBarInsets() {
+  const shown = (selector: string) =>
     Array.from(document.querySelectorAll<HTMLElement>(selector))
       .filter((element) => element.offsetParent !== null)
       .map((element) => element.getBoundingClientRect());
-  const top = covered('#map-heading, .city-map-hint');
-  const bottom = covered('#city-tools-nav, #city-action-card');
-  return {
-    top: Math.max(0, ...top.map((box) => box.bottom - game.top)),
-    bottom: Math.max(0, ...bottom.map((box) => game.bottom - box.top)),
-  };
+  return barInsets(
+    document.getElementById('game')!.getBoundingClientRect(),
+    shown(BAR_SELECTORS.top),
+    shown(BAR_SELECTORS.bottom),
+  );
 }
