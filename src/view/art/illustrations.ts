@@ -1,4 +1,10 @@
 import type { FishId } from '../../content/fishing';
+import {
+  colourOf,
+  portraitShapes,
+  type CatCoat,
+  type CatPose,
+} from './cat-look';
 
 /** Inline SVG illustrations for DOM cards; colors are art, not game data. */
 const FISH_COLORS: Record<FishId, string> = {
@@ -20,7 +26,16 @@ export function fishIllustration(id: FishId): string {
 export function fishShadow(): string {
   return `<svg viewBox="10 5 140 80" aria-hidden="true"><path d="M52 43L16 18Q24 43 16 68L52 48" fill="#2f4a44"/><ellipse cx="99" cy="44" rx="53" ry="27" fill="#2f4a44"/><circle cx="131" cy="36" r="4" fill="#fffdf4" opacity=".8"/></svg>`;
 }
-export function catPortrait(coat: 'cream' | 'gray'): string {
-  const color = coat === 'cream' ? '#efdbb2' : '#bbc3c7';
-  return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 31L10 9l17 12h10L54 9l-2 22" fill="${color}"/><ellipse cx="32" cy="35" rx="23" ry="20" fill="${color}"/><path d="M15 26l-2-12 10 9M41 23l10-9-2 12" fill="#d7aba0"/><circle cx="23" cy="34" r="2" fill="#506054"/><circle cx="41" cy="34" r="2" fill="#506054"/><path d="M29 40h6l-3 4z" fill="#af857a"/><path d="M28 47l4-3 4 3" stroke="#8c8070" fill="none"/></svg>`;
+/** A cat's head as its pose shows it (style board 猫咪表情); the words live beside it. */
+export function catPortrait(coat: CatCoat, pose: CatPose): string {
+  const shapes = portraitShapes(pose).map((shape) => {
+    const fill = shape.fill ? colourOf(shape.fill, coat) : 'none';
+    const stroke = shape.stroke
+      ? ` stroke="${colourOf(shape.stroke, coat)}" stroke-width="${shape.width ?? 2}" stroke-linecap="round" stroke-linejoin="round"`
+      : '';
+    if (!shape.ellipse) return `<path d="${shape.d}" fill="${fill}"${stroke}/>`;
+    const [cx, cy, rx, ry] = shape.ellipse;
+    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}"${stroke}/>`;
+  });
+  return `<svg viewBox="4 0 64 64" aria-hidden="true">${shapes.join('')}</svg>`;
 }

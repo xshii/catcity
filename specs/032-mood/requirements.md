@@ -49,4 +49,5 @@
 - [x] 规则对话闲聊按档位换语气，事实回忆不变（`providers/rule-dialogue.ts`）。
 - [x] 测试：`tests/unit/mood.test.ts`（每条变化与边界、分块等价、被拒命令、开心标记与加成）；`tests/simulation/invariants.test.ts`（心情界内、只有声明的命令能改心情、随机序列覆盖漂移升降/聊天/鱼跑了；钓到与送礼由单测覆盖）；`tests/simulation/fight-balance.test.ts`（开心不变难、新手 4–5★ ≤15%、老练提升 ≤10 个百分点）；`tests/integration/rule-dialogue.test.ts`、`legacy-saves.test.ts`。
 - [x] 界面（2026-09-29，分支 `feat/mood-ui`）：`view/shell/mood.ts` 的 `MOOD_COPY` 与纯函数 `moodBadge`（档位 → 表情、文字、aria-label、开心提示）、`moodNote`（前后快照档位变了才返回一句）；名册卡（`view/fishing/stage.ts`）与「说说话」头部 `#mood`（`toViewModel`）显示档位；一竿结束的变化在结果卡与 `#fish-result` 末尾，送礼在提示末尾。单测 `tests/unit/mood-view.test.ts`；E2E 冒烟并入 `river-layout.spec.ts` 的猫咪面板检查（新猫平静、鱼篓存档里开心并显示提示）。
+- [x] 猫咪表情（2026-09-29，分支 `style/cat-moods`）：纯函数 `view/art/cat-look.ts` 的 `catPose`（档位 → 表情与耳朵，空闲恢复体力时蜷睡）；Phaser `CatArt.setPose` 用于城市每只猫与河畔陪伴猫，待机呼吸、眨眼、摇尾，屏幕外暂停、减少动态效果时静止；名册头像 `catPortrait` 同一套形状，蜷睡头像代替 zZ，读屏读"在休息"。单测 `tests/unit/cat-look.test.ts`；E2E `fishing-scene.spec.ts` 的恢复标记改查名册卡的可访问名称。
 - 待确认：熟练玩家 5★ 在开心时从 35% 升到 73%（半径 +1 对最小 9 的鱼圈影响明显）；新手 4★ 从 5% 到 13%。验收只约束了新手与老练，是否需要缩小体感加成由用户决定。

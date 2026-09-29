@@ -49,7 +49,9 @@ test('scene input aims at water, cat cards switch independent stamina, and idle 
   );
   // Nothing to press: an idle, tired cat shows that it is recovering.
   await openCats(page);
-  await expect(page.locator('[data-cat-id="mochi"] .sleep-mark')).toBeVisible();
+  await expect(page.locator('[data-cat-id="mochi"]')).toHaveAccessibleName(
+    /在休息/,
+  );
   await page.locator('#invite-pepper').click();
   const pepper = (await readWorld(page)).cats[1]!;
   await page.locator(`[data-cat-id="${pepper.id}"]`).click();
@@ -317,7 +319,7 @@ test('city clock updates preserve the focused cat card and render fixture names 
   await card.focus();
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(10));
   await expect(card).toBeFocused();
-  await expect(card.locator('.sleep-mark')).toBeVisible();
+  await expect(card).toHaveAccessibleName(/在休息/);
   await expect(card.locator('progress')).toHaveJSProperty(
     'value',
     tired + CARE.recovery.idle,

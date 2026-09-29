@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
-import { catArt } from './cat';
+import { CatArt } from './cat';
+import { catPose } from './cat-look';
 import {
   landingShare,
   planePoint,
@@ -43,7 +44,7 @@ export class RiverView {
   private fishShadow: Phaser.GameObjects.Graphics;
   private bite: Phaser.GameObjects.Text;
   private rod: Phaser.GameObjects.Graphics;
-  private companion: Phaser.GameObjects.Container;
+  private companion: CatArt;
   private coat = 'cream';
   private waterKind: SpotId = 'POND';
   private waterFrame = -1;
@@ -87,7 +88,12 @@ export class RiverView {
       })
       .setOrigin(0.5);
     this.rod = scene.add.graphics();
-    this.companion = catArt(scene, COMPANION.x, COMPANION.y, COMPANION.scale);
+    this.companion = new CatArt(
+      scene,
+      COMPANION.x,
+      COMPANION.y,
+      COMPANION.scale,
+    );
     this.root.add([
       sky,
       this.water,
@@ -309,7 +315,7 @@ export class RiverView {
     if (cat.appearance.coat !== this.coat) {
       this.companion.destroy();
       this.coat = cat.appearance.coat;
-      this.companion = catArt(
+      this.companion = new CatArt(
         this.scene,
         COMPANION.x,
         COMPANION.y,
@@ -318,6 +324,7 @@ export class RiverView {
       );
       this.root.addAt(this.companion, this.root.getIndex(this.rod));
     }
+    this.companion.setPose(catPose(world, cat)).animate(this.root.visible);
     const cast = !!active && active.phase !== 'charge';
     const land = waterPoint(
       active?.direction ?? preview.direction,
