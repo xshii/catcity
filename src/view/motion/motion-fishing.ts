@@ -369,7 +369,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       else if (change.centre) {
         tip.calibrate(change.centre);
         rodPoint = tilt ? tip.point(tilt) : null;
-        deps.trace('rebase', { pose: change.centre });
+        deps.trace('rebase-pose', { pose: change.centre });
       }
       // A new fish starts facing right, whichever way the last one swam.
       if (motionRun?.phase === 'fight')
