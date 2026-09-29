@@ -141,3 +141,28 @@ test('the catch card shows without a notice over it', async ({
   await expect(page.locator('#catch-reveal')).toBeHidden();
   await expect(page.locator('#notice')).toBeVisible();
 });
+
+test('picking a cat says it can also be lifted and dragged, clear of the hint and the card', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await ready(page);
+  const cat = (await readWorld(page)).cats[0]!;
+  const at = await page.evaluate(
+    (position) => window.CAT_CITY_DEBUG!.getTileScreenPosition(position),
+    cat.position,
+  );
+  await page.mouse.click(at!.x, at!.y);
+  await expect(page.locator('#city-action-card')).toBeVisible();
+  await expect(page.locator('#notice')).toHaveText(
+    '已选中 Mochi：点一块地，在卡片上选「让 Mochi 走到这里」；也可以长按猫咪，拖到想去的地方。',
+  );
+  await clearOfControls(page, [
+    '#map-heading',
+    '.city-map-hint',
+    '#city-action-card',
+    '.scene-tools-nav',
+  ]);
+  await page.screenshot({ path: testInfo.outputPath('cat-selected.png') });
+});

@@ -25,6 +25,7 @@ import {
   revealShift,
   tileCenter,
 } from './geometry';
+import { selectedNotice } from './screen';
 
 /** How a lifted cat looks (world px): raised over the finger, a little larger. */
 const LIFT = { rise: 40, scale: 1.15, riseMs: 140, left: 0.4 } as const;
@@ -316,9 +317,7 @@ export class CityScene extends Phaser.Scene {
       this.city.selectCat(cat.id);
       // Letting the cat go says nothing: its selection ring disappears.
       if (this.city.view.get().walker === cat.id)
-        this.onMessage(
-          `已选中 ${cat.name}：点一块地，在卡片上选「让 ${cat.name} 走到这里」。`,
-        );
+        this.onMessage(selectedNotice(cat.name));
     } else this.city.selectTile({ x, y });
   }
 
