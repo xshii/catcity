@@ -451,9 +451,10 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       el.fish.classList.toggle('left', fish.x < before.x);
     el.fish.classList.toggle('warning', fish.warning);
     el.fish.classList.toggle('dashing', fish.dashing);
-    el.hold.value = Math.round(
-      (motionRun.hold / motionBounds(motionRun).holdTarget) * 100,
-    );
+    const filled = motionRun.hold / motionBounds(motionRun).holdTarget;
+    el.hold.value = Math.round(filled * 100);
+    // The fish looks nearer as the hold fills (spec 033 F1).
+    el.fish.style.setProperty('--near', String(Math.min(1, filled)));
   }
 
   return { point, ringCentre, apply };

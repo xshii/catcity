@@ -73,6 +73,14 @@
     );
   transition: border-color 0.15s;
 }
+/* A warm dashed light along the middle of the ring's band. */
+.motion-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px dashed var(--glint);
+}
 .motion-ring.inside {
   border-color: var(--good);
 }
@@ -104,13 +112,17 @@
   }
 }
 /* The fish: a small shadow under the water that the player's ring must cover. */
-/* A share of the plane, so even the smallest ring (a 5★ fish's) can cover it. */
+/*
+ * A share of the plane, so even the smallest ring (a 5★ fish's) can cover it. It looks
+ * nearer, larger and darker, as the hold fills (`--near` 0–1, set in JS; spec 033 F1);
+ * at most 1.3 × 9% wide, inside the smallest ring's 14%. Its centre stays put.
+ */
 .motion-fish {
   position: absolute;
   width: 9%;
   aspect-ratio: 140 / 80;
-  transform: translate(-50%, -50%);
-  opacity: 0.85;
+  transform: translate(-50%, -50%) scale(calc(1 + 0.3 * var(--near, 0)));
+  opacity: calc(0.72 + 0.23 * var(--near, 0));
 }
 .motion-fish svg {
   display: block;
@@ -126,6 +138,23 @@
   right: 10%;
   top: 4%;
   width: 80%;
+  /* A leaf fill on a warm track, rounded like the button fight's meters. */
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunk);
+  overflow: hidden;
+}
+.motion-hold::-webkit-progress-bar {
+  background: var(--surface-sunk);
+}
+.motion-hold::-webkit-progress-value {
+  background: var(--leaf);
+  border-radius: var(--radius-pill);
+}
+.motion-hold::-moz-progress-bar {
+  background: var(--leaf);
+  border-radius: var(--radius-pill);
 }
 .motion-onboarding {
   position: absolute;

@@ -6,32 +6,93 @@ import { catPose } from './cat-look';
 import {
   castPreview,
   flightPoint,
+  hookedFish,
   planePoint,
   shadowPoint,
   showsShadows,
   WATER_VIEW,
   waterPoint,
 } from './water-view';
-import { BANK, BANK_STRIP, DOCK, MOON_TINT, SAND, SKY } from './river-palette';
+import {
+  AIM,
+  BANK_STRIP,
+  BITE,
+  DOCK,
+  FIREFLY,
+  FLOAT,
+  GLINT,
+  LINE,
+  LOTUS,
+  REFLECTION_ALPHA,
+  riverLook,
+  ROD,
+  SAND,
+  SHADOW,
+  skyBottom,
+  type RiverLook,
+} from './river-palette';
+import { mix } from './city-palette';
 
 const V = WATER_VIEW;
-/** Water colour per spot: pond, reed river, moon lake, coast. */
-const WATER_COLOUR: Record<SpotId, number> = {
-  POND: 0x9bc8b7,
-  REEDS: 0x83b9af,
-  MOON: 0x7f9fb5,
-  COAST: 0x77b8c2,
-};
 /** Where the rod leaves the bottom of the view, and the cat beside the player. */
 const ROD_BASE = { x: 430, y: V.size };
 const ROD_TIP = { x: 372, y: 330 };
 const COMPANION = { x: 196, y: 560, scale: 1.7 };
-/** The aiming ring and its flight; greens mark where precise power lands, and a ring on it. */
-const AIM = 0xfff4c0;
-const PRECISE_ZONE = { fill: 0x7fa37a, edge: 0x557d51 };
-const PRECISE_RING = 0x4f7a4b;
 /** Fish shadow body length by size class, at the dock's scale. */
 const SHADOW_LENGTH = { small: 46, medium: 64, large: 88 } as const;
+/** Bands the sky and water gradients are drawn in. */
+const BANDS = 16;
+/** Round trees on the far bank: x and radius. */
+const TREES = [
+  [70, 24],
+  [128, 30],
+  [230, 20],
+  [410, 26],
+  [505, 32],
+  [575, 22],
+] as const;
+/** Lotus leaves (aim direction, share out) per spot; the first holds a flower. */
+const LOTUS_LEAVES: Partial<Record<SpotId, readonly [number, number][]>> = {
+  POND: [
+    [-38, 0.2],
+    [-30, 0.55],
+    [34, 0.35],
+    [40, 0.7],
+  ],
+  MOON: [
+    [-40, 0.3],
+    [38, 0.55],
+  ],
+};
+/** Slow glints on every water (aim direction, share out). */
+const GLINTS = [
+  [-20, 0.45],
+  [12, 0.62],
+  [28, 0.28],
+  [-34, 0.74],
+  [4, 0.16],
+] as const;
+/** Fireflies at night over the far bank and the water's edges. */
+const FIREFLIES = [
+  [150, 132],
+  [205, 104],
+  [262, 150],
+  [360, 118],
+  [430, 142],
+  [488, 110],
+  [160, 250],
+  [480, 270],
+] as const;
+/** Stars in the night sky. */
+const STARS = [
+  [60, 40],
+  [140, 72],
+  [250, 30],
+  [330, 60],
+  [420, 34],
+  [540, 58],
+  [600, 26],
+] as const;
 
 /**
  * The fishing scene in first person (spec 030): looking out from the dock over the water
@@ -40,8 +101,14 @@ const SHADOW_LENGTH = { small: 46, medium: 64, large: 88 } as const;
  */
 export class RiverView {
   readonly root: Phaser.GameObjects.Container;
+  /** Sky, shore and water: redrawn when the spot or the light changes. */
+  private backdrop: Phaser.GameObjects.Graphics;
+  /** Ripples (and the moon's path on the lake), redrawn as they drift. */
   private water: Phaser.GameObjects.Graphics;
-  private scenery: Record<SpotId, Phaser.GameObjects.Graphics>;
+  /** The far bank, sun or moon, reeds and sand over the water's far edge. */
+  private scenery: Phaser.GameObjects.Graphics;
+  private leaves: Phaser.GameObjects.Container;
+  private fireflies: Phaser.GameObjects.Container;
   private marker: Phaser.GameObjects.Graphics;
   private shadowLayer: Phaser.GameObjects.Graphics;
   private shadows: FishShadow[] = [];
@@ -53,45 +120,50 @@ export class RiverView {
   private coat = 'cream';
   private waterKind: SpotId = 'POND';
   private waterFrame = -1;
+  /** The spot and light last painted, as `spot/light`. */
+  private painted = '';
   private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     .matches;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.root = scene.add.container(0, 0).setDepth(20).setVisible(false);
     // The scene runs edge to edge; the page continues it around (riverBackdrop).
-    const sky = scene.add
-      .graphics()
-      .fillStyle(SKY)
-      .fillRect(0, 0, V.size, V.size);
+    this.backdrop = scene.add.graphics();
     this.water = scene.add.graphics();
-    this.scenery = {
-      POND: this.drawPond(scene.add.graphics()),
-      REEDS: this.drawReeds(scene.add.graphics()),
-      MOON: this.drawMoon(scene.add.graphics()),
-      COAST: this.drawCoast(scene.add.graphics()),
-    };
+    this.scenery = scene.add.graphics();
+    this.leaves = scene.add.container(0, 0);
+    const glints = GLINTS.map(([direction, share], i) =>
+      this.glint(direction, share, i),
+    );
     const dock = this.drawDock(scene.add.graphics());
     this.shadowLayer = scene.add.graphics();
     this.marker = scene.add.graphics();
     this.fishShadow = scene.add.graphics();
     this.fishShadow
-      .fillStyle(0x3a796b, 0.5)
+      .fillStyle(SHADOW.colour)
       .fillEllipse(0, 0, 42, 17)
       .fillTriangle(-16, 0, -34, -12, -34, 12);
-    const ripple = scene.add.ellipse(0, 0, 44, 16).setStrokeStyle(2, 0xfaf3cf);
+    const ripple = scene.add
+      .ellipse(0, 0, 44, 16)
+      .setStrokeStyle(2, FLOAT.ripple);
     this.float = scene.add.container(0, 0, [
       ripple,
-      scene.add.circle(0, -4, 5, 0xd98b6c),
+      scene.add.circle(0, -4, 5, FLOAT.colour),
     ]);
     this.bite = scene.add
       .text(0, 0, '!', {
         fontFamily: 'system-ui',
         fontSize: 42,
-        color: '#fff4c0',
-        stroke: '#d09050',
+        color: BITE.colour,
+        stroke: BITE.stroke,
         strokeThickness: 5,
       })
       .setOrigin(0.5);
+    this.fireflies = scene.add.container(
+      0,
+      0,
+      FIREFLIES.map(([x, y], i) => this.firefly(x, y, i)),
+    );
     this.rod = scene.add.graphics();
     this.companion = new CatArt(
       scene,
@@ -100,14 +172,17 @@ export class RiverView {
       COMPANION.scale,
     );
     this.root.add([
-      sky,
+      this.backdrop,
       this.water,
-      ...Object.values(this.scenery),
+      this.scenery,
       this.shadowLayer,
+      this.leaves,
+      ...glints,
       this.marker,
       this.fishShadow,
       this.float,
       this.bite,
+      this.fireflies,
       dock,
       this.companion,
       this.rod,
@@ -126,102 +201,193 @@ export class RiverView {
     scene.events.once('shutdown', () => scene.events.off('update', animate));
   }
 
-  /** The water trapezoid from the horizon to the dock, clipped to the canvas. */
-  private waterShape(g: Phaser.GameObjects.Graphics) {
-    const left = 0;
-    const right = V.size;
-    return g
-      .beginPath()
-      .moveTo(V.centerX - V.horizonHalf, V.horizonY)
-      .lineTo(V.centerX + V.horizonHalf, V.horizonY)
-      .lineTo(right, V.horizonY + (right - V.centerX - V.horizonHalf) * 3)
-      .lineTo(right, V.nearY)
-      .lineTo(left, V.nearY)
-      .lineTo(left, V.horizonY + (V.centerX - V.horizonHalf - left) * 3)
-      .closePath();
+  /** A slow glint on the water: a short bright stroke that fades in and out. */
+  private glint(direction: number, share: number, i: number) {
+    const { x, y, scale } = waterPoint(direction, share);
+    const width = 26 * scale;
+    const glint = this.scene.add
+      .graphics({ x, y })
+      .fillStyle(GLINT)
+      .fillRoundedRect(-width / 2, -1.5, width, 3, 1.5)
+      .setAlpha(0.5);
+    if (!this.reducedMotion)
+      this.scene.tweens.add({
+        targets: glint,
+        alpha: { from: 0.1, to: 0.75 },
+        duration: 2600 + i * 400,
+        delay: i * 700,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    return glint;
   }
 
-  /** Far bank with round trees along the horizon (pond, reeds, lake). */
-  private farShore(g: Phaser.GameObjects.Graphics, spot: SpotId) {
-    g.fillStyle(BANK[spot]!).fillRect(
-      0,
-      BANK_STRIP.top,
-      V.size,
-      BANK_STRIP.bottom - BANK_STRIP.top,
-    );
-    for (const [x, size] of [
-      [70, 24],
-      [128, 30],
-      [230, 20],
-      [410, 26],
-      [505, 32],
-      [575, 22],
-    ]) {
-      g.fillStyle(0x91ac7e).fillCircle(x!, V.horizonY - 30, size!);
-      g.fillStyle(0xb7c999).fillCircle(
-        x! - size! * 0.2,
-        V.horizonY - 30 - size! * 0.2,
-        size! * 0.7,
+  /** A firefly: a soft glow that pulses and drifts a little. */
+  private firefly(x: number, y: number, i: number) {
+    const fly = this.scene.add.container(x, y, [
+      this.scene.add.circle(0, 0, 8, FIREFLY, 0.3),
+      this.scene.add.circle(0, 0, 2.5, FIREFLY),
+    ]);
+    if (!this.reducedMotion) {
+      this.scene.tweens.add({
+        targets: fly,
+        alpha: { from: 0.2, to: 1 },
+        duration: 1300 + i * 170,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+      this.scene.tweens.add({
+        targets: fly,
+        x: x + (i % 2 ? 9 : -9),
+        y: y - 6 - (i % 3) * 2,
+        duration: 2800 + i * 350,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+    return fly;
+  }
+
+  /** Everything that changes only with the spot or the light (time of day). */
+  private paint(spot: SpotId, look: RiverLook) {
+    const g = this.backdrop.clear();
+    // The sky fades down to the far bank (or the sea's horizon), then shows beside it.
+    const sky = skyBottom(look);
+    for (let i = 0; i < BANDS; i++)
+      g.fillStyle(mix(look.sky.top, look.sky.bottom, i / (BANDS - 1))).fillRect(
+        0,
+        (sky * i) / BANDS,
+        V.size,
+        sky / BANDS + 1,
       );
+    g.fillStyle(look.sky.bottom).fillRect(0, sky, V.size, V.nearY - sky);
+    // Calm water, paler toward the horizon, between the shores that slope to the dock.
+    const depth = V.nearY - V.horizonY;
+    for (let i = 0; i < BANDS; i++)
+      g.fillStyle(
+        mix(look.water.far, look.water.near, i / (BANDS - 1)),
+      ).fillRect(
+        0,
+        V.horizonY + (depth * i) / BANDS,
+        V.size,
+        depth / BANDS + 1,
+      );
+    const shore = V.centerX - V.horizonHalf;
+    g.fillStyle(look.sky.bottom)
+      .fillTriangle(0, V.horizonY, shore, V.horizonY, 0, V.horizonY + shore * 3)
+      .fillTriangle(
+        V.size,
+        V.horizonY,
+        V.size - shore,
+        V.horizonY,
+        V.size,
+        V.horizonY + shore * 3,
+      );
+    // The far shore's trees reflected on the water.
+    if (look.bank !== null)
+      for (const [i, [x, size]] of TREES.entries())
+        g.fillStyle(look.trees[i % 2]!, REFLECTION_ALPHA).fillEllipse(
+          x,
+          BANK_STRIP.bottom + 10,
+          size * 2,
+          size * 0.4,
+        );
+
+    const s = this.scenery.clear();
+    if (look.light === 'night')
+      for (const [x, y] of STARS) s.fillStyle(GLINT, 0.8).fillCircle(x, y, 1.5);
+    if (look.sun)
+      s.fillStyle(look.sun.colour, 0.9).fillCircle(
+        look.sun.x,
+        look.sun.y,
+        look.sun.radius,
+      );
+    if (look.moon)
+      s.fillStyle(look.moon.colour, look.moon.alpha).fillCircle(470, 78, 26);
+    if (look.bank !== null) {
+      s.fillStyle(look.bank).fillRect(
+        0,
+        BANK_STRIP.top,
+        V.size,
+        BANK_STRIP.bottom - BANK_STRIP.top,
+      );
+      for (const [i, [x, size]] of TREES.entries())
+        s.fillStyle(look.trees[i % 2]!).fillCircle(x, V.horizonY - 30, size);
     }
-    return g;
-  }
-
-  private drawPond(g: Phaser.GameObjects.Graphics) {
-    this.farShore(g, 'POND');
-    // Lily pads shrink with distance.
-    for (const [direction, share] of [
-      [-38, 0.2],
-      [-30, 0.55],
-      [34, 0.35],
-      [40, 0.7],
-    ]) {
-      const { x, y, scale } = waterPoint(direction!, share!);
-      g.fillStyle(0x7fa77b, 0.8).fillEllipse(x, y, 46 * scale, 16 * scale);
+    // Reed clumps along both sides, inside what a phone shows of the art.
+    if (spot === 'REEDS')
+      for (let i = 0; i < 16; i++) {
+        const side = i % 2 ? 1 : -1;
+        const x = V.centerX + side * (145 + (i % 4) * 14);
+        const y = V.nearY - 20 - (i % 5) * 42;
+        const height = 34 + (i % 3) * 14;
+        s.lineStyle(3, look.reed)
+          .lineBetween(x, y, x - 6 * side, y - height)
+          .lineBetween(x, y, x + 4 * side, y - height * 0.7);
+      }
+    if (look.sand !== null) {
+      // Open sea: a flat horizon, no far bank.
+      s.lineStyle(2, look.water.near).lineBetween(
+        0,
+        V.horizonY,
+        V.size,
+        V.horizonY,
+      );
+      s.fillStyle(look.sand).fillRect(0, SAND.top, V.size, V.nearY - SAND.top);
     }
-    return g;
+    this.paintLeaves(spot, look);
+    this.fireflies.setVisible(look.fireflies);
   }
 
-  private drawReeds(g: Phaser.GameObjects.Graphics) {
-    this.farShore(g, 'REEDS');
-    for (let i = 0; i < 16; i++) {
-      const side = i % 2 ? 1 : -1;
-      const x = V.centerX + side * (250 + (i % 4) * 14);
-      const y = V.nearY - 20 - (i % 5) * 42;
-      const height = 34 + (i % 3) * 14;
-      g.lineStyle(3, 0x6b8e6a)
-        .lineBetween(x, y, x - 6 * side, y - height)
-        .lineBetween(x, y, x + 4 * side, y - height * 0.7);
+  /** Lotus leaves, notched and flattened by the distance, bobbing on the water. */
+  private paintLeaves(spot: SpotId, look: RiverLook) {
+    for (const leaf of this.leaves.list) this.scene.tweens.killTweensOf(leaf);
+    this.leaves.removeAll(true);
+    for (const [i, [direction, share]] of (
+      LOTUS_LEAVES[spot] ?? []
+    ).entries()) {
+      const { x, y, scale } = waterPoint(direction, share);
+      const radius = 24 * scale;
+      const pad = this.scene.add
+        .graphics()
+        .fillStyle(look.lotus.leaf, LOTUS.alpha)
+        .slice(0, 0, radius, 1.2, 0.6 + Math.PI * 2)
+        .fillPath()
+        .setScale(1, 0.36);
+      const leaf = this.scene.add.container(x, y, [pad]);
+      if (i === 0)
+        leaf.add([
+          this.scene.add.circle(
+            radius * 0.3,
+            -radius * 0.1,
+            6 * scale,
+            look.lotus.flower,
+          ),
+          this.scene.add.circle(radius * 0.3, -radius * 0.1, 2 * scale, GLINT),
+        ]);
+      this.leaves.add(leaf);
+      if (!this.reducedMotion)
+        this.scene.tweens.add({
+          targets: leaf,
+          y: y + 2 * scale,
+          duration: 1800 + i * 300,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
     }
-    return g;
-  }
-
-  private drawMoon(g: Phaser.GameObjects.Graphics) {
-    this.farShore(g, 'MOON');
-    g.fillStyle(0xf5ecc9).fillCircle(470, 78, 26);
-    g.fillStyle(MOON_TINT.colour, MOON_TINT.alpha).fillRect(
-      0,
-      0,
-      V.size,
-      V.size,
-    );
-    return g;
-  }
-
-  private drawCoast(g: Phaser.GameObjects.Graphics) {
-    // Open sea: a flat horizon, no far bank.
-    g.lineStyle(2, 0x5f9aa6).lineBetween(0, V.horizonY, V.size, V.horizonY);
-    g.fillStyle(SAND.colour).fillRect(0, SAND.top, V.size, V.nearY - SAND.top);
-    return g;
   }
 
   private drawDock(g: Phaser.GameObjects.Graphics) {
     const top = V.nearY;
     const bottom = V.size;
-    g.fillStyle(DOCK).fillRect(0, top, V.size, bottom - top);
-    for (let x = 34; x < V.size; x += 58)
-      g.lineStyle(2, 0x967e5c, 0.5).lineBetween(x, top, x - 10, bottom);
-    g.lineStyle(3, 0x967e5c).lineBetween(0, top, V.size, top);
+    g.fillStyle(DOCK.colour).fillRect(0, top, V.size, bottom - top);
+    for (let x = 46; x < V.size; x += 90)
+      g.lineStyle(2, DOCK.plank).lineBetween(x, top, x - 10, bottom);
+    g.lineStyle(3, DOCK.edge).lineBetween(0, top, V.size, top);
     return g;
   }
 
@@ -233,8 +399,6 @@ export class RiverView {
     const t = frame / 20;
     const kind = this.waterKind;
     const g = this.water.clear();
-    g.fillStyle(WATER_COLOUR[kind]);
-    this.waterShape(g).fillPath();
     // Ripples drift toward the dock; at sea they roll in as wave fronts.
     const flow = kind === 'REEDS' ? 0.12 : kind === 'COAST' ? 0.08 : 0.02;
     for (let i = 0; i < 16; i++) {
@@ -244,15 +408,15 @@ export class RiverView {
       const length = (kind === 'COAST' ? 40 : 22) * scale;
       g.lineStyle(
         Math.max(1, 2 * scale),
-        0xe0f2df,
-        0.2 + (Math.sin(t + i) + 1) * 0.12,
+        GLINT,
+        0.12 + (Math.sin(t + i) + 1) * 0.09,
       );
       g.lineBetween(x - length / 2, y, x + length / 2, y);
     }
     this.drawShadows(t);
     if (kind === 'MOON')
       for (let i = 0; i < 6; i++)
-        g.fillStyle(0xf1e9ce, 0.16).fillEllipse(
+        g.fillStyle(GLINT, 0.16).fillEllipse(
           470 + Math.sin(t + i) * 4,
           V.horizonY + 14 + i * 16,
           60 - i * 7,
@@ -261,8 +425,9 @@ export class RiverView {
   }
 
   /**
-   * Core's fish shadows for this spot and hour (spec 033): dark silhouettes by size that
-   * drift gently around their place, well inside the radius a cast must land within.
+   * Core's fish shadows for this spot and hour (spec 033): silhouettes by size, darker
+   * for bigger fish, that drift gently around their place, well inside the radius a
+   * cast must land within.
    */
   private drawShadows(t: number) {
     const g = this.shadowLayer.clear();
@@ -275,7 +440,7 @@ export class RiverView {
       const length = SHADOW_LENGTH[shadow.size] * scale;
       // The tail trails the way it swims.
       const tail = Math.cos(t / 3 + i * 2.1) >= 0 ? -1 : 1;
-      g.fillStyle(0x1d3440, 0.36)
+      g.fillStyle(SHADOW.colour, SHADOW.alpha[shadow.size])
         .fillEllipse(x, y, length, length * 0.36)
         .fillTriangle(
           x + tail * length * 0.4,
@@ -308,8 +473,12 @@ export class RiverView {
       this.waterKind = spotId;
       this.waterFrame = -1;
     }
-    for (const [id, layer] of Object.entries(this.scenery))
-      layer.setVisible(id === spotId);
+    // The light follows the game hour (the style board's 光线随时间).
+    const look = riverLook(spotId, world.minute);
+    if (`${spotId}/${look.light}` !== this.painted) {
+      this.painted = `${spotId}/${look.light}`;
+      this.paint(spotId, look);
+    }
     const shadows = showsShadows(active) ? fishShadows(world, spotId) : [];
     if (JSON.stringify(shadows) !== JSON.stringify(this.shadows)) {
       this.shadows = shadows;
@@ -346,14 +515,14 @@ export class RiverView {
     // tip, over the green zone where precise power lands; ring and flight turn green on
     // it (spec 033 F5).
     const live = !active ? preview.live : active.phase === 'charge';
-    const colour = live && aim.precise ? PRECISE_RING : AIM;
+    const colour = live && aim.precise ? AIM.precise : AIM.ring;
     this.marker.clear().setVisible(!cast);
     if (!cast) {
       if (live) {
         this.marker
-          .fillStyle(PRECISE_ZONE.fill, 0.4)
+          .fillStyle(AIM.zone.fill, 0.4)
           .fillPoints(aim.zone.outline, true)
-          .lineStyle(2, PRECISE_ZONE.edge, 0.45)
+          .lineStyle(2, AIM.zone.edge, 0.45)
           .strokePoints(aim.zone.outline, true, true)
           .lineStyle(3, colour, 0.9);
         for (let i = 0; i + 1 < aim.arc.length; i += 2)
@@ -405,20 +574,21 @@ export class RiverView {
     this.bite
       .setVisible(active?.phase === 'hook')
       .setPosition(land.x, land.y - 45 * land.scale);
-    this.fishShadow
-      // Only the hooked fish of a button fight: the motion overlay draws its own fish.
-      .setVisible(active?.phase === 'fight' && !held)
-      .setPosition(
-        land.x - 20 * land.scale + Math.sin((active?.tick ?? 0) / 10) * 16,
-        land.y + 24 * land.scale,
-      )
-      .setScale(
-        land.scale *
-          (active?.phase === 'fight' ? 1 + active.progress / 100 : 1),
-      );
+    // Only the hooked fish of a button fight: the motion overlay draws its own fish.
+    // It comes closer, larger and darker, as the fight's progress fills (spec 033 F1).
+    const hooked = active?.phase === 'fight' && !held;
+    this.fishShadow.setVisible(hooked);
+    if (hooked) {
+      const fish = hookedFish(land, active.progress, active.tick);
+      const [far, near] = SHADOW.hooked;
+      this.fishShadow
+        .setPosition(fish.x, fish.y)
+        .setScale(fish.scale)
+        .setAlpha(far + (near - far) * fish.near);
+    }
     this.rod
       .clear()
-      .lineStyle(5, 0x886c4d)
+      .lineStyle(5, ROD)
       .lineBetween(ROD_BASE.x, ROD_BASE.y, ROD_TIP.x, ROD_TIP.y);
     if (cast)
       this.rod
@@ -427,8 +597,8 @@ export class RiverView {
           // Only the button flow has line tension to warn about.
           active.mode === 'buttons' &&
             (active.tension > 85 || active.tension < 15)
-            ? 0xcc7454
-            : 0xf6f0d9,
+            ? LINE.tight
+            : LINE.colour,
           0.9,
         )
         .lineBetween(ROD_TIP.x, ROD_TIP.y, this.float.x, this.float.y - 4);
