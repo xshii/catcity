@@ -14,6 +14,7 @@ import {
   motionNibble,
   motionWant,
   permissionNotice,
+  resultShown,
   ringHeld,
   SCREEN_COPY,
   tapStrikes,
@@ -653,5 +654,22 @@ describe('fishing screen', () => {
       motionNibble({ ...waiting, mode: 'buttons', phaseTick: nibbles[0]! }),
     ).toBeNull();
     expect(motionNibble(null)).toBeNull();
+  });
+});
+
+describe('the catch card', () => {
+  const result = { runId: 'r' };
+  it('shows only a run this page watched end, until the player leaves the river', () => {
+    // A save's last result from an earlier visit: nothing was caught here yet.
+    expect(resultShown(view({}, river), null, result)).toBe(false);
+    const watched = view({}, river, { type: 'run', runId: 'r' });
+    expect(resultShown(watched, runOf('motion'), result)).toBe(false);
+    const ended = replay(watched, { type: 'run', runId: null });
+    expect(resultShown(ended, null, result)).toBe(true);
+    expect(resultShown(ended, null, { runId: 'other' })).toBe(false);
+    expect(resultShown(ended, null, null)).toBe(false);
+    // Back from the city, the card is no longer "this" catch.
+    const away = replay(ended, { type: 'place', place: 'city' }, river);
+    expect(resultShown(away, null, result)).toBe(false);
   });
 });

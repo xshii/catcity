@@ -36,6 +36,22 @@ describe('the button flow', () => {
     backToCity();
   });
 
+  it('shows the catch card for a catch made on this visit, not one from the save', () => {
+    const game = openGame();
+    enterRiver(game);
+    click('#cast-start');
+    catchFish(game);
+    expect(visible('#catch-reveal')).toBe(true);
+    // Back from the city, or after a reload, the saved catch is not "this" one.
+    backToCity();
+    enterRiver(game);
+    expect(game.world().fishing.lastResult?.caught).toBe(true);
+    expect(visible('#catch-reveal')).toBe(false);
+    game.reload();
+    enterRiver(game);
+    expect(visible('#catch-reveal')).toBe(false);
+  });
+
   it('a manual fishing clock advances exactly the stepped ticks and respects pause', () => {
     const game = openGame();
     enterRiver(game);

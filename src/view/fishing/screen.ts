@@ -263,6 +263,16 @@ export function castNotice(
   );
 }
 
+/**
+ * The catch card shows "this catch": a result the player watched a run end in, on this
+ * page and this visit to the river. A save's last result from before is not one.
+ */
+export const resultShown = (
+  view: FishingView,
+  run: AnglingRun | null,
+  result: { runId: string } | null,
+) => !run && !!result && result.runId === view.watched;
+
 type HoldRun = Pick<AnglingRun, 'id' | 'mode' | 'phase' | 'hold'>;
 /** Core counted the ring over the fish on this world change: the guide's last step. */
 export const ringHeld = (before: HoldRun | null, after: HoldRun | null) =>

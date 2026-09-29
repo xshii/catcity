@@ -32,6 +32,7 @@ import {
   castNotice,
   fishingScreen,
   permissionNotice,
+  resultShown,
   ringHeld,
   SCREEN_COPY,
 } from './screen';
@@ -318,7 +319,13 @@ export function mountAngling(
       pause.textContent = screen.pauseLabel;
     }
     const destination = requestedSpot();
-    stage.render(world, selectedCat.id, destination, resultNote);
+    stage.render(
+      world,
+      selectedCat.id,
+      destination,
+      resultNote,
+      resultShown(state, run ?? null, world.fishing.lastResult),
+    );
     layout.refresh();
     settings.apply(screen.settings);
     motion.apply(screen, run ?? null);

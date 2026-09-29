@@ -24,6 +24,8 @@ export interface FishingView {
   pressed: boolean;
   /** The run last seen; a new run starts paused. */
   runId: string | null;
+  /** The last run this page saw on the river; its result is "this catch" until the player leaves. */
+  watched: string | null;
   motion: {
     preference: Preference;
     capability: Capability;
@@ -82,6 +84,7 @@ export function initialFishingView(
     paused: true,
     pressed: false,
     runId: null,
+    watched: null,
     motion: {
       preference: options.preference,
       capability: 'unknown',
@@ -133,7 +136,11 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
   });
   switch (event.type) {
     case 'place':
-      return { ...view, place: event.place };
+      return {
+        ...view,
+        place: event.place,
+        watched: event.place === 'river' ? view.watched : null,
+      };
     case 'tools':
       return { ...view, toolsOpen: event.open };
     case 'settings':
@@ -141,7 +148,11 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
     case 'page':
       return { ...view, pageHidden: event.hidden };
     case 'run':
-      return { ...view, runId: event.runId };
+      return {
+        ...view,
+        runId: event.runId,
+        watched: event.runId ?? view.watched,
+      };
     case 'hold':
       return event.pressed && event.buttonRun && canPlay(view)
         ? { ...view, pressed: true, paused: false }
