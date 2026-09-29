@@ -14,7 +14,7 @@ import { MAX_STAT } from '../../src/core/limits';
 import { RandomService } from '../../src/core/random';
 import { applyCommand } from '../../src/core/reducer';
 import { createWorld, World } from '../../src/core/world';
-import { fishPath } from '../../src/minigames/angling-motion';
+import { fishPath, motionSchedule } from '../../src/minigames/angling-motion';
 import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
 
 /**
@@ -136,8 +136,17 @@ function play(
     if (state.fishing.active!.happy) pace.happyCasts++;
     run({ type: 'FISH_CAST', runId, power: POWER });
     const still = { type: 'FISH_MOTION_CONTROL', runId, x: 50, y: 50 } as const;
+    // Nothing to decide while waiting: the ticks go in batches, which give the same
+    // state as single ticks (tests/simulation/angling).
+    const bite = motionSchedule(state.fishing.active!).bite;
     while (state.fishing.active!.phase === 'waiting')
-      run({ ...still, ticks: 1 });
+      run({
+        ...still,
+        ticks: Math.min(
+          FISHING.input.maxTicks,
+          bite - state.fishing.active!.phaseTick,
+        ),
+      });
     for (let tick = 0; tick < delay; tick++) run({ ...still, ticks: 1 });
     run({ type: 'FISH_STRIKE', runId });
     const path = state.fishing.active

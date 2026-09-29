@@ -117,6 +117,39 @@ describe('fish ring fight', () => {
     expect(settled).toMatchObject({ phase: 'fight', hold: run.hold });
   });
 
+  it('gives each run its own path whatever was asked before (the path is remembered)', () => {
+    const limit = F.graceTicks + F.limitTicks;
+    const runs = [
+      fight(11),
+      fight(12),
+      { ...fight(11), speciesId: 'KOI' as const },
+    ];
+    // Asked alone, before any other run is looked at.
+    const alone = runs.map((run) =>
+      [0, 45, 120, limit].map((tick) => ({ ...fishPoint(run, tick) })),
+    );
+    expect(alone[0]).not.toEqual(alone[1]);
+    expect(alone[0]).not.toEqual(alone[2]);
+    // Interleaved, tick by tick and in both orders.
+    for (const tick of [limit, 120, 45, 0])
+      for (const [index, run] of runs.entries()) {
+        const at = [0, 45, 120, limit].indexOf(tick);
+        expect(fishPoint(run, tick)).toEqual(alone[index]![at]);
+        expect(fishPath(run, tick)).toHaveLength(tick + 1);
+        expect(fishPath(run, tick).at(-1)).toEqual(alone[index]![at]);
+      }
+    // A caller that changes what it was given does not change the next answer.
+    const path = fishPath(runs[0]!, limit);
+    path[45]!.x = -1;
+    fishPoint(runs[0]!, 120).x = -1;
+    expect(fishPoint(runs[0]!, 45)).toEqual(alone[0]![1]);
+    expect(fishPoint(runs[0]!, 120)).toEqual(alone[0]![2]);
+    // Longer than a fight lasts is still answered, and agrees on the shared part.
+    expect(fishPath(runs[0]!, limit + 50).slice(0, limit + 1)).toEqual(
+      fishPath(runs[0]!, limit),
+    );
+  });
+
   it('keeps the ring on the water and moves no faster than its pace', () => {
     for (let star = 0; star <= 5; star++)
       for (let seed = 1; seed <= 10; seed++) {
