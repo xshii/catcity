@@ -8,6 +8,7 @@ import {
   type FishId,
   type SpotId,
 } from '../content/fishing';
+import { MOOD } from '../content/mood';
 import { RandomService } from '../core/random';
 
 const { input: INPUT, hook: HOOK, greenZone: ZONE, fight: FIGHT } = FISHING;
@@ -52,6 +53,8 @@ export interface AnglingRun {
   strike: 'none' | 'perfect' | 'good';
   spooked: boolean;
   hold: number;
+  /** The cat was happy when the run began (spec 032): a small bonus for the whole run. */
+  happy: boolean;
 }
 export function initialAngling(
   input: Pick<
@@ -66,6 +69,7 @@ export function initialAngling(
     | 'catBreed'
     | 'aimDepth'
     | 'mode'
+    | 'happy'
   >,
 ): AnglingRun {
   return {
@@ -106,7 +110,8 @@ export function greenZone(run: AnglingRun): { low: number; high: number } {
     ZONE.baseWidth -
       stars * ZONE.widthPerStar +
       (run.skillLevel - 1) * ZONE.widthPerSkill +
-      (run.precision ? ZONE.precisionBonus : 0),
+      (run.precision ? ZONE.precisionBonus : 0) +
+      (run.happy ? MOOD.bonus.greenZone : 0),
   );
   const targetCenter =
     run.phase === 'hook'

@@ -1,9 +1,25 @@
 import { fishById, SPOTS } from '../content/fishing';
+import { moodBand, type MoodBand } from '../content/mood';
 import type {
   DialogueContext,
   DialogueProposal,
   DialogueProvider,
 } from '../application/ports';
+
+/** Small talk in the tone of the cat's mood band; recalled facts never depend on it. */
+const SMALL_TALK: Record<MoodBand, readonly string[]> = {
+  happy: [
+    '喵！今天心情特别好。我们现在就去河边吧？我来带路！',
+    '你来啦！我正想找你呢。要不要一起去钓一竿？',
+  ],
+  calm: [
+    '嗯，我在听。可以慢慢说，也可以邀请我一起去河边待一会。',
+    '我把尾巴往旁边挪了挪，给你留了个位置。今天有什么想一起做的小事吗？',
+    '有时候我不知道该怎么接话，不过和你待在这里，我很放松。',
+  ],
+  glum: ['今天有点闷……陪我坐一会，或者出去走走也好。'],
+  low: ['……嗯。我在。'],
+};
 
 export class RuleBasedDialogueProvider implements DialogueProvider {
   async generate(context: DialogueContext): Promise<DialogueProposal> {
@@ -35,11 +51,7 @@ export class RuleBasedDialogueProvider implements DialogueProvider {
     } else if (/名字|你好|hello|hi\b/i.test(message)) {
       text = `喵……我是 ${cat.name}。有一点怕生，也有一点贪吃。你可以慢慢认识我。`;
     } else {
-      const responses = [
-        '嗯，我在听。可以慢慢说，也可以邀请我一起去河边待一会。',
-        '我把尾巴往旁边挪了挪，给你留了个位置。今天有什么想一起做的小事吗？',
-        '有时候我不知道该怎么接话，不过和你待在这里，我很放松。',
-      ];
+      const responses = SMALL_TALK[moodBand(cat.mood)];
       text = responses[context.recentMemories.length % responses.length]!;
     }
     return { catId: cat.id, text };

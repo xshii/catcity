@@ -114,6 +114,7 @@ it('rejects invalid aim, power, forged fields and wrong runs atomically; accepts
 it('uses the same pure cast transition for explicit power and release, including low and full power', () => {
   for (const chargeTicks of [1, 18, 23, 32, 64]) {
     let run = initialAngling({
+      happy: false,
       mode: 'buttons',
       catBreed: 'RAGDOLL',
 
@@ -143,6 +144,7 @@ it('uses the same pure cast transition for explicit power and release, including
 it('keeps vertical aim separate from encounter pools and accepts both power boundaries', () => {
   for (const power of [0, 100]) {
     const a = initialAngling({
+      happy: false,
       mode: 'buttons',
       catBreed: 'RAGDOLL',
       spotId: 'POND',

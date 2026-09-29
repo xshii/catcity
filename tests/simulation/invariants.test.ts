@@ -37,8 +37,10 @@ function commandFor(world: WorldState, rng: RandomService): GameCommand {
       : 'ghost';
   const buildingId = () =>
     world.buildings.length && chance(90) ? pick(world.buildings).id : 'ghost';
-  // While a run is live, mostly play it; otherwise do city things and start runs.
-  if (run && chance(70))
+  // While a run is live, mostly play it and rarely give up, so some runs reach their end;
+  // otherwise do city things and start runs.
+  if (run && chance(70)) {
+    if (chance(5)) return { type: 'FISH_CANCEL', runId: runId() };
     return pick<() => GameCommand>([
       () => ({ type: 'FISH_CAST', runId: runId(), power: rng.nextInt(101) }),
       () => ({
@@ -55,8 +57,8 @@ function commandFor(world: WorldState, rng: RandomService): GameCommand {
         ticks: 1 + rng.nextInt(FISHING.input.maxTicks),
       }),
       () => ({ type: 'FISH_STRIKE', runId: runId() }),
-      () => ({ type: 'FISH_CANCEL', runId: runId() }),
     ])();
+  }
   return pick<() => GameCommand>([
     () => ({ type: 'BUY_LAND', position: position() }),
     () => ({ type: 'PLACE_ROAD', position: position() }),
@@ -167,12 +169,48 @@ function coinChange(
   }
 }
 
+/** Whether a command may move a cat's mood (spec 032); every other command must not. */
+function moodMayChange(command: GameCommand): boolean {
+  switch (command.type) {
+    // Hourly drift, exhaustion while walking, chat, a run's end, a gift.
+    case 'ADVANCE_TIME':
+    case 'INTERACT':
+    case 'FISH_CONTROL':
+    case 'FISH_MOTION_CONTROL':
+    case 'GIFT_FISH':
+      return true;
+    // A new command must say here whether it moves mood.
+    case 'WALK_CAT':
+    case 'BUY_LAND':
+    case 'BUILD_BUILDING':
+    case 'MOVE_BUILDING':
+    case 'PLACE_ROAD':
+    case 'UPGRADE_ROAD':
+    case 'REMOVE_ROAD':
+    case 'ASSIGN_HOME':
+    case 'TRAVEL_TO_FISHING_SPOT':
+    case 'USE_CAN':
+    case 'RECYCLE_TRASH':
+    case 'FISH_BEGIN':
+    case 'FISH_CAST':
+    case 'FISH_STRIKE':
+    case 'FISH_CANCEL':
+    case 'SELL_FISH':
+    case 'BUY_BAIT':
+    case 'INVITE_PEPPER':
+    case 'DEBUG_SPAWN_CAT':
+      return false;
+  }
+}
+
 function checkBounds(world: WorldState) {
   expect(Number.isInteger(world.coins)).toBe(true);
   expect(world.coins).toBeGreaterThanOrEqual(0);
   for (const cat of world.cats) {
     expect(cat.needs.energy).toBeGreaterThanOrEqual(0);
     expect(cat.needs.energy).toBeLessThanOrEqual(100);
+    expect(cat.mood).toBeGreaterThanOrEqual(0);
+    expect(cat.mood).toBeLessThanOrEqual(100);
   }
   for (const count of Object.values(world.fishing.baits)) {
     expect(count).toBeGreaterThanOrEqual(0);
@@ -198,6 +236,8 @@ function play(seed: number) {
   const commands: GameCommand[] = [];
   let accepted = 0;
   let exhaustedWalks = 0;
+  /** Which commands moved mood up (+) or down (−). */
+  const moodMoves = new Set<string>();
   for (let step = 0; step < STEPS; step++) {
     const before = world.getSnapshot();
     const saved = world.save();
@@ -215,6 +255,12 @@ function play(seed: number) {
     expect(after.minute).toBeGreaterThanOrEqual(before.minute);
     expect(after.nextId).toBeGreaterThanOrEqual(before.nextId);
     checkBounds(after);
+    for (const [index, cat] of before.cats.entries()) {
+      const change = after.cats[index]!.mood - cat.mood;
+      if (!change) continue;
+      expect(moodMayChange(command), `mood: ${where}`).toBe(true);
+      moodMoves.add(`${command.type}${change > 0 ? '+' : '-'}`);
+    }
     // Recovery during a walk only happens once the walk stopped for lack of energy.
     if (result.ok)
       exhaustedWalks += result.events.filter(
@@ -227,7 +273,7 @@ function play(seed: number) {
       expect(loadWorld(save).save(), `round trip: ${where}`).toBe(save);
     }
   }
-  return { world, initial, commands, accepted, exhaustedWalks };
+  return { world, initial, commands, accepted, exhaustedWalks, moodMoves };
 }
 
 describe('Core under random command sequences', () => {
@@ -250,6 +296,17 @@ describe('Core under random command sequences', () => {
     expect(stopped).toBeGreaterThan(0);
   });
 
+  it('reaches mood drift both ways, chat and an escape', () => {
+    // Random play rarely lands a fish; catch and gift mood are unit-tested (mood.test.ts).
+    // Exhaustion while walking shows up as ADVANCE_TIME− alongside drift.
+    expect([...play(7).moodMoves].sort()).toEqual([
+      'ADVANCE_TIME+',
+      'ADVANCE_TIME-',
+      'FISH_CONTROL-',
+      'INTERACT+',
+    ]);
+  });
+
   it('rejects reachable saves once a bounded field is tampered with', () => {
     const { world } = play(99);
     const save = JSON.parse(world.save());
@@ -261,6 +318,7 @@ describe('Core under random command sequences', () => {
     expect(() => loadWorld(JSON.stringify(save))).not.toThrow();
     expect(tamper((state) => (state.coins = -1))).toThrow();
     expect(tamper((state) => (state.cats[0]!.needs.energy = 101))).toThrow();
+    expect(tamper((state) => (state.cats[0]!.mood = 101))).toThrow();
     expect(
       tamper((state) => (state.fishing.baits.WORM = FISHING.bait.max + 1)),
     ).toThrow();

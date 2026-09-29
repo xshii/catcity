@@ -1,5 +1,6 @@
-import { MAX_CATS, WORLD_LIMIT } from './limits';
+import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from './limits';
 import { CARE } from '../content/care';
+import { MOOD } from '../content/mood';
 import { applyCity } from './city/building';
 import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
@@ -58,7 +59,8 @@ export function applyCommand(
         reply: command.reply,
       });
       cat.memories = cat.memories.slice(-CARE.memoryLimit);
-      rewardBond(cat, world.minute);
+      if (rewardBond(cat, world.minute))
+        cat.mood = Math.min(MAX_STAT, cat.mood + MOOD.chat);
       events.push({
         type: 'ConversationRecorded',
         minute: world.minute,
