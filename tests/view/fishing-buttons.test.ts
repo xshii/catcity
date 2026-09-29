@@ -93,12 +93,12 @@ describe('the button flow', () => {
     expect(game.world().fishing.lastResult!.caught).toBe(false);
   });
 
-  it('browsers without vibration retain visual controls and do not change gameplay', () => {
+  it('browsers without vibration shake the river on a bite instead and do not change gameplay', () => {
     const game = openGame({ vibration: false });
     enterRiver(game);
     openGear(game, 'supplies');
-    expect($<HTMLButtonElement>('#haptics-toggle').disabled).toBe(true);
-    expect(text('#haptics-toggle')).toBe('此浏览器不支持震动');
+    expect($<HTMLButtonElement>('#haptics-toggle').disabled).toBe(false);
+    expect(text('#haptics-toggle')).toBe('画面反馈：开');
     closeRiverPanel();
     const before = game.world();
     click('#cast-start');
@@ -107,6 +107,10 @@ describe('the button flow', () => {
     expect(game.world().cats[0]!.needs.energy).toBe(
       before.cats[0]!.needs.energy,
     );
+    castOnce(game);
+    // Step to the bite and read the stage on that very tick.
+    game.until(() => game.world().fishing.active?.phase === 'hook', 1000);
+    expect($('#fishing-stage').classList.contains('screen-shake')).toBe(true);
   });
 
   it('sound starts with the first gesture, a cast plays it, and switching it off is remembered', () => {
