@@ -303,7 +303,7 @@ export function stepAngling(
 }
 
 /** A cast of this power is precise: it makes the fight a little easier. */
-export function precisePower(power: number): boolean {
+function precisePower(power: number): boolean {
   const { min, max } = FISHING.cast.precisionPower;
   return power >= min && power <= max;
 }

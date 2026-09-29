@@ -12,7 +12,6 @@ import {
   castAngling,
   greenZone,
   initialAngling,
-  precisePower,
   stepAngling,
 } from '../../src/minigames/angling';
 
@@ -275,7 +274,7 @@ describe('skill-based angling', () => {
   });
 });
 
-it('counts a cast precise exactly for the power the aiming preview marks green', () => {
+it('counts a cast precise exactly for power in the precise band', () => {
   const run = initialAngling({
     happy: false,
     mode: 'motion',
@@ -291,8 +290,9 @@ it('counts a cast precise exactly for the power the aiming preview marks green',
   });
   const { min, max } = FISHING.cast.precisionPower;
   for (let power = 0; power <= FISHING.input.maxPower; power++) {
-    expect(precisePower(power)).toBe(power >= min && power <= max);
-    expect(castAngling(run, power).precision).toBe(precisePower(power));
+    expect(castAngling(run, power).precision).toBe(
+      power >= min && power <= max,
+    );
   }
 });
 

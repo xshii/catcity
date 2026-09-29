@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FISH_IDS, FISHING, fishById } from '../../src/content/fishing';
 import { createWorld } from '../../src/core/world';
+import { fishShadows, shadowUnderCast } from '../../src/core';
 import {
   fishPath,
   motionSchedule,
@@ -376,49 +377,69 @@ describe('fishing screen', () => {
     expect(ringHeld(null, fight)).toBe(false);
   });
 
-  it('says once, as a run is cast, whether Core counted it a precise cast', () => {
-    const { min, max } = FISHING.cast.precisionPower;
-    const words = SCREEN_COPY.cast;
-    /** A real cast through Core: a flick at `power`, or a button held `power` ticks. */
-    const cast = (mode: 'motion' | 'buttons', power: number) => {
-      const world = fishingFixture(7);
+  it('says once, as a run is cast onto a fish shadow, that it landed there', () => {
+    // A pond world with a shadow a cast at power 50 can reach head-on.
+    const pond = () => {
+      for (let seed = 1; ; seed++) {
+        const world = fishingFixture(seed);
+        const shadows = fishShadows(world.getSnapshot(), 'POND');
+        const target = shadows.find((s) => s.reach >= 25 && s.reach <= 75);
+        const miss = [-45, 0, 45]
+          .flatMap((direction) =>
+            [0, 50, 100].map((aimDepth) => ({ direction, aimDepth })),
+          )
+          .find(
+            (aim) =>
+              shadowUnderCast(world.getSnapshot(), 'POND', {
+                ...aim,
+                power: 50,
+              }) === null,
+          );
+        if (target && miss) return { world, target, miss };
+      }
+    };
+    /** A real cast at power 50 through Core: a flick, or a button held to 50. */
+    const cast = (mode: 'motion' | 'buttons', onShadow: boolean) => {
+      const { world, target, miss } = pond();
+      const aim = onShadow
+        ? { direction: target.direction, aimDepth: 2 * target.reach - 50 }
+        : miss;
       world.dispatch({
         type: 'FISH_BEGIN',
         catId: 'mochi',
         baitId: 'BREAD',
-        direction: 0,
-        aimDepth: 50,
         spotId: 'POND',
+        ...aim,
         ...(mode === 'motion' ? { mode } : {}),
       });
       const charge = world.getSnapshot().fishing.active!;
       if (mode === 'motion')
-        world.dispatch({ type: 'FISH_CAST', runId: charge.id, power });
-      else
-        for (let tick = 0; tick <= power; tick++)
+        world.dispatch({ type: 'FISH_CAST', runId: charge.id, power: 50 });
+      else {
+        // Holding 16 ticks sweeps the power up to 50; release there.
+        for (let tick = 0; tick < 16; tick++)
           world.dispatch({
             type: 'FISH_CONTROL',
             runId: charge.id,
-            pressed: tick < power,
+            pressed: true,
             ticks: 1,
           });
+        world.dispatch({
+          type: 'FISH_CONTROL',
+          runId: charge.id,
+          pressed: false,
+          ticks: 1,
+        });
+      }
       return { charge, after: world.getSnapshot().fishing.active! };
     };
-    const seen = new Set<string>();
-    for (const [mode, inputs] of [
-      ['motion', [min - 15, min, max, max + 12]],
-      ['buttons', [5, 20, 25, 30]],
-    ] as const)
-      for (const input of inputs) {
-        const { charge, after } = cast(mode, input);
-        expect(after.phase).toBe('waiting');
-        expect(after.precision).toBe(after.power >= min && after.power <= max);
-        seen.add(`${mode}/${after.precision}`);
+    for (const mode of ['motion', 'buttons'] as const)
+      for (const onShadow of [true, false]) {
+        const { charge, after } = cast(mode, onShadow);
+        expect(after).toMatchObject({ phase: 'waiting', power: 50 });
+        expect(after.shadow !== null).toBe(onShadow);
         expect(castNotice(charge, after)).toBe(
-          words.notice(
-            after.power,
-            after.precision ? words.precise[mode] : words.loose,
-          ),
+          onShadow ? SCREEN_COPY.cast.onShadow : null,
         );
         // Only the cast itself: not before, not again, not another run, not a reload.
         expect(castNotice(charge, charge)).toBeNull();
@@ -428,13 +449,8 @@ describe('fishing screen', () => {
         expect(castNotice(null, after)).toBeNull();
         expect(castNotice(charge, null)).toBeNull();
       }
-    expect(seen).toEqual(
-      new Set(['motion/true', 'motion/false', 'buttons/true', 'buttons/false']),
-    );
-    expect(words.notice(68, words.precise.motion)).toBe(
-      '力度 68 · 稳投：遛鱼圈更大',
-    );
-    expect(words.legend).toBe('绿区＝稳投：遛鱼圈更大');
+    expect(SCREEN_COPY.cast.onShadow).toBe('落在鱼影上');
+    expect(SCREEN_COPY.cast.legend).toBe('落点圈变绿＝对准了鱼影');
   });
 
   it('labels the settings switch and the pause button from the state', () => {
