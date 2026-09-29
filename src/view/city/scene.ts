@@ -269,6 +269,7 @@ export class CityScene extends Phaser.Scene {
       direction: aim.direction,
       aimDepth: aim.depth,
       power: aim.power,
+      live: aim.live,
       spotId: aim.spotId,
       ringCentre: this.aim.ringCentre(),
     });

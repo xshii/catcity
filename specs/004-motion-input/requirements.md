@@ -15,7 +15,7 @@
 | 圆内连续稳定 tick 才提竿，离圈清零，由 Core 判定 | `tests/unit/motion-control.test.ts`、`tests/unit/motion-target.test.ts`      |
 | 部分权限、延迟读数、关闭体感后手动可完成同一竿   | `tests/e2e/motion-recovery.spec.ts`、`tests/e2e/fishing-hook-motion.spec.ts` |
 | 中途保存的稳定进度可续玩                         | `tests/integration/motion-save.test.ts`                                      |
-| 关闭震动或不支持震动不影响玩法                   | `tests/e2e/fishing-scene.spec.ts`                                            |
+| 关闭震动或不支持震动不影响玩法                   | `tests/view/fishing-buttons.test.ts`                                         |
 
 ## 未完成 / 限制
 
