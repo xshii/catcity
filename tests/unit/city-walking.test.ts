@@ -1,5 +1,5 @@
 import { CARE } from '../../src/content/care';
-import { CITY_START } from '../../src/content/city';
+import { CITY_START, WALK_MINUTES } from '../../src/content/city';
 import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
@@ -11,6 +11,10 @@ function centeredWorld(seed: number): World {
   state.cats[0]!.fishingSpotId = null;
   return new World(state);
 }
+
+it('walks a tile of grass in 6 game minutes, of dirt road in 3 and of stone road in 2', () => {
+  expect(WALK_MINUTES).toEqual({ GRASS: 6, DIRT: 3, STONE: 2 });
+});
 
 it('moves one real tile per scheduled step, charges only that cat and persists the route', () => {
   const world = centeredWorld(42);
@@ -26,16 +30,19 @@ it('moves one real tile per scheduled step, charges only that cat and persists t
   expect(start.minute).toBe(CITY_START.minute);
   expect(start.cats[0]!.position).toEqual({ x: 5, y: 5 });
   expect(start.cats[0]!.walk!.route).toHaveLength(2);
-  expect(start.cats[0]!.walk!.nextStepMinute).toBe(start.minute + 5);
-  advance(world, 4);
+  expect(start.cats[0]!.walk!.nextStepMinute).toBe(
+    start.minute + WALK_MINUTES.DIRT,
+  );
+  advance(world, WALK_MINUTES.DIRT - 1);
   expect(world.getSnapshot().cats[0]!.position).toEqual(
     start.cats[0]!.position,
   );
   advance(world, 1);
   expect(world.getSnapshot().cats[0]!.needs.energy).toBe(99);
   const restored = loadWorld(world.save());
-  advance(world, 10);
-  for (let n = 0; n < 10; n++) advance(restored, 1);
+  // The second tile is grass; stopping there keeps the idle recovery tick out of the sum.
+  advance(world, WALK_MINUTES.GRASS);
+  for (let n = 0; n < WALK_MINUTES.GRASS; n++) advance(restored, 1);
   expect(restored.save()).toBe(world.save());
   expect(world.getSnapshot().cats[0]).toMatchObject({
     position: { x: 6, y: 6 },
@@ -57,11 +64,11 @@ it('stops exhausted cats, which recover by themselves and resume their saved des
     catId: 'mochi',
     destination: { x: 6, y: 6 },
   });
-  advance(world, 5);
+  advance(world, WALK_MINUTES.DIRT);
   const tired = world.getSnapshot().cats[0]!;
   expect(tired.needs.energy).toBe(0);
   expect(tired.walk!.nextStepMinute).toBeNull();
-  advance(world, 4);
+  advance(world, CARE.recovery.tickMinutes - WALK_MINUTES.DIRT - 1);
   expect(world.getSnapshot().cats[0]!.position).toEqual(tired.position);
   // The stopped cat is idle: the next recovery tick lets it go on.
   advance(world, 1);
@@ -89,9 +96,9 @@ it('uses stone road timing and rejects water, occupied destinations and invalid 
     world.dispatch({ type: 'WALK_CAT', catId: 'mochi', destination }).ok,
   ).toBe(true);
   expect(world.getSnapshot().cats[0]!.walk!.nextStepMinute).toBe(
-    CITY_START.minute + 3,
+    CITY_START.minute + WALK_MINUTES.STONE,
   );
-  advance(world, 3);
+  advance(world, WALK_MINUTES.STONE);
   expect(world.getSnapshot().cats[0]!.position).toEqual(destination);
   const water = world
     .getSnapshot()
@@ -196,7 +203,7 @@ it('stops blocked destinations after building and keeps competing walkers separa
       world.dispatch({ type: 'WALK_CAT', catId, destination: { x: 6, y: 5 } })
         .ok,
     ).toBe(true);
-  advance(world, 5);
+  advance(world, WALK_MINUTES.DIRT);
   const cats = world.getSnapshot().cats;
   expect(cats[0]!.position).toEqual({ x: 6, y: 5 });
   expect(cats[1]!.position).toEqual({ x: 6, y: 6 });
