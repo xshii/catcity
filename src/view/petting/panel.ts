@@ -287,10 +287,21 @@ export function mountPetting(deps: {
   document.addEventListener('visibilitychange', () =>
     view.dispatch({ type: 'page', hidden: document.hidden }),
   );
-  window.setInterval(
-    () => view.dispatch({ type: 'tick' }),
-    1000 / PETTING.ticksPerSecond,
-  );
+  // The round follows real time, not the number of timer calls: a busy phone delays
+  // timers, and twelve seconds must stay twelve seconds. A long stall is not made up.
+  const TICK_MS = 1000 / PETTING.ticksPerSecond;
+  let clock = performance.now();
+  let manualClock = false;
+  window.setInterval(() => {
+    const ticks = Math.floor((performance.now() - clock) / TICK_MS);
+    if (ticks < 1) return;
+    clock += ticks * TICK_MS;
+    if (manualClock) return;
+    view.dispatch({
+      type: 'tick',
+      ticks: Math.min(ticks, PETTING.ticksPerSecond),
+    });
+  }, TICK_MS);
 
   let phase = pettingPhase(view.get());
   view.subscribe((state) => {
@@ -313,4 +324,19 @@ export function mountPetting(deps: {
   });
   renderEntry();
   render();
+  return {
+    /** Browser time drives the round; tests may take over the clock, as for fishing. */
+    clock: {
+      setManual: (manual: boolean) => {
+        manualClock = manual;
+      },
+      /** Steps a round that is going; returns how many ticks applied. */
+      step: (ticks: number) => {
+        const round = view.get().round;
+        if (pettingPhase(view.get()) !== 'playing' || !round) return 0;
+        view.dispatch({ type: 'tick', ticks });
+        return (view.get().round?.tick ?? PETTING.roundTicks) - round.tick;
+      },
+    },
+  };
 }

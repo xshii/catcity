@@ -30,7 +30,7 @@ const after = (events: PettingViewEvent[], view = closedPetting()) =>
   events.reduce(reducePettingView, view);
 const open: PettingViewEvent = { type: 'open', catId: 'mochi', tastes: TASTES };
 const ticks = (count: number): PettingViewEvent[] =>
-  Array.from({ length: count }, () => ({ type: 'tick' }));
+  Array.from({ length: count }, () => ({ type: 'tick', ticks: 1 }));
 const stroke = (spot: PetSpot): PettingViewEvent => ({ type: 'stroke', spot });
 const RESULT = {
   spot: 'CHIN',
@@ -56,7 +56,9 @@ describe('petting view state', () => {
 
   it('ignores ticks and strokes while closed', () => {
     const closed = closedPetting();
-    expect(after([{ type: 'tick' }, stroke('CHIN')], closed)).toBe(closed);
+    expect(after([{ type: 'tick', ticks: 1 }, stroke('CHIN')], closed)).toBe(
+      closed,
+    );
   });
 
   it('records the strokes the cat took at the tick they landed', () => {
@@ -83,7 +85,9 @@ describe('petting view state', () => {
   it('waits for Core once the round ran out, then shows what Core made of it', () => {
     const ended = after([open, stroke('CHIN'), ...ticks(PETTING.roundTicks)]);
     expect(pettingPhase(ended)).toBe('settling');
-    expect(after([{ type: 'tick' }, stroke('CHIN')], ended)).toBe(ended);
+    expect(after([{ type: 'tick', ticks: 1 }, stroke('CHIN')], ended)).toBe(
+      ended,
+    );
     const settled = after([{ type: 'settled', result: RESULT }], ended);
     expect(pettingPhase(settled)).toBe('result');
     expect(settled.result).toEqual(RESULT);
@@ -146,7 +150,7 @@ describe('petting view state', () => {
         const roll = rng.nextInt(100);
         const event: PettingViewEvent =
           roll < 70
-            ? { type: 'tick' }
+            ? { type: 'tick', ticks: 1 + rng.nextInt(3) }
             : roll < 90
               ? stroke(PET_SPOTS[rng.nextInt(PET_SPOTS.length)]!)
               : roll < 93

@@ -40,7 +40,8 @@ export interface PettingView {
 export type PettingViewEvent =
   | { type: 'open'; catId: string; tastes: PetTastes }
   | { type: 'close' }
-  | { type: 'tick' }
+  /** Time passed: whole ticks of the round's clock. */
+  | { type: 'tick'; ticks: number }
   | { type: 'stroke'; spot: PetSpot }
   | { type: 'focus'; spot: PetSpot }
   | { type: 'arrow'; key: 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown' }
@@ -102,7 +103,7 @@ export function reducePettingView(
         : view;
     case 'tick':
       return phase === 'playing'
-        ? { ...view, round: stepPetting(view.round!, 1) }
+        ? { ...view, round: stepPetting(view.round!, event.ticks) }
         : view;
     case 'stroke': {
       if (phase !== 'playing') return view;

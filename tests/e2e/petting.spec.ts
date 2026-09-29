@@ -3,7 +3,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { pettingTastes } from '../../src/core';
-import { PET_SPOTS, type PetSpot } from '../../src/content/petting';
+import { PETTING, PET_SPOTS, type PetSpot } from '../../src/content/petting';
+
+const { purr: PURR, meter: METER } = PETTING;
 
 // Spec 039: one whole round of petting by touch, on a phone.
 
@@ -57,6 +59,9 @@ test('a round of petting by touch settles in Core and shows its result', async (
   try {
     await page.goto(`${localOrigin(testPorts().test)}/`);
     await ready(page);
+    await page.evaluate(() =>
+      window.CAT_CITY_DEBUG!.useManualPettingClock(true),
+    );
     const before = await readWorld(page);
     const mochi = before.cats[0]!;
     const { favourite, disliked } = pettingTastes(before.seed, mochi.id);
@@ -73,34 +78,42 @@ test('a round of petting by touch settles in Core and shows its result', async (
       0,
     );
 
-    // Slow strokes on the favourite spot, each as the purr swells.
+    // Real touches; the round's clock is stepped, so each lands on a known tick.
+    const step = (ticks: number) =>
+      page.evaluate(
+        (count) => window.CAT_CITY_DEBUG!.stepPetting(count),
+        ticks,
+      );
     for (let stroke = 0; stroke < 3; stroke++) {
       await expect(cat(page)).toHaveAttribute('data-purr', 'true');
       await spot(page, favourite).tap();
-      await expect(cat(page)).toHaveAttribute('data-purr', 'false');
+      if (stroke < 2)
+        expect(await step(PURR.periodTicks)).toBe(PURR.periodTicks);
     }
     await expect(spot(page, favourite)).toHaveAttribute('data-known', 'true');
-    await expect(cat(page)).toHaveAttribute('data-purr', 'true');
-    await spot(page, favourite).tap();
-    await expect(page.locator('#petting-bubble')).toBeVisible();
+    await expect(page.locator('#petting-bubble')).toHaveText('呼噜呼噜♪');
     await page.screenshot({ path: `${SHOTS}/round-390x844.png` });
+    await step(PURR.periodTicks);
 
     // One finger drawn from one plain spot to the other strokes both.
     await drag(page, plain!, other!);
     await expect(spot(page, plain!)).toHaveAttribute('data-known', 'true');
     await expect(spot(page, other!)).toHaveAttribute('data-known', 'true');
+    await step(PURR.periodTicks);
 
-    await expect(cat(page)).toHaveAttribute('data-away', 'false');
-    await page.waitForTimeout(400);
     await spot(page, disliked).tap();
     await expect(cat(page)).toHaveAttribute('data-away', 'true');
     await expect(page.locator('#petting-hint')).toHaveText(
       'Mochi 躲开了，等它回来',
     );
     await page.screenshot({ path: `${SHOTS}/pull-away-390x844.png` });
+    await step(PETTING.awayTicks);
     await expect(cat(page)).toHaveAttribute('data-away', 'false');
 
-    // The round ends by itself after its twelve seconds.
+    // The rest of the twelve seconds runs out by itself, in real time.
+    await page.evaluate(() =>
+      window.CAT_CITY_DEBUG!.useManualPettingClock(false),
+    );
     await expect(page.locator('#petting-result')).toBeVisible({
       timeout: 15_000,
     });
@@ -119,13 +132,25 @@ test('a round of petting by touch settles in Core and shows its result', async (
     expect(last.command.type).toBe('PET_CAT');
     if (last.command.type !== 'PET_CAT' || !last.result.ok)
       throw new Error('The round was not settled');
-    const strokes = last.command.strokes.map((stroke) => stroke.spot);
-    expect(strokes.slice(0, 4)).toEqual(Array(4).fill(favourite));
-    expect(strokes).toEqual(expect.arrayContaining([plain, other, disliked]));
+    expect(last.command.strokes).toEqual([
+      { tick: 0, spot: favourite },
+      { tick: PURR.periodTicks, spot: favourite },
+      { tick: PURR.periodTicks * 2, spot: favourite },
+      { tick: PURR.periodTicks * 3, spot: plain },
+      { tick: PURR.periodTicks * 3, spot: other },
+      { tick: PURR.periodTicks * 4, spot: disliked },
+    ]);
     const petted = last.result.events[0]!;
     if (petted.type !== 'CatPetted') throw new Error('No petting event');
-    expect(petted.mood).toBeGreaterThanOrEqual(2);
-    expect(petted.spot).toBe(favourite);
+    expect(petted).toMatchObject({
+      spot: favourite,
+      meter:
+        METER.favourite.purring * 3 +
+        METER.neutral.purring * 2 -
+        METER.disliked,
+      mood: 3,
+      full: true,
+    });
     await expect(page.locator('#petting-change')).toHaveText(
       `心情 +${petted.mood}`,
     );

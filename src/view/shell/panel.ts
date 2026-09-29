@@ -168,7 +168,7 @@ export function mountPanel(
       outing: get('city-panel-outing'),
     },
   });
-  mountPetting({
+  const petting = mountPetting({
     session,
     notify,
     tools: angling.tools,
@@ -200,5 +200,6 @@ export function mountPanel(
     city,
     aim: angling.aim,
     fishingClock: angling.fishingClock,
+    pettingClock: petting.clock,
   };
 }
