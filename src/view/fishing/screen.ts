@@ -58,8 +58,6 @@ export function fishingScreen(view: FishingView, run: Run | null) {
     /** The in-run console (pause, leave; and the button flow's meters). */
     console: river && !!run,
     consoleMode: river && run ? run.mode : null,
-    /** The river gives most of the screen to the motion plane. */
-    motionPlay: river && (run ? run.mode === 'motion' : active),
     motionCard,
     /** In button mode, by choice or failure, the way back sits by the cast button. */
     quick: {

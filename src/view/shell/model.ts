@@ -8,7 +8,6 @@ export function toViewModel(world: WorldState, selected: string | null) {
     coins: world.coins.toLocaleString('en-US'),
     day: Math.floor(world.minute / 1440) + 1,
     time: `${String(Math.floor(world.minute / 60) % 24).padStart(2, '0')}:${String(world.minute % 60).padStart(2, '0')}`,
-    cafeBuilt: world.buildings.some((building) => building.type === 'CAT_CAFE'),
     cat: cat
       ? {
           ...cat,

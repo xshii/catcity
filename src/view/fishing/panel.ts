@@ -139,9 +139,6 @@ export function mountAngling(
         (cat) => cat.id === (run?.catId ?? session.selectedEntity),
       ) ?? world.cats[0]!;
     const energy = selectedCat.needs.energy;
-    document
-      .querySelector('.shell')
-      ?.classList.toggle('motion-play', screen.motionPlay);
     get('scene-ready').hidden = !screen.readyToCast;
     get<HTMLButtonElement>('cast-start').disabled =
       active || energy < CAST_COST;

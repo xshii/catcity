@@ -17,6 +17,10 @@ body {
   --safe-bottom: max(8px, env(safe-area-inset-bottom));
   --bar-height: 44px;
   --nav-height: 54px;
+  /* Floating chrome over the scene. */
+  --float-bg: #faf9efd9;
+  --float-border: 1px solid #d7dfc6b3;
+  --float-blur: blur(8px);
   /* Below the scene bar, and above the tool bar. */
   --under-bar: calc(var(--safe-top) + var(--bar-height) + 8px);
   --over-nav: calc(var(--safe-bottom) + var(--nav-height) + 8px);
@@ -30,13 +34,7 @@ body {
   margin: 0;
   padding: 0;
 }
-.game-screen .topbar,
-.game-screen .intro,
-.game-screen footer,
-.game-screen .city-tools,
-.game-screen .map-footer,
-.game-screen .river-clock,
-.game-screen aside {
+.game-screen .river-clock {
   display: none;
 }
 .game-screen .layout,
@@ -55,7 +53,7 @@ body {
 }
 .game-screen .map-heading {
   position: absolute;
-  z-index: 33;
+  z-index: 37;
   top: var(--safe-top);
   left: 8px;
   right: 8px;
@@ -63,11 +61,11 @@ body {
   min-height: 0;
   padding: 5px 10px;
   gap: 8px;
-  border: 1px solid #d7dfc6b3;
+  border: var(--float-border);
   border-radius: 14px;
-  background: #faf9efcc;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--float-bg);
+  backdrop-filter: var(--float-blur);
+  -webkit-backdrop-filter: var(--float-blur);
 }
 .game-screen .scene-tabs {
   padding: 3px;
@@ -82,7 +80,7 @@ body {
   gap: 10px;
   font-size: 10px;
 }
-#river-coins {
+.river-status .coins {
   color: #9b7d43;
   white-space: nowrap;
 }
@@ -97,7 +95,7 @@ body {
   margin: 0;
   padding: 4px 12px;
   border-radius: 999px;
-  background: #faf9efd9;
+  background: var(--float-bg);
   font-size: 11px;
   line-height: 1.5;
   text-align: center;
@@ -158,9 +156,7 @@ body {
   height: 5px;
   margin-top: 3px;
 }
-.game-screen #fishing-stage,
-.game-screen #fishing-stage.is-river,
-.game-screen #fishing-stage.is-river[data-phase='ready'] {
+.game-screen #fishing-stage {
   position: absolute;
   inset: 0;
   min-height: 0;
@@ -187,27 +183,7 @@ body {
     calc(100dvh - var(--river-bottom) - var(--under-bar))
   );
   --river-top: calc(100% - var(--river-bottom) - var(--river-side));
-  --far-shore: #eaf0de;
-  /*
-   * In art units of 640: the far bank's strip spans 124–154 (river.ts farShore) and the
-   * dock starts at 560 (WATER_VIEW.nearY).
-   */
-  background: linear-gradient(
-    to bottom,
-    #eaf0de calc(var(--river-top) + var(--river-side) * 124 / 640),
-    var(--far-shore) 0 calc(var(--river-top) + var(--river-side) * 154 / 640),
-    #eaf0de 0 calc(var(--river-top) + var(--river-side) * 560 / 640),
-    #bfa47c 0
-  );
-}
-.game-screen #fishing-stage[data-spot='POND'] {
-  --far-shore: #c9d8b5;
-}
-.game-screen #fishing-stage[data-spot='REEDS'] {
-  --far-shore: #bfd1a8;
-}
-.game-screen #fishing-stage[data-spot='MOON'] {
-  --far-shore: #a9b3c4;
+  /* The backdrop continuing the art is set from art/river-palette.ts. */
 }
 .game-screen #fishing-stage.is-river #game {
   inset: auto;
@@ -330,7 +306,7 @@ body {
 }
 .scene-tools-nav {
   position: absolute;
-  z-index: 34;
+  z-index: 37;
   left: 8px;
   right: 8px;
   bottom: var(--safe-bottom);
@@ -340,11 +316,11 @@ body {
   grid-auto-columns: minmax(0, 1fr);
   padding: 5px;
   gap: 5px;
-  border: 1px solid #d7dfc6b3;
+  border: var(--float-border);
   border-radius: 16px;
-  background: #faf9efd9;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--float-bg);
+  backdrop-filter: var(--float-blur);
+  -webkit-backdrop-filter: var(--float-blur);
 }
 .game-screen .scene-tools-nav button {
   display: flex;
@@ -532,9 +508,6 @@ body {
   box-shadow: none;
   padding: 5px 0 0;
   background: transparent;
-}
-.game-screen .cat-card {
-  padding: 17px;
 }
 .game-screen .cat-card > .eyebrow,
 .game-screen #reunion,
@@ -739,12 +712,6 @@ body {
   padding: 4px 0;
 }
 
-.game-screen .offline {
-  display: inline-flex;
-  align-items: center;
-  font-size: 10px;
-  white-space: nowrap;
-}
 .game-screen #clock-speed {
   min-height: 26px;
   padding: 3px 8px;

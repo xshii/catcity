@@ -93,7 +93,6 @@ export function mountSceneNavigation(places: PlaceState, toggled: () => void) {
     }
     const river = place === 'river';
     shell.classList.toggle('river-screen', river);
-    shell.dataset.riverPanel = selected ?? '';
     root.hidden = false;
     sheet.hidden = selected === null;
     shade.hidden = sheet.hidden;

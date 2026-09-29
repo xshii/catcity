@@ -11,6 +11,7 @@ import {
 import { catIdle, type CatEntity, type WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
 import { catPortrait, fishIllustration } from '../art/illustrations';
+import { riverBackdrop } from '../art/river-palette';
 
 function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   const button = document.createElement('button');
@@ -129,8 +130,9 @@ export function mountFishingStage(
         `第 ${clock.day} 天 · ${clock.time}`;
       document.getElementById('river-place')!.textContent =
         SPOTS[run?.spotId ?? spot].name;
-      // The page continues the far bank of the water shown (layout.css).
-      stage.dataset.spot = run?.spotId ?? spot;
+      // The page continues the art of the water shown around it.
+      stage.style.background =
+        place.get() === 'river' ? riverBackdrop(run?.spotId ?? spot) : '';
       document.getElementById('river-tip')!.textContent = run
         ? {
             charge: '按住鱼竿蓄力，松开抛投',

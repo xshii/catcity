@@ -11,9 +11,9 @@
   justify-content: space-between;
   padding: 4px 6px 4px 12px;
   border-radius: 12px;
-  background: #faf9efcc;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--float-bg);
+  backdrop-filter: var(--float-blur);
+  -webkit-backdrop-filter: var(--float-blur);
   color: #66775b;
   font-size: 10px;
 }

@@ -205,14 +205,31 @@ export class CityScene extends Phaser.Scene {
       : cat
         ? { x: cat.x, y: cat.y }
         : { x: board.width / 2, y: board.height / 2 };
-    const { scale, center } = frameMap(
+    const framed = frameMap(
       this.frame,
       this.tiles,
       !this.overview,
       focus,
+      this.barInsets(),
     );
-    if (this.overview && this.pan) this.pan = center;
+    const { scale, center } = framed;
+    if (this.overview && this.pan) this.pan = framed.focus;
     camera.setZoom(scale * this.logicalPerCss()).centerOn(center.x, center.y);
+  }
+
+  /** How far the floating bars reach over the map, in CSS px (spec 031). */
+  private barInsets() {
+    const game = document.getElementById('game')!.getBoundingClientRect();
+    const covered = (selector: string) =>
+      Array.from(document.querySelectorAll<HTMLElement>(selector))
+        .filter((element) => element.offsetParent !== null)
+        .map((element) => element.getBoundingClientRect());
+    const top = covered('#map-heading, .city-map-hint');
+    const bottom = covered('#city-tools-nav, #city-action-card');
+    return {
+      top: Math.max(0, ...top.map((box) => box.bottom - game.top)),
+      bottom: Math.max(0, ...bottom.map((box) => game.bottom - box.top)),
+    };
   }
 
   private syncOverviewButton() {

@@ -15,7 +15,8 @@ export function mountFishingLayout(
   shell.classList.add('game-screen');
   const status = document.createElement('div');
   status.className = 'river-status';
-  status.innerHTML = '<span id="river-coins" aria-label="城市金币"></span>';
+  status.innerHTML =
+    '<span class="coins" aria-label="城市金币"><span aria-hidden="true">●</span> <strong id="coins" data-testid="coins"></strong></span>';
   status.prepend(get('clock'), get('clock-speed'));
   get('map-heading').append(status);
 
@@ -106,7 +107,6 @@ export function mountFishingLayout(
   const refresh = () => {
     const world = session.getSnapshot();
     navigation.refresh();
-    get('river-coins').textContent = `● ${world.coins}`;
     const cat = world.cats.find((cat) => cat.id === session.selectedEntity);
     const fullReply =
       cat?.memories.at(-1)?.reply ??

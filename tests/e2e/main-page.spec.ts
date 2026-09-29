@@ -121,20 +121,21 @@ test('a new game guides the next step above the map and keeps one clock control'
   await expect(page.locator('#city-hint')).toContainText('下一步');
   await expect(page.locator('#city-hint')).toContainText('猫咖');
   await expect(page.locator('#city-hint')).toBeInViewport({ ratio: 1 });
-  // One time control, next to the clock; saving leaves the top bar.
+  // One time control, next to the clock and the coins in the floating scene bar.
   await expect(
     page.getByRole('button', { name: /快进|营业一小时/ }),
   ).toHaveCount(0);
   await expect(page.locator('#clock-speed')).toBeInViewport({ ratio: 1 });
-  await expect(page.locator('.topbar #save')).toHaveCount(0);
-  await expect(page.locator('.topbar .offline')).toContainText('自动保存');
-  await expect(page.locator('.topbar .offline')).toBeVisible();
+  await expect(page.getByTestId('coins')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.topbar')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('地图种子');
 
   // Guide tab (renamed from 建设): tutorial, explicit save, no developer info.
   await expect(page.locator('#city-tab-guide')).toContainText('指引');
   await page.locator('#city-tab-guide').click();
   await expect(page.locator('#city-panel-guide #save')).toBeVisible();
+  // Saving is automatic; the guide says so beside the explicit save.
+  await expect(page.locator('#city-save')).toContainText('自动保存');
   await expect(page.locator('#city-panel-guide')).not.toContainText('种子');
   await page.getByRole('button', { name: '回地图选择空地' }).click();
   await page.locator('[data-build-type=CAT_CAFE]').click();
