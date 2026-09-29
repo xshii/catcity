@@ -14,6 +14,7 @@ import {
   fishingScreen,
   motionNibble,
   motionWant,
+  noticeShown,
   permissionNotice,
   resultShown,
   ringHeld,
@@ -721,5 +722,72 @@ describe('the catch card', () => {
     // Back from the city, the card is no longer "this" catch.
     const away = replay(ended, { type: 'place', place: 'city' }, river);
     expect(resultShown(away, null, result)).toBe(false);
+  });
+
+  it('withdraws the notice that stood when the card appeared', () => {
+    const watched = view({}, river, { type: 'run', runId: 'r' });
+    // The cast's notice shows through the run; a notice in a run changes nothing.
+    expect(noticeShown(watched, runOf('motion'), null)).toBe(true);
+    expect(replay(watched, { type: 'said' })).toBe(watched);
+    const ended = replay(watched, { type: 'run', runId: null });
+    expect(resultShown(ended, null, result)).toBe(true);
+    expect(noticeShown(ended, null, result)).toBe(false);
+    // Under a panel too: the old notice stays withdrawn.
+    const tools = replay(ended, { type: 'tools', open: true });
+    expect(noticeShown(tools, null, result)).toBe(false);
+    // A save's earlier result shows no card, so notices show.
+    expect(noticeShown(view({}, river), null, result)).toBe(true);
+    expect(
+      noticeShown(
+        replay(ended, { type: 'place', place: 'city' }),
+        null,
+        result,
+      ),
+    ).toBe(true);
+  });
+
+  it('gives way to a notice raised while it shows: the card goes, the notice shows', () => {
+    const ended = view(
+      {},
+      river,
+      { type: 'run', runId: 'r' },
+      { type: 'run', runId: null },
+    );
+    for (const state of [ended, replay(ended, { type: 'tools', open: true })]) {
+      const said = replay(state, { type: 'said' });
+      // Never both: they float in the same place.
+      expect(resultShown(said, null, result)).toBe(false);
+      expect(noticeShown(said, null, result)).toBe(true);
+      // The card does not come back with the panel closed or a later notice.
+      const later = replay(
+        said,
+        { type: 'tools', open: false },
+        { type: 'said' },
+      );
+      expect(resultShown(later, null, result)).toBe(false);
+      expect(noticeShown(later, null, result)).toBe(true);
+    }
+  });
+
+  it('the next cast takes the card away and shows its notices, as before', () => {
+    const ended = view(
+      {},
+      river,
+      { type: 'run', runId: 'r' },
+      { type: 'run', runId: null },
+    );
+    for (const state of [ended, replay(ended, { type: 'said' })]) {
+      const next = replay(state, { type: 'run', runId: 'next' });
+      expect(resultShown(next, runOf('buttons'), result)).toBe(false);
+      expect(noticeShown(next, runOf('buttons'), result)).toBe(true);
+      // That run's own result is the next card.
+      const landed = replay(
+        next,
+        { type: 'said' },
+        { type: 'run', runId: null },
+      );
+      expect(resultShown(landed, null, { runId: 'next' })).toBe(true);
+      expect(noticeShown(landed, null, { runId: 'next' })).toBe(false);
+    }
   });
 });
