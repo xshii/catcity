@@ -48,15 +48,36 @@ const PANEL_CONTROLS = [
 async function clearOfControls(page: Page, controls: string[]) {
   const notice = page.locator('#notice');
   await expect(notice).toBeInViewport({ ratio: 1 });
-  const box = (await notice.boundingBox())!;
-  for (const selector of controls)
-    for (const control of await page.locator(selector).all()) {
-      if (!(await control.isVisible())) continue;
-      expect(
-        overlap(box, (await control.boundingBox())!),
-        `the notice must not cover ${selector}`,
-      ).toBe(false);
-    }
+  // One reading of the page for all boxes: a round trip per control is slow on a busy
+  // machine. Visible as Playwright means it: a box with an area, not styled out of sight.
+  const { box, shown } = await page.evaluate((selectors) => {
+    const boxOf = (element: Element) => {
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return { x, y, width, height };
+    };
+    return {
+      box: boxOf(document.querySelector('#notice')!),
+      shown: selectors.flatMap((selector) =>
+        Array.from(document.querySelectorAll(selector))
+          .filter((control) => {
+            const { width, height } = control.getBoundingClientRect();
+            return (
+              width > 0 &&
+              height > 0 &&
+              control.checkVisibility({ visibilityProperty: true })
+            );
+          })
+          .map((control) => ({ selector, box: boxOf(control) })),
+      ),
+    };
+  }, controls);
+  // The check must have looked at something.
+  expect(shown.length).toBeGreaterThan(0);
+  for (const control of shown)
+    expect(
+      overlap(box, control.box),
+      `the notice must not cover ${control.selector}`,
+    ).toBe(false);
 }
 
 for (const viewport of [
