@@ -138,6 +138,9 @@ it('rejects saved fight progress the rules could not have reached', () => {
   const target = F.holdTicks[fishById(settling.speciesId!).stars];
   expect(tamper({ strike: 'good', hold: 0 })).not.toThrow();
   expect(tamper({ strike: 'good', hold: target - 1 })).toThrow();
+  // The line starts slack and stays slack while settling in.
+  expect(settling.tension).toBe(0);
+  expect(tamper({ tension: 1 })).toThrow();
   // After settling in, at most one tick of hold per tick of fight.
   for (let i = 0; i < F.graceTicks + 5; i++) {
     const run = world.getSnapshot().fishing.active!;
@@ -148,6 +151,11 @@ it('rejects saved fight progress the rules could not have reached', () => {
   expect(run.hold).toBe(settling.hold + 5);
   expect(tamper({})).not.toThrow();
   expect(tamper({ hold: run.hold + 1 })).toThrow();
+  // Tension rises at most one pull per tick after settling in; full tension snaps.
+  const pull = F.tug.risePerTick[fishById(run.speciesId!).stars];
+  expect(tamper({ tension: 5 * pull })).not.toThrow();
+  expect(tamper({ tension: 5 * pull + 1 })).toThrow();
+  expect(tamper({ tension: 100 })).toThrow();
 });
 
 it('refuses a fish position before the fight starts', () => {

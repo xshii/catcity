@@ -31,6 +31,7 @@ export class CityScene extends Phaser.Scene {
     focus: { x: number; y: number };
     moved: boolean;
   } | null = null;
+  private frames = 0;
   constructor(
     private readonly session: GameSession,
     private readonly place: PlaceState,
@@ -192,6 +193,9 @@ export class CityScene extends Phaser.Scene {
 
   /** Frame the camera every frame, so a walking cat and a resized frame stay centred. */
   update() {
+    // Frames drawn so far, so real-input tests can wait for the camera to catch up
+    // instead of guessing a delay (harness settle()).
+    this.game.canvas.dataset.frame = String(++this.frames);
     const camera = this.cameras.main;
     if (this.riverMode) {
       camera.setZoom(1).centerOn(MAP_VIEW.size / 2, MAP_VIEW.size / 2);

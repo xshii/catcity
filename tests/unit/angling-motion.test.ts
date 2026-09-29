@@ -216,6 +216,81 @@ describe('fish ring fight', () => {
     expect(chunked).toEqual(single);
   });
 
+  /** A settled 5★ fight one tick before its fish's first dash, with some line tension. */
+  function beforeDash(seed: number) {
+    let run = settle(ofStars(fight(seed), 5));
+    const path = fishPath(run, F.graceTicks + F.limitTicks);
+    const at = path.findIndex(
+      (fish, tick) => tick > run.phaseTick && fish.dashing,
+    );
+    while (run.phaseTick < at - 1) run = stepMotionRun(run, null, 1);
+    return { run: { ...run, tension: 50 }, fish: path[at]! };
+  }
+
+  it('starts the line slack and keeps it slack while settling in', () => {
+    const run = ofStars(fight(11), 5);
+    expect(run.tension).toBe(0);
+    expect(settle(run).tension).toBe(0);
+  });
+
+  it('tightens the line while a dash pulls unless the rod tip is behind the fish', () => {
+    const { run, fish } = beforeDash(3);
+    const rise = F.tug.risePerTick[5];
+    const margin = F.tug.marginUnits;
+    const at = (point: { x: number; y: number } | null) =>
+      stepMotionRun(run, point, 1).tension;
+    expect(at({ x: fish.x, y: fish.y })).toBe(run.tension + rise);
+    expect(at(null)).toBe(run.tension + rise);
+    // Behind means nearer the player (larger plane y) by more than the margin.
+    expect(at({ x: fish.x, y: fish.y + margin })).toBe(run.tension + rise);
+    expect(at({ x: fish.x, y: fish.y + margin + 1 })).toBe(run.tension);
+  });
+
+  it('eases the line between dashes', () => {
+    const run = { ...settle(fight(11)), tension: 10 };
+    const next = follow(run);
+    expect(fishPoint(run, next.phaseTick).dashing).toBe(false);
+    expect(next.tension).toBe(10 - F.tug.easePerTick);
+    expect(follow({ ...run, tension: 0 }).tension).toBe(0);
+  });
+
+  it('snaps the line when the tension fills', () => {
+    const { run, fish } = beforeDash(3);
+    const full = { ...run, tension: 100 - F.tug.risePerTick[5] };
+    expect(stepMotionRun(full, { x: fish.x, y: fish.y }, 1)).toMatchObject({
+      phase: 'escaped',
+      reason: 'line-break',
+      tension: 100,
+    });
+  });
+
+  it('pulls harder and dashes more often on higher-star fish', () => {
+    for (let star = 1; star <= 5; star++) {
+      expect(F.tug.risePerTick[star]).toBeGreaterThanOrEqual(
+        F.tug.risePerTick[star - 1]!,
+      );
+      expect(W.dash.perSecondPercent[star]).toBeGreaterThanOrEqual(
+        W.dash.perSecondPercent[star - 1]!,
+      );
+    }
+    expect(F.tug.risePerTick[5]).toBeGreaterThan(F.tug.risePerTick[1]);
+  });
+
+  it('gives the same tension for chunked and single ticks through dashes', () => {
+    const start = ofStars(fight(3), 5);
+    let single = start;
+    let chunked = start;
+    let tightest = 0;
+    for (let i = 0; i < 120; i++) {
+      const point = { x: 50, y: 20 + (i % 60) };
+      single = stepMotionRun(stepMotionRun(single, point, 1), point, 1);
+      chunked = stepMotionRun(chunked, point, 2);
+      tightest = Math.max(tightest, single.tension);
+    }
+    expect(tightest).toBeGreaterThan(0);
+    expect(chunked).toEqual(single);
+  });
+
   it('settles supplies on the lift without a fight', () => {
     const loot = Array.from({ length: 80 }, (_, i) =>
       castAngling(

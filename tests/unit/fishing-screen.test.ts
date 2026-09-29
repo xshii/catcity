@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FISHING } from '../../src/content/fishing';
+import { FISH_IDS, FISHING, fishById } from '../../src/content/fishing';
 import { createWorld } from '../../src/core/world';
-import { motionSchedule } from '../../src/minigames/angling-motion';
+import {
+  fishPath,
+  motionSchedule,
+  type FishState,
+} from '../../src/minigames/angling-motion';
 import {
   aimedSteps,
   fishingScreen,
@@ -19,7 +23,11 @@ import {
   type FishingViewEvent,
   type GuideStep,
 } from '../../src/view/fishing/view-state';
-import type { AnglingRun } from '../../src/minigames/angling';
+import {
+  castAngling,
+  initialAngling,
+  type AnglingRun,
+} from '../../src/minigames/angling';
 import { replay } from '../helpers/fishing-view';
 
 /** A device that finished the guide and calibrated before, unless told otherwise. */
@@ -47,7 +55,31 @@ const runOf = (
   mode: 'buttons' | 'motion',
   phase: AnglingRun['phase'] = 'waiting',
   phaseTick = 0,
-) => ({ id: 'r', mode, phase, phaseTick });
+) => ({ id: 'r', mode, phase, phaseTick }) as AnglingRun;
+/** A real 5★ motion fight, so the hint can read its fish. */
+const fightRun = (): AnglingRun => {
+  const cast = castAngling(
+    initialAngling({
+      happy: false,
+      id: 'angling-1',
+      catId: 'mochi',
+      seed: 3,
+      baitId: 'WORM',
+      direction: 30,
+      aimDepth: 50,
+      skillLevel: 1,
+      spotId: 'POND',
+      catBreed: 'RAGDOLL',
+      mode: 'motion',
+    }),
+    60,
+  );
+  return {
+    ...cast,
+    phase: 'fight',
+    speciesId: FISH_IDS.find((id) => fishById(id).stars === 5)!,
+  };
+};
 
 describe('fishing screen', () => {
   it('shows nothing of the river in the city, whatever the run or sensors', () => {
@@ -177,12 +209,19 @@ describe('fishing screen', () => {
     expect(
       hint(playing, runOf('motion', 'fight', FISHING.motion.fight.graceTicks)),
     ).toBe(SCREEN_COPY.hint.settle);
-    expect(
-      hint(
-        playing,
-        runOf('motion', 'fight', FISHING.motion.fight.graceTicks + 1),
-      ),
-    ).toBe(SCREEN_COPY.hint.fight);
+    // After settling in, the hint follows the fish drawn next (the tick Core judges).
+    const fight = fightRun();
+    const tickWhere = (test: (fish: FishState) => boolean) =>
+      fishPath(fight, 200).findIndex(
+        (fish, tick) =>
+          tick > FISHING.motion.fight.graceTicks + 1 && test(fish),
+      ) - 1;
+    const at = (phaseTick: number) => hint(playing, { ...fight, phaseTick });
+    expect(at(tickWhere((fish) => !fish.warning && !fish.dashing))).toBe(
+      SCREEN_COPY.hint.fight,
+    );
+    expect(at(tickWhere((fish) => fish.warning))).toBe(SCREEN_COPY.hint.pull);
+    expect(at(tickWhere((fish) => fish.dashing))).toBe(SCREEN_COPY.hint.pull);
     const paused = reduceFishingView(playing, { type: 'pause' });
     expect(hint(paused, runOf('motion', 'hook'))).toBe(SCREEN_COPY.hint.paused);
     const calibrating = reduceFishingView(motion, {
@@ -238,6 +277,18 @@ describe('fishing screen', () => {
     ).toMatchObject({ guide: null, hint: SCREEN_COPY.hint.waiting });
     // Finished or skipped: no guide.
     expect(fishingScreen(view({}, river, ready), null).guide).toBeNull();
+    // A dash's "pull back" shows over the ring step; the guide stays for after it.
+    const fight = fightRun();
+    const dash = fishPath(fight, 200).findIndex(
+      (fish, tick) =>
+        tick > FISHING.motion.fight.graceTicks + 1 && fish.dashing,
+    );
+    expect(
+      fishingScreen(view({ guide: 'fight' }, ...playing), {
+        ...fight,
+        phaseTick: dash - 1,
+      }),
+    ).toMatchObject({ guide: 'fight', hint: SCREEN_COPY.hint.pull });
   });
 
   it('never shows the guide in button mode, over calibration, a notice or a pause', () => {

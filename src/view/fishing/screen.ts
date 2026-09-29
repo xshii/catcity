@@ -1,6 +1,6 @@
 import { FISHING } from '../../content/fishing';
 import type { AnglingRun } from '../../minigames/angling';
-import { motionSchedule } from '../../minigames/angling-motion';
+import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
 import {
   canPlay,
   motionActive,
@@ -30,6 +30,7 @@ export const SCREEN_COPY = {
     hook: '快速上扬提竿！',
     settle: '稳住，用圈罩住鱼',
     fight: '倾斜手机，让圈罩住鱼',
+    pull: '往回拉！',
   },
   /** The first motion cast, one step at a time (spec 033 F3). */
   guide: {
@@ -88,7 +89,7 @@ const GUIDE_PHASES: Record<GuideStep, readonly (AnglingRun['phase'] | null)[]> =
  * change, so no route can leave a control stale. Nothing of the river shows elsewhere,
  * and a run keeps the controls of the mode it was cast in.
  */
-export function fishingScreen(view: FishingView, run: Run | null) {
+export function fishingScreen(view: FishingView, run: AnglingRun | null) {
   const river = view.place === 'river';
   const playable = canPlay(view);
   const active = motionActive(view);
@@ -106,6 +107,8 @@ export function fishingScreen(view: FishingView, run: Run | null) {
   const overlay = playable && (!!motionRun || (active && !run));
   const aiming = overlay && !motionRun && active;
   const guide = overlay && active ? guideStep(view, motionRun) : null;
+  // A dash's "pull back" is urgent: it shows over the guide's step.
+  const usual = hint(view, motionRun);
   return {
     /** The manual "ready to cast" area. */
     readyToCast: river && !run && !active && !motionCard,
@@ -146,7 +149,10 @@ export function fishingScreen(view: FishingView, run: Run | null) {
     bite: overlay && motionRun?.phase === 'hook',
     /** The fish, the player's ring and the hold meter. */
     fight: overlay && motionRun?.phase === 'fight',
-    hint: guide ? SCREEN_COPY.guide[guide] : hint(view, motionRun),
+    hint:
+      guide && usual !== SCREEN_COPY.hint.pull
+        ? SCREEN_COPY.guide[guide]
+        : usual,
     /** The first-cast guide's step whose hint shows, with a way to skip the guide. */
     guide,
     pauseLabel: view.paused
@@ -216,7 +222,7 @@ function guideStep(view: FishingView, motionRun: Run | null): GuideStep | null {
   return GUIDE_PHASES[step].includes(motionRun?.phase ?? null) ? step : null;
 }
 
-function hint(view: FishingView, motionRun: Run | null): string {
+function hint(view: FishingView, motionRun: AnglingRun | null): string {
   const words = SCREEN_COPY.hint;
   if (view.motion.calibrating) return words.calibrating;
   if (view.motion.notice && !motionRun) return view.motion.notice;
@@ -224,9 +230,12 @@ function hint(view: FishingView, motionRun: Run | null): string {
   if (view.paused) return words.paused;
   if (motionRun.phase === 'waiting') return words.waiting;
   if (motionRun.phase === 'hook') return words.hook;
-  if (motionRun.phase === 'fight')
-    return motionRun.phaseTick <= FISHING.motion.fight.graceTicks
-      ? words.settle
-      : words.fight;
+  if (motionRun.phase === 'fight') {
+    if (motionRun.phaseTick <= FISHING.motion.fight.graceTicks)
+      return words.settle;
+    // A dash is announced or on (spec 033): the fish drawn next, as Core judges it.
+    const fish = fishPoint(motionRun, motionRun.phaseTick + 1);
+    return fish.warning || fish.dashing ? words.pull : words.fight;
+  }
   return '';
 }
