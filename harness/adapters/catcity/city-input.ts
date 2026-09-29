@@ -8,6 +8,7 @@ import {
   MAP_VIEW,
   tileCenter,
 } from '../../../src/view/city/geometry';
+import { measureBarInsets } from '../../../src/view/city/bars';
 
 /** Read-only observation works in test and in a production build without its bridge. */
 async function observeWorld(page: Page): Promise<WorldState> {
@@ -35,8 +36,9 @@ const settle = (page: Page) =>
 
 /**
  * Click a tile the way a player would: open a fresh overview (centred on the board), and
- * drag the map first when the tile lies outside the frame. Positions come from the same
- * framing rule the scene uses, so this works in production builds without the bridge.
+ * drag the map first when the tile lies outside the open band between the floating bars.
+ * Positions come from the same framing rule and bar insets the scene uses, so this works
+ * in production builds without the bridge.
  */
 export async function clickTile(page: Page, x: number, y: number) {
   const close = page.locator('#river-tools-close');
@@ -51,44 +53,54 @@ export async function clickTile(page: Page, x: number, y: number) {
   const { map } = await observeWorld(page);
   const bounds = await page.locator('#game').boundingBox();
   if (!bounds) throw new Error('Map frame must have bounds');
+  const insets = await page.evaluate(measureBarInsets);
+  const band = {
+    top: insets.top,
+    bottom: bounds.height - insets.bottom,
+    middle: insets.top + (bounds.height - insets.top - insets.bottom) / 2,
+  };
   const board = boardSize(map);
   let focus = { x: board.width / 2, y: board.height / 2 };
   const tile = tileCenter(x, y);
   for (let attempt = 0; attempt < 6; attempt++) {
-    const { scale, center } = frameMap(bounds, map, false, focus);
+    const framed = frameMap(bounds, map, false, focus, insets);
+    const { scale, center } = framed;
     const point = {
       x: bounds.width / 2 + (tile.x - center.x) * scale,
       y: bounds.height / 2 + (tile.y - center.y) * scale,
     };
     const margin = (MAP_VIEW.tile * scale) / 2;
-    const inside = (value: number, size: number) =>
-      value >= margin && value <= size - margin;
-    if (inside(point.x, bounds.width) && inside(point.y, bounds.height)) {
+    if (
+      point.x >= margin &&
+      point.x <= bounds.width - margin &&
+      point.y >= band.top + margin &&
+      point.y <= band.bottom - margin
+    ) {
       await page.mouse.click(bounds.x + point.x, bounds.y + point.y);
       return;
     }
-    // Drag within the frame towards the tile; the scene clamps the pan to the board.
-    const reach = (value: number, size: number) =>
-      Math.max(
-        margin - size / 2,
-        Math.min(size / 2 - margin, size / 2 - value),
-      );
+    // Drag within the band towards the tile; the scene clamps the pan to the board.
+    const reach = (value: number, middle: number, half: number) =>
+      Math.max(margin - half, Math.min(half - margin, middle - value));
     const shift = {
-      x: reach(point.x, bounds.width),
-      y: reach(point.y, bounds.height),
+      x: reach(point.x, bounds.width / 2, bounds.width / 2),
+      y: reach(point.y, band.middle, (band.bottom - band.top) / 2),
     };
-    const start = {
-      x: bounds.x + bounds.width / 2,
-      y: bounds.y + bounds.height / 2,
-    };
+    const start = { x: bounds.x + bounds.width / 2, y: bounds.y + band.middle };
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
     await page.mouse.move(start.x + shift.x, start.y + shift.y, { steps: 6 });
     await page.mouse.up();
-    focus = frameMap(bounds, map, false, {
-      x: center.x - shift.x / scale,
-      y: center.y - shift.y / scale,
-    }).center;
+    focus = frameMap(
+      bounds,
+      map,
+      false,
+      {
+        x: framed.focus.x - shift.x / scale,
+        y: framed.focus.y - shift.y / scale,
+      },
+      insets,
+    ).focus;
     await settle(page);
   }
   throw new Error(`Tile ${x},${y} never came into view`);

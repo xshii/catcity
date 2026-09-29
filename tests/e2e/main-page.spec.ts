@@ -4,6 +4,7 @@ import { clickTile } from '../../harness/adapters/catcity/city-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import type { Position } from '../../src/core';
 import { MAP_VIEW } from '../../src/view/city/geometry';
+import { measureBarInsets } from '../../src/view/city/bars';
 
 // Spec 014: the city page on a phone — messages, entry points, selecting a
 // cat, first-screen guidance, map framing and the clock speed.
@@ -41,7 +42,10 @@ async function board(page: Page) {
   };
 }
 
-/** Centred on an axis when it fits; otherwise the map covers the frame. */
+/**
+ * Centred on an axis when it fits; otherwise the map covers the frame. Vertically that
+ * frame is the open band between the floating bars (spec 031), so no row hides under them.
+ */
 async function expectFramed(page: Page) {
   await frames(page);
   const frame = (await page.locator('#game').boundingBox())!;
@@ -50,9 +54,17 @@ async function expectFramed(page: Page) {
   expect(Math.abs(canvas.width - frame.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(canvas.height - frame.height)).toBeLessThanOrEqual(1);
   const box = await board(page);
+  const bars = await page.evaluate(measureBarInsets);
+  expect(bars.top).toBeGreaterThan(0);
+  expect(bars.bottom).toBeGreaterThan(0);
   for (const [low, high, start, size] of [
     [box.left, box.right, frame.x, frame.width],
-    [box.top, box.bottom, frame.y, frame.height],
+    [
+      box.top,
+      box.bottom,
+      frame.y + bars.top,
+      frame.height - bars.top - bars.bottom,
+    ],
   ] as const) {
     if (high - low <= size + 1)
       expect(Math.abs((low + high) / 2 - (start + size / 2))).toBeLessThan(2);
@@ -69,7 +81,7 @@ for (const viewport of [
   { width: 360, height: 640 },
   { width: 1280, height: 1000 },
 ]) {
-  test(`the map is centred in its frame in follow and overview at ${viewport.width}×${viewport.height}`, async ({
+  test(`the map is centred between the floating bars in follow and overview at ${viewport.width}×${viewport.height}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
