@@ -68,6 +68,10 @@ test('a new cat starts beside the pond and can enter fishing without travel or r
   );
   await page.mouse.click(selectedScreen!.x, selectedScreen!.y);
   await expect(page.locator('#city-action-card')).toBeHidden();
+  // Letting the cat go is quiet: the notice still shows the selection's hint.
+  await expect(page.locator('#notice')).toHaveText(
+    '已选中 Mochi：点一块地，在卡片上选「让 Mochi 走到这里」。',
+  );
   expect(await readWorld(page)).toEqual(before);
   await page.locator('#visit-river').click();
   await expect(page.locator('#visit-river')).toHaveAttribute(

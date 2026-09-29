@@ -42,8 +42,9 @@ export async function settle(page: Page) {
 }
 
 /**
- * How far the floating bars reach over the map frame, measured through Playwright rather
- * than code sent into the page, so it also works on production builds.
+ * How far the bars the camera frames between, and everything covering the map, reach over
+ * the map frame; measured through Playwright rather than code sent into the page, so it
+ * also works on production builds.
  */
 export async function barInsetsOf(
   page: Page,
@@ -58,18 +59,24 @@ export async function barInsetsOf(
       }
     return boxes;
   };
-  return barInsets(
-    { top: frame.y, bottom: frame.y + frame.height },
-    await spans(BAR_SELECTORS.top),
-    await spans(BAR_SELECTORS.bottom),
-  );
+  const insets = async (selectors: { top: string; bottom: string }) =>
+    barInsets(
+      { top: frame.y, bottom: frame.y + frame.height },
+      await spans(selectors.top),
+      await spans(selectors.bottom),
+    );
+  return {
+    bars: await insets(BAR_SELECTORS.bars),
+    covers: await insets(BAR_SELECTORS.covers),
+  };
 }
 
 /**
- * Click a tile the way a player would: open a fresh overview (centred on the board), and
- * drag the map first when the tile lies outside the open band between the floating bars.
- * Positions come from the same framing rule and bar insets the scene uses, so this works
- * in production builds without the bridge.
+ * Click a tile the way a player would: open a fresh overview (centred on the board between
+ * the bars), and tap the part of the tile nothing covers, the hint and an open action card
+ * included; drag the map first when less than half of it shows. Positions come from the
+ * same framing rule and bar insets the scene uses, so this works in production builds
+ * without the bridge.
  */
 export async function clickTile(page: Page, x: number, y: number) {
   const close = page.locator('#river-tools-close');
@@ -84,31 +91,37 @@ export async function clickTile(page: Page, x: number, y: number) {
   const { map } = await observeWorld(page);
   const bounds = await page.locator('#game').boundingBox();
   if (!bounds) throw new Error('Map frame must have bounds');
-  const insets = await barInsetsOf(page, bounds);
+  const { bars, covers } = await barInsetsOf(page, bounds);
 
   const band = {
-    top: insets.top,
-    bottom: bounds.height - insets.bottom,
-    middle: insets.top + (bounds.height - insets.top - insets.bottom) / 2,
+    top: covers.top,
+    bottom: bounds.height - covers.bottom,
+    middle: covers.top + (bounds.height - covers.top - covers.bottom) / 2,
   };
   const board = boardSize(map);
   let focus = { x: board.width / 2, y: board.height / 2 };
   const tile = tileCenter(x, y);
   for (let attempt = 0; attempt < 6; attempt++) {
-    const framed = frameMap(bounds, map, false, focus, insets);
+    const framed = frameMap(bounds, map, false, focus, bars);
     const { scale, center } = framed;
     const point = {
       x: bounds.width / 2 + (tile.x - center.x) * scale,
       y: bounds.height / 2 + (tile.y - center.y) * scale,
     };
     const margin = (MAP_VIEW.tile * scale) / 2;
+    const shown = {
+      top: Math.max(point.y - margin, band.top),
+      bottom: Math.min(point.y + margin, band.bottom),
+    };
     if (
       point.x >= margin &&
       point.x <= bounds.width - margin &&
-      point.y >= band.top + margin &&
-      point.y <= band.bottom - margin
+      shown.bottom - shown.top >= margin
     ) {
-      await page.mouse.click(bounds.x + point.x, bounds.y + point.y);
+      await page.mouse.click(
+        bounds.x + point.x,
+        bounds.y + (shown.top + shown.bottom) / 2,
+      );
       return;
     }
     // Drag within the band towards the tile; the scene clamps the pan to the board.
@@ -131,7 +144,7 @@ export async function clickTile(page: Page, x: number, y: number) {
         x: framed.focus.x - shift.x / scale,
         y: framed.focus.y - shift.y / scale,
       },
-      insets,
+      bars,
     ).focus;
     await settle(page);
   }
