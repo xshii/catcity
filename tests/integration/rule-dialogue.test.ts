@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DialogueContext } from '../../src/application/ports';
+import { BOND_LEVELS } from '../../src/content/care';
 import { createWorld } from '../../src/core';
 import { RuleBasedDialogueProvider } from '../../src/providers/rule-dialogue';
 
@@ -100,6 +101,39 @@ describe('rule dialogue reads current relationship facts', () => {
     expect(new Set(smallTalk).size).toBe(moods.length);
     const recall = await Promise.all(
       moods.map((mood) => reply('还记得第一次钓鱼吗？', mood)),
+    );
+    expect(new Set(recall).size).toBe(1);
+  });
+
+  it('adds one closing line per bond level to small talk, none for a new friend (spec 036)', async () => {
+    const reply = async (message: string, playerBond: number, mood = 70) => {
+      const input = context(message);
+      input.cat = { ...input.cat, playerBond, mood };
+      input.fishingMemory = {
+        runId: 'fishing-1',
+        speciesId: 'SILVER',
+        spotId: 'POND',
+        minute: 20,
+      };
+      return (await provider.generate(input)).text;
+    };
+    const bonds = BOND_LEVELS.map((level) => level.bond);
+    const smallTalk = await Promise.all(bonds.map((bond) => reply('嗯', bond)));
+    expect(new Set(smallTalk).size).toBe(bonds.length);
+    // A new friend hears exactly today's line; every level keeps it and adds its own.
+    expect(smallTalk[0]).toBe(
+      '嗯，我在听。可以慢慢说，也可以邀请我一起去河边待一会。',
+    );
+    for (const text of smallTalk.slice(1)) {
+      expect(text.startsWith(smallTalk[0]!)).toBe(true);
+      expect(text.length).toBeLessThanOrEqual(500);
+    }
+    // Within a level the line is the same; the mood still sets the tone before it.
+    expect(await reply('嗯', bonds[2]! - 1)).toBe(smallTalk[1]);
+    expect(await reply('嗯', 100)).toBe(smallTalk.at(-1));
+    expect(await reply('嗯', bonds.at(-1)!, 10)).toContain('……嗯。我在。');
+    const recall = await Promise.all(
+      bonds.map((bond) => reply('还记得第一次钓鱼吗？', bond)),
     );
     expect(new Set(recall).size).toBe(1);
   });

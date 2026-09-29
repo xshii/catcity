@@ -261,6 +261,16 @@ function play(seed: number) {
       expect(moodMayChange(command), `mood: ${where}`).toBe(true);
       moodMoves.add(`${command.type}${change > 0 ? '+' : '-'}`);
     }
+    // The bond only grows, one at a time, from chat, a gift or a run's end (spec 036).
+    for (const [index, cat] of before.cats.entries()) {
+      const grown = after.cats[index]!.playerBond - cat.playerBond;
+      if (!grown) continue;
+      expect(grown, `bond: ${where}`).toBe(1);
+      expect(
+        ['INTERACT', 'GIFT_FISH', 'FISH_CONTROL', 'FISH_MOTION_CONTROL'],
+        `bond: ${where}`,
+      ).toContain(command.type);
+    }
     // Recovery during a walk only happens once the walk stopped for lack of energy.
     if (result.ok)
       exhaustedWalks += result.events.filter(

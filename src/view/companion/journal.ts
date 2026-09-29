@@ -18,9 +18,9 @@ export function mountCompanionship(session: GameSession) {
         ? `你送我的${fishById(gift.speciesId).name}，我还记得呢。`
         : `我是 ${cat.name}。这里给你留了个位置。`;
     get('bond').textContent = remembered
-      ? '有了一段共同回忆 · 慢慢熟悉中'
+      ? '有了一段共同回忆'
       : cat.memories.length
-        ? '已经聊过几次 · 慢慢熟悉中'
+        ? '已经聊过几次'
         : '初次见面 · 不用急着熟悉';
     get('memory-empty').hidden = remembered;
     get('memory-card').hidden = !remembered;

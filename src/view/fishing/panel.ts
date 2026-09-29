@@ -46,7 +46,8 @@ import {
   BUTTON_PHASE_NAMES,
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
-import { moodNote, withMoodNote } from '../shell/mood';
+import { withMoodNote } from '../shell/mood';
+import { outcomeNote } from '../shell/bond';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -281,7 +282,7 @@ export function mountAngling(
             command.type === 'GIFT_FISH'
               ? withMoodNote(
                   message,
-                  moodNote(before, session.getSnapshot(), command.catId),
+                  outcomeNote(before, session.getSnapshot(), command.catId),
                 )
               : message,
           );
@@ -566,7 +567,7 @@ export function mountAngling(
     )
       resultMood = {
         runId: ended.runId,
-        note: moodNote(previousWorld, world, ended.catId),
+        note: outcomeNote(previousWorld, world, ended.catId),
       };
     const held = ringHeld(previousWorld.fishing.active, world.fishing.active);
     const cast = castNotice(previousWorld.fishing.active, world.fishing.active);
