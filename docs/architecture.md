@@ -20,7 +20,7 @@
 | `src/view/styles/base.css`               | 共用视觉基础；玩法布局样式留在对应 View 模块                                           |
 | `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                                |
 | `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                          |
-| `tests/`                                 | 按 unit / simulation / integration / e2e 分层，旧存档仅作拒绝 fixture                  |
+| `tests/`                                 | 按 unit / simulation / integration / view / e2e 分层，旧存档仅作拒绝 fixture           |
 
 `src/main.ts` 注入具体依赖并连接 View、Debug 与平台时间。`src/view/index.ts` 的 `mountGameView(session)` 封装 Phaser/面板装配。Core/content 不依赖 DOM、Phaser、网络、真实时钟、模型 SDK、全局单例或 `Math.random()`。View 不拥有可变世界引用；快照不能写回世界。
 
