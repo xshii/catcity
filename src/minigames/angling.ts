@@ -135,12 +135,15 @@ export function greenZone(run: AnglingRun): { low: number; high: number } {
 }
 
 /**
- * How the landed-on shadow reacts (spec 033): it bites when the spot, the bait and the
- * cat's breed allow its fish, sniffs a wrong bait and leaves, and is ignored otherwise.
+ * How the landed-on shadow reacts (spec 033). It only ever makes a catch better: a fish
+ * with fewer stars than the rules' pick is ignored. Otherwise it bites when the spot, the
+ * bait and the cat's breed allow it, and sniffs a wrong bait and leaves.
  */
 function shadowTake(run: AnglingRun): 'none' | 'bite' | 'sniff' {
   const fish = run.shadow;
   if (!fish || !SPOTS[run.spotId].fish.includes(fish)) return 'none';
+  const rulePick = ruleFish(run, new RandomService(run.seed));
+  if (fishById(fish).stars < fishById(rulePick).stars) return 'none';
   if (!(fishById(fish).baits as readonly BaitId[]).includes(run.baitId))
     return 'sniff';
   return canCatchFish(fish, run.catBreed) ? 'bite' : 'none';
@@ -154,9 +157,9 @@ export function shadowWait(run: AnglingRun, ticks: number): number {
   return take === 'sniff' ? ticks + sniffTicks : ticks;
 }
 
-function chooseFish(run: AnglingRun): void {
-  const { encounter: RULE, supplies: LOOT } = FISHING;
-  const rng = new RandomService(run.seed);
+/** The fish the aim, bait and breed rules pick; it takes the first draws of `rng`. */
+function ruleFish(run: AnglingRun, rng: RandomService): FishId {
+  const RULE = FISHING.encounter;
   const left = run.direction < -RULE.sideDegrees;
   const strongRightShrimp = (power: number) =>
     run.baitId === 'SHRIMP' &&
@@ -177,7 +180,13 @@ function chooseFish(run: AnglingRun): void {
   if (run.spotId === 'COAST') {
     species = strongRightShrimp(RULE.strongPower) ? 'SEA_BREAM' : 'MACKEREL';
   }
-  if (!canCatchFish(species, run.catBreed)) species = RULE.breedFallback;
+  return canCatchFish(species, run.catBreed) ? species : RULE.breedFallback;
+}
+
+function chooseFish(run: AnglingRun): void {
+  const LOOT = FISHING.supplies;
+  const rng = new RandomService(run.seed);
+  let species = ruleFish(run, rng);
   const shadowBites = shadowTake(run) === 'bite';
   if (shadowBites) species = run.shadow!;
   // Light bread casts may hook supplies. Trash is only a failed-fishing outcome.

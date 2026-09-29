@@ -149,19 +149,52 @@ const waitTicks = (cast: AnglingRun) => {
 describe('a shadow at the landing point', () => {
   it('hooks its fish sooner when the bait and the cat allow it', () => {
     for (let seed = 1; seed <= 20; seed++) {
-      // Casting right at the pond would hook crucian; the shadow is silver.
-      const plain = castAngling(run({ seed }), 60, null);
-      const taken = castAngling(run({ seed }), 60, 'SILVER');
-      expect(plain.speciesId).toBe('CRUCIAN');
-      expect(taken).toMatchObject({ shadow: 'SILVER', speciesId: 'SILVER' });
+      // Casting left at the pond would hook silver; the shadow is crucian.
+      const plain = castAngling(run({ seed, direction: -30 }), 60, null);
+      const taken = castAngling(run({ seed, direction: -30 }), 60, 'CRUCIAN');
+      expect(plain.speciesId).toBe('SILVER');
+      expect(taken).toMatchObject({ shadow: 'CRUCIAN', speciesId: 'CRUCIAN' });
+      // The same fish, arriving without the shadow, bites later.
+      const unshaded = (cast: AnglingRun) => ({ ...cast, shadow: null });
       expect(motionSchedule(taken).bite).toBeLessThan(
-        motionSchedule(plain).bite,
+        motionSchedule(unshaded(taken)).bite,
       );
-      const buttons = { seed, mode: 'buttons' as const };
-      expect(waitTicks(castAngling(run(buttons), 60, 'SILVER'))).toBeLessThan(
-        waitTicks(castAngling(run(buttons), 60, null)),
+      const buttons = castAngling(
+        run({ seed, direction: -30, mode: 'buttons' }),
+        60,
+        'CRUCIAN',
       );
+      expect(waitTicks(buttons)).toBeLessThan(waitTicks(unshaded(buttons)));
     }
+  });
+
+  it('only makes a catch better: a smaller fish than the rules pick is ignored', () => {
+    // Casting right at the pond hooks crucian; a silver shadow there changes nothing.
+    for (let seed = 1; seed <= 20; seed++)
+      for (const mode of ['motion', 'buttons'] as const) {
+        const plain = castAngling(run({ seed, mode }), 60, null);
+        expect(castAngling(run({ seed, mode }), 60, 'SILVER')).toEqual({
+          ...plain,
+          shadow: 'SILVER',
+        });
+      }
+    // No cast anywhere hooks fewer stars, or supplies instead of a fish, on a shadow.
+    const stars = (cast: AnglingRun) => fishById(cast.speciesId!).stars;
+    for (const spotId of SPOT_IDS)
+      for (const baitId of BAIT_IDS)
+        for (const catBreed of ['RAGDOLL', 'BRITISH_SHORTHAIR'] as const)
+          for (const direction of [-30, 0, 30])
+            for (const power of [20, 60, 75])
+              for (let seed = 1; seed <= 12; seed++) {
+                const aim = { spotId, baitId, catBreed, direction, seed };
+                const plain = castAngling(run(aim), power, null);
+                if (plain.catchKind !== 'fish') continue;
+                for (const shadow of SPOTS[spotId].fish) {
+                  const shaded = castAngling(run(aim), power, shadow);
+                  expect(shaded.catchKind).toBe('fish');
+                  expect(stars(shaded)).toBeGreaterThanOrEqual(stars(plain));
+                }
+              }
   });
 
   it('sniffs a wrong bait and leaves: the usual fish, later', () => {
@@ -249,7 +282,7 @@ describe('a shadow at the landing point', () => {
   });
 
   it('advances the same in one step or in chunks', () => {
-    const cast = castAngling(run({ seed: 3 }), 60, 'SILVER');
+    const cast = castAngling(run({ seed: 3, direction: -30 }), 60, 'CRUCIAN');
     let one = cast;
     let chunked = cast;
     for (let i = 0; i < 12; i++) {
@@ -261,14 +294,14 @@ describe('a shadow at the landing point', () => {
 });
 
 describe('casting in Core', () => {
-  /** A pond world whose first shadow lies right of the centre line. */
+  /** A pond world with a crucian shadow left of the centre line, where silver bites. */
   function pondWithShadow() {
     for (let seed = 1; ; seed++) {
       const world = fishingFixture(seed);
       const target = fishShadows(world.getSnapshot(), 'POND').find(
         (shadow) =>
-          shadow.speciesId === 'SILVER' &&
-          shadow.direction > FISHING.encounter.sideDegrees &&
+          shadow.speciesId === 'CRUCIAN' &&
+          shadow.direction < -FISHING.encounter.sideDegrees &&
           shadow.reach >= 30 &&
           shadow.reach <= 75,
       );
@@ -303,7 +336,7 @@ describe('casting in Core', () => {
       true,
     );
     const active = world.getSnapshot().fishing.active!;
-    expect(active).toMatchObject({ shadow: 'SILVER', speciesId: 'SILVER' });
+    expect(active).toMatchObject({ shadow: 'CRUCIAN', speciesId: 'CRUCIAN' });
     const save = world.save();
     expect(loadWorld(save).save()).toBe(save);
   });
@@ -323,8 +356,8 @@ describe('casting in Core', () => {
     world.dispatch({ type: 'FISH_CONTROL', runId, pressed: false, ticks: 1 });
     expect(world.getSnapshot().fishing.active).toMatchObject({
       phase: 'waiting',
-      shadow: 'SILVER',
-      speciesId: 'SILVER',
+      shadow: 'CRUCIAN',
+      speciesId: 'CRUCIAN',
     });
   });
 

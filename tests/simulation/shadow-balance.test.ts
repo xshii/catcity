@@ -120,6 +120,16 @@ it.each(SCENARIOS)(
 );
 
 it.each(SCENARIOS)(
+  'shadows never cost the old best play for a $breed, even ignoring them',
+  ({ breed, bait, side, power }) => {
+    const oldBest = highStars(breed, bait, clue(side, power), true);
+    const ignoring = highStars(breed, bait, clue(side, power));
+    const report = `${breed}: old best ${oldBest}%, ignoring shadows ${ignoring}%`;
+    expect(ignoring, report).toBeGreaterThanOrEqual(oldBest);
+  },
+);
+
+it.each(SCENARIOS)(
   'the best shadow play adds little to the old best for a $breed',
   ({ breed, bait, side, power }) => {
     const oldBest = highStars(breed, bait, clue(side, power), true);
