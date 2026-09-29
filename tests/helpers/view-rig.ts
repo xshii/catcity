@@ -24,6 +24,8 @@ export interface Device {
   phone?: boolean;
   /** Sensors ask for permission first (iOS Safari), and the player answers this. */
   permission?: 'granted' | 'denied';
+  /** `navigator.userActivation` exists (Safari 16.4+, Chromium); default true. */
+  userActivation?: boolean;
   /** Served over HTTPS (or localhost); default true. Motion needs it. */
   secure?: boolean;
   /** `navigator.vibrate` exists, as in Chromium; default true. */
@@ -55,10 +57,11 @@ export function openGame(device: Device = {}) {
   // localhost is a secure context in browsers; motion needs one.
   vi.stubGlobal('isSecureContext', device.secure ?? true);
   vi.stubGlobal('Option', option);
-  Object.defineProperty(navigator, 'userActivation', {
-    configurable: true,
-    get: () => ({ isActive: activation }),
-  });
+  if (device.userActivation !== false)
+    Object.defineProperty(navigator, 'userActivation', {
+      configurable: true,
+      get: () => ({ isActive: activation }),
+    });
   if (device.phone) coarsePointer();
   const sensorAsks: SensorAsk[] = [];
   if (device.permission) askForSensors(device.permission, sensorAsks);
@@ -204,7 +207,7 @@ function askForSensors(answer: 'granted' | 'denied', asks: SensorAsk[]) {
       name,
       class extends Event {
         static requestPermission() {
-          asks.push({ sensor, inTap: navigator.userActivation.isActive });
+          asks.push({ sensor, inTap: activation });
           return Promise.resolve(answer);
         }
       },
@@ -325,7 +328,11 @@ export function choose(selector: string, value: string) {
 }
 
 /** A key held or released on the focused element, like `page.keyboard.down/up`. */
-export function key(type: 'keydown' | 'keyup', code: 'Space' | 'Escape') {
+export function key(
+  type: 'keydown' | 'keyup',
+  code: 'Space' | 'Escape' | 'Tab',
+  shiftKey = false,
+) {
   const target = document.activeElement ?? document.body;
   target.dispatchEvent(
     new KeyboardEvent(type, {
@@ -333,6 +340,7 @@ export function key(type: 'keydown' | 'keyup', code: 'Space' | 'Escape') {
       cancelable: true,
       code,
       key: code === 'Space' ? ' ' : code,
+      shiftKey,
     }),
   );
 }

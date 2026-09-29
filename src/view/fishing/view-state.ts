@@ -34,11 +34,16 @@ export interface FishingView {
     coarsePointer: boolean;
     /** Sensor access was requested on this page: a gesture asks by itself only once. */
     asked: boolean;
+    /** Refusals of sensor access on this page: a retry refused again is a new one. */
+    refusals: number;
     calibrating: boolean;
     notice: string | null;
     /** The first-cast guide's step to learn next; null once done or skipped. Per device. */
     guide: GuideStep | null;
-    /** This device never calibrated: the first time it can aim, calibration starts by itself. */
+    /**
+     * This device never calibrated: whenever it can aim, calibration starts by itself,
+     * until one finishes.
+     */
     autoCalibrate: boolean;
   };
 }
@@ -91,6 +96,7 @@ export function initialFishingView(
       needsPermission: options.needsPermission,
       coarsePointer: options.coarsePointer,
       asked: false,
+      refusals: 0,
       calibrating: false,
       notice: null,
       guide: options.guide,
@@ -112,8 +118,8 @@ export const motionActive = (view: FishingView) =>
  * Pure transitions. Invariants (unit-tested under random event sequences): outside play
  * input is paused and released; a held button implies play; the settings sheet is only
  * open on the river with no tools over it; calibration only runs while motion is active
- * and playable, before a run, and starts by itself at most once; the guide only moves
- * forward, one step per move, and only in motion play.
+ * and playable, before a run, and starts by itself only until one finishes; the guide
+ * only moves forward, one step per move, and only in motion play.
  */
 export function reduceFishingView(
   view: FishingView,
@@ -166,7 +172,11 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
     case 'preference':
       return motion({ preference: event.preference });
     case 'capability':
-      return motion({ capability: event.capability });
+      return motion({
+        capability: event.capability,
+        refusals:
+          view.motion.refusals + (event.capability === 'denied' ? 1 : 0),
+      });
     case 'ask':
       return motion({ asked: true });
     case 'grant':
@@ -176,7 +186,12 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
     case 'calibrating':
       return event.on
         ? { ...motion({ calibrating: true }), settingsOpen: false }
-        : motion({ calibrating: false });
+        : motion({
+            calibrating: false,
+            // A calibration that ran to its end, whatever it found.
+            autoCalibrate:
+              view.motion.autoCalibrate && !view.motion.calibrating,
+          });
     case 'notice':
       return motion({ notice: event.text });
     case 'guide':
@@ -191,24 +206,18 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
 }
 
 /**
- * Calibration needs play, motion and no run; a device never calibrated starts it the
- * first time that holds. Unchanged states keep their identity.
+ * Calibration needs play, motion and no run; a device never calibrated starts it
+ * whenever that holds, so one cut short (by the settings, say) starts again. Unchanged
+ * states keep their identity.
  */
 function settle(next: FishingView, previous: FishingView): FishingView {
   const aiming = canPlay(next) && motionActive(next) && next.runId === null;
-  const auto = next.motion.autoCalibrate && aiming;
-  const calibrating = aiming && (next.motion.calibrating || auto);
+  const calibrating =
+    aiming && (next.motion.calibrating || next.motion.autoCalibrate);
   const settled =
-    calibrating === next.motion.calibrating && !auto
+    calibrating === next.motion.calibrating
       ? next
-      : {
-          ...next,
-          motion: {
-            ...next.motion,
-            calibrating,
-            autoCalibrate: next.motion.autoCalibrate && !auto,
-          },
-        };
+      : { ...next, motion: { ...next.motion, calibrating } };
   return JSON.stringify(settled) === JSON.stringify(previous)
     ? previous
     : settled;

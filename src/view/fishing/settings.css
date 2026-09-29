@@ -1,7 +1,11 @@
 /* The river's settings (spec 034): a gear over the water and the small sheet it opens. */
 .river-settings-gear {
-  /* Placed in JS at the open water's top-left corner, over the canvas. */
+  /*
+   * Placed in JS at the open water's top-left corner, over the canvas and over the
+   * motion plane, which takes the water's taps during a run.
+   */
   position: absolute;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 44px;

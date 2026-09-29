@@ -1,7 +1,7 @@
 import './settings.css';
-import { WATER_VIEW } from '../art/water-view';
 import { SCREEN_COPY, type FishingScreen } from './screen';
 import type { FishingViewStore, Preference } from './view-state';
+import { followWaterPlane } from './water-plane';
 
 const WORDS = SCREEN_COPY.settings;
 /** The gear's gap from the open water's top-left corner. */
@@ -39,11 +39,12 @@ export function mountFishingSettings(deps: {
   gear.setAttribute('aria-haspopup', 'dialog');
   gear.setAttribute('aria-controls', 'river-settings-sheet');
   gear.innerHTML = GEAR_ICON;
-  // Where the water plane starts on the square canvas, as the motion overlay is placed.
-  const { left, top } = WATER_VIEW.plane;
-  gear.style.left = `calc(${left * 100}% + ${INSET_PX}px)`;
-  gear.style.top = `calc(${top * 100}% + ${INSET_PX}px)`;
   deps.plane.append(gear);
+  // At the corner of the water plane, placed as the motion overlay is.
+  const place = followWaterPlane(deps.plane, ({ left, top }) => {
+    gear.style.left = `${left + INSET_PX}px`;
+    gear.style.top = `${top + INSET_PX}px`;
+  });
 
   const shade = document.createElement('button');
   shade.id = 'river-settings-shade';
@@ -54,6 +55,7 @@ export function mountFishingSettings(deps: {
   const sheet = document.createElement('section');
   sheet.id = 'river-settings-sheet';
   sheet.setAttribute('role', 'dialog');
+  sheet.setAttribute('aria-modal', 'true');
   sheet.setAttribute('aria-labelledby', 'river-settings-title');
   sheet.hidden = true;
   sheet.innerHTML =
@@ -86,7 +88,19 @@ export function mountFishingSettings(deps: {
   close.addEventListener('click', dismiss);
   shade.addEventListener('click', dismiss);
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && view.get().settingsOpen) dismiss();
+    if (!view.get().settingsOpen) return;
+    if (event.key === 'Escape') dismiss();
+    if (event.key !== 'Tab') return;
+    // The sheet is modal: Tab stays on its controls, round from the last to the first.
+    const stops = Array.from(sheet.querySelectorAll('button')).filter(
+      (button) => !button.disabled && !button.closest('[hidden]'),
+    );
+    const at = stops.indexOf(document.activeElement as HTMLButtonElement);
+    const next = at + (event.shiftKey ? -1 : 1);
+    event.preventDefault();
+    stops[at === -1 ? 0 : (next + stops.length) % stops.length]!.focus({
+      preventScroll: true,
+    });
   });
   for (const mode of ['motion', 'buttons'] as const)
     modes[mode].addEventListener('click', () => deps.choose(mode));
@@ -102,6 +116,7 @@ export function mountFishingSettings(deps: {
     /** Applies the screen model's settings; decides nothing itself. */
     apply(model: FishingScreen['settings']) {
       gear.hidden = !model.gear;
+      if (model.gear) place();
       gear.setAttribute('aria-expanded', String(model.open));
       sheet.hidden = !model.open;
       shade.hidden = !model.open;

@@ -55,10 +55,11 @@ export const SCREEN_COPY = {
     buttons: '按钮',
     runLocked: '这一竿结束后才能换钓鱼方式',
     denied: '体感未获授权 · 点「体感」重试',
+    deniedAgain: '仍未获授权 · 请在浏览器设置里允许「运动与方向访问」后重试',
     unsupported: '此设备或连接不支持体感（需 HTTPS 与陀螺仪）',
     waiting: '等待体感读数…（需陀螺仪）',
   },
-  /** Said once when the phone refuses its sensors (spec 034). */
+  /** Said each time the phone refuses its sensors (spec 034). */
   permission: {
     denied: '体感未获授权，已改用按钮；可在设置里重试',
   },
@@ -144,7 +145,8 @@ function modeChoices(
   run: Pick<AnglingRun, 'mode'> | null,
   active: boolean,
 ) {
-  const { capability, preference, needsPermission, asked } = view.motion;
+  const { capability, preference, needsPermission, asked, refusals } =
+    view.motion;
   const words = SCREEN_COPY.settings;
   const current = run ? run.mode : active ? 'motion' : 'buttons';
   const note = run
@@ -152,7 +154,9 @@ function modeChoices(
     : capability === 'unsupported'
       ? words.unsupported
       : capability === 'denied'
-        ? words.denied
+        ? refusals > 1
+          ? words.deniedAgain
+          : words.denied
         : preference === 'motion' &&
             capability === 'unknown' &&
             (asked || !needsPermission)
@@ -168,26 +172,39 @@ function modeChoices(
   };
 }
 
+/** Motion is what the player fishes with, sensors allowing: a run's mode, else the choice. */
+export const wantsMotion = (
+  view: FishingView,
+  run: Pick<AnglingRun, 'mode'> | null,
+) => (run ? run.mode === 'motion' : view.motion.preference === 'motion');
+
 /**
  * Whether a tap on the river asks for sensor access by itself (spec 034): on a phone
  * that must ask, once per page, while motion is wanted (the default, or a motion run
- * restored after a reload) and nothing has answered yet. The tap handler asks inside
- * the tap, as iOS requires.
+ * restored after a reload) and nothing has answered yet. Not by a tap that leaves the
+ * settings or the tools open, nor over a run that is playing (a prompt would cost the
+ * bite): a restored run starts paused. The tap handler asks inside the tap, as iOS
+ * requires.
  */
 export const askSensors = (
   view: FishingView,
   run: Pick<AnglingRun, 'mode'> | null,
 ) =>
-  view.place === 'river' &&
+  canPlay(view) &&
+  (!run || view.paused) &&
   view.motion.needsPermission &&
   view.motion.coarsePointer &&
   !view.motion.asked &&
   view.motion.capability === 'unknown' &&
-  (run ? run.mode === 'motion' : view.motion.preference === 'motion');
+  wantsMotion(view, run);
 
-/** Said once as the phone refuses its sensors: play goes on with buttons. */
+/**
+ * Said as the phone refuses its sensors, each time it does: play goes on with buttons.
+ * Not to a player who chose buttons before the answer came.
+ */
 export const permissionNotice = (before: FishingView, after: FishingView) =>
-  after.motion.capability === 'denied' && before.motion.capability !== 'denied'
+  after.motion.refusals > before.motion.refusals &&
+  after.motion.preference === 'motion'
     ? SCREEN_COPY.permission.denied
     : null;
 

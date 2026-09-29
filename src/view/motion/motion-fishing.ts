@@ -7,7 +7,6 @@ import {
 } from '../../minigames/angling-motion';
 import { FISHING } from '../../content/fishing';
 import { fishShadow } from '../art/illustrations';
-import { WATER_VIEW } from '../art/water-view';
 import {
   aimedSteps,
   askSensors,
@@ -15,8 +14,10 @@ import {
   motionWant,
   SCREEN_COPY,
   tapStrikes,
+  wantsMotion,
   type FishingScreen,
 } from '../fishing/screen';
+import { followWaterPlane } from '../fishing/water-plane';
 import { logTime, type Trace } from '../../platform/device-log';
 import { readJsonPref, readPref, savePref } from '../../platform/local-prefs';
 import {
@@ -168,6 +169,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         window.DeviceOrientationEvent as PermissionApi | undefined
       )?.requestPermission?.();
       view.dispatch({ type: 'ask' });
+      stopAsking();
       const results = await Promise.all([
         motion.catch(() => 'denied' as const),
         orientation?.catch(() => 'denied' as const) ?? 'granted',
@@ -175,6 +177,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
       if (results.some((result) => result !== 'granted'))
         return view.dispatch({ type: 'capability', capability: 'denied' });
       view.dispatch({ type: 'grant' });
+      // The player may have chosen buttons while the prompt was up.
+      if (!wantsMotion(view.get(), deps.getRun())) return;
     }
     listen();
   }
@@ -188,12 +192,17 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   // Motion is the default (spec 034): a phone that must ask does so on its first tap on
   // the river, after that tap's own handler (so the tap that opens the river counts) and
   // inside it, as iOS requires. Touch ends too, for taps on the water that never click.
-  const onTap = () => {
-    if (askSensors(view.get(), deps.getRun()) && userActivated())
+  const onTap = (event: Event) => {
+    if (askSensors(view.get(), deps.getRun()) && userActivated(event))
       void request();
   };
-  for (const type of ['click', 'touchend'])
-    window.addEventListener(type, onTap);
+  const TAPS = ['click', 'touchend'];
+  /** Asked, by a tap or from the settings: taps never ask again on this page. */
+  const stopAsking = () => {
+    for (const type of TAPS) window.removeEventListener(type, onTap);
+  };
+  if (startup.needsPermission && startup.coarsePointer)
+    for (const type of TAPS) window.addEventListener(type, onTap);
 
   function onOrientation(event: DeviceOrientationEvent) {
     const next = tracker.sample(event.beta, event.gamma, screenAngle());
@@ -312,18 +321,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   });
 
   /** Keep the plane square over the canvas's open water, so drawing matches Core. */
-  const place = () => {
-    const canvas = deps.plane.querySelector('canvas');
-    if (!canvas) return;
-    const box = deps.plane.getBoundingClientRect();
-    const art = canvas.getBoundingClientRect();
-    const WATER = WATER_VIEW.plane;
-    const side = art.width * WATER.side;
-    overlay.style.left = `${art.left - box.left + art.width * WATER.left}px`;
-    overlay.style.top = `${art.top - box.top + art.height * WATER.top}px`;
+  const place = followWaterPlane(deps.plane, ({ left, top, side }) => {
+    overlay.style.left = `${left}px`;
+    overlay.style.top = `${top}px`;
     overlay.style.width = overlay.style.height = `${side}px`;
-  };
-  new ResizeObserver(place).observe(deps.plane);
+  });
 
   // Finger fallback for the fight: dragging on the water moves the rod tip.
   overlay.addEventListener('pointermove', (event) => {
@@ -430,14 +432,15 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
 }
 
 /**
- * Whether this moment is inside a user gesture, where the browser says (Safari 16.4+,
- * Chromium): a request outside one would be refused, and read as the player's refusal.
+ * Whether this event is inside a user gesture: a request outside one would be refused,
+ * and read as the player's refusal. The browser says where it can (Safari 16.4+,
+ * Chromium); elsewhere only a click is sure to be one (a touch may end a scroll).
  */
-function userActivated() {
+function userActivated(event: Event) {
   const { userActivation } = navigator as {
     userActivation?: { isActive: boolean };
   };
-  return userActivation?.isActive ?? true;
+  return userActivation?.isActive ?? event.type === 'click';
 }
 
 function readTuning(): RodTuning {

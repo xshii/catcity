@@ -178,6 +178,31 @@ describe('the button flow', () => {
     backToCity();
   });
 
+  it('the open settings are modal: Tab goes round their controls', () => {
+    const game = openGame({ audio: true });
+    enterRiver(game);
+    openSettings();
+    expect($('#river-settings-sheet').getAttribute('aria-modal')).toBe('true');
+    const stops = [
+      '#river-settings-close',
+      '#settings-mode-motion',
+      '#settings-mode-buttons',
+      '#sound-toggle',
+      '#haptics-toggle',
+    ];
+    // Forward from the ✕ through every control and round to it; calibration is hidden.
+    for (const next of [...stops.slice(1), stops[0]!]) {
+      key('keydown', 'Tab');
+      expect(document.activeElement?.id).toBe(next.slice(1));
+    }
+    key('keydown', 'Tab', true);
+    expect(document.activeElement).toBe($(stops.at(-1)!));
+    // Closed, Tab is the page's again.
+    closeSettings();
+    key('keydown', 'Tab');
+    expect(document.activeElement).toBe($('#river-settings'));
+  });
+
   it('a run keeps its mode: the settings lock the choice and say why, and pause the run', () => {
     const game = openGame();
     enterRiver(game);

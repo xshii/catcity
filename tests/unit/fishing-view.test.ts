@@ -169,6 +169,19 @@ describe('fishing view state', () => {
       expect(replay(asked, later).motion.asked).toBe(true);
   });
 
+  it('counts every refusal, so a retry refused again is a change', () => {
+    const denied: FishingViewEvent = {
+      type: 'capability',
+      capability: 'denied',
+    };
+    expect(start().motion.refusals).toBe(0);
+    const once = replay(start(), denied);
+    const twice = replay(once, denied);
+    expect(once.motion.refusals).toBe(1);
+    expect(twice.motion).toMatchObject({ capability: 'denied', refusals: 2 });
+    expect(replay(twice, ready).motion.refusals).toBe(2);
+  });
+
   it('keeps a ready sensor ready and lets a refusal be retried', () => {
     const ready = replay(start(), { type: 'capability', capability: 'ready' });
     expect(motionActive(ready)).toBe(true);
@@ -253,7 +266,7 @@ describe('fishing view state', () => {
     ).toBe('aim');
   });
 
-  it('calibrates by itself once, the first time a never-calibrated device can aim', () => {
+  it('calibrates by itself, the first time a never-calibrated device can aim, until one finishes', () => {
     const fresh = atRiver(start({ autoCalibrate: true }));
     // Not before the sensors answer.
     expect(fresh.motion).toMatchObject({
@@ -261,19 +274,39 @@ describe('fishing view state', () => {
       autoCalibrate: true,
     });
     const started = replay(fresh, ready);
-    expect(started.motion).toMatchObject({
-      calibrating: true,
+    expect(started.motion.calibrating).toBe(true);
+    // Finished: aiming again does not start it again.
+    const finished = replay(started, { type: 'calibrating', on: false });
+    expect(finished.motion).toMatchObject({
+      calibrating: false,
       autoCalibrate: false,
     });
-    // Finished, or cut short by the tools: aiming again does not start it again.
-    for (const end of [
-      [{ type: 'calibrating', on: false }],
+    expect(
+      replay(
+        finished,
+        { type: 'tools', open: true },
+        { type: 'tools', open: false },
+      ).motion.calibrating,
+    ).toBe(false);
+    // Cut short by the settings, the tools or a hidden page: it starts again after.
+    for (const [cover, back] of [
+      [
+        { type: 'settings', open: true },
+        { type: 'settings', open: false },
+      ],
       [
         { type: 'tools', open: true },
         { type: 'tools', open: false },
       ],
-    ] as FishingViewEvent[][])
-      expect(replay(started, ...end).motion.calibrating).toBe(false);
+      [
+        { type: 'page', hidden: true },
+        { type: 'page', hidden: false },
+      ],
+    ] as FishingViewEvent[][]) {
+      const covered = replay(started, cover!);
+      expect(covered.motion.calibrating).toBe(false);
+      expect(replay(covered, back!).motion.calibrating).toBe(true);
+    }
     // A run in the way waits: it starts once the run is over.
     const busy = replay(fresh, { type: 'run', runId: 'a' }, ready);
     expect(busy.motion.calibrating).toBe(false);
@@ -329,6 +362,7 @@ describe('fishing view state', () => {
     // Episodes from a fresh device, so the guide and auto-calibration keep being tried.
     let state = start();
     let autoStarts = 0;
+    let autoFinished = 0;
     let episodes = 0;
     let steps = 0;
     for (let i = 0; i < 20_000; i++) {
@@ -340,7 +374,7 @@ describe('fishing view state', () => {
         rng.nextInt(200) === 0 ? { type: 'skip-guide' } : events();
       const before = state;
       state = reduceFishingView(state, event);
-      // Only the flag starts calibration without being asked, and it is used up.
+      // Only the flag starts calibration without being asked; finishing one uses it up.
       if (
         !before.motion.calibrating &&
         state.motion.calibrating &&
@@ -349,6 +383,16 @@ describe('fishing view state', () => {
         expect(before.motion.autoCalibrate).toBe(true);
         autoStarts++;
       }
+      if (
+        before.motion.calibrating &&
+        event.type === 'calibrating' &&
+        !event.on
+      ) {
+        expect(state.motion.autoCalibrate).toBe(false);
+        if (before.motion.autoCalibrate) autoFinished++;
+      }
+      if (before.motion.refusals > state.motion.refusals)
+        throw new Error('refusals never go back');
       if (state.motion.autoCalibrate)
         expect(before.motion.autoCalibrate).toBe(true);
       // The guide moves forward only: one step on its move in motion play, or skipped.
@@ -375,9 +419,11 @@ describe('fishing view state', () => {
         expect(state.runId).toBeNull();
       }
     }
-    // Each fresh device calibrated by itself at most once; the guide really moved.
+    // Each fresh device finished calibrating by itself at most once, however often it
+    // was cut short; the guide really moved.
     expect(autoStarts).toBeGreaterThan(0);
-    expect(autoStarts).toBeLessThanOrEqual(episodes);
+    expect(autoFinished).toBeGreaterThan(0);
+    expect(autoFinished).toBeLessThanOrEqual(episodes);
     expect(steps).toBeGreaterThan(0);
   });
 

@@ -151,6 +151,20 @@ describe('fishing screen', () => {
     ).toBe(true);
     // Desktops (no permission prompt, or a fine pointer) never ask by themselves.
     expect(askSensors(view({ phone: false }, river), null)).toBe(false);
+    // Not by the tap that opens the settings or the tools, nor on anything inside them.
+    for (const cover of [
+      { type: 'settings', open: true },
+      { type: 'tools', open: true },
+      { type: 'page', hidden: true },
+    ] as FishingViewEvent[])
+      expect(askSensors(replay(phone, cover), null)).toBe(false);
+    // Not over a restored run that is playing: a prompt would cost the bite.
+    const restored = replay(phone, { type: 'run', runId: 'r' });
+    const playing = replay(restored, { type: 'resume' });
+    for (const phase of ['waiting', 'hook', 'fight'] as const) {
+      expect(askSensors(restored, runOf('motion', phase))).toBe(true);
+      expect(askSensors(playing, runOf('motion', phase))).toBe(false);
+    }
     // Once the sensors report, motion takes the river.
     expect(fishingScreen(view({}, river, ready), null)).toMatchObject({
       readyToCast: false,
@@ -169,6 +183,26 @@ describe('fishing screen', () => {
       readyToCast: true,
       overlay: false,
     });
+    // A retry refused again says so again; the sheet, which covers the message, too.
+    const again = replay(denied, { type: 'capability', capability: 'denied' });
+    expect(permissionNotice(denied, again)).toBe(SCREEN_COPY.permission.denied);
+    expect(fishingScreen(denied, null).settings.mode.note).toBe(
+      SCREEN_COPY.settings.denied,
+    );
+    expect(fishingScreen(again, null).settings.mode.note).toBe(
+      SCREEN_COPY.settings.deniedAgain,
+    );
+    expect(SCREEN_COPY.settings.deniedAgain).not.toBe(
+      SCREEN_COPY.settings.denied,
+    );
+    // An answer that arrives after the player chose buttons changes nothing for them.
+    const chose = replay(phone, { type: 'preference', preference: 'buttons' });
+    expect(
+      permissionNotice(
+        chose,
+        replay(chose, { type: 'capability', capability: 'denied' }),
+      ),
+    ).toBeNull();
     // Not again for the same refusal, nor for any other change.
     expect(permissionNotice(denied, denied)).toBeNull();
     expect(

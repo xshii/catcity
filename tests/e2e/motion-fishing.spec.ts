@@ -158,6 +158,19 @@ test('the fish ring is drawn on a square plane that matches the hit test', async
   await context.close();
 });
 
+test('during a motion run the gear takes its own taps: the settings open and nothing strikes', async ({
+  browser,
+}) => {
+  const { page, context } = await inMotionRiver(browser);
+  await swing(page);
+  await toBite(page);
+  // The water around the gear takes taps as strikes now; the gear is over it.
+  await page.locator('#river-settings').tap({ timeout: 5000 });
+  await expect(page.locator('#river-settings-sheet')).toBeVisible();
+  expect((await readWorld(page)).fishing.active!.phase).toBe('hook');
+  await context.close();
+});
+
 test('after a reload mid-run, the first tap on the river asks for the sensors again', async ({
   browser,
 }) => {

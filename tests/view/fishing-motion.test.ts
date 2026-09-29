@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FISHING } from '../../src/content/fishing';
 import { fishShadows, shadowUnderCast } from '../../src/core';
 import { SCREEN_COPY } from '../../src/view/fishing/screen';
@@ -6,6 +6,7 @@ import { DEFAULT_TUNING } from '../../src/view/motion/rod';
 import {
   $,
   click,
+  key,
   openGame,
   orient,
   spin,
@@ -315,6 +316,8 @@ describe('motion fishing', () => {
     expect(game.sensorAsks).toEqual([...ASKED_IN_TAP, ...ASKED_IN_TAP]);
     await game.answer();
     expect(pressed('buttons')).toBe(true);
+    // Refused again: the sheet, which covers the message, says so in new words.
+    expect(text('#settings-mode-note')).toBe(SCREEN_COPY.settings.deniedAgain);
     closeSettings();
     // Buttons still fish.
     click('#cast-start');
@@ -376,6 +379,125 @@ describe('motion fishing', () => {
     // A tap on the water, which iOS does not click through, asks inside it.
     touchEnd('#motion-fishing');
     expect(game.sensorAsks).toEqual([...ASKED_IN_TAP, ...ASKED_IN_TAP]);
+  });
+
+  it('a restored run asks on a tap on the paused river only: not on the gear, the tools, or while it plays', async () => {
+    const game = openGame({
+      phone: true,
+      permission: 'granted',
+      storage: SEASONED,
+    });
+    enterRiver(game);
+    await game.answer();
+    sensorsOn();
+    swing();
+    game.reload();
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    // The gear and the tools open over the river: their taps ask nothing.
+    click('#river-settings');
+    expect(visible('#river-settings-sheet')).toBe(true);
+    key('keydown', 'Escape');
+    click('#river-tab-gear');
+    expect(visible('#river-tools')).toBe(true);
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    game.reload();
+    // Nor does resuming, or a tap on the water of the run that plays: it strikes.
+    click('#fish-pause');
+    toBite(game);
+    touchEnd('#motion-fishing');
+    click('#motion-fishing');
+    expect(game.world().fishing.active!.phase).toBe('fight');
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    // Paused, a tap on the river asks.
+    click('#fish-pause');
+    touchEnd('#motion-fishing');
+    expect(game.sensorAsks).toEqual([...ASKED_IN_TAP, ...ASKED_IN_TAP]);
+  });
+
+  it('listens for the asking tap on phones that must ask only, and no longer once asked', () => {
+    const clicks = (spy: { mock: { calls: unknown[][] } }) =>
+      spy.mock.calls
+        .filter(([type]) => type === 'click')
+        .map((call) => call[1]);
+    // A desktop never asks by itself: it hears no taps.
+    openGame({ storage: SEASONED });
+    expect(clicks(vi.mocked(window.addEventListener))).toEqual([]);
+  });
+
+  it('stops listening for the asking tap once it has asked', () => {
+    const clicks = (spy: { mock: { calls: unknown[][] } }) =>
+      spy.mock.calls
+        .filter(([type]) => type === 'click')
+        .map((call) => call[1]);
+    const game = openGame({
+      phone: true,
+      permission: 'granted',
+      storage: SEASONED,
+    });
+    const heard = clicks(vi.mocked(window.addEventListener));
+    expect(heard).toHaveLength(1);
+    const removed = vi.spyOn(window, 'removeEventListener');
+    enterRiver(game);
+    expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+    expect(clicks(removed)).toEqual(heard);
+  });
+
+  it('where the browser cannot say a touch is a gesture, only a click asks', async () => {
+    const game = openGame({
+      phone: true,
+      permission: 'granted',
+      userActivation: false,
+      storage: SEASONED,
+    });
+    enterRiver(game);
+    await game.answer();
+    sensorsOn();
+    swing();
+    game.reload();
+    // A touch may end a scroll: asking then would be refused, and read as a refusal.
+    touchEnd('#motion-fishing');
+    expect(game.sensorAsks).toHaveLength(2);
+    click('#motion-fishing');
+    expect(game.sensorAsks).toHaveLength(4);
+  });
+
+  it.each(['granted', 'denied'] as const)(
+    'an answer (%s) that comes after the player chose buttons leaves them with buttons, without a word',
+    async (permission) => {
+      const game = openGame({ phone: true, permission, storage: SEASONED });
+      enterRiver(game);
+      expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
+      // The prompt is still up when the player picks buttons.
+      openSettings();
+      click('#settings-mode-buttons');
+      closeSettings();
+      await game.answer();
+      expect(text('#notice')).not.toBe(SCREEN_COPY.permission.denied);
+      const heard = vi
+        .mocked(window.addEventListener)
+        .mock.calls.map(([type]) => type);
+      expect(heard).not.toContain('devicemotion');
+      expect(heard).not.toContain('deviceorientation');
+      expect(visible('#scene-ready')).toBe(true);
+    },
+  );
+
+  it('a first calibration cut short by the settings starts again when they close', () => {
+    // Never calibrated; the guide is done.
+    const game = openGame({ storage: { 'cat-city.fishing-guide': 'done' } });
+    inMotionRiver(game);
+    expect(hint()).toBe(SCREEN_COPY.hint.calibrating);
+    openSettings();
+    closeSettings();
+    expect(hint()).toBe(SCREEN_COPY.hint.calibrating);
+    // It runs its whole window from there, then is over for good.
+    game.wait(G.calibration.windowMs - 1);
+    expect(hint()).toBe(SCREEN_COPY.hint.calibrating);
+    game.wait(1);
+    expect(hint()).toBe(SCREEN_COPY.calibrate.failed);
+    openSettings();
+    closeSettings();
+    expect(hint()).not.toBe(SCREEN_COPY.hint.calibrating);
   });
 
   it('offers calibration in the settings while motion is ready to aim, not over a calibration or a run', () => {
