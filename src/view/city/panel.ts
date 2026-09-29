@@ -26,7 +26,6 @@ export function mountCity(deps: {
     guide: HTMLElement;
     hint: HTMLElement;
     overview: HTMLElement;
-    clockSpeed: HTMLElement;
     outing: HTMLElement;
   };
 }) {
@@ -50,7 +49,6 @@ export function mountCity(deps: {
     talk: deps.talk,
     guide: elements.guide,
     hint: elements.hint,
-    clockSpeed: elements.clockSpeed,
   });
   const blocked = (command: GameCommand) => {
     const result = session.check(command);

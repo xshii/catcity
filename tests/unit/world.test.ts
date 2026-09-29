@@ -5,7 +5,7 @@ import {
   CAFE,
   CITY_START,
 } from '../../src/content/city';
-import { advance, buildCafe, interact } from '../helpers/world';
+import { advance, buildCafe, interact, untilPayout } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import type { GameCommand } from '../../src/core/commands';
@@ -92,10 +92,10 @@ describe('headless world', () => {
     expect(world.save()).toBe(before);
   });
 
-  it('counts income from construction, including partial hours', () => {
+  it('pays income on the game clock, whenever the cafe was built', () => {
     const world = createWorld(42);
     const built = servedCafe(world, 25);
-    advance(world, INTERVAL - 1);
+    advance(world, untilPayout(world) - 1);
     expect(world.getSnapshot().coins).toBe(built);
     advance(world, 1);
     expect(world.getSnapshot().coins).toBe(built + CAFE.coinsPerCustomer);

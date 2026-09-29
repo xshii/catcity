@@ -20,7 +20,7 @@ import {
   type CityViewEvent,
 } from '../../src/view/city/view-state';
 import { ERROR_MESSAGES } from '../../src/view/shell/errors';
-import { advance, buildCafe } from '../helpers/world';
+import { advance, buildCafe, untilPayout } from '../helpers/world';
 
 const HOURS = BUILDINGS.CAT_CAFE.intervalMinutes / 60;
 const view = (...events: CityViewEvent[]) =>
@@ -40,7 +40,7 @@ const screenOf = (world: World, state: CityView) =>
     selectedCat: 'mochi',
     blocked: (command: GameCommand) => {
       const result = world.check(command);
-      return result.ok ? null : ERROR_MESSAGES[result.error];
+      return result.ok ? null : result.error;
     },
   });
 const ids = (world: World, state: CityView) =>
@@ -96,10 +96,14 @@ describe('city screen', () => {
     const world = createWorld(42).getSnapshot();
     const card = cityScreen(world, view(tile(4, 4)), {
       selectedCat: 'mochi',
-      blocked: (command) => (command.type === 'PLACE_ROAD' ? 'b' : 'a'),
+      blocked: (command) =>
+        command.type === 'PLACE_ROAD' ? 'ROAD_EXISTS' : 'BUILDING_LIMIT',
     }).card!;
     expect(card.buttons.every((button) => button.reason)).toBe(true);
-    expect(card.reasons).toEqual(['a', 'b']);
+    expect(card.reasons).toEqual([
+      ERROR_MESSAGES.BUILDING_LIMIT,
+      ERROR_MESSAGES.ROAD_EXISTS,
+    ]);
   });
 
   it('shows building actions only on buildings, and a waiting card while one moves', () => {
@@ -289,7 +293,7 @@ describe('city screen', () => {
     );
   });
 
-  it('walks the guide from a home to a cafe nearby, its income and the first memory', () => {
+  it('walks the guide from a home to a cafe with customers and the first memory', () => {
     const world = createWorld(42);
     const guide = () => screenOf(world, view()).guide;
     const progress = () => guideProgress(world.getSnapshot());
@@ -299,7 +303,6 @@ describe('city screen', () => {
         `${buildingPrice('CAT_APARTMENT', 0)} 金币`,
       ),
       action: '回地图选择空地',
-      speedTarget: false,
       income: null,
       steps: [{ complete: false }, { complete: false }, { complete: false }],
     });
@@ -334,22 +337,19 @@ describe('city screen', () => {
     // A cafe on the suggested plot has Mochi as its customer.
     expect(buildCafe(world, progress().site!).ok).toBe(true);
     expect(guide()).toMatchObject({
-      hint: expect.stringContaining(`营业满 ${HOURS} 小时`),
+      hint: expect.stringContaining('池塘'),
       instruction: expect.stringContaining(
         `每 ${HOURS} 游戏小时带来 ${CAFE.coinsPerCustomer} 金币`,
       ),
-      speedTarget: true,
-      income: `猫咖 · 客人 1/${CAFE.seats} · 每 ${HOURS} 小时 ${CAFE.coinsPerCustomer} 金币 · 距离下笔收入 ${BUILDINGS.CAT_CAFE.intervalMinutes} 游戏分钟`,
-      steps: [{ complete: true }, { complete: false }, { complete: false }],
-    });
-    const coins = world.getSnapshot().coins;
-    advance(world, BUILDINGS.CAT_CAFE.intervalMinutes);
-    expect(world.getSnapshot().coins).toBe(coins + CAFE.coinsPerCustomer);
-    expect(guide()).toMatchObject({
-      hint: expect.stringContaining('池塘'),
-      speedTarget: false,
+      income: `猫咖 · 客人 1/${CAFE.seats} · 每 ${HOURS} 小时 ${CAFE.coinsPerCustomer} 金币 · 距离下次结算 ${untilPayout(world)} 游戏分钟`,
       steps: [{ complete: true }, { complete: true }, { complete: false }],
     });
+    const coins = world.getSnapshot().coins;
+    advance(world, untilPayout(world));
+    expect(world.getSnapshot().coins).toBe(coins + CAFE.coinsPerCustomer);
+    expect(guide().income).toContain(
+      `距离下次结算 ${BUILDINGS.CAT_CAFE.intervalMinutes} 游戏分钟`,
+    );
     const snapshot = world.getSnapshot();
     const remembered: WorldState = {
       ...snapshot,
@@ -371,7 +371,7 @@ describe('city screen', () => {
     expect(grown.steps.every((step) => step.complete)).toBe(true);
   });
 
-  it('asks to move a cafe without customers instead of waiting for income', () => {
+  it('asks to move a cafe without customers, and again when it loses them', () => {
     const world = createWorld(42);
     world.dispatch({
       type: 'BUILD_BUILDING',
@@ -390,7 +390,6 @@ describe('city screen', () => {
     expect(guide).toMatchObject({
       hint: expect.stringContaining('搬'),
       action: '回地图找到猫咖',
-      speedTarget: false,
       income: expect.stringContaining(
         `客人 0/${CAFE.seats} · 每 ${HOURS} 小时 0 金币`,
       ),
@@ -401,5 +400,53 @@ describe('city screen', () => {
       site: { x: 6, y: 6 },
       placed: true,
     });
+    // The step says what is true now: done with a customer, open again without one.
+    const cafe = world.getSnapshot().buildings[1]!.id;
+    const move = (x: number, y: number) =>
+      world.dispatch({
+        type: 'MOVE_BUILDING',
+        buildingId: cafe,
+        position: { x, y },
+      });
+    move(4, 3);
+    expect(screenOf(world, view()).guide.steps[1]).toMatchObject({
+      complete: true,
+      label: '猫咖有客人：已完成',
+    });
+    move(6, 6);
+    expect(screenOf(world, view()).guide.steps[1]).toMatchObject({
+      complete: false,
+    });
+  });
+
+  it('points only at plots Core lets a building stand on', () => {
+    const save = JSON.parse(createWorld(42).save());
+    save.world.coins = 5000;
+    const world = loadWorld(JSON.stringify(save));
+    // The road at (4,5) goes: what is left at (3,5) no longer reaches the crossroads.
+    expect(
+      world.dispatch({ type: 'REMOVE_ROAD', position: { x: 4, y: 5 } }).ok,
+    ).toBe(true);
+    buildCafe(world, { x: 4, y: 4 });
+    buildCafe(world, { x: 4, y: 3 });
+    buildCafe(world, { x: 6, y: 3 });
+    expect(world.getSnapshot().buildings).toHaveLength(3);
+    const { site } = guideProgress(world.getSnapshot());
+    // (3,4) comes next in reading order, but lies beside the cut-off road.
+    expect(
+      world.check({
+        type: 'BUILD_BUILDING',
+        buildingType: 'CAT_APARTMENT',
+        position: { x: 3, y: 4 },
+      }),
+    ).toEqual({ ok: false, error: 'ROAD_NOT_CONNECTED' });
+    expect(site).toEqual({ x: 6, y: 4 });
+    expect(
+      world.check({
+        type: 'BUILD_BUILDING',
+        buildingType: 'CAT_APARTMENT',
+        position: site!,
+      }),
+    ).toEqual({ ok: true });
   });
 });

@@ -105,7 +105,8 @@ it('queues real shore travel, advancing income and idle cats recovery only on th
       buildingPrice('CAT_CAFE', 0) -
       buildingPrice('CAT_APARTMENT', 0) +
       CAFE.coinsPerCustomer *
-        Math.floor(elapsed / BUILDINGS.CAT_CAFE.intervalMinutes),
+        (Math.floor(state.minute / BUILDINGS.CAT_CAFE.intervalMinutes) -
+          Math.floor(CITY_START.minute / BUILDINGS.CAT_CAFE.intervalMinutes)),
   );
   expect(state.cats.map((cat) => cat.needs.energy)).toEqual([
     // Walking costs a tile each; idle Pepper recovers every tick from the start.

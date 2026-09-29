@@ -168,7 +168,6 @@ export function mountPanel(
       guide: get('city-guide'),
       hint: get('city-hint'),
       overview: get('city-overview'),
-      clockSpeed: get('clock-speed'),
       outing: get('city-panel-outing'),
     },
   });

@@ -200,9 +200,9 @@ test('city guide makes construction, income and the relationship activity discov
     `客人 1/${CAFE.seats}`,
   );
   await page.locator('#city-tab-guide').click();
-  // The guide points at the clock speed; the test build advances its clock explicitly.
-  await page.getByRole('button', { name: '去调快时间' }).click();
-  await expect(page.locator('#clock-speed')).toBeFocused();
+  // A cafe with customers completes the step; the test build advances its clock
+  // explicitly, past the city's next payout.
+  await expect(page.locator('#city-goal')).toContainText('猫咖有客人了');
   await page.evaluate(
     (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
     BUILDINGS.CAT_CAFE.intervalMinutes,

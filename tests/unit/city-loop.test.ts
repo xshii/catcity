@@ -1,4 +1,4 @@
-import { advance, buildCafe } from '../helpers/world';
+import { advance, buildCafe, untilPayout } from '../helpers/world';
 import {
   BUILDINGS,
   buildingPrice,
@@ -80,7 +80,7 @@ it('buys land and a road before building a connected cafe, and preserves income 
     }).ok,
   ).toBe(true);
   coins -= buildingPrice('CAT_APARTMENT', 0);
-  advance(world, BUILDINGS.CAT_CAFE.intervalMinutes - 5);
+  advance(world, untilPayout(world) - 5);
   const building = world.getSnapshot().buildings[0]!;
   expect(
     world.dispatch({

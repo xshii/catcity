@@ -11,12 +11,11 @@ export function mountCityGuide(deps: {
   cityActions: CityActions;
   tools: Tools;
   talk: (message: string) => void;
-  /** The guide page section, the next-step hint and the clock speed button. */
+  /** The guide page section and the next-step hint. */
   guide: HTMLElement;
   hint: HTMLElement;
-  clockSpeed: HTMLElement;
 }) {
-  const { session, notify, cityActions, tools, guide, clockSpeed } = deps;
+  const { session, notify, cityActions, tools, guide } = deps;
   const $ = (id: string) => guide.querySelector<HTMLElement>(`#${id}`)!;
   const action = $('city-action');
   const steps = Array.from(

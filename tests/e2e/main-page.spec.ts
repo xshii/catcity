@@ -205,19 +205,16 @@ test('a new game guides the next step above the map and keeps one clock control'
   await page.locator('#city-tab-guide').click();
   await page.getByRole('button', { name: '回地图选择空地' }).click();
   await page.locator('[data-build-type=CAT_CAFE]').click();
+  // The cafe has its customer: the next step is fishing together.
   await expect(page.locator('#city-hint')).toContainText('下一步');
-  await expect(page.locator('#city-hint')).toContainText('速度');
-  await page.locator('#city-tab-guide').click();
-  await expect(page.locator('#city-goal')).toContainText('第一笔收入');
-  await page.locator('#city-action').click();
-  await expect(page.locator('#river-tools')).toBeHidden();
-  await expect(page.locator('#clock-speed')).toBeFocused();
-  expect((await readWorld(page)).minute).toBe(CITY_START.minute);
-  await page.evaluate(
-    (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
-    BUILDINGS.CAT_CAFE.intervalMinutes,
-  );
   await expect(page.locator('#city-hint')).toContainText('池塘');
+  await page.locator('#city-tab-guide').click();
+  await expect(page.locator('#city-goal')).toContainText('猫咖有客人了');
+  await expect(page.locator('#city-instruction')).toContainText('速度');
+  await expect(page.locator('#cafe-income')).toContainText(
+    `距离下次结算 ${BUILDINGS.CAT_CAFE.intervalMinutes - (CITY_START.minute % BUILDINGS.CAT_CAFE.intervalMinutes)} 游戏分钟`,
+  );
+  expect((await readWorld(page)).minute).toBe(CITY_START.minute);
 
   await page.reload();
   await ready(page);

@@ -51,17 +51,6 @@ function customersOf(world: WorldState, cafeId: string): CatEntity[] {
   }
   return seating.get(cafeId) ?? [];
 }
-/** A cafe pays once per this many game hours. */
-const CAFE_HOURS = CAT_CAFE.intervalMinutes / 60;
-/** What a cafe with this many customers pays, in the player's words. */
-const cafePay = (customers: number) =>
-  `每 ${CAFE_HOURS} 小时 ${customers * CAFE.coinsPerCustomer} 金币`;
-/** What one more building of the type costs now. */
-const priceOf = (world: WorldState, type: (typeof BUILDING_IDS)[number]) =>
-  buildingPrice(
-    type,
-    world.buildings.filter((building) => building.type === type).length,
-  );
 
 /** What a card button does; the DOM maps each kind to its handler. */
 export type CardIntent =

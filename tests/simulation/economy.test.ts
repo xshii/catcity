@@ -132,7 +132,7 @@ describe('a player who fishes, keeps the clock at 4× and reinvests', () => {
     expect(state.buildings).toHaveLength(12);
     expect(state.cats.every((cat) => cat.home)).toBe(true);
     expect(customersServed(state)).toBe(16);
-    expect(run.filledAt).toBe(905);
+    expect(run.filledAt).toBe(901);
     expect(run.filledAt! / 60).toBeGreaterThanOrEqual(12);
     expect(run.filledAt! / 60).toBeLessThanOrEqual(20);
     // Every coin is accounted for: the start, fishing and the cafes paid for the city.

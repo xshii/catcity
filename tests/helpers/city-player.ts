@@ -1,5 +1,5 @@
 import { BUILDINGS, CAFE } from '../../src/content/city';
-import { cafeCustomers } from '../../src/core/city';
+import { cafeAssignment } from '../../src/core/city';
 import { createWorld, World } from '../../src/core/world';
 import type { Position, WorldState } from '../../src/core';
 
@@ -59,11 +59,12 @@ export function crowdedStart(): World {
   return world;
 }
 
-/** Coins all cafes pay together per payment interval: one share per customer. */
+/** Cats seated in the city's cafes: each pays one share per payment interval. */
 export const customersServed = (state: WorldState): number =>
-  state.buildings
-    .filter((building) => building.type === 'CAT_CAFE')
-    .reduce((sum, cafe) => sum + cafeCustomers(state, cafe.id).length, 0);
+  [...cafeAssignment(state).values()].reduce(
+    (sum, customers) => sum + customers.length,
+    0,
+  );
 
 /** Builds on the plot, with the land and road it needs; homeless cats move in at once. */
 export function buildOn(
