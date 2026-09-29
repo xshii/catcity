@@ -138,6 +138,23 @@
   right: 10%;
   top: 4%;
   width: 80%;
+  /* A leaf fill on a warm track, rounded like the button fight's meters. */
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunk);
+  overflow: hidden;
+}
+.motion-hold::-webkit-progress-bar {
+  background: var(--surface-sunk);
+}
+.motion-hold::-webkit-progress-value {
+  background: var(--leaf);
+  border-radius: var(--radius-pill);
+}
+.motion-hold::-moz-progress-bar {
+  background: var(--leaf);
+  border-radius: var(--radius-pill);
 }
 .motion-onboarding {
   position: absolute;
