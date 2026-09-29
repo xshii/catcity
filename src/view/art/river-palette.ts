@@ -1,4 +1,6 @@
 import type { SpotId } from '../../content/fishing';
+import { cityLight } from './city-light';
+import { mix } from './city-palette';
 import { WATER_VIEW } from './water-view';
 
 /**
@@ -82,7 +84,7 @@ const MOON = {
   night: { colour: 0xfff1d0, alpha: 1 },
 };
 
-type Light = 'morning' | 'day' | 'evening' | 'night';
+type Light = ReturnType<typeof cityLight>['daypart'];
 /**
  * Light by the time of day (the style board's 光线随时间): a sky from top to bottom, a
  * tint mixed into the land and water by `amount`, and the sun where one shows.
@@ -122,30 +124,13 @@ const LIGHTS: Record<
   },
 };
 
-/** The light at a game hour (0–23): morning 5–8, day 9–15, evening 16–18, night after. */
-export function lightAt(hour: number): Light {
-  if (hour >= 5 && hour < 9) return 'morning';
-  if (hour >= 9 && hour < 16) return 'day';
-  if (hour >= 16 && hour < 19) return 'evening';
-  return 'night';
-}
-
-/** `colour` mixed toward `toward` by `amount` (0 keeps it, 1 replaces it). */
-export function mix(colour: number, toward: number, amount: number) {
-  const channel = (shift: number) => {
-    const from = (colour >> shift) & 0xff;
-    const to = (toward >> shift) & 0xff;
-    return Math.round(from + (to - from) * amount) << shift;
-  };
-  return channel(16) | channel(8) | channel(0);
-}
-
 /**
- * How a spot looks at a game hour: every colour of the scene but the dock, lit. Pure, so
+ * How a spot looks at a world `minute`: every colour of the scene but the dock, lit. The
+ * time of day is the city's (cityLight), so both scenes change light together. Pure, so
  * the art and the page behind it agree.
  */
-export function riverLook(spot: SpotId, hour: number) {
-  const light = lightAt(hour);
+export function riverLook(spot: SpotId, minute: number) {
+  const light = cityLight(minute).daypart;
   const { sky, tint, amount, sun } = LIGHTS[light];
   const hue = (colour: number) =>
     spot === 'MOON' ? mix(colour, MOON_HUE.colour, MOON_HUE.amount) : colour;
@@ -180,8 +165,8 @@ const css = (colour: number) => `#${colour.toString(16).padStart(6, '0')}`;
  * dock bands, placed with the art (`--river-top` and `--river-side` in layout.css), so
  * the scene reads as filling the screen.
  */
-export function riverBackdrop(spot: SpotId, hour: number): string {
-  const look = riverLook(spot, hour);
+export function riverBackdrop(spot: SpotId, minute: number): string {
+  const look = riverLook(spot, minute);
   const at = (y: number) =>
     `calc(var(--river-top) + var(--river-side) * ${y / V.size})`;
   // The sky's gradient, then bands down to the dock, which fills the rest.

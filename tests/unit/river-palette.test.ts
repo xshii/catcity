@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { SPOT_IDS } from '../../src/content/fishing';
+import { cityLight } from '../../src/view/art/city-light';
 import {
   BANK_STRIP,
   DOCK,
-  lightAt,
   riverBackdrop,
   riverLook,
   SAND,
@@ -12,6 +12,8 @@ import {
 } from '../../src/view/art/river-palette';
 import { WATER_VIEW } from '../../src/view/art/water-view';
 
+/** A world minute at `hour` on the first day. */
+const hour = (h: number) => h * 60;
 const at = (y: number) =>
   `calc(var(--river-top) + var(--river-side) * ${y / WATER_VIEW.size})`;
 const css = (colour: number) => `#${colour.toString(16).padStart(6, '0')}`;
@@ -34,21 +36,19 @@ it('mirrors the UI tokens the art shares', () => {
 });
 
 describe('light by the game hour', () => {
-  it('is morning 5–8, day 9–15, evening 16–18 and night otherwise', () => {
-    expect(Array.from({ length: 24 }, (_, hour) => lightAt(hour))).toEqual([
-      ...Array<string>(5).fill('night'),
-      ...Array<string>(4).fill('morning'),
-      ...Array<string>(7).fill('day'),
-      ...Array<string>(3).fill('evening'),
-      ...Array<string>(5).fill('night'),
-    ]);
+  it('changes with the city: the same time of day at every hour', () => {
+    for (const spot of SPOT_IDS)
+      for (let h = 0; h < 48; h++)
+        expect(riverLook(spot, hour(h) + 30).light).toBe(
+          cityLight(hour(h) + 30).daypart,
+        );
   });
 
   it('warms every spot in the evening and darkens it at night, with fireflies only then', () => {
     for (const spot of SPOT_IDS) {
-      const day = riverLook(spot, 12);
-      const evening = riverLook(spot, 17);
-      const night = riverLook(spot, 22);
+      const day = riverLook(spot, hour(12));
+      const evening = riverLook(spot, hour(18));
+      const night = riverLook(spot, hour(22));
       expect(warmth(evening.water.near)).toBeGreaterThan(
         warmth(day.water.near),
       );
@@ -72,22 +72,22 @@ describe('light by the game hour', () => {
   });
 
   it('shows the moon lake its own moon, bright at night, and a sun elsewhere by day', () => {
-    expect(riverLook('MOON', 12)).toMatchObject({ sun: null });
-    expect(riverLook('MOON', 22).moon!.alpha).toBeGreaterThan(
-      riverLook('MOON', 12).moon!.alpha,
+    expect(riverLook('MOON', hour(12))).toMatchObject({ sun: null });
+    expect(riverLook('MOON', hour(22)).moon!.alpha).toBeGreaterThan(
+      riverLook('MOON', hour(12)).moon!.alpha,
     );
     for (const spot of ['POND', 'REEDS', 'COAST'] as const) {
-      expect(riverLook(spot, 12)).toMatchObject({ moon: null });
-      expect(riverLook(spot, 12).sun).not.toBeNull();
-      expect(riverLook(spot, 22).sun).toBeNull();
+      expect(riverLook(spot, hour(12))).toMatchObject({ moon: null });
+      expect(riverLook(spot, hour(12)).sun).not.toBeNull();
+      expect(riverLook(spot, hour(22)).sun).toBeNull();
     }
   });
 });
 
 describe('the page behind the square art', () => {
   it('continues the art: the sky from the top, the far bank at its strip, then the dock', () => {
-    const look = riverLook('POND', 12);
-    const pond = riverBackdrop('POND', 12);
+    const look = riverLook('POND', hour(12));
+    const pond = riverBackdrop('POND', hour(12));
     expect(pond).toMatch(
       new RegExp(`^linear-gradient\\(to bottom, ${css(look.sky.top)} 0%`),
     );
@@ -96,17 +96,17 @@ describe('the page behind the square art', () => {
     );
     expect(pond).toContain(`${css(DOCK.colour)} ${at(WATER_VIEW.nearY)})`);
     // The coast has no far bank but sand in front of the dock.
-    const coast = riverBackdrop('COAST', 12);
+    const coast = riverBackdrop('COAST', hour(12));
     expect(coast).not.toContain(css(look.bank!));
     expect(coast).toContain(
-      `${css(riverLook('COAST', 12).sand!)} ${at(SAND.top)} ${at(WATER_VIEW.nearY)}`,
+      `${css(riverLook('COAST', hour(12)).sand!)} ${at(SAND.top)} ${at(WATER_VIEW.nearY)}`,
     );
   });
 
   it('follows the hour and the moon lake’s hue, but never tints the dock', () => {
     for (const spot of SPOT_IDS) {
-      const backdrops = [6, 12, 17, 22].map((hour) =>
-        riverBackdrop(spot, hour),
+      const backdrops = [6, 12, 18, 22].map((h) =>
+        riverBackdrop(spot, hour(h)),
       );
       expect(new Set(backdrops).size).toBe(backdrops.length);
       for (const backdrop of backdrops)
@@ -114,8 +114,8 @@ describe('the page behind the square art', () => {
           `${css(DOCK.colour)} ${at(WATER_VIEW.nearY)})`,
         );
     }
-    const pond = riverLook('POND', 12);
-    const moon = riverBackdrop('MOON', 12);
+    const pond = riverLook('POND', hour(12));
+    const moon = riverBackdrop('MOON', hour(12));
     expect(moon).not.toContain(css(pond.sky.top));
     expect(moon).not.toContain(css(pond.sky.bottom));
   });

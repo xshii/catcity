@@ -155,10 +155,7 @@ export function mountFishingStage(
       // The page continues the art of the water shown around it, in the hour's light.
       stage.style.background =
         place.get() === 'river'
-          ? riverBackdrop(
-              run?.spotId ?? spot,
-              Math.floor(world.minute / 60) % 24,
-            )
+          ? riverBackdrop(run?.spotId ?? spot, world.minute)
           : '';
       $('river-tip').textContent = run
         ? {

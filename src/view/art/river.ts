@@ -23,8 +23,6 @@ import {
   GLINT,
   LINE,
   LOTUS,
-  lightAt,
-  mix,
   REFLECTION_ALPHA,
   riverLook,
   ROD,
@@ -33,6 +31,7 @@ import {
   skyBottom,
   type RiverLook,
 } from './river-palette';
+import { mix } from './city-palette';
 
 const V = WATER_VIEW;
 /** Where the rod leaves the bottom of the view, and the cat beside the player. */
@@ -475,11 +474,10 @@ export class RiverView {
       this.waterFrame = -1;
     }
     // The light follows the game hour (the style board's 光线随时间).
-    const hour = Math.floor(world.minute / 60) % 24;
-    const painted = `${spotId}/${lightAt(hour)}`;
-    if (painted !== this.painted) {
-      this.painted = painted;
-      this.paint(spotId, riverLook(spotId, hour));
+    const look = riverLook(spotId, world.minute);
+    if (`${spotId}/${look.light}` !== this.painted) {
+      this.painted = `${spotId}/${look.light}`;
+      this.paint(spotId, look);
     }
     const shadows = showsShadows(active) ? fishShadows(world, spotId) : [];
     if (JSON.stringify(shadows) !== JSON.stringify(this.shadows)) {
