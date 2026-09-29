@@ -3,6 +3,7 @@ import type { SpotId } from '../../content/fishing';
 import type { WorldState } from '../../core';
 import { catArt } from './cat';
 import { landingShare, WATER_VIEW, waterPoint } from './water-view';
+import { BANK, BANK_STRIP, DOCK, MOON_TINT, SAND, SKY } from './river-palette';
 
 const V = WATER_VIEW;
 /** Water colour per spot: pond, reed river, moon lake, coast. */
@@ -12,9 +13,8 @@ const WATER_COLOUR: Record<SpotId, number> = {
   MOON: 0x7f9fb5,
   COAST: 0x77b8c2,
 };
-const FRAME = { inset: 30, radius: 22 };
 /** Where the rod leaves the bottom of the view, and the cat beside the player. */
-const ROD_BASE = { x: 430, y: V.size - FRAME.inset };
+const ROD_BASE = { x: 430, y: V.size };
 const ROD_TIP = { x: 372, y: 330 };
 const COMPANION = { x: 196, y: 560, scale: 1.7 };
 
@@ -41,17 +41,11 @@ export class RiverView {
 
   constructor(private readonly scene: Phaser.Scene) {
     this.root = scene.add.container(0, 0).setDepth(20).setVisible(false);
-    const frame = scene.add.graphics();
-    frame.fillStyle(0xdce6cd).fillRoundedRect(18, 18, 604, 604, 28);
-    frame
-      .fillStyle(0xeaf0de)
-      .fillRoundedRect(
-        FRAME.inset,
-        FRAME.inset,
-        V.size - 2 * FRAME.inset,
-        V.size - 2 * FRAME.inset,
-        FRAME.radius,
-      );
+    // The scene runs edge to edge; the page continues it around (riverBackdrop).
+    const sky = scene.add
+      .graphics()
+      .fillStyle(SKY)
+      .fillRect(0, 0, V.size, V.size);
     this.water = scene.add.graphics();
     this.scenery = {
       POND: this.drawPond(scene.add.graphics()),
@@ -83,7 +77,7 @@ export class RiverView {
     this.rod = scene.add.graphics();
     this.companion = catArt(scene, COMPANION.x, COMPANION.y, COMPANION.scale);
     this.root.add([
-      frame,
+      sky,
       this.water,
       ...Object.values(this.scenery),
       this.marker,
@@ -108,10 +102,10 @@ export class RiverView {
     scene.events.once('shutdown', () => scene.events.off('update', animate));
   }
 
-  /** The water trapezoid from the horizon to the dock, clipped to the frame. */
+  /** The water trapezoid from the horizon to the dock, clipped to the canvas. */
   private waterShape(g: Phaser.GameObjects.Graphics) {
-    const left = FRAME.inset;
-    const right = V.size - FRAME.inset;
+    const left = 0;
+    const right = V.size;
     return g
       .beginPath()
       .moveTo(V.centerX - V.horizonHalf, V.horizonY)
@@ -124,12 +118,12 @@ export class RiverView {
   }
 
   /** Far bank with round trees along the horizon (pond, reeds, lake). */
-  private farShore(g: Phaser.GameObjects.Graphics, tint: number) {
-    g.fillStyle(tint).fillRect(
-      FRAME.inset,
-      V.horizonY - 26,
-      V.size - 2 * FRAME.inset,
-      30,
+  private farShore(g: Phaser.GameObjects.Graphics, spot: SpotId) {
+    g.fillStyle(BANK[spot]!).fillRect(
+      0,
+      BANK_STRIP.top,
+      V.size,
+      BANK_STRIP.bottom - BANK_STRIP.top,
     );
     for (const [x, size] of [
       [70, 24],
@@ -150,7 +144,7 @@ export class RiverView {
   }
 
   private drawPond(g: Phaser.GameObjects.Graphics) {
-    this.farShore(g, 0xc9d8b5);
+    this.farShore(g, 'POND');
     // Lily pads shrink with distance.
     for (const [direction, share] of [
       [-38, 0.2],
@@ -165,7 +159,7 @@ export class RiverView {
   }
 
   private drawReeds(g: Phaser.GameObjects.Graphics) {
-    this.farShore(g, 0xbfd1a8);
+    this.farShore(g, 'REEDS');
     for (let i = 0; i < 16; i++) {
       const side = i % 2 ? 1 : -1;
       const x = V.centerX + side * (250 + (i % 4) * 14);
@@ -179,51 +173,31 @@ export class RiverView {
   }
 
   private drawMoon(g: Phaser.GameObjects.Graphics) {
-    this.farShore(g, 0xa9b3c4);
+    this.farShore(g, 'MOON');
     g.fillStyle(0xf5ecc9).fillCircle(470, 78, 26);
-    g.fillStyle(0x7778b0, 0.18).fillRect(
-      FRAME.inset,
-      FRAME.inset,
-      V.size - 2 * FRAME.inset,
-      V.size - 2 * FRAME.inset,
+    g.fillStyle(MOON_TINT.colour, MOON_TINT.alpha).fillRect(
+      0,
+      0,
+      V.size,
+      V.size,
     );
     return g;
   }
 
   private drawCoast(g: Phaser.GameObjects.Graphics) {
     // Open sea: a flat horizon, no far bank.
-    g.lineStyle(2, 0x5f9aa6).lineBetween(
-      FRAME.inset,
-      V.horizonY,
-      V.size - FRAME.inset,
-      V.horizonY,
-    );
-    g.fillStyle(0xe9d5ac).fillRect(
-      FRAME.inset,
-      V.nearY - 18,
-      V.size - 2 * FRAME.inset,
-      18,
-    );
+    g.lineStyle(2, 0x5f9aa6).lineBetween(0, V.horizonY, V.size, V.horizonY);
+    g.fillStyle(SAND.colour).fillRect(0, SAND.top, V.size, V.nearY - SAND.top);
     return g;
   }
 
   private drawDock(g: Phaser.GameObjects.Graphics) {
     const top = V.nearY;
-    const bottom = V.size - FRAME.inset;
-    g.fillStyle(0xbfa47c).fillRect(
-      FRAME.inset,
-      top,
-      V.size - 2 * FRAME.inset,
-      bottom - top,
-    );
-    for (let x = FRAME.inset + 34; x < V.size - FRAME.inset; x += 58)
+    const bottom = V.size;
+    g.fillStyle(DOCK).fillRect(0, top, V.size, bottom - top);
+    for (let x = 34; x < V.size; x += 58)
       g.lineStyle(2, 0x967e5c, 0.5).lineBetween(x, top, x - 10, bottom);
-    g.lineStyle(3, 0x967e5c).lineBetween(
-      FRAME.inset,
-      top,
-      V.size - FRAME.inset,
-      top,
-    );
+    g.lineStyle(3, 0x967e5c).lineBetween(0, top, V.size, top);
     return g;
   }
 

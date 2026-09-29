@@ -56,3 +56,24 @@ it('derives the frame from the map size, so larger maps still centre and pan', (
   expect(phone.scale).toBe(minScale);
   expect(phone.center).toEqual(middle);
 });
+
+it('keeps the board between floating bars: centred in the band, clamped to its edges', () => {
+  const board = boardSize(ten);
+  const frame = { width: 390, height: 844 };
+  const insets = { top: 100, bottom: 70 };
+  // The board fits vertically: its middle sits in the middle of the open band.
+  const fit = frameMap(frame, ten, false, { x: 0, y: 0 }, insets);
+  const bandMiddle =
+    insets.top + (frame.height - insets.top - insets.bottom) / 2;
+  const boardMiddleOnScreen =
+    frame.height / 2 + (board.height / 2 - fit.center.y) * fit.scale;
+  expect(boardMiddleOnScreen).toBeCloseTo(bandMiddle);
+  // Following a cat in the top row: the board's top edge stops at the top bar.
+  const top = frameMap(frame, ten, true, tileCenter(0, 0), insets);
+  const boardTopOnScreen = frame.height / 2 - top.center.y * top.scale;
+  expect(boardTopOnScreen).toBeCloseTo(insets.top);
+  const bottom = frameMap(frame, ten, true, tileCenter(9, 9), insets);
+  const boardBottomOnScreen =
+    frame.height / 2 + (board.height - bottom.center.y) * bottom.scale;
+  expect(boardBottomOnScreen).toBeCloseTo(frame.height - insets.bottom);
+});

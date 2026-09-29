@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { enterRiver } from './city-input';
 
-export type RiverPanel = 'gear' | 'bag' | 'atlas' | 'chat';
+export type RiverPanel = 'gear' | 'bag' | 'atlas' | 'cats';
 
 async function expandTab(page: Page, selector: string) {
   const tab = page.locator(selector);
@@ -44,17 +44,21 @@ export async function openBag(
   await page.locator(`#bag-tab-${section}`).click();
 }
 
-export async function openChat(
+/** The cats panel of whichever scene shows, on one of its pages (spec 031). */
+export async function openCats(
   page: Page,
-  section: 'talk' | 'memory' = 'talk',
+  section: 'roster' | 'talk' | 'memory' = 'roster',
 ) {
-  if (
-    (await page.locator('#visit-city').getAttribute('aria-pressed')) === 'true'
-  )
-    await expandTab(page, '#city-tab-chat');
-  else await openRiverPanel(page, 'chat');
-  await page.locator(`#chat-tab-${section}`).click();
+  const scene =
+    (await page.locator('#visit-river').getAttribute('aria-pressed')) === 'true'
+      ? 'river'
+      : 'city';
+  await expandTab(page, `#${scene}-tab-cats`);
+  await page.locator(`#cats-tab-${section}`).click();
 }
+
+export const openChat = (page: Page, section: 'talk' | 'memory' = 'talk') =>
+  openCats(page, section);
 
 export async function showBagFish(page: Page, fishId: string) {
   await openBag(page);
@@ -74,15 +78,9 @@ export async function showFish(page: Page, species: string) {
   await expect(page.locator(`[data-species="${species}"]`)).toBeVisible();
 }
 
-/** Pepper is invited from the city's cats page; returns to the scene afterwards. */
+/** Pepper is invited from the cats panel of either scene; the panel closes after. */
 export async function invitePepper(page: Page) {
-  const river =
-    (await page.locator('#visit-river').getAttribute('aria-pressed')) ===
-    'true';
-  await closeRiverPanel(page);
-  if (river) await page.locator('#visit-city').click();
-  await expandTab(page, '#city-tab-cats');
+  await openCats(page);
   await page.locator('#invite-pepper').click();
   await closeRiverPanel(page);
-  if (river) await page.locator('#visit-river').click();
 }

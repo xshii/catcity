@@ -25,7 +25,7 @@ export const ANGLING_MARKUP = `
     <section id="river-panel-bag" role="tabpanel" aria-labelledby="river-tab-bag" hidden>
     <details id="fish-bag" open><summary>鱼篓 <span id="bag-count"></span> · 卖鱼或送给伙伴</summary><p id="fish-tastes"></p><div id="fish-inventory"></div></details>
     <details id="fish-supply-detail" open><summary>钓获补给与垃圾</summary><p id="fish-supplies"></p><div class="fishing-actions"><button id="use-can">吃罐头 · +${FISHING.supplies.canEnergy} 体力</button><button id="recycle-trash">回收垃圾 · +${FISHING.supplies.trashCoins} 金币</button></div><p class="fishing-clue">0–${FISHING.trash.maxStars} 星鱼局失败时有概率钓到垃圾；主动收竿不会获得。面包饵轻抛可钓到罐头或金币袋。</p></details>
-    </section><section id="river-panel-atlas" role="tabpanel" aria-labelledby="river-tab-atlas" hidden><details id="fish-atlas"><summary>鱼类图鉴 <span id="atlas-count"></span> · 星级、习性与线索</summary><div id="atlas-list" class="atlas-list"></div></details></section><section id="river-panel-chat" role="tabpanel" aria-labelledby="river-tab-chat" hidden><p class="desktop-chat-hint">伙伴就在右侧，和它聊聊今天的收获吧。</p></section></div><p id="fish-result" class="fish-result river-live-result" role="status"></p>`;
+    </section><section id="river-panel-atlas" role="tabpanel" aria-labelledby="river-tab-atlas" hidden><details id="fish-atlas"><summary>鱼类图鉴 <span id="atlas-count"></span> · 星级、习性与线索</summary><div id="atlas-list" class="atlas-list"></div></details></section><section id="panel-cats" role="tabpanel" hidden></section></div><p id="fish-result" class="fish-result river-live-result" role="status"></p>`;
 
 /** Button-flow phase titles and instructions (frozen flow, spec 030). */
 export const BUTTON_PHASE_NAMES: Record<AnglingRun['phase'], string> = {

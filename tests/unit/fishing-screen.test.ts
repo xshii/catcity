@@ -45,7 +45,6 @@ describe('fishing screen', () => {
         expect(screen).toMatchObject({
           readyToCast: false,
           console: false,
-          motionPlay: false,
           motionCard: false,
           overlay: false,
           quick: { visible: false },
@@ -105,7 +104,6 @@ describe('fishing screen', () => {
   it('gives the river to motion play while motion is on, with aim tools before a run', () => {
     const motion = view({}, river, ready);
     expect(fishingScreen(motion, null)).toMatchObject({
-      motionPlay: true,
       readyToCast: false,
       overlay: true,
       calibrateButton: true,
@@ -129,14 +127,12 @@ describe('fishing screen', () => {
   it('keeps a run in the mode it was cast in', () => {
     const motion = view({}, river, ready);
     expect(fishingScreen(motion, runOf('buttons'))).toMatchObject({
-      motionPlay: false,
       consoleMode: 'buttons',
       overlay: false,
     });
     // A motion run restored after a reload still shows its plane and asks to enable.
     const reloaded = view({}, river);
     expect(fishingScreen(reloaded, runOf('motion', 'hook'))).toMatchObject({
-      motionPlay: true,
       overlay: true,
       motionCard: true,
     });

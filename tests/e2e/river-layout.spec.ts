@@ -5,6 +5,7 @@ import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import {
   closeRiverPanel,
   openBag,
+  openCats,
   openChat,
   openGear,
   showFish,
@@ -27,9 +28,8 @@ async function singleScreen(page: Page) {
       'river-panel-gear',
       'river-panel-bag',
       'river-panel-atlas',
-      'river-panel-chat',
+      'panel-cats',
       'city-panel-guide',
-      'city-panel-cats',
       'city-panel-outing',
     ]
       .map((id) => document.getElementById(id)!)
@@ -39,7 +39,20 @@ async function singleScreen(page: Page) {
         height: element.clientHeight,
         content: element.scrollHeight,
       })),
+    scene: (() => {
+      const box = document
+        .getElementById('fishing-stage')!
+        .getBoundingClientRect();
+      return { x: box.x, y: box.y, width: box.width, height: box.height };
+    })(),
   }));
+  // The scene fills the viewport; the bars float over it (spec 031).
+  expect(layout.scene).toEqual({
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: layout.height,
+  });
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.width);
   expect(layout.documentHeight).toBeLessThanOrEqual(layout.height);
   for (const panel of layout.panels)
@@ -51,11 +64,10 @@ async function singleScreen(page: Page) {
 
 async function cityNavigation(page: Page) {
   await onScreen(page.locator('#city-tools-nav'));
-  await expect(page.locator('#city-tools-nav button')).toHaveCount(4);
+  await expect(page.locator('#city-tools-nav button')).toHaveCount(3);
   for (const [id, label] of [
     ['guide', '指引'],
     ['cats', '猫咪'],
-    ['chat', '聊天'],
     ['outing', '出游'],
   ] as const) {
     await onScreen(page.locator(`#city-tab-${id}`));
@@ -80,7 +92,7 @@ async function cityNavigation(page: Page) {
   expect(await readWorld(page)).toEqual(before);
   await closeRiverPanel(page);
   await page.locator('#city-tab-cats').click();
-  await onScreen(page.locator('#city-panel-cats'));
+  await onScreen(page.locator('#panel-cats'));
   await onScreen(page.locator('#invite-pepper'));
   await onScreen(page.locator('[data-cat-id="mochi"]'));
   await page.locator('[data-cat-id="mochi"]').click();
@@ -91,7 +103,7 @@ async function cityNavigation(page: Page) {
   );
   expect(await readWorld(page)).toEqual(before);
   await openChat(page);
-  await expect(page.locator('#city-tab-chat')).toHaveAttribute(
+  await expect(page.locator('#city-tab-cats')).toHaveAttribute(
     'aria-expanded',
     'true',
   );
@@ -129,7 +141,7 @@ async function cityNavigation(page: Page) {
     'aria-expanded',
     'false',
   );
-  await expect(page.locator('#city-tab-chat')).toHaveAttribute(
+  await expect(page.locator('#city-tab-cats')).toHaveAttribute(
     'aria-expanded',
     'false',
   );
@@ -201,7 +213,12 @@ for (const viewport of [
       fullPage: true,
     });
     await enterRiver(page);
+    // Cat cards live in the cats panel, not in the river scene (spec 031).
+    await openCats(page);
+    await onScreen(page.locator('[data-cat-id="mochi"]'));
     await page.locator('[data-cat-id="mochi"]').click();
+    await singleScreen(page);
+    await closeRiverPanel(page);
     await onScreen(page.locator('#cast-start'));
     await expect(page.locator('.cat-card')).toBeHidden();
     await expect(page.locator('#fish-location')).toBeHidden();
@@ -266,6 +283,10 @@ for (const viewport of [
     await onScreen(page.getByLabel('和 Mochi 说句话'));
     await onScreen(page.getByRole('button', { name: '发送', exact: true }));
     await singleScreen(page);
+    await page.screenshot({
+      path: testInfo.outputPath('panel-phone.png'),
+      fullPage: true,
+    });
     await openChat(page, 'memory');
     await onScreen(page.locator('.journal'));
     await singleScreen(page);
@@ -316,10 +337,12 @@ for (const viewport of [
   });
 }
 
-test('desktop river keeps the companion beside the scene and tools on one screen', async ({
+test('desktop scenes fill the window and the cats panel slides in from the right', async ({
   page,
 }, testInfo) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
+  // Spec 031: no side column on desktop; the scene fills the window like on phones.
+  const viewport = { width: 1280, height: 800 };
+  await page.setViewportSize(viewport);
   await page.goto('/');
   await ready(page);
   await cityNavigation(page);
@@ -328,18 +351,26 @@ test('desktop river keeps the companion beside the scene and tools on one screen
     fullPage: true,
   });
   await enterRiver(page);
-  const scene = await page.locator('#fishing-stage').boundingBox();
-  const companion = await page.locator('.cat-card').boundingBox();
-  expect(scene).not.toBeNull();
-  expect(companion).not.toBeNull();
-  expect(companion!.x).toBeGreaterThanOrEqual(scene!.x + scene!.width);
-  expect(companion!.y).toBeLessThan(scene!.y + scene!.height);
+  await singleScreen(page);
+  await expect(page.locator('.cat-card')).toBeHidden();
+  await onScreen(page.locator('#cast-start'));
   await openGear(page);
   await onScreen(page.locator('#fish-location'));
   await singleScreen(page);
   await closeRiverPanel(page);
   await openChat(page);
   await onScreen(page.getByLabel('和 Mochi 说句话'));
+  // The drawer: 400px at the right edge, inside the bars' 8px gutter, the scene to its left.
+  const drawer = (await page.locator('#river-tools').boundingBox())!;
+  const gutter = viewport.width - (drawer.x + drawer.width);
+  expect(gutter).toBeGreaterThanOrEqual(0);
+  expect(gutter).toBeLessThanOrEqual(9);
+  expect(Math.abs(drawer.width - 400)).toBeLessThanOrEqual(1);
+  await singleScreen(page);
+  await page.screenshot({
+    path: testInfo.outputPath('cats-desktop.png'),
+    fullPage: true,
+  });
   await closeRiverPanel(page);
   await page.screenshot({
     path: testInfo.outputPath('river-desktop.png'),
