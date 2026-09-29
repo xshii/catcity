@@ -14,10 +14,8 @@ import {
   WATER_VIEW,
   waterPoint,
 } from '../../src/view/art/water-view';
-import { precisePower } from '../../src/minigames/angling';
 
 const V = WATER_VIEW;
-const PRECISE = FISHING.cast.precisionPower;
 
 it('lands farther with more power or depth, always on the water', () => {
   expect(landingShare(50, 80)).toBeGreaterThan(landingShare(50, 30));
@@ -167,11 +165,12 @@ it('puts a fight-plane point on the canvas where the overlay ring is drawn', () 
   expect(planePoint({ x: 50, y: 10 }).scale).toBeLessThan(centre.scale);
 });
 
-describe('the landing preview while aiming (spec 033 F5)', () => {
+describe('the landing preview while aiming (spec 033 F5, F5b)', () => {
   /** A rod tip over the water, as the river art has it. */
   const TIP = { x: 372, y: 330 };
-  const preview = (direction: number, depth: number, power: number) =>
-    castPreview(direction, depth, power, TIP);
+  const WORLD = { seed: 3, minute: 0 };
+  const preview = (direction: number, aimDepth: number, power: number) =>
+    castPreview(WORLD, 'MOON', { direction, aimDepth, power }, TIP);
   const on = (point: { x: number; y: number }) => ({
     x: expect.closeTo(point.x, 6),
     y: expect.closeTo(point.y, 6),
@@ -196,20 +195,38 @@ describe('the landing preview while aiming (spec 033 F5)', () => {
     expect(left.y).toBeCloseTo(right.y);
   });
 
-  it('puts the ring on a fish shadow for a cast Core finds on it', () => {
+  it('turns the ring green on a fish shadow exactly where Core finds the cast on one', () => {
+    const shadows = fishShadows(WORLD, 'MOON');
     let checked = 0;
-    for (const shadow of fishShadows({ seed: 3, minute: 0 }, 'MOON'))
+    for (const shadow of shadows)
       for (const power of [40, 70]) {
         const aimDepth = 2 * shadow.reach - power;
         if (aimDepth < 0 || aimDepth > FISHING.input.maxDepth) continue;
-        const cast = { direction: shadow.direction, aimDepth, power };
-        expect(shadowAt([shadow], cast)).toBe(shadow);
-        expect(
-          preview(shadow.direction, aimDepth, power).landing,
-        ).toMatchObject(on(shadowPoint(shadow.direction, shadow.reach)));
+        // Head-on: the ring sits on the drawn shadow, and Core meets that shadow.
+        const aimed = preview(shadow.direction, aimDepth, power);
+        expect(aimed.landing).toMatchObject(
+          on(shadowPoint(shadow.direction, shadow.reach)),
+        );
+        expect(aimed.shadow).toEqual(shadow);
         checked++;
       }
     expect(checked).toBeGreaterThan(0);
+    // Everywhere else the preview answers as the cast would: green on one, cream off.
+    const seen = new Set<boolean>();
+    const { maxDirection, maxDepth, maxPower } = FISHING.input;
+    for (
+      let direction = -maxDirection;
+      direction <= maxDirection;
+      direction += 5
+    )
+      for (let aimDepth = 0; aimDepth <= maxDepth; aimDepth += 10)
+        for (let power = 0; power <= maxPower; power += 10) {
+          const cast = { direction, aimDepth, power };
+          const { shadow } = preview(direction, aimDepth, power);
+          expect(shadow).toEqual(shadowAt(shadows, cast));
+          seen.add(shadow !== null);
+        }
+    expect(seen).toEqual(new Set([true, false]));
   });
 
   it('flies the float from the rod tip in an arc onto the landing', () => {
@@ -248,42 +265,5 @@ describe('the landing preview while aiming (spec 033 F5)', () => {
     expect(preview(0, 50, 90).arc.at(-1)!.y).toBeLessThan(
       preview(0, 50, 20).arc.at(-1)!.y,
     );
-  });
-
-  it('lays a rounded green zone, wider than the ring, where precise power lands', () => {
-    const { maxDirection, maxDepth, maxPower } = FISHING.input;
-    for (const direction of [-maxDirection, -20, 0, maxDirection])
-      for (const depth of [0, 40, maxDepth]) {
-        const at = (power: number) =>
-          waterPoint(direction, landingShare(depth, power));
-        const { zone } = preview(direction, depth, 50);
-        expect(zone.low).toEqual(at(PRECISE.min));
-        expect(zone.high).toEqual(at(PRECISE.max));
-        // Across each end it is wider than the ring there, and it rounds off past it.
-        const xs = zone.outline.map((point) => point.x);
-        const ys = zone.outline.map((point) => point.y);
-        for (const end of [zone.low, zone.high]) {
-          const across = zone.outline
-            .filter((point) => Math.abs(point.y - end.y) < 1e-9)
-            .map((point) => point.x);
-          expect(Math.max(...across) - Math.min(...across)).toBeGreaterThan(
-            V.ring.width * end.scale,
-          );
-        }
-        expect(Math.max(...ys)).toBeGreaterThan(zone.low.y);
-        expect(Math.min(...ys)).toBeLessThan(zone.high.y);
-        expect(Math.min(...xs)).toBeGreaterThanOrEqual(0);
-        expect(Math.max(...xs)).toBeLessThanOrEqual(V.size);
-        for (let power = 0; power <= maxPower; power++) {
-          const { landing, precise } = preview(direction, depth, power);
-          // Precise casts land on it, others do not.
-          const onGreen =
-            landing.y <= zone.low.y + 1e-9 && landing.y >= zone.high.y - 1e-9;
-          expect(onGreen).toBe(power >= PRECISE.min && power <= PRECISE.max);
-          // The ring turns green exactly when Core would count the cast precise.
-          expect(precise).toBe(precisePower(power));
-          expect(precise).toBe(onGreen);
-        }
-      }
   });
 });

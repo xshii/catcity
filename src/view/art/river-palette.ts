@@ -35,14 +35,10 @@ export const LINE = { colour: TOKEN.paper, tight: TOKEN.alert };
 export const FLOAT = { colour: 0xd98b6c, ripple: TOKEN.paper };
 export const BITE = { colour: '#fff4c0', stroke: '#d09050' };
 /**
- * The aiming preview (spec 033 F5): a warm-light ring and flight, turning deep green over
- * the green zone where precise power lands.
+ * The aiming preview (spec 033 F5, F5b): a warm-light ring and flight, turning deep green
+ * where the cast would land on a fish shadow.
  */
-export const AIM = {
-  ring: TOKEN.glint,
-  precise: TOKEN['text-good'],
-  zone: { fill: TOKEN.leaf, edge: TOKEN['btn-primary-bg'] },
-};
+export const AIM = { ring: TOKEN.glint, onShadow: TOKEN['text-good'] };
 /**
  * Fish shadows under the water: bigger fish are darker (spec 033 F2); a button fight's
  * hooked fish darkens from `hooked[0]` to `hooked[1]` as it comes close (F1).

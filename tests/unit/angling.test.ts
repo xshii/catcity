@@ -12,7 +12,6 @@ import {
   castAngling,
   greenZone,
   initialAngling,
-  precisePower,
   stepAngling,
 } from '../../src/minigames/angling';
 
@@ -275,24 +274,28 @@ describe('skill-based angling', () => {
   });
 });
 
-it('counts a cast precise exactly for the power the aiming preview marks green', () => {
-  const run = initialAngling({
-    happy: false,
-    mode: 'motion',
-    catBreed: 'RAGDOLL',
-    spotId: 'POND',
-    aimDepth: 50,
-    id: 'angling-1',
-    catId: 'mochi',
-    seed: 42,
-    baitId: 'BREAD',
-    direction: 0,
-    skillLevel: 1,
-  });
+it('makes every motion cast steady, and a button cast only when released in the band', () => {
+  const run = (mode: 'motion' | 'buttons') =>
+    initialAngling({
+      happy: false,
+      mode,
+      catBreed: 'RAGDOLL',
+      spotId: 'POND',
+      aimDepth: 50,
+      id: 'angling-1',
+      catId: 'mochi',
+      seed: 42,
+      baitId: 'BREAD',
+      direction: 0,
+      skillLevel: 1,
+    });
   const { min, max } = FISHING.cast.precisionPower;
   for (let power = 0; power <= FISHING.input.maxPower; power++) {
-    expect(precisePower(power)).toBe(power >= min && power <= max);
-    expect(castAngling(run, power).precision).toBe(precisePower(power));
+    // Motion casts no longer depend on the power band (spec 033 F5b).
+    expect(castAngling(run('motion'), power).precision).toBe(true);
+    expect(castAngling(run('buttons'), power).precision).toBe(
+      power >= min && power <= max,
+    );
   }
 });
 

@@ -25,7 +25,7 @@ import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
 import { failureTrash } from './rewards';
-import { fishShadows, shadowAt } from './shadows';
+import { shadowUnderCast } from './shadows';
 import { runSeed } from '../random';
 import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from '../limits';
 
@@ -46,8 +46,7 @@ export function applyAngling(
     });
   /** The fish of the shadow this hour that a cast at `power` lands on (spec 033). */
   const shadowUnder = (run: AnglingRun, power: number) =>
-    shadowAt(fishShadows(world, run.spotId), { ...run, power })?.speciesId ??
-    null;
+    shadowUnderCast(world, run.spotId, { ...run, power })?.speciesId ?? null;
   /** The cast itself costs stamina and one bait (bread is free); preparing is free. */
   const payForCast = (catId: string, baitId: BaitId) => {
     const cat = world.cats.find((cat) => cat.id === catId)!;
