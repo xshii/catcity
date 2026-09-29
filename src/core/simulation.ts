@@ -6,6 +6,7 @@ import type { GameEvent } from './commands';
 import type { CatEntity, WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
 import { catIdle } from './cats';
+import { liftMood } from './mood';
 import { gridDistance } from './city/map';
 
 export function simulate(
@@ -51,14 +52,12 @@ export function simulate(
     if (minute % MOOD.tickMinutes === 0)
       for (const cat of world.cats) {
         const rest = moodRest(cat.playerBond);
-        const toward =
+        const drift = cat.mood > MOOD.happy ? MOOD.highDrift : MOOD.drift;
+        cat.mood =
           cat.mood > rest
-            ? Math.max(rest, cat.mood - MOOD.drift)
-            : Math.min(rest, cat.mood + MOOD.drift);
-        cat.mood = Math.min(
-          MAX_STAT,
-          toward + (nearHome(world, cat) ? MOOD.home : 0),
-        );
+            ? Math.max(rest, cat.mood - drift)
+            : Math.min(rest, cat.mood + drift);
+        if (nearHome(world, cat)) liftMood(cat, MOOD.home);
       }
     advanceWalking(world, events);
   }

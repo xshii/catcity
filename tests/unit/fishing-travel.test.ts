@@ -7,7 +7,9 @@ import { expect, it } from 'vitest';
 import {
   FISH,
   SPOT_IDS,
+  SPOTS,
   fishById,
+  skillXp,
   spotUnlocked,
 } from '../../src/content/fishing';
 import { loadWorld, type World } from '../../src/core/world';
@@ -22,7 +24,7 @@ function unlocked() {
   buildCafe(world, { x: 4, y: 4 });
   world.dispatch({ type: 'INVITE_PEPPER' });
   const fixture = JSON.parse(world.save());
-  fixture.world.fishing.xp = 120;
+  fixture.world.fishing.xp = skillXp(SPOTS.MOON.level);
   fixture.world.cats[1].needs.energy = 50;
   for (const id of ['SILVER', 'CRUCIAN', 'PERCH', 'CATFISH'] as const) {
     const fish = fishById(id);
@@ -258,11 +260,12 @@ it('rejects travel during an active fishing run and rejects clock overflow atomi
 });
 
 it('validates destination unlocks and persisted location, including active-run agreement', () => {
-  expect(spotUnlocked('COAST', 79, 3)).toBe(false);
-  expect(spotUnlocked('COAST', 80, 2)).toBe(false);
-  expect(spotUnlocked('COAST', 80, 3)).toBe(true);
-  expect(spotUnlocked('MOON', 119, 4)).toBe(false);
-  expect(spotUnlocked('MOON', 120, 4)).toBe(true);
+  for (const spotId of ['COAST', 'MOON'] as const) {
+    const { level, species } = SPOTS[spotId];
+    expect(spotUnlocked(spotId, skillXp(level) - 1, species)).toBe(false);
+    expect(spotUnlocked(spotId, skillXp(level), species - 1)).toBe(false);
+    expect(spotUnlocked(spotId, skillXp(level), species)).toBe(true);
+  }
   const locked = JSON.parse(createWorld(42).save());
   locked.world.cats[0].fishingSpotId = 'COAST';
   expect(() => loadWorld(JSON.stringify(locked))).toThrow(

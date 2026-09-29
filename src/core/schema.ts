@@ -5,13 +5,15 @@ import {
   STARTER_CAT_ID,
 } from '../content/cats';
 import {
+  MAX_BOND,
   MAX_BUILDINGS,
   MAX_CATS,
   MAX_STAT,
   MAX_TEXT,
   WORLD_LIMIT,
 } from './limits';
-import { CARE } from '../content/care';
+import { BOND, CARE } from '../content/care';
+import { gameDay } from './bond';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
 import { assertCity } from './city/validation';
@@ -48,12 +50,19 @@ const catSchema = z.strictObject({
     dislikes: z.array(text).max(10),
   }),
   mood: percent,
-  needs: z.strictObject({ hunger: percent, energy: percent }),
+  needs: z.strictObject({ energy: percent }),
   memories: z.array(memorySchema).max(CARE.memoryLimit),
-  playerBond: percent,
+  playerBond: z.number().int().min(0).max(MAX_BOND),
   home: text.nullable(),
   position: positionSchema,
-  lastBondMinute: integer.nullable(),
+  /** Chats that earned bond points on the latest day one did. */
+  chatBond: z
+    .strictObject({
+      day: integer,
+      count: z.number().int().min(1).max(BOND.chatsPerDay),
+    })
+    .nullable(),
+  lastChatMoodMinute: integer.nullable(),
   fishingSpotId: spotIdSchema.nullable(),
   walk: z
     .strictObject({
@@ -102,7 +111,7 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 export const CONTENT_VERSION = 8;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
@@ -139,8 +148,11 @@ export function assertWorld(value: unknown): WorldState {
   }
   for (const cat of world.cats) {
     assertTemplate(cat, world.cats);
-    if (cat.lastBondMinute !== null && cat.lastBondMinute > world.minute)
-      throw new Error('Future bond');
+    if (
+      (cat.chatBond !== null && cat.chatBond.day > gameDay(world.minute)) ||
+      (cat.lastChatMoodMinute !== null && cat.lastChatMoodMinute > world.minute)
+    )
+      throw new Error('Future chat');
     if (
       cat.home !== null &&
       !world.buildings.some((building) => building.id === cat.home)

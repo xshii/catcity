@@ -1,7 +1,7 @@
 import { bondLevel } from './care';
 
 /**
- * Mood tuning (spec 032): every change a cat's mood (0–100) takes, and the small bonus a
+ * Mood tuning (specs 032, 038): every change a cat's mood (0–100) takes, and the small bonus a
  * happy cat brings to a run. Losses are magnitudes. Mood never cuts rewards or blocks play.
  */
 export const MOOD = {
@@ -11,10 +11,13 @@ export const MOOD = {
   /** Each bond level above the first lifts that cat's resting mood (spec 036). */
   restPerBondLevel: 3,
   drift: 2,
+  /** The drift of a mood above `happy` (spec 038): happiness is earned, not kept. */
+  highDrift: 4,
   /** Extra each full hour for a cat beside its own apartment. */
   home: 1,
-  /** A chat that earns the hourly bond reward. */
+  /** A chat, at most once per `chatCooldownMinutes` for each cat. */
   chat: 2,
+  chatCooldownMinutes: 60,
   catch: 3,
   gift: 3,
   favoriteGift: 8,
@@ -36,6 +39,11 @@ export function moodBand(mood: number): MoodBand {
   if (mood >= 50) return 'calm';
   if (mood >= 30) return 'glum';
   return 'low';
+}
+
+/** What a gain adds at this mood: a happy cat takes half, rounded down, at least 1. */
+export function moodGain(mood: number, amount: number): number {
+  return mood >= MOOD.happy ? Math.max(1, Math.floor(amount / 2)) : amount;
 }
 
 /** The mood a cat with this bond drifts toward: 60 for a new friend, 72 for family. */

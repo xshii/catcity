@@ -3,6 +3,7 @@ import {
   memoryRepository as repository,
 } from '../helpers/session';
 import { expect, it, vi } from 'vitest';
+import { BOND } from '../../src/content/care';
 import { createWorld } from '../../src/core';
 import { MockDialogueProvider } from '../helpers/mock-dialogue';
 import { RuleBasedDialogueProvider } from '../../src/providers/rule-dialogue';
@@ -35,7 +36,7 @@ it.each(['throw', 'bad-target', 'extra-field', 'bad-text'])(
     expect((await session.talk('mochi', 'hello')).ok).toBe(true);
     expect(session.lastDialogueFallback).toBe(true);
     expect(session.getSnapshot().coins).toBe(1000);
-    expect(session.getSnapshot().cats[0]!.playerBond).toBe(1);
+    expect(session.getSnapshot().cats[0]!.playerBond).toBe(BOND.chat);
   },
 );
 

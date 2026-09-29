@@ -1,4 +1,5 @@
 import { advance, interact } from '../helpers/world';
+import { BOND } from '../../src/content/care';
 import { CITY_START } from '../../src/content/city';
 import {
   fishingFixture as createWorld,
@@ -102,7 +103,10 @@ describe('shared fishing experiences through current rod inputs', () => {
     expect(world.getSnapshot().fishing.lastResult!.caught).toBe(false);
     for (let n = 0; n < 60; n++) interact(world, 'mochi', '你好', '喵');
     expect(world.getSnapshot().cats[0]!.fishingMemory).toEqual(first);
-    expect(world.getSnapshot().cats[0]!.playerBond).toBe(1);
+    // Two catches and the day's one chat that counts; the fish that got away adds nothing.
+    expect(world.getSnapshot().cats[0]!.playerBond).toBe(
+      2 * BOND.catch + BOND.chat,
+    );
     expect(loadWorld(world.save()).getSnapshot()).toEqual(world.getSnapshot());
   });
 

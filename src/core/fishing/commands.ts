@@ -11,6 +11,7 @@ import {
   type BaitId,
   type FishId,
 } from '../../content/fishing';
+import { BOND } from '../../content/care';
 import { MOOD } from '../../content/mood';
 import { instantiateCat, requireCat } from '../cats';
 import {
@@ -21,6 +22,7 @@ import {
 } from '../../minigames/angling';
 import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
 import { rewardBond } from '../bond';
+import { liftMood } from '../mood';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
@@ -29,7 +31,7 @@ import { shadowUnderCast } from './shadows';
 import { runSeed } from '../random';
 import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from '../limits';
 
-const { cast: CAST, supplies: SUPPLIES, companion: COMPANION } = FISHING;
+const { cast: CAST, supplies: SUPPLIES } = FISHING;
 
 export function applyAngling(
   world: WorldState,
@@ -203,7 +205,7 @@ export function applyAngling(
         record.bestWeight = Math.max(record.bestWeight, next.weight);
         fishing.xp = Math.min(
           WORLD_LIMIT,
-          fishing.xp + catchXp(fishById(speciesId).stars),
+          fishing.xp + catchXp(fishById(speciesId).stars, next.happy),
         );
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.fishingMemory ??= {
@@ -212,8 +214,9 @@ export function applyAngling(
           spotId: next.spotId,
           minute: world.minute,
         };
-        cat.mood = Math.min(MAX_STAT, cat.mood + MOOD.catch);
-        rewardBond(cat, world.minute);
+        // The bond reads the mood the cat was in before this catch lifts it.
+        rewardBond(cat, BOND.catch);
+        liftMood(cat, MOOD.catch);
       } else if (next.phase === 'escaped') {
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.mood = Math.max(0, cat.mood - MOOD.escape);
@@ -238,12 +241,8 @@ export function applyAngling(
         minute: world.minute,
         favorite,
       };
-      cat.mood = Math.min(
-        MAX_STAT,
-        cat.mood + (favorite ? MOOD.favoriteGift : MOOD.gift),
-      );
-      cat.needs.hunger = Math.max(0, cat.needs.hunger - COMPANION.giftHunger);
-      rewardBond(cat, world.minute);
+      rewardBond(cat, favorite ? BOND.favoriteGift : BOND.gift);
+      liftMood(cat, favorite ? MOOD.favoriteGift : MOOD.gift);
       emit(favorite ? 'favorite-gift' : 'gift', cat.id);
     }
     fishing.inventory.splice(index, 1);

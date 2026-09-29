@@ -8,13 +8,22 @@ export function fishHabitats(id: FishId): SpotId[] {
   return SPOT_IDS.filter((spotId) => SPOTS[spotId].fish.includes(id));
 }
 
-export const skillLevel = (xp: number) =>
-  Math.min(
-    FISHING.skill.maxLevel,
-    1 + Math.floor(xp / FISHING.skill.xpPerLevel),
+const SKILL = FISHING.skill;
+/** The XP in all that reaches a level; a product of three neighbours divides by 3. */
+export const skillXp = (level: number) =>
+  (SKILL.curve * (level - 1) * level * (level + 1)) / 3;
+export function skillLevel(xp: number): number {
+  let level = 1;
+  while (level < SKILL.maxLevel && xp >= skillXp(level + 1)) level++;
+  return level;
+}
+/** A happy cat's catch (the run's `happy`) earns more, rounded down. */
+export const catchXp = (stars: number, happy: boolean) =>
+  Math.floor(
+    ((SKILL.baseXp + stars * SKILL.xpPerStar) *
+      (happy ? SKILL.happyXpPercent : 100)) /
+      100,
   );
-export const catchXp = (stars: number) =>
-  FISHING.skill.baseXp + stars * FISHING.skill.xpPerStar;
 export function spotUnlocked(
   spot: SpotId,
   xp: number,

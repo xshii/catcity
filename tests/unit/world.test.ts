@@ -1,4 +1,5 @@
 import { WORLD_LIMIT } from '../../src/core/limits';
+import { BOND } from '../../src/content/care';
 import { CITY_START } from '../../src/content/city';
 import { advance, buildCafe, interact } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
@@ -106,7 +107,7 @@ describe('headless world', () => {
     ).toBe(false);
   });
 
-  it('stores structured memories, caps history and rate-limits bond rewards', () => {
+  it('stores structured memories, caps history and counts one chat a day toward the bond', () => {
     const world = createWorld(42);
     for (let i = 0; i < 55; i++)
       expect(interact(world, 'mochi', `hello ${i}`, '喵。').ok).toBe(true);
@@ -117,10 +118,13 @@ describe('headless world', () => {
       minute: CITY_START.minute,
       message: 'hello 54',
     });
-    expect(cat.playerBond).toBe(1);
+    expect(cat.playerBond).toBe(BOND.chat);
     advance(world, 60);
     interact(world, 'mochi', 'hello again', '喵。');
-    expect(world.getSnapshot().cats[0]!.playerBond).toBe(2);
+    expect(world.getSnapshot().cats[0]!.playerBond).toBe(BOND.chat);
+    advance(world, BOND.dayMinutes);
+    interact(world, 'mochi', 'good morning', '喵。');
+    expect(world.getSnapshot().cats[0]!.playerBond).toBe(2 * BOND.chat);
     expect(interact(world, 'missing', 'hi', 'hi').ok).toBe(false);
   });
 

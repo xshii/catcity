@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../../src/core/world';
-import { MAX_STAT, type WorldState } from '../../src/core';
+import { MAX_BOND, type WorldState } from '../../src/core';
 import { BOND_LEVELS } from '../../src/content/care';
 import { bondBadge, bondNote, outcomeNote } from '../../src/view/shell/bond';
 import { toViewModel } from '../../src/view/shell/model';
@@ -39,7 +39,7 @@ describe('bond level in the cats panel (spec 036)', () => {
   });
 
   it('shows a full bar and no next level at the last one', () => {
-    for (const bond of [at(top), MAX_STAT])
+    for (const bond of [at(top), MAX_BOND])
       expect(bondBadge(bond)).toEqual({
         level: top,
         name: BOND_LEVELS[top]!.name,
