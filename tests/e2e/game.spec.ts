@@ -1,3 +1,4 @@
+import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { SAVE_VERSION } from '../../src/core/schema';
 import {
   enterRiver,
@@ -21,7 +22,9 @@ import { ready, readWorld } from '../../harness/adapters/catcity/browser';
 test('production does not expose debug bridge, even with debug query parameters', async ({
   page,
 }) => {
-  await page.goto('http://127.0.0.1:4174/?debug=true&test=true');
+  await page.goto(
+    `${localOrigin(testPorts().production)}/?debug=true&test=true`,
+  );
   await expect(page.locator('canvas')).toBeVisible();
   expect(await page.evaluate(() => 'CAT_CITY_DEBUG' in window)).toBe(false);
   expect(
@@ -39,7 +42,7 @@ test('corrupt save remains untouched and the player sees the error', async ({
   await page.addInitScript(() =>
     localStorage.setItem('cat-city.save.v1', 'corrupt-save'),
   );
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await expect(page.getByRole('alert')).toContainText('原数据已保留');
   await page.locator('#city-tab-guide').click();
@@ -52,7 +55,7 @@ test('corrupt save remains untouched and the player sees the error', async ({
 test('bridge mutations are validated and snapshots cannot mutate the world', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   const before = await readWorld(page);
   const rejected = await page.evaluate(() => {
@@ -80,7 +83,7 @@ test('mobile touch layout resumes a shared outing and recalls it after reload', 
     localStorage.setItem('cat-city.fishing-input', 'buttons'),
   );
   try {
-    await page.goto('http://127.0.0.1:4173/');
+    await page.goto(`${localOrigin(testPorts().test)}/`);
     await ready(page);
     await openChat(page);
     await page.getByRole('button', { name: '今天有点累', exact: true }).tap();
@@ -134,7 +137,7 @@ test('mobile touch layout resumes a shared outing and recalls it after reload', 
 test('river animation changes pixels without advancing headless world state', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await enterRiver(page);
   const before = await readWorld(page);
@@ -149,7 +152,7 @@ test('tablet layout keeps the companion panel readable without horizontal overfl
   page,
 }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await openChat(page);
   const card = await page.locator('.cat-card').boundingBox();
@@ -165,7 +168,7 @@ test('city guide makes construction, income and the relationship activity discov
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await page.locator('#city-tab-guide').click();
   await expect(page.locator('#city-goal')).toHaveText('先给 Mochi 建一间猫咖');
@@ -216,7 +219,7 @@ test('skill and atlas unlock a new waterway; bait changes catches and Pepper rec
 }) => {
   // Five real casts plus panel navigation and travel take about two minutes in software-rendered Chromium.
   test.setTimeout(180_000);
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await enterRiver(page);
   await openGear(page);
@@ -303,7 +306,7 @@ test('old demo saves require an explicit reset; atlas shows all tiers, lengths a
     (value) => localStorage.setItem('cat-city.save.v1', value),
     oldSave,
   );
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await expect(page.getByRole('alert')).toContainText('原数据已保留');
   expect(

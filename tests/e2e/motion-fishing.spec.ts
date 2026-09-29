@@ -1,3 +1,4 @@
+import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { expect, test, type Page } from '@playwright/test';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { enterRiver } from '../../harness/adapters/catcity/city-input';
@@ -54,11 +55,11 @@ async function inMotionRiver(page: Page) {
   await page
     .context()
     .grantPermissions(['accelerometer', 'gyroscope'], {
-      origin: 'http://127.0.0.1:4173',
+      origin: localOrigin(testPorts().test),
     })
     .catch(() => undefined);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await enterRiver(page);
   // Desktop browsers default to buttons; opting in asks for sensor permission.
@@ -242,10 +243,10 @@ test('a phone without orientation readings can still cast straight ahead', async
   await page
     .context()
     .grantPermissions(['accelerometer', 'gyroscope'], {
-      origin: 'http://127.0.0.1:4173',
+      origin: localOrigin(testPorts().test),
     })
     .catch(() => undefined);
-  await page.goto('/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await enterRiver(page);
   await openGear(page, 'supplies');
@@ -269,11 +270,11 @@ test('after a reload mid-run, phones are asked to re-enable motion', async ({
   });
   await context
     .grantPermissions(['accelerometer', 'gyroscope'], {
-      origin: 'http://127.0.0.1:4173',
+      origin: localOrigin(testPorts().test),
     })
     .catch(() => undefined);
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await enterRiver(page);
   await closeRiverPanel(page);
@@ -372,7 +373,7 @@ test('a phone that has not chosen yet sees the motion card, not the manual cast'
     hasTouch: true,
   });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto(`${localOrigin(testPorts().test)}/`);
   await ready(page);
   await enterRiver(page);
   await closeRiverPanel(page);
