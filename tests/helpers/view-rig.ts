@@ -255,6 +255,26 @@ export function click(selector: string) {
   );
 }
 
+/**
+ * A value picked in a select or set on a slider (by keys or drag), like Playwright's
+ * `selectOption`: the page hears input and change. Only enabled fields and options.
+ */
+export function choose(selector: string, value: string) {
+  const field = $<HTMLSelectElement | HTMLInputElement>(selector);
+  if (!visible(selector)) throw new Error(`${selector} is not visible`);
+  if (field.disabled) throw new Error(`${selector} is disabled`);
+  if (
+    field instanceof HTMLSelectElement &&
+    !Array.from(field.options).some(
+      (option) => option.value === value && !option.disabled,
+    )
+  )
+    throw new Error(`${selector} offers no enabled ${value}`);
+  field.value = value;
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+  field.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 /** A key held or released on the focused element, like `page.keyboard.down/up`. */
 export function key(type: 'keydown' | 'keyup', code: 'Space') {
   const target = document.activeElement ?? document.body;
