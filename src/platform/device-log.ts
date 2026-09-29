@@ -1,3 +1,6 @@
+import type { TraceEntry } from '../application';
+import type { WorldState } from '../core';
+
 /** Records one debug entry; `t` defaults to page time in ms. */
 export type Trace = (kind: string, data?: Record<string, unknown>) => void;
 
@@ -16,10 +19,41 @@ const KEEPALIVE_BYTES = 60_000;
 
 type Entry = Record<string, unknown> & { kind: string };
 
-/** Whether this device logs: the URL flag decides and is remembered, else the stored choice. */
-export function debugLogWanted(search: string, stored: string | null) {
-  const flag = new URLSearchParams(search).get('debug');
+/** Whether this device logs: the `?debug` flag decides and is remembered, else the stored choice. */
+export function debugLogWanted(flag: string | null, stored: string | null) {
   return flag === '1' ? true : flag === '0' ? false : stored === '1';
+}
+
+/**
+ * What the log keeps of a command, or null to skip it: a per-tick fishing control is
+ * kept only when it changed play, since every tick reports a 'control' change. Chat text
+ * stays on the device; the log keeps only who was talked to.
+ */
+export function commandLogEntry(
+  { command, result }: TraceEntry,
+  run: WorldState['fishing']['active'],
+) {
+  const tick =
+    command.type === 'FISH_CONTROL' || command.type === 'FISH_MOTION_CONTROL';
+  if (
+    tick &&
+    result.ok &&
+    result.events.every(
+      (event) => event.type === 'FishingChanged' && event.action === 'control',
+    )
+  )
+    return null;
+  return {
+    command: tick
+      ? command.type
+      : command.type === 'INTERACT'
+        ? { type: command.type, catId: command.catId }
+        : command,
+    ...(result.ok
+      ? { ok: true, events: result.events }
+      : { ok: false, error: result.error }),
+    run,
+  };
 }
 
 /** Unsent entries, bounded: when full the oldest go, and the count of them is sent. */
@@ -47,12 +81,27 @@ export function createLogBatch(limit: number) {
   };
 }
 
-const round = (value: number | null | undefined) =>
-  typeof value === 'number' && Number.isFinite(value)
-    ? Math.round(value * 100) / 100
-    : null;
-/** Times in the log, rounded alike so entries of one event match exactly. */
-export const logTime = (ms: number) => round(ms);
+/** Times in the log, to 0.01 ms, rounded alike so entries of one event match exactly. */
+export const logTime = (ms: number): number => Math.round(ms * 100) / 100;
+
+const screenAngle = () => screen.orientation?.angle ?? 0;
+/** A raw sensor reading: its time, the three values as precise as times, the screen angle. */
+function sensorEntry(
+  timeStamp: number,
+  values: Pick<DeviceOrientationEvent, 'alpha' | 'beta' | 'gamma'> | null,
+) {
+  const value = (reading: number | null | undefined) =>
+    typeof reading === 'number' && Number.isFinite(reading)
+      ? logTime(reading)
+      : null;
+  return {
+    t: logTime(timeStamp),
+    a: value(values?.alpha),
+    b: value(values?.beta),
+    g: value(values?.gamma),
+    angle: screenAngle(),
+  };
+}
 
 /** A page-session id; `crypto.randomUUID` needs a secure context, this does not. */
 export function sessionId(random: (bytes: Uint8Array) => Uint8Array) {
@@ -77,7 +126,7 @@ export function startDeviceLog(build: string): Trace | null {
   } catch {
     // Blocked storage: only the URL flag of this page counts.
   }
-  if (!debugLogWanted(location.search, stored)) return null;
+  if (!debugLogWanted(flag, stored)) return null;
 
   const session = sessionId((bytes) => crypto.getRandomValues(bytes));
   const batch = createLogBatch(MAX_PENDING);
@@ -113,7 +162,8 @@ export function startDeviceLog(build: string): Trace | null {
     fetch(ENDPOINT, {
       method: 'POST',
       body: next.json,
-      keepalive: next.json.length < KEEPALIVE_BYTES,
+      // The limit counts UTF-8 bytes, not string length.
+      keepalive: new Blob([next.json]).size < KEEPALIVE_BYTES,
     })
       .then((response) => {
         if (!response.ok) throw new Error(String(response.status));
@@ -133,26 +183,12 @@ export function startDeviceLog(build: string): Trace | null {
     if (next) navigator.sendBeacon(ENDPOINT, next.json);
   });
 
-  const angle = () => screen.orientation?.angle ?? 0;
-  window.addEventListener('devicemotion', (event) => {
-    const rate = event.rotationRate;
-    trace('motion', {
-      t: logTime(event.timeStamp),
-      a: round(rate?.alpha),
-      b: round(rate?.beta),
-      g: round(rate?.gamma),
-      angle: angle(),
-    });
-  });
-  window.addEventListener('deviceorientation', (event) => {
-    trace('orientation', {
-      t: logTime(event.timeStamp),
-      a: round(event.alpha),
-      b: round(event.beta),
-      g: round(event.gamma),
-      angle: angle(),
-    });
-  });
+  window.addEventListener('devicemotion', (event) =>
+    trace('motion', sensorEntry(event.timeStamp, event.rotationRate)),
+  );
+  window.addEventListener('deviceorientation', (event) =>
+    trace('orientation', sensorEntry(event.timeStamp, event)),
+  );
   window.addEventListener('error', (event) =>
     trace('error', {
       message: event.message,
@@ -172,7 +208,7 @@ export function startDeviceLog(build: string): Trace | null {
     ua: navigator.userAgent,
     screen: `${screen.width}x${screen.height}`,
     dpr: window.devicePixelRatio,
-    angle: angle(),
+    angle: screenAngle(),
     touchPoints: navigator.maxTouchPoints,
     secure: window.isSecureContext,
   });

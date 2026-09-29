@@ -10,6 +10,7 @@ import {
 } from '../../content/fishing';
 import { catIdle, type CatEntity, type WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
+import { moodBadge } from '../shell/mood';
 import { catPortrait, fishIllustration } from '../art/illustrations';
 import { riverBackdrop } from '../art/river-palette';
 
@@ -25,10 +26,15 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   const progress = document.createElement('progress');
   progress.max = 100;
   const activity = document.createElement('small');
+  const mood = document.createElement('small');
+  mood.className = 'mood-line';
+  mood.setAttribute('role', 'img');
+  const hint = document.createElement('small');
+  hint.className = 'mood-hint';
   const sleep = document.createElement('b');
   sleep.className = 'sleep-mark';
   sleep.textContent = 'zZ';
-  text.append(name, energy, progress, activity);
+  text.append(name, energy, progress, activity, mood, hint);
   button.append(text, sleep);
   button.addEventListener('click', () => select(cat.id));
   return {
@@ -57,6 +63,11 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
           ? `在${SPOTS[cat.fishingSpotId].name}岸边`
           : '在小城里';
       sleep.hidden = !recovering;
+      const badge = moodBadge(cat.mood);
+      mood.textContent = badge.text;
+      mood.setAttribute('aria-label', badge.label);
+      hint.textContent = badge.hint;
+      hint.hidden = !badge.hint;
     },
   };
 }
@@ -130,7 +141,13 @@ export function mountFishingStage(
         access.onNeedTravel();
       }
     },
-    render(world: WorldState, selected: string, spot: SpotId) {
+    /** `resultNote`: how the last result changed the cat's mood band, if it did. */
+    render(
+      world: WorldState,
+      selected: string,
+      spot: SpotId,
+      resultNote: string,
+    ) {
       const run = world.fishing.active;
       const clock = toViewModel(world, selected);
       $('river-clock').textContent = `第 ${clock.day} 天 · ${clock.time}`;
@@ -169,8 +186,8 @@ export function mountFishingStage(
       const reveal = $('catch-reveal');
       const result = world.fishing.lastResult;
       reveal.hidden = !!run || !result;
-      if (result && resultKey !== JSON.stringify(result)) {
-        resultKey = JSON.stringify(result);
+      if (result && resultKey !== JSON.stringify([result, resultNote])) {
+        resultKey = JSON.stringify([result, resultNote]);
         if (result.caught && result.speciesId) {
           const fish = fishById(result.speciesId);
           reveal.innerHTML = `<small>这次的收获</small>${fishIllustration(fish.id)}<strong>${fishStars(fish.stars)} ${fish.name}</strong><span>${(result.lengthMm / 10).toFixed(1)} cm · ${result.weight} g</span><span class="catch-price">${fish.price} 金币 · 已放入鱼篓</span>`;
@@ -183,6 +200,12 @@ export function mountFishingStage(
                 ? '钓到密封猫罐头'
                 : `钓到金币袋 · +${result.lootAmount}`;
           reveal.innerHTML = `<span class="loot-art" aria-hidden="true">${result.trashAmount ? '🥾' : !result.caught ? '≈' : result.catchKind === 'can' ? '🥫' : '💰'}</span><strong>${title}</strong><small>${result.trashAmount ? `已收进鱼篓补给 · 可回收 +${FISHING.supplies.trashCoins} 金币` : '调整落点，再试一竿吧'}</small>`;
+        }
+        if (resultNote) {
+          const note = document.createElement('small');
+          note.className = 'catch-mood';
+          note.textContent = resultNote;
+          reveal.append(note);
         }
       }
     },

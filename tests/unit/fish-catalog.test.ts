@@ -40,6 +40,7 @@ it.each(SPOT_IDS)(
           for (let direction = -45; direction <= 45; direction++)
             for (const chargeTicks of [1, 18, 32]) {
               let run = initialAngling({
+                happy: false,
                 mode: 'buttons',
                 aimDepth: 50,
 
@@ -82,6 +83,7 @@ it('covers every tier from zero through five, with tighter controls at higher ti
   for (const fish of FISH) {
     const run = {
       ...initialAngling({
+        happy: false,
         mode: 'buttons',
         catBreed: 'RAGDOLL',
         spotId: 'POND',
@@ -120,6 +122,7 @@ it('restricts exclusive encounters by breed and generates reproducible fish leng
     for (const seed of Array.from({ length: 40 }, (_, i) => i + 1)) {
       for (const baitId of ['WORM', 'SHRIMP'] as const) {
         let run = initialAngling({
+          happy: false,
           mode: 'buttons',
           aimDepth: 50,
 

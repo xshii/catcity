@@ -12,6 +12,7 @@ import {
 } from '../../harness/adapters/catcity/navigation';
 import { createWorld } from '../../src/core';
 import { greenZone } from '../../src/minigames/angling';
+import { moodBadge } from '../../src/view/shell/mood';
 
 async function onScreen(control: Locator) {
   await expect(control).toBeVisible();
@@ -95,6 +96,18 @@ async function cityNavigation(page: Page) {
   await onScreen(page.locator('#panel-cats'));
   await onScreen(page.locator('#invite-pepper'));
   await onScreen(page.locator('[data-cat-id="mochi"]'));
+  // Spec 032: the band from Core in words as well as a face, and the hint when happy.
+  const badge = moodBadge(before.cats.find((cat) => cat.id === 'mochi')!.mood);
+  const card = page.locator('[data-cat-id="mochi"]');
+  await expect(card.locator('.mood-line')).toHaveText(badge.text);
+  await expect(card.locator('.mood-line')).toHaveAttribute(
+    'aria-label',
+    badge.label,
+  );
+  await expect(card.locator('.mood-hint')).toHaveText(badge.hint);
+  await expect(card.locator('.mood-hint')).toBeVisible({
+    visible: !!badge.hint,
+  });
   await page.locator('[data-cat-id="mochi"]').click();
   await singleScreen(page);
   await expect(page.locator('#visit-city')).toHaveAttribute(
@@ -108,6 +121,13 @@ async function cityNavigation(page: Page) {
     'true',
   );
   await onScreen(page.getByLabel('和 Mochi 说句话'));
+  await expect(page.locator('#mood')).toHaveAttribute(
+    'aria-label',
+    badge.label,
+  );
+  await expect(page.locator('#mood-hint')).toBeVisible({
+    visible: !!badge.hint,
+  });
   await expect(page.locator('#visit-city')).toHaveAttribute(
     'aria-pressed',
     'true',

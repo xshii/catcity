@@ -1,4 +1,5 @@
 import { CARE } from '../../content/care';
+import { MOOD } from '../../content/mood';
 import { WORLD_LIMIT } from '../limits';
 import { SPOT_IDS, spotOpen, type SpotId } from '../../content/fishing';
 import { onShore, samePosition } from './map';
@@ -97,6 +98,8 @@ export function advanceWalking(world: WorldState, events: GameEvent[]): void {
     }
     cat.position = walk.route.shift()!;
     cat.needs.energy -= CARE.walkEnergyPerTile;
+    if (cat.needs.energy === 0)
+      cat.mood = Math.max(0, cat.mood - MOOD.exhausted);
     events.push({
       type: 'CatMoved',
       minute: world.minute,

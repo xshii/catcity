@@ -37,9 +37,10 @@ const SAMPLES = 40;
 const TREND = 4;
 
 /** A plain (not perfect) strike on a fish of the given stars. */
-function fightOf(seed: number, stars: number): AnglingRun {
+function fightOf(seed: number, stars: number, happy: boolean): AnglingRun {
   const cast = castAngling(
     initialAngling({
+      happy,
       id: 'angling-1',
       catId: 'mochi',
       seed,
@@ -65,18 +66,18 @@ function fightOf(seed: number, stars: number): AnglingRun {
 }
 
 const rates = new Map<string, number>();
-function catchRate(player: keyof typeof PLAYERS, stars: number) {
-  const key = `${player}${stars}`;
-  if (!rates.has(key)) rates.set(key, measure(player, stars));
+function catchRate(player: keyof typeof PLAYERS, stars: number, happy = false) {
+  const key = `${player}${stars}${happy}`;
+  if (!rates.has(key)) rates.set(key, measure(player, stars, happy));
   return rates.get(key)!;
 }
-function measure(player: keyof typeof PLAYERS, stars: number) {
+function measure(player: keyof typeof PLAYERS, stars: number, happy: boolean) {
   const { delay, jitter } = PLAYERS[player];
   let caught = 0;
   for (let seed = 1; seed <= SAMPLES; seed++) {
     const hand = new RandomService(seed * 7919);
     const wobble = () => hand.nextInt(2 * jitter + 1) - jitter;
-    let run = fightOf(seed, stars);
+    let run = fightOf(seed, stars, happy);
     const fish = fishPath(run, M.fight.graceTicks + M.fight.limitTicks);
     while (run.phase === 'fight') {
       const now = Math.max(0, run.phaseTick + 1 - delay);
@@ -125,3 +126,35 @@ it.each(Object.keys(PLAYERS) as (keyof typeof PLAYERS)[])(
       );
   },
 );
+
+/**
+ * Happy runs (spec 032) get a slightly larger ring. The bonus must never make a fight
+ * harder, must leave 4–5★ fish rare for novices, and must add little for skilled players.
+ */
+const HAPPY = { noviceHighStarMax: 15, skilledLiftMax: 10 };
+const STARS = [0, 1, 2, 3, 4, 5];
+
+// One case per player and star, so each stays small (rates are cached across cases).
+it.each(
+  (Object.keys(PLAYERS) as (keyof typeof PLAYERS)[]).flatMap((player) =>
+    STARS.map((stars) => [player, stars] as const),
+  ),
+)('never makes a happy %s run harder at %i★', (player, stars) => {
+  expect(catchRate(player, stars, true)).toBeGreaterThanOrEqual(
+    catchRate(player, stars),
+  );
+});
+
+it.each([4, 5])('keeps %i★ fish rare for novices on a happy run', (stars) => {
+  const rate = catchRate('novice', stars, true);
+  expect(rate, `novice ${stars}★ happy caught ${rate}%`).toBeLessThanOrEqual(
+    HAPPY.noviceHighStarMax,
+  );
+});
+
+it('lifts skilled catch rates only a little on happy runs', () => {
+  for (const stars of STARS)
+    expect(
+      catchRate('skilled', stars, true) - catchRate('skilled', stars),
+    ).toBeLessThanOrEqual(HAPPY.skilledLiftMax);
+});
