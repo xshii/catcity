@@ -435,6 +435,31 @@ for (const viewport of [
     await context.close();
   });
 
+test('the river art is wider than a phone, and nothing can scroll the scene sideways', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${localOrigin(testPorts().test)}/`);
+  await ready(page);
+  await enterRiver(page);
+  expect((await page.locator('#game').boundingBox())!.width).toBeGreaterThan(
+    390,
+  );
+  // As a browser does to show a focused or clicked control (Playwright too, on a retry).
+  const scrolled = await page.evaluate(() => {
+    const art = document.getElementById('game')!;
+    art.scrollIntoView({ inline: 'end' });
+    const moved: string[] = [];
+    for (let box = art.parentElement; box; box = box.parentElement) {
+      box.scrollLeft = 100;
+      if (box.scrollLeft) moved.push(box.id || box.className);
+    }
+    return moved;
+  });
+  expect(scrolled).toEqual([]);
+  await onScreen(page.locator('#cast-start'));
+});
+
 test('desktop scenes fill the window and the cats panel slides in from the right', async ({
   page,
 }, testInfo) => {
