@@ -61,10 +61,11 @@ it('lets a tired cat be sent anywhere at once: there is no rest to wait out', ()
 it('keeps fishing input ticks off the shared clock', () => {
   const world = tired(20);
   expect(begin(world, 'mochi').ok).toBe(true);
-  const runId = world.getSnapshot().fishing.active!.id;
+  const { minute, fishing } = world.getSnapshot();
+  const runId = fishing.active!.id;
   for (let tick = 0; tick < 40; tick++)
     world.dispatch({ type: 'FISH_CONTROL', runId, pressed: true, ticks: 4 });
-  expect(world.getSnapshot().minute).toBe(0);
+  expect(world.getSnapshot().minute).toBe(minute);
 });
 
 it('reports recovery only when energy rises, and chunked time equals minute steps', () => {

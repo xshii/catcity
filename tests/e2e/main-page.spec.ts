@@ -6,6 +6,7 @@ import {
   settle,
 } from '../../harness/adapters/catcity/city-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
+import { CITY_START } from '../../src/content/city';
 import type { Position } from '../../src/core';
 import { MAP_VIEW } from '../../src/view/city/geometry';
 
@@ -155,7 +156,7 @@ test('a new game guides the next step above the map and keeps one clock control'
   await page.locator('#city-action').click();
   await expect(page.locator('#river-tools')).toBeHidden();
   await expect(page.locator('#clock-speed')).toBeFocused();
-  expect((await readWorld(page)).minute).toBe(0);
+  expect((await readWorld(page)).minute).toBe(CITY_START.minute);
   await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
   await expect(page.locator('#city-hint')).toContainText('池塘');
 
@@ -172,7 +173,10 @@ test('a production clock advances faster at 4×', async ({ page }) => {
       const save = localStorage.getItem('cat-city.save.v1');
       return save ? (JSON.parse(save).world.minute as number) : 0;
     });
-  await expect.poll(minute, { timeout: 5000 }).toBeGreaterThan(0);
+  // The clock has ticked past the 07:00 start.
+  await expect
+    .poll(minute, { timeout: 5000 })
+    .toBeGreaterThan(CITY_START.minute);
   const slow = await minute();
   await page.waitForTimeout(3000);
   expect((await minute()) - slow).toBeLessThanOrEqual(5);
