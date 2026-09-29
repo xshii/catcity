@@ -79,16 +79,16 @@ function walkTo(world: World, spotId: SpotId) {
 }
 
 /**
- * One playthrough of a new game (seed 42), saved at each point a test starts from: three
- * pond catches (one short of the reeds), the fourth (reeds open), the walk to the reeds,
+ * One playthrough of a new game (seed 42), saved at each point a test starts from: four
+ * pond catches (one short of the reeds), the fifth (reeds open), the walk to the reeds,
  * and a perch caught there on worms.
  */
 export function progressSaves() {
   const world = createWorld(42);
-  for (let cast = 0; cast < 3; cast++)
+  for (let cast = 0; cast < 4; cast++)
     landFish(world, 'POND', 'BREAD', pondDirection(cast));
   const oneCatchShort = world.save();
-  landFish(world, 'POND', 'BREAD', pondDirection(3));
+  landFish(world, 'POND', 'BREAD', pondDirection(4));
   const reedsOpen = world.save();
   walkTo(world, 'REEDS');
   const atReeds = world.save();

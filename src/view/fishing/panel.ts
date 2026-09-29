@@ -12,6 +12,7 @@ import {
   SPOTS,
   SPOT_IDS,
   skillLevel,
+  skillXp,
   spotUnlocked,
   type BaitId,
   type SpotId,
@@ -49,7 +50,7 @@ import {
 } from './template';
 import { ERROR_MESSAGES } from '../shell/errors';
 import { withMoodNote } from '../shell/mood';
-import { outcomeNote } from '../shell/bond';
+import { giftNotice, outcomeNote } from '../shell/bond';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -223,7 +224,7 @@ export function mountAngling(
       const level = skillLevel(f.xp);
       get('fishing-level').textContent = `钓技 Lv.${level}`;
       get('fishing-resources').textContent =
-        `经验 ${f.xp}${level < 10 ? ` / ${level * 40} 升级` : ' · 已满级'} · 等级提高，绿色区间更宽`;
+        `经验 ${f.xp}${level < FISHING.skill.maxLevel ? ` / ${skillXp(level + 1)} 升级` : ' · 已满级'} · 等级提高，绿色区间更宽`;
       const spot =
         location.value || run?.spotId || selectedCat.fishingSpotId || 'POND';
       location.replaceChildren(
@@ -283,7 +284,12 @@ export function mountAngling(
             result,
             command.type === 'GIFT_FISH'
               ? withMoodNote(
-                  message,
+                  giftNotice(
+                    message,
+                    before,
+                    session.getSnapshot(),
+                    command.catId,
+                  ),
                   outcomeNote(before, session.getSnapshot(), command.catId),
                 )
               : message,

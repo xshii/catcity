@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../../src/core/world';
-import { MAX_STAT, type WorldState } from '../../src/core';
+import { MAX_BOND, type WorldState } from '../../src/core';
 import { BOND_LEVELS } from '../../src/content/care';
-import { bondBadge, bondNote, outcomeNote } from '../../src/view/shell/bond';
+import {
+  giftNotice,
+  bondBadge,
+  bondNote,
+  outcomeNote,
+} from '../../src/view/shell/bond';
 import { toViewModel } from '../../src/view/shell/model';
 
 const withCat = (playerBond: number, mood = 70): WorldState => {
@@ -39,7 +44,7 @@ describe('bond level in the cats panel (spec 036)', () => {
   });
 
   it('shows a full bar and no next level at the last one', () => {
-    for (const bond of [at(top), MAX_STAT])
+    for (const bond of [at(top), MAX_BOND])
       expect(bondBadge(bond)).toEqual({
         level: top,
         name: BOND_LEVELS[top]!.name,
@@ -93,6 +98,29 @@ describe('a level reached, told once with the outcome that reached it', () => {
     );
     expect(outcomeNote(withCat(before, 78), withCat(after, 81), 'mochi')).toBe(
       `Mochi 心情好起来了（开心）。${reached(1)}`,
+    );
+  });
+});
+
+describe('a gift past the day’s allowance', () => {
+  const withGifts = (count: number): WorldState => {
+    const world = withCat(0);
+    world.cats[0]!.giftBond = count ? { day: 0, count } : null;
+    return world;
+  };
+
+  it('keeps the usual words while gifts count', () => {
+    expect(giftNotice('收到了', withGifts(0), withGifts(1), 'mochi')).toBe(
+      '收到了',
+    );
+    expect(giftNotice('收到了', withGifts(2), withGifts(3), 'mochi')).toBe(
+      '收到了',
+    );
+  });
+
+  it('says kindly that the cat has had enough today', () => {
+    expect(giftNotice('收到了', withGifts(3), withGifts(3), 'mochi')).toBe(
+      'Mochi 今天已经吃饱啦，这条先收下，明天再好好谢你。',
     );
   });
 });

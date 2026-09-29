@@ -22,7 +22,7 @@ describe('mood in the cats panel (spec 032)', () => {
         band: 'happy',
         text: `${MOOD_COPY.bands.happy.glyph} 开心`,
         label: '心情：开心',
-        hint: '开心：遛鱼圈更大',
+        hint: '开心：遛鱼圈更大，经验更多',
       })),
       ...[79, 50].map(() => ({
         band: 'calm',

@@ -34,7 +34,7 @@ it('saves only facts: no RNG state, income remainder or recovery schedule', () =
     'dailyRoutine',
   ])
     expect(save.world.cats[0]).not.toHaveProperty(field);
-  expect(save.world.cats[0].needs).toEqual({ hunger: 30, energy: 92 });
+  expect(save.world.cats[0].needs).toEqual({ energy: 92 });
 });
 
 it('round-trips all state and deterministically continues movement, income and memories', () => {

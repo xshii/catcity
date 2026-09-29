@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DialogueContext } from '../../src/application/ports';
 import { BOND_LEVELS } from '../../src/content/care';
-import { createWorld } from '../../src/core';
+import { createWorld, MAX_BOND } from '../../src/core';
 import { RuleBasedDialogueProvider } from '../../src/providers/rule-dialogue';
 
 function context(message: string): DialogueContext {
@@ -130,7 +130,7 @@ describe('rule dialogue reads current relationship facts', () => {
     }
     // Within a level the line is the same; the mood still sets the tone before it.
     expect(await reply('嗯', bonds[2]! - 1)).toBe(smallTalk[1]);
-    expect(await reply('嗯', 100)).toBe(smallTalk.at(-1));
+    expect(await reply('嗯', MAX_BOND)).toBe(smallTalk.at(-1));
     expect(await reply('嗯', bonds.at(-1)!, 10)).toContain('……嗯。我在。');
     const recall = await Promise.all(
       bonds.map((bond) => reply('还记得第一次钓鱼吗？', bond)),

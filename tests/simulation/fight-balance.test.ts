@@ -9,19 +9,13 @@ import {
   stepMotionRun,
   strikeMotionRun,
 } from '../../src/minigames/angling-motion';
+import { PLAYERS, rodTip } from '../helpers/motion-player';
 
 /**
- * Motion fight balance (spec 030): simulated players see the fish `delay` ticks late and
- * extrapolate its recent motion (smooth pursuit), with a wobbly hand. Straight runs are
- * easy; turns, pace changes and dashes are not. High-star fish must need a practised player.
- * Once they see a dash announced (as late as they see everything), they pull the rod tip
- * `PULL` units back toward themselves until the dash is over (spec 033 tug of war).
+ * Motion fight balance (spec 030): the simulated players of `tests/helpers/motion-player`.
+ * Straight runs are easy; turns, pace changes and dashes are not. High-star fish must need
+ * a practised player.
  */
-const PLAYERS = {
-  novice: { delay: 8, jitter: 3 },
-  competent: { delay: 5, jitter: 2 },
-  skilled: { delay: 3, jitter: 1 },
-};
 /** Catch-rate bounds in percent: [player, stars, min, max]. */
 const TARGETS: [keyof typeof PLAYERS, number, number, number][] = [
   ['novice', 0, 80, 100],
@@ -35,10 +29,6 @@ const TARGETS: [keyof typeof PLAYERS, number, number, number][] = [
 ];
 const M = FISHING.motion;
 const SAMPLES = 40;
-/** Ticks of motion the player extrapolates from. */
-const TREND = 4;
-/** How far behind the fish a player pulls during a dash. */
-const PULL = M.fight.tug.marginUnits + 4;
 /** Players pull back on dashes, ignore them, or fight with the tug switched off. */
 type Dashes = 'pull' | 'ignore' | 'off';
 
@@ -88,7 +78,7 @@ function measure(
   happy: boolean,
   dashes: Dashes,
 ) {
-  const { delay, jitter } = PLAYERS[player];
+  const { jitter } = PLAYERS[player];
   let caught = 0;
   for (let seed = 1; seed <= SAMPLES; seed++) {
     const hand = new RandomService(seed * 7919);
@@ -96,23 +86,10 @@ function measure(
     let run = fightOf(seed, stars, happy);
     const fish = fishPath(run, M.fight.graceTicks + M.fight.limitTicks);
     while (run.phase === 'fight') {
-      const now = Math.max(0, run.phaseTick + 1 - delay);
-      const seen = fish[now]!;
-      const earlier = fish[Math.max(0, now - TREND)]!;
-      const pull =
-        dashes === 'pull' && (seen.warning || seen.dashing) ? PULL : 0;
-      const aim = (at: number, before: number, back = 0) =>
-        Math.min(
-          100,
-          Math.max(
-            0,
-            Math.round(at + ((at - before) * delay) / TREND + wobble()) + back,
-          ),
-        );
       // With the tug off the line never tightens: tension goes back to slack each tick.
       run = stepMotionRun(
         dashes === 'off' ? { ...run, tension: 0 } : run,
-        { x: aim(seen.x, earlier.x), y: aim(seen.y, earlier.y, pull) },
+        rodTip(player, run, fish, wobble, dashes === 'pull'),
         1,
       );
     }

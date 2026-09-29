@@ -11,6 +11,7 @@ import {
   type BaitId,
   type FishId,
 } from '../../content/fishing';
+import { BOND } from '../../content/care';
 import { MOOD } from '../../content/mood';
 import { instantiateCat, requireCat } from '../cats';
 import {
@@ -20,7 +21,8 @@ import {
   type AnglingRun,
 } from '../../minigames/angling';
 import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
-import { rewardBond } from '../bond';
+import { rewardBond, spendDaily } from '../bond';
+import { liftCalmMood, liftMood } from '../mood';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { Position, WorldState } from '../schema';
 import { isWalkable } from '../city/path';
@@ -29,7 +31,7 @@ import { shadowUnderCast } from './shadows';
 import { runSeed } from '../random';
 import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from '../limits';
 
-const { cast: CAST, supplies: SUPPLIES, companion: COMPANION } = FISHING;
+const { cast: CAST, supplies: SUPPLIES } = FISHING;
 
 export function applyAngling(
   world: WorldState,
@@ -203,7 +205,7 @@ export function applyAngling(
         record.bestWeight = Math.max(record.bestWeight, next.weight);
         fishing.xp = Math.min(
           WORLD_LIMIT,
-          fishing.xp + catchXp(fishById(speciesId).stars),
+          fishing.xp + catchXp(fishById(speciesId).stars, next.happy),
         );
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.fishingMemory ??= {
@@ -212,8 +214,9 @@ export function applyAngling(
           spotId: next.spotId,
           minute: world.minute,
         };
-        cat.mood = Math.min(MAX_STAT, cat.mood + MOOD.catch);
-        rewardBond(cat, world.minute);
+        // One meaning of happy for the whole catch: the run's, as for its XP.
+        rewardBond(cat, BOND.catch, next.happy);
+        liftCalmMood(cat, MOOD.catch);
       } else if (next.phase === 'escaped') {
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.mood = Math.max(0, cat.mood - MOOD.escape);
@@ -238,13 +241,17 @@ export function applyAngling(
         minute: world.minute,
         favorite,
       };
-      cat.mood = Math.min(
-        MAX_STAT,
-        cat.mood + (favorite ? MOOD.favoriteGift : MOOD.gift),
+      // Past the day's allowance the fish is still taken and remembered, nothing more.
+      const counted = spendDaily(cat.giftBond, world.minute, BOND.giftsPerDay);
+      if (counted) {
+        cat.giftBond = counted;
+        rewardBond(cat, favorite ? BOND.favoriteGift : BOND.gift);
+        liftMood(cat, favorite ? MOOD.favoriteGift : MOOD.gift);
+      }
+      emit(
+        counted ? (favorite ? 'favorite-gift' : 'gift') : 'gift-kept',
+        cat.id,
       );
-      cat.needs.hunger = Math.max(0, cat.needs.hunger - COMPANION.giftHunger);
-      rewardBond(cat, world.minute);
-      emit(favorite ? 'favorite-gift' : 'gift', cat.id);
     }
     fishing.inventory.splice(index, 1);
   }
