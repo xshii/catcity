@@ -312,6 +312,10 @@ function walking(cat: CatEntity) {
   return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。`;
 }
 
+/** Said as a cat is picked: the card's way to send it, and lifting it (spec 035). */
+export const selectedNotice = (name: string) =>
+  `已选中 ${name}：点一块地，在卡片上选「让 ${name} 走到这里」；也可以长按猫咪，拖到想去的地方。`;
+
 /** The tutorial's stage: open a cafe, earn from it, then fish together. */
 export function guideProgress(world: WorldState) {
   const cafe = world.buildings.find((building) => building.type === 'CAT_CAFE');

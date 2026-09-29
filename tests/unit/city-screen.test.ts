@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDINGS, CITY_TIME } from '../../src/content/city';
 import type { GameCommand, WorldState } from '../../src/core';
 import { createWorld, type World } from '../../src/core/world';
-import { cityScreen } from '../../src/view/city/screen';
+import { cityScreen, selectedNotice } from '../../src/view/city/screen';
 import {
   initialCityView,
   reduceCityView,
@@ -195,6 +195,12 @@ describe('city screen', () => {
       'walk-to-waterway',
       'city-wait',
     ]);
+  });
+
+  it('tells a player who picked a cat both ways to send it: the card, or lift and drag', () => {
+    expect(selectedNotice('Mochi')).toBe(
+      '已选中 Mochi：点一块地，在卡片上选「让 Mochi 走到这里」；也可以长按猫咪，拖到想去的地方。',
+    );
   });
 
   it('labels the camera button from the view', () => {
