@@ -405,54 +405,58 @@ test('a phone that has not chosen yet sees the motion card, not the manual cast'
   await context.close();
 });
 
-test('a first motion cast calibrates by itself, then is taught one step at a time', async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  await inMotionRiver(page, { fresh: true });
-  const hint = page.locator('#motion-fishing-hint');
-  const skip = page.locator('#motion-guide-skip');
-  // Never calibrated: aiming starts calibration without looking for the button.
-  await expect(hint).toHaveText(SCREEN_COPY.hint.calibrating);
-  await expect(page.locator('#motion-calibrate')).toBeHidden();
-  // No flicks: it fails, says to use the button, and the guide carries on.
-  await expect(hint).toHaveText(SCREEN_COPY.calibrate.failed, {
-    timeout: FISHING.motion.gesture.calibration.windowMs + 5000,
-  });
-  await expect(page.locator('#motion-calibrate')).toBeVisible();
-  await expect(hint).toHaveText(SCREEN_COPY.guide.aim);
-  await expect(skip).toBeVisible();
-  // Each step's hint shows until the player makes that move.
-  const { aimRangeDeg, powerRangeDeg } = FISHING.motion.gesture;
-  await orient(page, -aimRangeDeg, 0);
-  await expect(hint).toHaveText(SCREEN_COPY.guide.power);
-  for (let i = 0; i < 30; i++) await orient(page, -aimRangeDeg, powerRangeDeg);
-  await expect(hint).toHaveText(SCREEN_COPY.guide.cast);
-  await page.waitForTimeout(FISHING.motion.gesture.powerLeadMs * 2);
-  await swing(page);
-  expect((await readWorld(page)).fishing.active!.phase).toBe('waiting');
-  await expect(hint).toHaveText(SCREEN_COPY.guide.strike);
-  await toBite(page);
-  await expect(hint).toHaveText(SCREEN_COPY.guide.strike);
-  await spin(page, [-400]);
-  expect((await readWorld(page)).fishing.active!.phase).toBe('fight');
-  await expect(hint).toHaveText(SCREEN_COPY.guide.fight);
-  // Cover the fish until Core counts the hold: the guide is done, for this device.
-  for (let i = 0; i < 200; i++) {
-    const run = (await readWorld(page)).fishing.active;
-    if (run?.phase !== 'fight' || (await skip.isHidden())) break;
-    const fish = (await page.locator('#motion-fish').boundingBox())!;
-    await page.mouse.move(fish.x + fish.width / 2, fish.y + fish.height / 2);
-    await step(page, 1);
-  }
-  await expect(skip).toBeHidden();
-  await expect(hint).not.toHaveText(SCREEN_COPY.guide.fight);
-  expect(
-    await page.evaluate(() => localStorage.getItem('cat-city.fishing-guide')),
-  ).toBe('done');
-  expect(errors).toEqual([]);
-});
+test(
+  'a first motion cast calibrates by itself, then is taught one step at a time',
+  { tag: '@motion-smoke' },
+  async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await inMotionRiver(page, { fresh: true });
+    const hint = page.locator('#motion-fishing-hint');
+    const skip = page.locator('#motion-guide-skip');
+    // Never calibrated: aiming starts calibration without looking for the button.
+    await expect(hint).toHaveText(SCREEN_COPY.hint.calibrating);
+    await expect(page.locator('#motion-calibrate')).toBeHidden();
+    // No flicks: it fails, says to use the button, and the guide carries on.
+    await expect(hint).toHaveText(SCREEN_COPY.calibrate.failed, {
+      timeout: FISHING.motion.gesture.calibration.windowMs + 5000,
+    });
+    await expect(page.locator('#motion-calibrate')).toBeVisible();
+    await expect(hint).toHaveText(SCREEN_COPY.guide.aim);
+    await expect(skip).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('motion-guide.png') });
+    // Each step's hint shows until the player makes that move.
+    const { aimRangeDeg, powerRangeDeg } = FISHING.motion.gesture;
+    await orient(page, -aimRangeDeg, 0);
+    await expect(hint).toHaveText(SCREEN_COPY.guide.power);
+    for (let i = 0; i < 30; i++)
+      await orient(page, -aimRangeDeg, powerRangeDeg);
+    await expect(hint).toHaveText(SCREEN_COPY.guide.cast);
+    await page.waitForTimeout(FISHING.motion.gesture.powerLeadMs * 2);
+    await swing(page);
+    expect((await readWorld(page)).fishing.active!.phase).toBe('waiting');
+    await expect(hint).toHaveText(SCREEN_COPY.guide.strike);
+    await toBite(page);
+    await expect(hint).toHaveText(SCREEN_COPY.guide.strike);
+    await spin(page, [-400]);
+    expect((await readWorld(page)).fishing.active!.phase).toBe('fight');
+    await expect(hint).toHaveText(SCREEN_COPY.guide.fight);
+    // Cover the fish until Core counts the hold: the guide is done, for this device.
+    for (let i = 0; i < 200; i++) {
+      const run = (await readWorld(page)).fishing.active;
+      if (run?.phase !== 'fight' || (await skip.isHidden())) break;
+      const fish = (await page.locator('#motion-fish').boundingBox())!;
+      await page.mouse.move(fish.x + fish.width / 2, fish.y + fish.height / 2);
+      await step(page, 1);
+    }
+    await expect(skip).toBeHidden();
+    await expect(hint).not.toHaveText(SCREEN_COPY.guide.fight);
+    expect(
+      await page.evaluate(() => localStorage.getItem('cat-city.fishing-guide')),
+    ).toBe('done');
+    expect(errors).toEqual([]);
+  },
+);
 
 test('the first-cast guide can be skipped for good', async ({ page }) => {
   // Calibrated before, but new to the guide.

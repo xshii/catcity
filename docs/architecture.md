@@ -38,7 +38,7 @@
 
 Core 派生资源消耗、奖励和关系变化，不接受客户端自报鱼种、价格、分数或亲密度。命令拒绝必须保持金币、地图、实体、计数器和 RNG 完全不变。诊断轨迹在 Application，不能用事件日志代替存档。
 
-场景选择、当前面板、分页、镜头、预瞄、按住状态、输入暂停、动画、传感器权限属于 View。钓鱼画面的可切换状态集中在 `view/fishing/view-state.ts`（纯 reducer，不变量由随机事件序列单测守护），显示由纯函数 `view/fishing/screen.ts` 决定，DOM 只应用它，任何状态或世界变化都走同一次渲染（spec 015）；城市画面同样由 `view/city/view-state.ts` 与 `view/city/screen.ts` 组成。View 模块不在 document 上按 id 查找别的模块的元素，只在自己创建或被传入的元素内查找（lint 强制，例外见 spec 015）。当前场景由 `view/shell/place.ts` 的地点状态统一持有，模块订阅它或调用 `Tools`（关闭面板、打开聊天），不通过点击别的模块的按钮或观察其样式类通信。它们只能转换为已知命令；硬件读数与动画不能决定奖励。每个 DOM 内容有单一渲染责任，例如对白分页由 shell 布局管理，事实回忆由 companion 管理。
+场景选择、当前面板、分页、镜头、预瞄、按住状态、输入暂停、动画、传感器权限与首竿引导进度属于 View。钓鱼画面的可切换状态集中在 `view/fishing/view-state.ts`（纯 reducer，不变量由随机事件序列单测守护），显示由纯函数 `view/fishing/screen.ts` 决定，DOM 只应用它，任何状态或世界变化都走同一次渲染（spec 015）；城市画面同样由 `view/city/view-state.ts` 与 `view/city/screen.ts` 组成。View 模块不在 document 上按 id 查找别的模块的元素，只在自己创建或被传入的元素内查找（lint 强制，例外见 spec 015）。当前场景由 `view/shell/place.ts` 的地点状态统一持有，模块订阅它或调用 `Tools`（关闭面板、打开聊天），不通过点击别的模块的按钮或观察其样式类通信。它们只能转换为已知命令；硬件读数与动画不能决定奖励。每个 DOM 内容有单一渲染责任，例如对白分页由 shell 布局管理，事实回忆由 companion 管理。
 
 ## 时间与确定性
 

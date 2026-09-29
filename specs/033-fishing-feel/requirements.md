@@ -59,4 +59,8 @@
 
 - [x] F1 画面：圈外缘随张力由金变红（CSS 变量 `--tension`）；预警与冲刺中提示"往回拉！"（`SCREEN_COPY.hint.pull`，由 `fishingScreen` 按下一 tick 的鱼判断）。
 - [ ] F1 画面：鱼影随累计进度靠近、变大。
-- [ ] F2–F5。
+- [x] F3（2026-09-29，分支 `feat/first-cast-guide`）：引导是钓鱼 View 状态的 `motion.guide`（按 `GUIDE_STEPS`：aim → power → cast → strike → fight，完成或跳过为 null）；`guide` 事件只推进当前一步且只在体感就绪时，`skip-guide` 结束引导。何时算做到：瞄准预览偏离正前方 ≥ 15°、力度 ≥ 65（`screen.ts` 的 `aimedSteps`）、甩竿抛出、在"！"时上扬或点水提竿（`motion-fishing.ts` 报告）、遛鱼中 Core 的累计进度增加（`ringHeld`，`panel.ts` 在世界变化时报告）。提示由 `fishingScreen` 按阶段选（`SCREEN_COPY.guide`），校准、提示消息、暂停与"往回拉！"优先；"跳过引导"键在校准键下方。进度按设备存 `cat-city.fishing-guide`，不进世界与存档；按钮模式没有引导。
+  - 自动校准：本地没有调校时 `motion.autoCalibrate` 为真，第一次能瞄准（河畔、体感就绪、没有一竿）时 reducer 直接开始校准并清掉标记；`motion-fishing.ts` 在状态进入校准时开始采样（按钮也只派发事件）。校准中不识别手势（`motionWant` 为 null）。失败提示改为"点「校准甩竿」再试一次"，之后引导继续。
+  - 测试：reducer 单测（按序只在本步推进、跳过、按钮模式与未就绪不推进、自动校准只一次、随机 2 万步分段序列的不变量）；画面模型单测（各步所在阶段、校准/提示/暂停/往回拉优先、按钮模式无引导、`aimedSteps`、`ringHeld`）；E2E：新设备自动校准失败后逐步走完引导（Chromium 与 WebKit，`@motion-smoke`）、跳过引导。其余体感 E2E 预置"已完成引导与校准"。
+  - 限制：自动校准失败不留记录，下次打开页面会再自动校准一次；15° / 65 的阈值未经实机验证；实机观察首竿用时与卡点待做。
+- [ ] F2、F4、F5。
