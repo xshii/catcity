@@ -108,6 +108,22 @@ body {
 .game-screen #notice:empty {
   display: none;
 }
+/*
+ * An open panel covers the scene and the bar's usual place: the message shows over the
+ * panel, along its bottom edge, clear of its heading, tabs and controls.
+ */
+.game-screen.panel-open #notice {
+  z-index: 38;
+  top: auto;
+  bottom: calc(var(--over-nav) + 6px);
+  /* Centred between the panel's sides, as wide as its words. */
+  left: 16px;
+  right: 16px;
+  width: fit-content;
+  min-height: 0;
+  margin: 0 auto;
+  transform: none;
+}
 /* A message stays readable for a while, then gives the scene back. */
 .game-screen #notice.fading {
   animation: notice-fade 6s ease-in forwards;
