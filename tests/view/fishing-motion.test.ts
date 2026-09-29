@@ -209,9 +209,11 @@ describe('motion fishing', () => {
     // The cast reads the power from just before the flick: hold the tilt that long.
     game.wait(G.powerLeadMs * 2);
     swing();
+    // Every motion cast is steady now, whatever its power (spec 033 F5b).
     expect(game.world().fishing.active).toMatchObject({
       mode: 'motion',
       power: 100,
+      precision: true,
     });
     expect(visible('#motion-legend')).toBe(false);
   });
