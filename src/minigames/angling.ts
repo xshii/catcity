@@ -43,6 +43,7 @@ export interface AnglingRun {
   speciesId: FishId | null;
   weight: number;
   precision: boolean;
+  /** Line tension 0–100: the button fight's meter; a motion fight's dash pull (spec 033). */
   tension: number;
   progress: number;
   lineHealth: number;
