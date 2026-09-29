@@ -8,6 +8,7 @@ import {
 } from '../../src/minigames/angling-motion';
 import {
   aimedSteps,
+  castNotice,
   fishingScreen,
   motionNibble,
   motionWant,
@@ -29,6 +30,7 @@ import {
   type AnglingRun,
 } from '../../src/minigames/angling';
 import { replay } from '../helpers/fishing-view';
+import { fishingFixture } from './fishing-fixture';
 
 /** A device that finished the guide and calibrated before, unless told otherwise. */
 const view = (
@@ -371,6 +373,67 @@ describe('fishing screen', () => {
     ).toBe(false);
     expect(ringHeld(fight, null)).toBe(false);
     expect(ringHeld(null, fight)).toBe(false);
+  });
+
+  it('says once, as a run is cast, whether Core counted it a precise cast', () => {
+    const { min, max } = FISHING.cast.precisionPower;
+    const words = SCREEN_COPY.cast;
+    /** A real cast through Core: a flick at `power`, or a button held `power` ticks. */
+    const cast = (mode: 'motion' | 'buttons', power: number) => {
+      const world = fishingFixture(7);
+      world.dispatch({
+        type: 'FISH_BEGIN',
+        catId: 'mochi',
+        baitId: 'BREAD',
+        direction: 0,
+        aimDepth: 50,
+        spotId: 'POND',
+        ...(mode === 'motion' ? { mode } : {}),
+      });
+      const charge = world.getSnapshot().fishing.active!;
+      if (mode === 'motion')
+        world.dispatch({ type: 'FISH_CAST', runId: charge.id, power });
+      else
+        for (let tick = 0; tick <= power; tick++)
+          world.dispatch({
+            type: 'FISH_CONTROL',
+            runId: charge.id,
+            pressed: tick < power,
+            ticks: 1,
+          });
+      return { charge, after: world.getSnapshot().fishing.active! };
+    };
+    const seen = new Set<string>();
+    for (const [mode, inputs] of [
+      ['motion', [min - 15, min, max, max + 12]],
+      ['buttons', [5, 20, 25, 30]],
+    ] as const)
+      for (const input of inputs) {
+        const { charge, after } = cast(mode, input);
+        expect(after.phase).toBe('waiting');
+        expect(after.precision).toBe(after.power >= min && after.power <= max);
+        seen.add(`${mode}/${after.precision}`);
+        expect(castNotice(charge, after)).toBe(
+          words.notice(
+            after.power,
+            after.precision ? words.precise[mode] : words.loose,
+          ),
+        );
+        // Only the cast itself: not before, not again, not another run, not a reload.
+        expect(castNotice(charge, charge)).toBeNull();
+        expect(castNotice(after, after)).toBeNull();
+        expect(castNotice(after, { ...after, phase: 'hook' })).toBeNull();
+        expect(castNotice({ ...charge, id: 'other' }, after)).toBeNull();
+        expect(castNotice(null, after)).toBeNull();
+        expect(castNotice(charge, null)).toBeNull();
+      }
+    expect(seen).toEqual(
+      new Set(['motion/true', 'motion/false', 'buttons/true', 'buttons/false']),
+    );
+    expect(words.notice(68, words.precise.motion)).toBe(
+      '力度 68 · 稳投：遛鱼圈更大',
+    );
+    expect(words.legend).toBe('绿区＝稳投：遛鱼圈更大');
   });
 
   it('labels the settings switch and the pause button from the state', () => {

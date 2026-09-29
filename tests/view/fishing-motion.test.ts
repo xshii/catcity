@@ -162,26 +162,40 @@ describe('motion fishing', () => {
   it('slow pitch sets the power the flick casts with', () => {
     const game = openGame({ storage: SEASONED });
     inMotionRiver(game);
-    // Tilt the tip back slowly, as far as the power range goes.
-    for (let i = 0; i < 30; i++) orient(0, G.powerRangeDeg);
+    // The water shows the power as the landing arc (spec 033 F5); the meter reads it out.
     const meter = $('#motion-power');
-    expect(meter.getAttribute('aria-valuenow')).toBe('100');
-    // The meter explains itself: its value, its ends and the precise band.
     const band = FISHING.cast.precisionPower;
-    expect(text('#motion-power .motion-power-value')).toBe('力度 100');
+    // Tilt the tip forward slowly, then back into the precise band, then as far back as
+    // the power range goes.
+    const pitch = (power: number) => {
+      for (let i = 0; i < 30; i++)
+        orient(0, ((power - 50) / 50) * G.powerRangeDeg);
+    };
+    pitch(0);
+    expect(meter.getAttribute('aria-valuenow')).toBe('0');
+    const precise = Math.round((band.min + band.max) / 2);
+    pitch(precise);
     expect(meter.getAttribute('aria-valuetext')).toBe(
-      `力度 100，精准区间 ${band.min}–${band.max}`,
+      `力度 ${precise}，精准区间 ${band.min}–${band.max}`,
     );
-    expect(text('#motion-power .motion-power-strong')).toBe('强');
-    expect(text('#motion-power .motion-power-weak')).toBe('弱');
-    expect(text('#motion-power .motion-power-precise')).toBe('精准');
+    // The green zone on the water says what a precise cast gives.
+    expect(visible('#motion-precise')).toBe(true);
+    expect(text('#motion-precise')).toBe(SCREEN_COPY.cast.legend);
+    pitch(100);
+    expect(meter.getAttribute('aria-valuenow')).toBe('100');
     // The cast reads the power from just before the flick: hold the tilt that long.
     game.wait(G.powerLeadMs * 2);
     swing();
     expect(game.world().fishing.active).toMatchObject({
       mode: 'motion',
       power: 100,
+      precision: false,
     });
+    // Said once: past the green, so no precise-cast bonus.
+    expect(text('#notice')).toBe(
+      SCREEN_COPY.cast.notice(100, SCREEN_COPY.cast.loose),
+    );
+    expect(visible('#motion-precise')).toBe(false);
   });
 
   it('a phone in button mode can switch to motion right from the river', () => {

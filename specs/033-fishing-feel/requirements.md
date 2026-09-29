@@ -58,7 +58,7 @@
   | 老练 0.15 秒 | 100 / 100 / 100 / 100 / 100 / 100 | 100 / 100 / 100 / 100 / 100 / 100 | 100 / 100 / 100 / 100 / 65 / 63 |
 
 - [x] F1 画面：圈外缘随张力由金变红（CSS 变量 `--tension`）；预警与冲刺中提示"往回拉！"（`SCREEN_COPY.hint.pull`，由 `fishingScreen` 按下一 tick 的鱼判断）。
-- [ ] F1 画面：鱼影随累计进度靠近、变大。
+- [ ] F1 画面：鱼影随累计进度靠近、变大（另列，交美术线做；不在 F5 内）。
 - [x] F2 鱼影（2026-09-29，分支 `feat/fish-shadows`）：`core/fishing/shadows.ts` 的 `fishShadows(world, spotId)`（经 `core/index.ts` 导出）按世界种子、钓点、游戏小时推导每钓点 3 条鱼影（方向、`reach` = (近远 + 力度)/2、体型、隐藏鱼种），不存档；`shadowAt` 判定落点半径 12 内最近的一条。抛竿（`FISH_CAST` 与按钮松开蓄力）由 Core 判定并记一竿的 `shadow`，`minigames/angling.ts` 据此（鱼影只会让结果更好：星级低于原规则本来的鱼时不理会）：饵合口且品种允许 → 该鱼、等待减半（含假咬口），面包轻抛不出补给；饵不对 → 原规则、咬口推迟 40 tick；其余按原规则。每种鱼吃的饵在 `content/fishing/catalog.ts` 的 `baits`，数值在 `FISHING.shadows`。saveVersion 17（F1 之后），v15、v16 进行中一竿存档作拒绝 fixture。画面：`view/art/river.ts` 瞄准时（含按钮蓄力）按体型画深色鱼影、原地轻游，抛出后隐藏（后改为等咬口时仍显示，见下）；坐标映射 `water-view.ts` 的 `shadowPoint`。原先瞄准时落点下的装饰鱼影只在遛鱼时显示。
   - 测试：`tests/unit/fish-shadows.test.ts`（推导与每小时刷新、命中半径、咬口/嗅饵/品种不允许、补给、遛鱼参数不变、分块等价、Core 抛竿与按钮松开、存档往返与篡改拒绝）；`tests/unit/water-view.test.ts`（鱼影画在正中命中的落点）；`tests/simulation/shadow-balance.test.ts`（见 [钓鱼设计](../../docs/fishing-design.md) 鱼影一节的数值）；`legacy-saves.test.ts` 加 v16（F1 的遛鱼中张力存档）。两处既有断言因落点碰上鱼影改为新结果：30 天模拟第 0 天左抛落在鲫鱼鱼影（银鱼 14、鲫鱼 16、金币 1304），断线垃圾测试的鱼种取 `shadow ?? 'SILVER'`。
   - 已决定（用户："鱼影只会让结果更好"）：先按原规则算出本来的鱼，鱼影星级不低于它才起作用（咬口/嗅饵）；单测覆盖所有钓点、饵、品种与落点下有鱼影不降星、不把鱼换成补给。照原线索抛、不看鱼影不再吃亏（英短 4–5★ 65%→66%，布偶 100%）。
@@ -75,4 +75,7 @@
   - 测试：reducer 单测（按序只在本步推进、跳过、按钮模式与未就绪不推进、自动校准只一次、随机 2 万步分段序列的不变量）；画面模型单测（各步所在阶段、校准/提示/暂停/往回拉优先、按钮模式无引导、`aimedSteps`、`ringHeld`）；E2E：新设备自动校准失败后逐步走完引导（Chromium 与 WebKit，`@motion-smoke`）；View 测试台 `tests/view/fishing-motion.test.ts`：跳过引导。其余体感用例预置"已完成引导与校准"。
   - 限制：自动校准失败不留记录，下次打开页面会再自动校准一次；15° / 65 的阈值未经实机验证；实机观察首竿用时与卡点待做。
 - [x] 实机反馈修正（2026-09-29，分支 `fix/shadow-line`；用户："投杆后，那个鱼的影子就没了""遛鱼时，鱼线不能跟着圈中心走"）：鱼影在抛竿后、等咬口与"！"时继续显示，只在遛鱼时隐去（`water-view.ts` 的 `showsShadows`）；体感遛鱼时鱼线与浮漂跟着圈心走（`motion-fishing.ts` 的 `ringCentre` 经 `AimControl` 给河面，`planePoint` 把遛鱼平面坐标换到画布），河面不再另画一条装饰鱼（体感叠加层已画上钩的鱼），按钮版不变。测试：`tests/unit/water-view.test.ts`。
-- [ ] F5。
+- [x] F5（2026-09-29，分支 `feat/landing-arc`）：体感瞄准时右侧竖向力度条改为水面上的落点预测。`view/art/water-view.ts` 的纯函数 `castPreview(方向, 近远, 力度, 起点)` 给出落点圈（与鱼影同一映射 `waterPoint(landingShare)`，圈罩住鱼影即 Core 的 `shadowAt` 判定碰上）、从竿尖起的虚线弧（12 段，最后一段落在圈上；每点取自 `flightPoint`，抛出后浮漂也按它飞，预览就是浮漂的路线）、这一方向上 55–80 力度落到的那段水面（比圈宽 1.25 倍、两端按圈的扁度圆润的绿区）以及是否稳投；是否稳投调 Core 新导出的 `precisePower`（`castAngling` 同用，规则与数值不变）。`view/art/river.ts` 在瞄准标记处绘制：力度随输入变化时（体感瞄准，或按钮版蓄力）画绿区（淡叶绿填充、略深的边）与虚线弧，圈与弧在绿区内变深绿、之外为奶油色；按钮版蓄力前只有落点圈。鱼影照常显示。叠加层右上角标"绿区＝稳投：遛鱼圈更大"；力度改由视觉隐藏的 `role="meter"`（`#motion-power`）读出。抛出时提示消息说一次是否稳投（`screen.ts` 的 `castNotice`：体感"稳投：遛鱼圈更大"、按钮"稳投：提竿和收线的绿区更宽"、否则"不在绿区，没有稳投加成"）；按钮版开始蓄力的提示写明在绿区松开的好处。引导第 2 步改为"把落点圈推进绿区"（仍按力度 ≥ 65 判定）。用户决定保留取舍：力度既定远近又定稳投，远处鱼影可能要出了绿区才够得着。
+  - 测试：`tests/unit/water-view.test.ts`（落点与映射、随力度变远与左右对称、圈落在鱼影上即 Core 碰上、`flightPoint` 两端与中途抬升、弧首点为竿尖末点为落点且每点就是浮漂的飞行点、绿区端点、每端比圈宽且两端圆出、每个力度是否落在绿区 = 是否稳投）；`tests/unit/angling.test.ts`（`precisePower` 与抛竿的 `precision` 一致）；`tests/unit/fishing-screen.test.ts`（经 Core 的真实体感与按钮抛竿，`castNotice` 只在离开蓄力那次说、两种模式稳投与否的文案）；View 测试台 `tests/view/fishing-motion.test.ts` 的 "slow pitch…"（原 E2E，随 PR #31 移入）：前俯到 0、后仰到绿区中间（读屏值、说明标签）、再到 100，甩出后 `precision: false` 且提示"力度 100 · 不在绿区，没有稳投加成"。截图用一次性脚本在 390×844 的 Chromium 拍。
+  - 证据：`artifacts/f5/aim.png`（390×844，力度 68 落在绿区）、`artifacts/f5/aim-off.png`（力度 0，圈在绿区外）。
+  - 限制：弧的形状与绿区大小未经实机验证；正前方瞄准时竿尖离落点近，弧较短；按钮版的说明只在开始蓄力的提示与抛出后出现（局内说明文字在手机上本就隐藏）。
