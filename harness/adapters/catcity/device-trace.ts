@@ -4,11 +4,20 @@ import {
   motionActive,
   type FishingView,
 } from '../../../src/view/fishing/view-state';
-import { rateAxesFor, type RateAxes } from '../../../src/view/motion/calibrate';
+import {
+  parseTuning,
+  rateAxesFor,
+  type RateAxes,
+} from '../../../src/view/motion/calibrate';
 import type { RodEvent, RodTuning } from '../../../src/view/motion/rod';
 
 /** What the player was doing in the window: aiming a cast, striking a bite, calibrating. */
-export type TraceWant = 'cast' | 'lift' | 'calibrate';
+export const TRACE_WANTS = ['cast', 'lift', 'calibrate'] as const;
+export type TraceWant = (typeof TRACE_WANTS)[number];
+export const isTraceWant = (value: unknown): value is TraceWant =>
+  TRACE_WANTS.includes(value as TraceWant);
+/** Where recorded windows are kept as fixtures, relative to the repository root. */
+export const DEVICE_FIXTURES = 'tests/fixtures/device';
 interface SensorReading {
   kind: 'motion' | 'orientation';
   /** Event time, ms. */
@@ -62,14 +71,16 @@ export function extractDeviceTrace(
     .filter((line) => line.trim())
     .map((line) => JSON.parse(line) as Entry);
   const device = entries.find((entry) => entry.kind === 'device');
-  let start = span.from;
-  if (span.want === 'cast')
-    start =
-      lastOf(
-        entries,
-        (entry) => entry.kind === 'rebase' && entry.t <= span.from,
-      )?.t ?? span.from;
-  const inWindow = (entry: Entry) => entry.t >= start && entry.t <= span.to;
+  const start =
+    span.want === 'cast'
+      ? (lastOf(
+          entries,
+          (entry) => entry.kind === 'rebase' && entry.t <= span.from,
+        )?.t ?? span.from)
+      : span.from;
+  const seen = entries.filter(
+    (entry) => entry.t >= start && entry.t <= span.to,
+  );
   let tuning: RodTuning | null = null;
   // Logs from before the game recorded it: only iOS browsers order the rates x, y, z.
   let rateAxes: RateAxes = rateAxesFor(
@@ -80,15 +91,15 @@ export function extractDeviceTrace(
     if (entry.kind === 'tuning' && entry.rateAxes)
       rateAxes = entry.rateAxes as RateAxes;
     if (entry.t >= start) continue;
-    if (entry.kind === 'tuning') tuning = pick(entry);
-    const result = entry.result as { tuning: RodTuning } | null | undefined;
-    if (entry.kind === 'calibration' && result) tuning = result.tuning;
+    if (entry.kind === 'tuning') tuning = parseTuning(entry);
+    if (entry.kind === 'calibration')
+      tuning = calibratedTuning(entry) ?? tuning;
   }
   // The fishing view state in force at a time, from the logged `view` entries.
-  const views = entries.filter((entry) => entry.kind === 'view');
-  const viewAt = (t: number) =>
-    lastOf(views, (entry) => entry.t <= t) as unknown as
-      FishingView | undefined;
+  const views = entries.filter(
+    (entry) => entry.kind === 'view',
+  ) as unknown as (FishingView & { t: number })[];
+  const viewAt = (t: number) => lastOf(views, (view) => view.t <= t);
   // The same gates as motion-fishing.ts: aiming reads the rod with motion on, the river
   // playable and no run; a bite window needs a run that is not paused.
   const reads = (t: number) => {
@@ -98,15 +109,15 @@ export function extractDeviceTrace(
       ? view.runId === null
       : view.runId !== null && !view.paused;
   };
+  const calibrations = entries.filter((entry) => entry.kind === 'calibration');
   const settling = (t: number) =>
-    entries.some(
+    calibrations.some(
       (entry) =>
-        entry.kind === 'calibration' &&
         t >= entry.t &&
         t < entry.t + FISHING.motion.gesture.calibration.settleMs,
     );
   const readings: Reading[] = [];
-  for (const entry of entries.filter(inWindow)) {
+  for (const entry of seen) {
     const calibrating = viewAt(entry.t)?.motion.calibrating ?? false;
     // While calibrating, rotation feeds the calibration, not the rod's gestures.
     if (entry.kind === 'motion' && calibrating && span.want !== 'calibrate')
@@ -115,9 +126,12 @@ export function extractDeviceTrace(
       const last = lastOf(readings, (item) => item.kind === 'orientation');
       if (last?.t === entry.t) (last as SensorReading).rebase = true;
     }
-    const result = entry.result as { tuning: RodTuning } | null | undefined;
-    if (entry.kind === 'calibration' && result && span.want !== 'calibrate')
-      readings.push({ kind: 'tuning', t: entry.t, tuning: result.tuning });
+    const switched =
+      entry.kind === 'calibration' && span.want !== 'calibrate'
+        ? calibratedTuning(entry)
+        : null;
+    if (switched)
+      readings.push({ kind: 'tuning', t: entry.t, tuning: switched });
     if (entry.kind === 'motion' || entry.kind === 'orientation')
       readings.push({
         kind: entry.kind,
@@ -134,7 +148,6 @@ export function extractDeviceTrace(
           : {}),
       });
   }
-  const seen = entries.filter(inWindow);
   const calibration = lastOf(seen, (entry) => entry.kind === 'calibration');
   return {
     source: { session: span.session, from: start, to: span.to },
@@ -145,11 +158,7 @@ export function extractDeviceTrace(
     readings,
     expect:
       span.want === 'calibrate'
-        ? {
-            calibration:
-              (calibration?.result as { tuning: RodTuning } | null)?.tuning ??
-              null,
-          }
+        ? { calibration: calibration ? calibratedTuning(calibration) : null }
         : {
             gestures: seen
               .filter((entry) => entry.kind === 'gesture')
@@ -160,14 +169,11 @@ export function extractDeviceTrace(
 
 const lastOf = <T>(items: T[], test: (item: T) => boolean) =>
   [...items].reverse().find(test);
-function pick(entry: Entry): RodTuning {
-  return {
-    axis: entry.axis as RodTuning['axis'],
-    pitchSign: entry.pitchSign as RodTuning['pitchSign'],
-    flickDegPerSec: entry.flickDegPerSec as number,
-    liftDegPerSec: entry.liftDegPerSec as number,
-  };
-}
+/** The tuning a calibration entry produced; null when it asked again. */
+const calibratedTuning = (entry: Entry) =>
+  parseTuning(
+    (entry.result as { tuning?: unknown } | null | undefined)?.tuning,
+  );
 function omit(entry: Entry, keys: string[]) {
   return Object.fromEntries(
     Object.entries(entry).filter(([key]) => !keys.includes(key)),
