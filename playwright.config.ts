@@ -6,8 +6,10 @@ const ports = testPorts();
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: false,
-  workers: 1,
+  // Tests are independent (own browser context and storage), so they run in parallel;
+  // two workers leave CPU for other worktrees' suites on the same machine.
+  fullyParallel: true,
+  workers: 2,
   retries: 0,
   timeout: 60_000,
   outputDir: 'artifacts/e2e/results',
