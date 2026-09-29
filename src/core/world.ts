@@ -92,7 +92,7 @@ export function createWorld(seed: number): World {
   mochi.fishingSpotId = 'POND';
   return new World({
     seed,
-    minute: 0,
+    minute: CITY_START.minute,
     coins: CITY_START.coins,
     nextId: 1,
     map,

@@ -1,4 +1,5 @@
 import { CARE } from '../../src/content/care';
+import { CITY_START } from '../../src/content/city';
 import { advance, buildCafe } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
@@ -63,9 +64,15 @@ it('queues real shore travel, advancing income and idle cats recovery only on th
     }),
   ).toMatchObject({
     ok: true,
-    events: [{ type: 'WalkStarted', minute: 20, entityId: 'mochi' }],
+    events: [
+      {
+        type: 'WalkStarted',
+        minute: CITY_START.minute + 20,
+        entityId: 'mochi',
+      },
+    ],
   });
-  expect(world.getSnapshot().minute).toBe(20);
+  expect(world.getSnapshot().minute).toBe(CITY_START.minute + 20);
   const queued = world.getSnapshot();
   const route = queued.cats[0]!.walk!.route;
   const duration = route.reduce(
@@ -74,12 +81,14 @@ it('queues real shore travel, advancing income and idle cats recovery only on th
   );
   finishWalk(world);
   const state = world.getSnapshot();
-  expect(state.minute).toBe(20 + duration);
-  expect(state.coins).toBe(700 + 10 * Math.floor(state.minute / 60));
+  expect(state.minute).toBe(CITY_START.minute + 20 + duration);
+  // The game starts on a full hour: income and recovery count from there.
+  const elapsed = state.minute - CITY_START.minute;
+  expect(state.coins).toBe(700 + 10 * Math.floor(elapsed / 60));
   expect(state.cats.map((cat) => cat.needs.energy)).toEqual([
     // Walking costs a tile each; idle Pepper recovers every tick from the start.
     100 - route.length,
-    Math.min(100, 50 + CARE.recovery.idle * Math.floor(state.minute / 10)),
+    Math.min(100, 50 + CARE.recovery.idle * Math.floor(elapsed / 10)),
   ]);
   expect(state.cats[0]!.fishingSpotId).toBe('COAST');
   expect(state.cats[1]!.fishingSpotId).toBeNull();
@@ -227,7 +236,8 @@ it('rejects travel during an active fishing run and rejects clock overflow atomi
   expect(boundary.getSnapshot().minute).toBe(1_000_000_000);
   const richFixture = JSON.parse(unlocked().save());
   richFixture.world.coins = 1_000_000_000;
-  richFixture.world.minute = 59;
+  // One minute before the next full hour, when income is paid.
+  richFixture.world.minute += 59;
   const rich = loadWorld(JSON.stringify(richFixture));
   const richBefore = rich.save();
   expect(
@@ -242,7 +252,7 @@ it('rejects travel during an active fishing run and rejects clock overflow atomi
   // Income stops at the coin limit; the clock and the queued walk keep going.
   expect(advance(rich, 1).ok).toBe(true);
   expect(rich.getSnapshot()).toMatchObject({
-    minute: 60,
+    minute: richFixture.world.minute + 1,
     coins: 1_000_000_000,
   });
 });

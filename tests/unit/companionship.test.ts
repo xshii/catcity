@@ -1,4 +1,5 @@
 import { advance, interact } from '../helpers/world';
+import { CITY_START } from '../../src/content/city';
 import {
   fishingFixture as createWorld,
   finishFishing,
@@ -59,7 +60,7 @@ describe('shared fishing experiences through current rod inputs', () => {
       runId: run.id,
       speciesId: 'SILVER',
       spotId: 'POND',
-      minute: 0,
+      minute: CITY_START.minute,
     });
     const settled = world.save();
     expect(
@@ -130,7 +131,9 @@ describe('shared fishing experiences through current rod inputs', () => {
     advance(world, 30);
     finishFishing(world);
     world.dispatch({ type: 'DEBUG_SPAWN_CAT', position: { x: 3, y: 3 } });
-    expect(world.getSnapshot().cats[0]!.fishingMemory?.minute).toBe(30);
+    expect(world.getSnapshot().cats[0]!.fishingMemory?.minute).toBe(
+      CITY_START.minute + 30,
+    );
     expect(world.getSnapshot().cats[1]!.fishingMemory).toBeNull();
   });
 
