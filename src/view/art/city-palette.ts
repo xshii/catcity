@@ -77,8 +77,8 @@ export const LIGHT_TINT = {
   morning: 0xfff3dc,
   day: T.paper,
   evening: 0xfbc99e,
-  /** Bluer than the board's night sky, so warm scenery dims to blue, not grey. */
-  night: 0x4f5f9a,
+  /** A soft slate dusk: lighter and less blue than the board's night sky, so grass stays green. */
+  night: 0x656588,
 } as const;
 
 /** Map labels: ink on a paper halo, readable at any hour. */

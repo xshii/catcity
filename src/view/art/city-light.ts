@@ -16,7 +16,7 @@ const LOOK: Record<Daypart, Omit<CityLight, 'daypart' | 'tint'>> = {
   morning: { alpha: 0.2, windowsLit: false, fireflies: 0 },
   day: { alpha: 0, windowsLit: false, fireflies: 0 },
   evening: { alpha: 0.2, windowsLit: true, fireflies: 0 },
-  night: { alpha: 0.32, windowsLit: true, fireflies: 6 },
+  night: { alpha: 0.21, windowsLit: true, fireflies: 6 },
 };
 
 /** Night from 20:00, morning from 5:00, day from 9:00, evening from 17:00. */

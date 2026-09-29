@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../../src/core/world';
 import { cityLight, shade } from '../../src/view/art/city-light';
-import { mix, TOKENS } from '../../src/view/art/city-palette';
+import { CITY_COLOURS, mix, TOKENS } from '../../src/view/art/city-palette';
 import { dashes } from '../../src/view/art/city-map';
 import {
   drift,
@@ -61,6 +61,18 @@ describe('the light of the hour', () => {
       expect(at(hour).alpha).toBeLessThanOrEqual(0.35);
     expect(shade(TOKENS.sage, at(12))).toBe(TOKENS.sage);
     expect(shade(TOKENS.sage, at(22))).not.toBe(TOKENS.sage);
+  });
+
+  it('keeps night calm rather than grey: grass still green, water still blue', () => {
+    const night = at(0);
+    expect(night.alpha).toBeLessThanOrEqual(0.22);
+    const rgb = (colour: number) => [16, 8, 0].map((s) => (colour >> s) & 0xff);
+    const [r, g, b] = rgb(shade(CITY_COLOURS.grass, night));
+    expect(g).toBeGreaterThan(Math.max(r!, b!));
+    for (const water of Object.values(CITY_COLOURS.water)) {
+      const [red, , blue] = rgb(shade(water, night));
+      expect(blue).toBeGreaterThan(red!);
+    }
   });
 });
 
