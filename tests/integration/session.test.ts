@@ -131,6 +131,40 @@ it('checks a command for the view without recording, saving or notifying', () =>
   expect(listener).not.toHaveBeenCalled();
 });
 
+it('shares one frozen snapshot until the world changes; no view can write through it', () => {
+  const session = createTestSession();
+  const snapshot = session.getSnapshot();
+  expect(session.getSnapshot()).toBe(snapshot);
+  expect(() => {
+    snapshot.coins = 0;
+  }).toThrow(TypeError);
+  expect(() => {
+    snapshot.cats[0]!.needs.energy = 0;
+  }).toThrow(TypeError);
+  expect(() => snapshot.map.tiles.pop()).toThrow(TypeError);
+  expect(session.getSnapshot()).toEqual(createWorld(42).getSnapshot());
+  // A rejected command changes nothing; an accepted one gives a new snapshot.
+  session.execute({ type: 'USE_CAN', catId: 'ghost' });
+  expect(session.getSnapshot()).toBe(snapshot);
+  session.execute({ type: 'ADVANCE_TIME', minutes: 1 });
+  const next = session.getSnapshot();
+  expect(next).not.toBe(snapshot);
+  expect(next.minute).toBe(snapshot.minute + 1);
+  expect(Object.isFrozen(next.cats[0]!.position)).toBe(true);
+});
+
+it('never shows a replaced world from an old snapshot', () => {
+  const session = createTestSession();
+  session.execute({ type: 'ADVANCE_TIME', minutes: 5 });
+  expect(session.getSnapshot().minute).toBe(5);
+  session.loadFixture(createWorld(7).save());
+  expect(session.getSnapshot()).toEqual(createWorld(7).getSnapshot());
+  session.execute({ type: 'ADVANCE_TIME', minutes: 5 });
+  expect(session.getSnapshot().minute).toBe(5);
+  session.resetDemo();
+  expect(session.getSnapshot()).toEqual(createWorld(7).getSnapshot());
+});
+
 it('tells a resumed save from a new game', () => {
   const storage = repository();
   expect(createTestSession({ repository: storage }).resumed).toBe(false);

@@ -19,3 +19,7 @@
 - 传感器驱动的刷新按动画帧节流。
 - 时钟通知不重建与其无关的按钮；在手机上测量帧率与存储写入次数作为证据。
 - `vitest.config.ts` 恢复默认单测超时后 CI 仍通过。
+
+## 进展
+
+- [x] 快照（2026-09-29，分支 `perf/tick-snapshots`）：`GameSession.getSnapshot()` 每次世界变化只深拷贝一次并深度冻结，变化前的读取共用同一对象，写入抛 `TypeError`（`tests/integration/session.test.ts`）。一个钓鱼 tick 的整世界拷贝由 19 次降为 2 次（Core 执行命令 1 次、快照 1 次）；Chromium 测试构建一 tick 的脚本耗时约 1.0 → 0.6 ms，CPU 降速 4× 时约 4.6 → 2.8 ms。其余各项未做。
