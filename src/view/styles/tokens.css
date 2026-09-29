@@ -68,6 +68,8 @@
     0 3px 0 var(--btn-primary-edge), 0 8px 18px rgb(127 163 122 / 0.35);
   --glow-accent: 0 0 0 3px rgb(246 201 160 / 0.55);
   --glow-good: 0 0 0 3px rgb(168 195 160 / 0.5);
+  /* The warm edge a device without vibration shows on a catch or strain. */
+  --glow-screen: inset 0 0 48px 6px rgb(246 201 160 / 0.6);
 
   /* Radii */
   --radius-sm: 10px;
