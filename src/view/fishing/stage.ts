@@ -141,12 +141,16 @@ export function mountFishingStage(
         access.onNeedTravel();
       }
     },
-    /** `resultNote`: how the last result changed the cat's mood band, if it did. */
+    /**
+     * `resultNote`: how the last result changed the cat's mood band, if it did;
+     * `showResult`: whether the last result is this visit's catch (`resultShown`).
+     */
     render(
       world: WorldState,
       selected: string,
       spot: SpotId,
       resultNote: string,
+      showResult: boolean,
     ) {
       const run = world.fishing.active;
       const clock = toViewModel(world, selected);
@@ -187,7 +191,7 @@ export function mountFishingStage(
       }
       const reveal = $('catch-reveal');
       const result = world.fishing.lastResult;
-      reveal.hidden = !!run || !result;
+      reveal.hidden = !showResult;
       if (result && resultKey !== JSON.stringify([result, resultNote])) {
         resultKey = JSON.stringify([result, resultNote]);
         if (result.caught && result.speciesId) {

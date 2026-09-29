@@ -27,7 +27,13 @@ import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
-import { castNotice, fishingScreen, ringHeld, SCREEN_COPY } from './screen';
+import {
+  castNotice,
+  fishingScreen,
+  resultShown,
+  ringHeld,
+  SCREEN_COPY,
+} from './screen';
 import {
   createFishingView,
   initialFishingView,
@@ -309,7 +315,13 @@ export function mountAngling(
       pause.textContent = screen.pauseLabel;
     }
     const destination = requestedSpot();
-    stage.render(world, selectedCat.id, destination, resultNote);
+    stage.render(
+      world,
+      selectedCat.id,
+      destination,
+      resultNote,
+      resultShown(state, run ?? null, world.fishing.lastResult),
+    );
     layout.refresh();
     motion.apply(screen, run ?? null);
     collections.refresh();
