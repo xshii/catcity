@@ -41,3 +41,4 @@
   - lint（`eslint.config.js` 的 `no-restricted-syntax`）：`src/view/**` 不得调用 `document.getElementById`、`querySelector(All)`、`getElementsBy*`；模块只在自己创建或被传入的元素内查找，其他模块的元素由挂载方以参数传入。钓鱼面板按 id 索引自己的模板，把元素交给图鉴、收藏与震动模块；地图框与场景切换键由页面传入。
   - 例外：`shell/panel.ts`（页面挂载，写入页面结构并分发元素）、`city/bars.ts`（按与 Harness 共用的选择器测量各模块的浮动条）。尚未迁移、暂列例外：`shell/layout.ts`、`shell/navigation.ts`、`companion/journal.ts`，下一步改为接收元素参数。
   - 面板开关仍由 `shell/navigation.ts` 持有（两场景共用，钓鱼 store 以 `tools` 事件镜像）；城市画面没有由它决定的显示，因此未放进城市 store。
+- [x] View 测试台（规则 6）：`tests/view` 在 happy-dom 中按 `main.ts` 装配真实页面（Phaser 替身、假时钟、合成传感器事件），覆盖按钮与体感整竿、设置记忆、校准键与跳过引导；只断言面板状态的 18 条 E2E 迁入测试台。分层与取舍见[测试策略](../../docs/testing.md#三层测试与-view-测试台)。
