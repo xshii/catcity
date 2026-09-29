@@ -2,7 +2,6 @@ import type { PlaceState, Tools } from '../shell/place';
 import type { GameSession } from '../../application';
 import type { SpotId } from '../../content/fishing';
 import type { GameCommand, Position } from '../../core';
-import { ERROR_MESSAGES } from '../shell/errors';
 import { mountCityActions } from './actions';
 import { catDrop } from './cat-drag';
 import { mountCityGuide } from './guide';
@@ -55,7 +54,7 @@ export function mountCity(deps: {
   });
   const blocked = (command: GameCommand) => {
     const result = session.check(command);
-    return result.ok ? null : ERROR_MESSAGES[result.error];
+    return result.ok ? null : result.error;
   };
   const render = () => {
     const screen = cityScreen(session.getSnapshot(), view.get(), {

@@ -1,7 +1,6 @@
 import { MAX_BUILDINGS } from '../limits';
 import {
   BUILDINGS,
-  buildingPrice,
   CITY_COSTS,
   CITY_START,
   landPrice,
@@ -10,6 +9,7 @@ import {
 import { samePosition, tileAt } from './map';
 import { isWalkable, touchesNetwork } from './path';
 import { replanWalk } from './walking';
+import { nextBuildingPrice } from './customers';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { WorldState } from '../schema';
 import { requireCat } from '../cats';
@@ -131,10 +131,7 @@ export function applyCity(
       } else if (command.type === 'BUILD_BUILDING') {
         const type = command.buildingType;
         // The price rises with every building of the type already standing.
-        const cost = buildingPrice(
-          type,
-          world.buildings.filter((building) => building.type === type).length,
-        );
+        const cost = nextBuildingPrice(world, type);
         pay(cost);
         const building = {
           id: `building-${world.nextId++}`,

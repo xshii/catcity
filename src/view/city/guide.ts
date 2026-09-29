@@ -1,6 +1,5 @@
 import type { Tools } from '../shell/place';
 import { STARTER_CAT_ID } from '../../content/cats';
-import { BUILDINGS } from '../../content/city';
 import type { GameSession } from '../../application';
 import type { CityActions } from './actions';
 import { guideProgress, type CityScreen } from './screen';
@@ -32,7 +31,6 @@ export function mountCityGuide(deps: {
     $('city-instruction').textContent = screen.instruction;
     action.textContent = screen.action;
     deps.hint.textContent = screen.hint;
-    clockSpeed.classList.toggle('guide-target', screen.speedTarget);
     $('cafe-income').hidden = screen.income === null;
     $('cafe-income').textContent = screen.income ?? '';
   };
@@ -47,12 +45,6 @@ export function mountCityGuide(deps: {
         placed
           ? '在下方的卡片上完成这一步。'
           : '点击地图空地选址，再在下方选择要建的建筑。',
-      );
-    } else if (stage === 'earn') {
-      tools.close();
-      clockSpeed.focus();
-      notify(
-        `点顶部的「速度」切换 1× / 2× / 4×，有客人的猫咖每营业 ${BUILDINGS.CAT_CAFE.intervalMinutes / 60} 小时结算一次收入。`,
       );
     } else if (stage === 'remember') {
       cityActions.focusWaterway('POND');

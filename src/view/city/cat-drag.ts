@@ -106,7 +106,7 @@ export function catDrop(
   world: WorldState,
   catId: string,
   tile: Position | null,
-  blocked: (command: GameCommand) => string | null,
+  blocked: (command: GameCommand) => ErrorCode | null,
 ): CatDrop {
   if (!tile || !world.cats.some((cat) => cat.id === catId))
     return { kind: 'none' };

@@ -7,5 +7,6 @@ export {
   spotAt,
   tileAt,
 } from './map';
-export { cafeCustomers } from './customers';
+export { cafeAssignment, nextBuildingPrice } from './customers';
+export { touchesNetwork } from './path';
 export type { CityMap, CityTile, Terrain } from './map';

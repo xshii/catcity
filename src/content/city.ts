@@ -6,7 +6,7 @@ export const BUILDINGS = {
     name: '猫咖',
     basePrice: 200,
     growth: [2, 1],
-    /** Game minutes between two payments, counted from the cafe's build time. */
+    /** Every cafe is paid when the game clock reaches a multiple of this many minutes. */
     intervalMinutes: 120,
     homeCapacity: 0,
   },
@@ -15,7 +15,6 @@ export const BUILDINGS = {
     name: '猫公寓',
     basePrice: 300,
     growth: [9, 5],
-    intervalMinutes: 60,
     homeCapacity: 2,
   },
 } as const;
@@ -25,9 +24,12 @@ export const BUILDINGS = {
  */
 export const CAFE = { coinsPerCustomer: 1, range: 3, seats: 5 } as const;
 const PRICE_STEP = 5n;
+/** No price passes the most coins a world can hold (Core's WORLD_LIMIT). */
+export const MAX_PRICE = 1_000_000_000;
 /**
  * The price of one more building when `existing` of its type stand: base × growth^existing,
- * to the nearest 5 (an exact half rounds down). Exact integers, never floating point.
+ * to the nearest 5 (an exact half rounds down), at most MAX_PRICE. Exact integers, never
+ * floating point.
  */
 export function buildingPrice(
   type: (typeof BUILDING_IDS)[number],
@@ -36,7 +38,8 @@ export function buildingPrice(
   const { basePrice, growth } = BUILDINGS[type];
   const value = BigInt(basePrice) * BigInt(growth[0]) ** BigInt(existing);
   const unit = PRICE_STEP * BigInt(growth[1]) ** BigInt(existing);
-  return Number(((2n * value + unit - 1n) / (2n * unit)) * PRICE_STEP);
+  const price = ((2n * value + unit - 1n) / (2n * unit)) * PRICE_STEP;
+  return Number(price < BigInt(MAX_PRICE) ? price : BigInt(MAX_PRICE));
 }
 /** Land costs more the further it lies outside the starter district. */
 export const LAND_PRICE = { base: 50, perTile: 25 } as const;

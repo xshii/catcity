@@ -7,7 +7,7 @@ import type { CatEntity, WorldState } from './schema';
 import { advanceWalking, resumeWalk } from './city/walking';
 import { catIdle } from './cats';
 import { gridDistance } from './city/map';
-import { cafeCustomers } from './city/customers';
+import { cafeAssignment } from './city/customers';
 
 export function simulate(
   world: WorldState,
@@ -17,15 +17,13 @@ export function simulate(
   // One minute at a time, so a single long advance equals many short ones.
   for (let step = 0; step < minutes; step++) {
     const minute = ++world.minute;
-    for (const building of world.buildings) {
-      if (building.type !== 'CAT_CAFE') continue;
-      // Income derives from build time; moving a building keeps its clock.
-      const elapsed = minute - building.builtAtMinute;
-      if (elapsed % BUILDINGS.CAT_CAFE.intervalMinutes === 0) {
-        // Customers are counted when the hour is up; a cafe without any earns nothing.
+    // The whole city is paid at the same minutes from one seating of the cats, so no
+    // cat pays two cafes in one interval, whatever was moved in between.
+    if (minute % BUILDINGS.CAT_CAFE.intervalMinutes === 0)
+      for (const [cafeId, customers] of cafeAssignment(world)) {
         // Income stops at the coin limit instead of rejecting the clock.
         const amount = Math.min(
-          cafeCustomers(world, building.id).length * CAFE.coinsPerCustomer,
+          customers.length * CAFE.coinsPerCustomer,
           WORLD_LIMIT - world.coins,
         );
         if (amount > 0) {
@@ -33,12 +31,11 @@ export function simulate(
           events.push({
             type: 'IncomeGenerated',
             minute,
-            entityId: building.id,
+            entityId: cafeId,
             amount,
           });
         }
       }
-    }
     if (minute % CARE.recovery.tickMinutes === 0)
       for (const cat of world.cats) {
         if (!catIdle(world, cat)) continue;
