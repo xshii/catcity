@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CAFE } from '../../src/content/city';
+import { CAFE, CITY_TIME } from '../../src/content/city';
 import type { Position } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
 import { advance } from '../helpers/world';
@@ -124,5 +124,15 @@ describe('a filled city: 16 cats, 8 apartments, 4 cafes', () => {
     expect(spent).toBeLessThanOrEqual(12_000);
     // Where the cafes stand changes the income, not the bill.
     expect(filledCity(CROWDED).spent).toBe(spent);
+  });
+
+  it('idles through a real hour at 4× for at most 1.5 times what fishing pays', () => {
+    const FISHING_COINS_PER_REAL_MINUTE = 25;
+    const fastest = Math.max(...CITY_TIME.speeds);
+    expect(fastest).toBe(4);
+    // One real second is `fastest` game minutes: a real hour is that many game hours.
+    const gameHours = (60 * 60 * fastest) / 60;
+    const idle = earned(filledCity(WELL_PLACED).world, gameHours);
+    expect(idle).toBeLessThanOrEqual(1.5 * FISHING_COINS_PER_REAL_MINUTE * 60);
   });
 });
