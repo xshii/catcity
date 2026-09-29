@@ -2,6 +2,7 @@ import { CARE } from '../../src/content/care';
 import { CITY_START, WALK_MINUTES } from '../../src/content/city';
 import { advance, buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
+import { walkMinutes } from '../../src/core/city';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 
 // Keep the route-cost cases on the central road; city-map.test covers the real spawn.
@@ -248,4 +249,29 @@ it('replans routes around construction and resumes an exhausted route using cann
     advance(tired, 1);
   expect(tired.getSnapshot().cats[0]!.position).toEqual({ x: 3, y: 3 });
   expect(tired.getSnapshot().cats[0]!.needs.energy).toBeLessThan(20);
+});
+
+it('tells how long a walk takes before it is ordered, from the route Core then queues', () => {
+  const world = centeredWorld(42);
+  const destination = { x: 6, y: 6 };
+  const before = world.save();
+  const minutes = walkMinutes(world.getSnapshot(), 'mochi', destination);
+  expect(minutes).toBe(WALK_MINUTES.DIRT + WALK_MINUTES.GRASS);
+  expect(world.save()).toBe(before);
+  world.dispatch({ type: 'WALK_CAT', catId: 'mochi', destination });
+  advance(world, minutes! - 1);
+  expect(world.getSnapshot().cats[0]!.walk).not.toBeNull();
+  advance(world, 1);
+  expect(world.getSnapshot().cats[0]).toMatchObject({
+    position: destination,
+    walk: null,
+  });
+  // No route: water, a missing cat, the tile the cat stands on.
+  const water = world
+    .getSnapshot()
+    .map.tiles.find((tile) => tile.terrain !== 'GRASS')!;
+  const state = world.getSnapshot();
+  expect(walkMinutes(state, 'mochi', water.position)).toBeNull();
+  expect(walkMinutes(state, 'ghost', { x: 4, y: 5 })).toBeNull();
+  expect(walkMinutes(state, 'mochi', destination)).toBeNull();
 });

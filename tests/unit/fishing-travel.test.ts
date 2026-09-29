@@ -10,6 +10,7 @@ import {
   fishById,
   spotUnlocked,
 } from '../../src/content/fishing';
+import { travelMinutes } from '../../src/core';
 import { loadWorld, type World } from '../../src/core/world';
 import {
   greenZone,
@@ -357,4 +358,30 @@ it('uses distinct freshwater and sea pools with seeded lengths and earns sea cat
     );
     expect(world.getSnapshot().coins).toBe(coins + fishById(species).price);
   }
+});
+
+it('tells how long the walk to a shore takes, from the route the travel then queues', () => {
+  const world = unlocked();
+  const before = world.save();
+  const minutes = travelMinutes(world.getSnapshot(), 'mochi', 'REEDS');
+  expect(world.save()).toBe(before);
+  expect(
+    world.dispatch({
+      type: 'TRAVEL_TO_FISHING_SPOT',
+      catId: 'mochi',
+      spotId: 'REEDS',
+    }).ok,
+  ).toBe(true);
+  const queued = world.getSnapshot();
+  expect(minutes).toBe(
+    queued.cats[0]!.walk!.route.reduce(
+      (sum, position) => sum + walkingMinutes(queued, position),
+      0,
+    ),
+  );
+  advance(world, minutes!);
+  expect(world.getSnapshot().cats[0]!.fishingSpotId).toBe('REEDS');
+  // Nothing to tell for a cat that is there already or does not exist.
+  expect(travelMinutes(world.getSnapshot(), 'mochi', 'REEDS')).toBeNull();
+  expect(travelMinutes(world.getSnapshot(), 'ghost', 'POND')).toBeNull();
 });

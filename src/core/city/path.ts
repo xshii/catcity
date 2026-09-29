@@ -31,6 +31,9 @@ export function walkingMinutes(world: WorldState, position: Position): number {
   return WALK_MINUTES[tileAt(world.map, position)?.road ?? 'GRASS'];
 }
 
+export const routeMinutes = (world: WorldState, route: Position[]): number =>
+  route.reduce((sum, position) => sum + walkingMinutes(world, position), 0);
+
 /** At most size² nodes: stable Dijkstra ordering favors actual travel time. */
 export function findWalkingPath(
   world: WorldState,
