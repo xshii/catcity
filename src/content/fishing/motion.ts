@@ -48,6 +48,17 @@ export const MOTION = {
     /** The hit test is this much wider than the drawn ring to absorb tilt noise. */
     toleranceUnits: 1,
     precisionRadiusBonus: 1,
+    /**
+     * Tug of war (spec 033): while the fish dashes, the rod tip must stay more than
+     * `marginUnits` behind it (larger plane y, toward the player) or the line tension
+     * rises by `risePerTick` per star; between dashes it eases by `easePerTick`.
+     * Full tension (100) snaps the line. Settling in leaves it slack.
+     */
+    tug: {
+      marginUnits: 3,
+      risePerTick: [0, 4, 6, 8, 10, 12],
+      easePerTick: 1,
+    },
   },
   /**
    * The fish's correlated random walk: straight runs, a turn between runs, rests and

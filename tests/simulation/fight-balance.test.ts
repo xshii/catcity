@@ -14,6 +14,8 @@ import {
  * Motion fight balance (spec 030): simulated players see the fish `delay` ticks late and
  * extrapolate its recent motion (smooth pursuit), with a wobbly hand. Straight runs are
  * easy; turns, pace changes and dashes are not. High-star fish must need a practised player.
+ * Once they see a dash announced (as late as they see everything), they pull the rod tip
+ * `PULL` units back toward themselves until the dash is over (spec 033 tug of war).
  */
 const PLAYERS = {
   novice: { delay: 8, jitter: 3 },
@@ -35,6 +37,10 @@ const M = FISHING.motion;
 const SAMPLES = 40;
 /** Ticks of motion the player extrapolates from. */
 const TREND = 4;
+/** How far behind the fish a player pulls during a dash. */
+const PULL = M.fight.tug.marginUnits + 4;
+/** Players pull back on dashes, ignore them, or fight with the tug switched off. */
+type Dashes = 'pull' | 'ignore' | 'off';
 
 /** A plain (not perfect) strike on a fish of the given stars. */
 function fightOf(seed: number, stars: number, happy: boolean): AnglingRun {
@@ -66,12 +72,22 @@ function fightOf(seed: number, stars: number, happy: boolean): AnglingRun {
 }
 
 const rates = new Map<string, number>();
-function catchRate(player: keyof typeof PLAYERS, stars: number, happy = false) {
-  const key = `${player}${stars}${happy}`;
-  if (!rates.has(key)) rates.set(key, measure(player, stars, happy));
+function catchRate(
+  player: keyof typeof PLAYERS,
+  stars: number,
+  happy = false,
+  dashes: Dashes = 'pull',
+) {
+  const key = `${player}${stars}${happy}${dashes}`;
+  if (!rates.has(key)) rates.set(key, measure(player, stars, happy, dashes));
   return rates.get(key)!;
 }
-function measure(player: keyof typeof PLAYERS, stars: number, happy: boolean) {
+function measure(
+  player: keyof typeof PLAYERS,
+  stars: number,
+  happy: boolean,
+  dashes: Dashes,
+) {
   const { delay, jitter } = PLAYERS[player];
   let caught = 0;
   for (let seed = 1; seed <= SAMPLES; seed++) {
@@ -83,17 +99,20 @@ function measure(player: keyof typeof PLAYERS, stars: number, happy: boolean) {
       const now = Math.max(0, run.phaseTick + 1 - delay);
       const seen = fish[now]!;
       const earlier = fish[Math.max(0, now - TREND)]!;
-      const aim = (at: number, before: number) =>
+      const pull =
+        dashes === 'pull' && (seen.warning || seen.dashing) ? PULL : 0;
+      const aim = (at: number, before: number, back = 0) =>
         Math.min(
           100,
           Math.max(
             0,
-            Math.round(at + ((at - before) * delay) / TREND + wobble()),
+            Math.round(at + ((at - before) * delay) / TREND + wobble()) + back,
           ),
         );
+      // With the tug off the line never tightens: tension goes back to slack each tick.
       run = stepMotionRun(
-        run,
-        { x: aim(seen.x, earlier.x), y: aim(seen.y, earlier.y) },
+        dashes === 'off' ? { ...run, tension: 0 } : run,
+        { x: aim(seen.x, earlier.x), y: aim(seen.y, earlier.y, pull) },
         1,
       );
     }
@@ -156,4 +175,30 @@ it('lifts skilled catch rates only a little on happy runs', () => {
     expect(
       catchRate('skilled', stars, true) - catchRate('skilled', stars),
     ).toBeLessThanOrEqual(HAPPY.skilledLiftMax);
+});
+
+/**
+ * The tug of war (spec 033) must reward pulling back, not gate skilled players: pulling
+ * back costs them at most `maxCut` points on high-star fish against a fight without the
+ * tug, while ignoring dashes snaps enough lines to cost at least `ignoreCut` on 5★ fish.
+ */
+const TUG = { maxCut: 10, ignoreCut: 20 };
+
+it.each([3, 4, 5])(
+  'costs skilled players who pull back little on %i★ fish',
+  (stars) => {
+    const cut =
+      catchRate('skilled', stars, false, 'off') - catchRate('skilled', stars);
+    expect(cut, `skilled ${stars}★ lost ${cut} points`).toBeLessThanOrEqual(
+      TUG.maxCut,
+    );
+  },
+);
+
+it('snaps lines of players who ignore dashes on 5★ fish', () => {
+  const cut =
+    catchRate('skilled', 5) - catchRate('skilled', 5, false, 'ignore');
+  expect(cut, `ignoring dashes lost ${cut} points`).toBeGreaterThanOrEqual(
+    TUG.ignoreCut,
+  );
 });
