@@ -54,7 +54,9 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
   border: 6px solid #d9644c;
-  box-shadow: 0 0 0 3px #e9c46a;
+  /* Line tension 0–100 (set in JS) turns the outer edge from gold to red. */
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, #c0392b calc(var(--tension, 0) * 1%), #e9c46a);
   transition: border-color 0.15s;
 }
 .motion-ring.inside {

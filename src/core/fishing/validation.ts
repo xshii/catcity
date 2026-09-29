@@ -206,7 +206,8 @@ function assertCatch(catchState: {
 
 /**
  * Motion runs (spec 030): no strike or hold before the fight; bounded phases; the hold
- * holds the strike's start while settling in and gains at most one per tick after it.
+ * holds the strike's start while settling in and gains at most one per tick after it;
+ * the line tension (spec 033) rises at most one pull per tick and never reaches a snap.
  */
 function assertMotionRun(run: AnglingRun): void {
   const bounds = motionBounds(run);
@@ -219,6 +220,8 @@ function assertMotionRun(run: AnglingRun): void {
     (fight &&
       (run.hold >= bounds.holdTarget ||
         run.hold > bounds.maxHold ||
+        run.tension > bounds.maxTension ||
+        run.tension >= 100 ||
         (run.phaseTick <= FISHING.motion.fight.graceTicks &&
           run.hold !== bounds.startHold) ||
         run.phaseTick >= bounds.fightLimit))

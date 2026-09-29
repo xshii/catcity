@@ -1,6 +1,6 @@
 import { FISHING } from '../../content/fishing';
 import type { AnglingRun } from '../../minigames/angling';
-import { motionSchedule } from '../../minigames/angling-motion';
+import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
 import { canPlay, motionActive, type FishingView } from './view-state';
 
 /** Player-facing words of the fishing screen's switchable controls. */
@@ -25,6 +25,7 @@ export const SCREEN_COPY = {
     hook: '快速上扬提竿！',
     settle: '稳住，用圈罩住鱼',
     fight: '倾斜手机，让圈罩住鱼',
+    pull: '往回拉！',
   },
   pause: { pause: '暂停', resume: '继续钓鱼' },
   card: {
@@ -56,7 +57,7 @@ type Run = Pick<AnglingRun, 'mode' | 'phase' | 'phaseTick'>;
  * change, so no route can leave a control stale. Nothing of the river shows elsewhere,
  * and a run keeps the controls of the mode it was cast in.
  */
-export function fishingScreen(view: FishingView, run: Run | null) {
+export function fishingScreen(view: FishingView, run: AnglingRun | null) {
   const river = view.place === 'river';
   const playable = canPlay(view);
   const active = motionActive(view);
@@ -151,7 +152,7 @@ export function motionNibble(run: AnglingRun | null): number | null {
   return index === -1 ? null : index;
 }
 
-function hint(view: FishingView, motionRun: Run | null): string {
+function hint(view: FishingView, motionRun: AnglingRun | null): string {
   const words = SCREEN_COPY.hint;
   if (view.motion.calibrating) return words.calibrating;
   if (view.motion.notice && !motionRun) return view.motion.notice;
@@ -159,9 +160,12 @@ function hint(view: FishingView, motionRun: Run | null): string {
   if (view.paused) return words.paused;
   if (motionRun.phase === 'waiting') return words.waiting;
   if (motionRun.phase === 'hook') return words.hook;
-  if (motionRun.phase === 'fight')
-    return motionRun.phaseTick <= FISHING.motion.fight.graceTicks
-      ? words.settle
-      : words.fight;
+  if (motionRun.phase === 'fight') {
+    if (motionRun.phaseTick <= FISHING.motion.fight.graceTicks)
+      return words.settle;
+    // A dash is announced or on (spec 033): the fish drawn next, as Core judges it.
+    const fish = fishPoint(motionRun, motionRun.phaseTick + 1);
+    return fish.warning || fish.dashing ? words.pull : words.fight;
+  }
   return '';
 }
