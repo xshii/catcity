@@ -51,6 +51,24 @@ export const FISHING = {
     moonCarpChancePercent: 65,
     breedFallback: 'PERCH',
   },
+  /**
+   * Fish shadows (spec 033): each spot shows a fresh batch every `refreshMinutes` of game
+   * time, placed in cast coordinates (direction, and reach = the mean of aimed depth and
+   * power). A landing within `radius` of one meets that fish: if it takes the bait the
+   * wait shrinks to `bitePercent`; a wrong bait is sniffed and the bite comes
+   * `sniffTicks` later. Odds by stars; size classes by star range.
+   */
+  shadows: {
+    count: 3,
+    refreshMinutes: 60,
+    maxDirection: 40,
+    reach: { min: 10, max: 90 },
+    radius: 12,
+    starWeight: [4, 4, 3, 2, 2, 1],
+    sizes: { small: [0, 1], medium: [2, 3], large: [4, 5] },
+    bitePercent: 50,
+    sniffTicks: 40,
+  },
   /** Light bread casts may hook supplies instead of fish. */
   supplies: {
     breadPowerBelow: 35,

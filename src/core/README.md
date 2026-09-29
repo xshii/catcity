@@ -7,7 +7,7 @@
 | 世界与存档 | [world.ts](world.ts)、[schema.ts](schema.ts)                                           |
 | 命令分发   | [commands.ts](commands.ts)、[reducer.ts](reducer.ts)                                   |
 | 城市       | [city/](city/)：地图、建设、路径、步行和语义校验                                       |
-| 钓鱼       | [fishing/](fishing/)：资格、命令、结算、持久状态校验                                   |
+| 钓鱼       | [fishing/](fishing/)：资格、命令、结算、鱼影、持久状态校验                             |
 | 时间与随机 | [simulation.ts](simulation.ts)、[random.ts](random.ts)、[limits.ts](limits.ts)         |
 | 居民与关系 | [cats.ts](cats.ts) 由模板创建猫实例；[bond.ts](bond.ts)；个体事实保存在严格状态 schema |
 

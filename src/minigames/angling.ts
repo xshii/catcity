@@ -3,6 +3,7 @@ import {
   FISHING,
   fishById,
   canCatchFish,
+  SPOTS,
   type CatchKind,
   type BaitId,
   type FishId,
@@ -56,6 +57,8 @@ export interface AnglingRun {
   hold: number;
   /** The cat was happy when the run began (spec 032): a small bonus for the whole run. */
   happy: boolean;
+  /** The fish of the shadow the cast landed on (spec 033); null before the cast or off shadows. */
+  shadow: FishId | null;
 }
 export function initialAngling(
   input: Pick<
@@ -95,6 +98,7 @@ export function initialAngling(
     strike: 'none',
     spooked: false,
     hold: 0,
+    shadow: null,
   };
 }
 const triangle = (tick: number, period: number) =>
@@ -131,9 +135,32 @@ export function greenZone(run: AnglingRun): { low: number; high: number } {
   };
 }
 
-function chooseFish(run: AnglingRun): void {
-  const { encounter: RULE, supplies: LOOT } = FISHING;
-  const rng = new RandomService(run.seed);
+/**
+ * How the landed-on shadow reacts (spec 033). It only ever makes a catch better: a fish
+ * with fewer stars than the rules' pick is ignored. Otherwise it bites when the spot, the
+ * bait and the cat's breed allow it, and sniffs a wrong bait and leaves.
+ */
+function shadowTake(run: AnglingRun): 'none' | 'bite' | 'sniff' {
+  const fish = run.shadow;
+  if (!fish || !SPOTS[run.spotId].fish.includes(fish)) return 'none';
+  const rulePick = ruleFish(run, new RandomService(run.seed));
+  if (fishById(fish).stars < fishById(rulePick).stars) return 'none';
+  if (!(fishById(fish).baits as readonly BaitId[]).includes(run.baitId))
+    return 'sniff';
+  return canCatchFish(fish, run.catBreed) ? 'bite' : 'none';
+}
+
+/** A waiting time after the shadow: shorter when it bites, later when it sniffs. */
+export function shadowWait(run: AnglingRun, ticks: number): number {
+  const { bitePercent, sniffTicks } = FISHING.shadows;
+  const take = shadowTake(run);
+  if (take === 'bite') return Math.floor((ticks * bitePercent) / 100);
+  return take === 'sniff' ? ticks + sniffTicks : ticks;
+}
+
+/** The fish the aim, bait and breed rules pick; it takes the first draws of `rng`. */
+function ruleFish(run: AnglingRun, rng: RandomService): FishId {
+  const RULE = FISHING.encounter;
   const left = run.direction < -RULE.sideDegrees;
   const strongRightShrimp = (power: number) =>
     run.baitId === 'SHRIMP' &&
@@ -154,9 +181,21 @@ function chooseFish(run: AnglingRun): void {
   if (run.spotId === 'COAST') {
     species = strongRightShrimp(RULE.strongPower) ? 'SEA_BREAM' : 'MACKEREL';
   }
-  if (!canCatchFish(species, run.catBreed)) species = RULE.breedFallback;
+  return canCatchFish(species, run.catBreed) ? species : RULE.breedFallback;
+}
+
+function chooseFish(run: AnglingRun): void {
+  const LOOT = FISHING.supplies;
+  const rng = new RandomService(run.seed);
+  let species = ruleFish(run, rng);
+  const shadowBites = shadowTake(run) === 'bite';
+  if (shadowBites) species = run.shadow!;
   // Light bread casts may hook supplies. Trash is only a failed-fishing outcome.
-  if (run.baitId === 'BREAD' && run.power < LOOT.breadPowerBelow) {
+  if (
+    !shadowBites &&
+    run.baitId === 'BREAD' &&
+    run.power < LOOT.breadPowerBelow
+  ) {
     const roll = rng.nextInt(LOOT.rollSides);
     if (roll < 2) {
       run.catchKind = (['can', 'coins'] as const)[roll]!;
@@ -179,17 +218,19 @@ function chooseFish(run: AnglingRun): void {
         (fish.maxWeight - fish.minWeight),
     );
 }
+/** `shadow`: the shadow's fish under the landing if this step releases the charge. */
 export function stepAngling(
   input: AnglingRun,
   pressed: boolean,
   ticks: number,
+  shadow: FishId | null = null,
 ): AnglingRun {
   if (!validTicks(ticks)) throw new Error('Invalid angling ticks');
   const run = { ...input };
   for (let i = 0; i < ticks; i++) {
     if (run.phase === 'caught' || run.phase === 'escaped') break;
     if (run.phase === 'charge' && !pressed && run.hasHeld) {
-      Object.assign(run, castAngling(run, run.power));
+      Object.assign(run, castAngling(run, run.power, shadow));
       continue;
     }
     const rising = pressed && !run.pressed;
@@ -202,7 +243,10 @@ export function stepAngling(
       }
     } else if (run.phase === 'waiting') {
       const { baseTicks, seedJitterTicks } = FISHING.waiting;
-      if (run.phaseTick >= baseTicks + (run.seed % seedJitterTicks)) {
+      if (
+        run.phaseTick >=
+        shadowWait(run, baseTicks + (run.seed % seedJitterTicks))
+      ) {
         run.phase = 'hook';
         run.phaseTick = 0;
         run.cursor = 0;
@@ -258,8 +302,15 @@ export function stepAngling(
   return run;
 }
 
-/** Source-independent cast input shared by button release and motion adapters. */
-export function castAngling(input: AnglingRun, power: number): AnglingRun {
+/**
+ * Source-independent cast input shared by button release and motion adapters; `shadow`
+ * is the fish of the shadow at the landing point, found by Core.
+ */
+export function castAngling(
+  input: AnglingRun,
+  power: number,
+  shadow: FishId | null = null,
+): AnglingRun {
   if (input.phase !== 'charge') throw new Error('Cast requires charge phase');
   if (!percent(power)) throw new Error('Invalid cast power');
   const { min, max } = FISHING.cast.precisionPower;
@@ -272,6 +323,7 @@ export function castAngling(input: AnglingRun, power: number): AnglingRun {
     tick: input.tick + 1,
     hasHeld: true,
     pressed: false,
+    shadow,
   };
   chooseFish(run);
   return run;
