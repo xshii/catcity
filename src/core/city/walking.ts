@@ -3,7 +3,12 @@ import { MOOD } from '../../content/mood';
 import { WORLD_LIMIT } from '../limits';
 import { SPOT_IDS, spotOpen, type SpotId } from '../../content/fishing';
 import { onShore, samePosition } from './map';
-import { findWalkingPath, isWalkable, walkingMinutes } from './path';
+import {
+  findWalkingPath,
+  isWalkable,
+  routeMinutes,
+  walkingMinutes,
+} from './path';
 import { CommandError, type GameEvent } from '../commands';
 import type { CatEntity, Position, WorldState } from '../schema';
 import { requireCat } from '../cats';
@@ -23,6 +28,16 @@ function reachedSpot(world: WorldState, cat: CatEntity): SpotId | null {
         spotOpen(spot, world.fishing) && atFishingShore(world, cat, spot),
     ) ?? null
   );
+}
+
+/** Game minutes the walk `WALK_CAT` would queue takes; null when there is no route. */
+export function walkMinutes(
+  world: WorldState,
+  catId: string,
+  destination: Position,
+): number | null {
+  const route = findWalkingPath(world, catId, destination);
+  return route?.length ? routeMinutes(world, route) : null;
 }
 
 export function resumeWalk(world: WorldState, cat: CatEntity): void {
@@ -45,14 +60,7 @@ export function queueWalk(
     throw new CommandError('ALREADY_AT_DESTINATION');
   const route = findWalkingPath(world, catId, destination);
   if (!route?.length) throw new CommandError('NO_WALK_ROUTE');
-  if (
-    world.minute +
-      route.reduce(
-        (sum, position) => sum + walkingMinutes(world, position),
-        0,
-      ) >
-    WORLD_LIMIT
-  )
+  if (world.minute + routeMinutes(world, route) > WORLD_LIMIT)
     throw new CommandError('TIME_LIMIT');
   cat.walk = { destination, route, nextStepMinute: null, spotId };
   cat.fishingSpotId = null;
