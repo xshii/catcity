@@ -6,6 +6,7 @@ import { WATER_VIEW, waterPoint } from '../../src/view/art/water-view';
 import {
   castOnce,
   catchFish,
+  fishingClock,
 } from '../../harness/adapters/catcity/angling-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import {
@@ -163,7 +164,7 @@ test('real fishing inputs trigger optional haptics; switching it off stops furth
     .screenshot({ path: testInfo.outputPath('fishing-scene.png') });
 });
 
-test('browsers without vibration retain visual controls and do not change gameplay', async ({
+test('browsers without vibration shake the river on a bite instead and do not change gameplay', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -179,10 +180,8 @@ test('browsers without vibration retain visual controls and do not change gamepl
   await ready(page);
   await enterRiver(page);
   await openGear(page, 'supplies');
-  await expect(page.locator('#haptics-toggle')).toBeDisabled();
-  await expect(page.locator('#haptics-toggle')).toHaveText(
-    '此浏览器不支持震动',
-  );
+  await expect(page.locator('#haptics-toggle')).toBeEnabled();
+  await expect(page.locator('#haptics-toggle')).toHaveText('画面反馈：开');
   await closeRiverPanel(page);
   const before = await readWorld(page);
   await page.locator('#cast-start').click();
@@ -191,6 +190,22 @@ test('browsers without vibration retain visual controls and do not change gamepl
   expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
     before.cats[0]!.needs.energy,
   );
+  await castOnce(page);
+  // Step to the bite and read the stage in the same page task: no timing involved.
+  const clock = await fishingClock(page);
+  const shaken = await page.evaluate(() => {
+    const bridge = window.CAT_CITY_DEBUG!;
+    for (let tick = 0; tick < 1000; tick++) {
+      bridge.stepFishing(1);
+      if (bridge.getWorldState().fishing.active?.phase === 'hook')
+        return document
+          .querySelector('#fishing-stage')!
+          .classList.contains('screen-shake');
+    }
+    return null;
+  });
+  await clock.release();
+  expect(shaken).toBe(true);
   expect(errors).toEqual([]);
 });
 
