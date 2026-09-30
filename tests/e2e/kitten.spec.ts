@@ -91,11 +91,12 @@ for (const size of PHONES) {
         `${kittenName} 出生了`,
       );
       await expect(page.locator('#birth-see')).toBeFocused();
+      // Measured once the card's celebration is over: it grows in (ui-design 2.4).
+      await settled(card);
       expect(
         (await page.locator('#birth-see').boundingBox())!.height,
       ).toBeGreaterThan(43);
       expect(await noSideScroll(page)).toBe(true);
-      await settled(card);
       await page.screenshot({ path: `${SHOTS}/kitten-born-${name}.png` });
       let world = await readWorld(page);
       const kitten = world.cats.at(-1)!;
