@@ -236,24 +236,34 @@ describe('who a resident is comes from the seed (R-42)', () => {
         ]),
       ),
     } as Record<string, Set<string>>;
+    const items = Object.keys(APPEARANCE_OPTIONS).sort().join();
+    // Every resident that breaks a rule, listed once at the end: one check, not thousands.
+    const illegal: unknown[] = [];
     for (const seed of SEEDS)
       for (const id of IDS) {
-        const { name, breed, sex, appearance } = residentIdentity(seed, id);
-        expect(RESIDENT_NAMES).toContain(name);
-        expect(CAT_BREED_IDS).toContain(breed);
-        expect(['F', 'M']).toContain(sex);
-        expect(Object.keys(appearance).sort()).toEqual(
-          Object.keys(APPEARANCE_OPTIONS).sort(),
-        );
-        for (const [item, choice] of Object.entries(appearance)) {
-          expect(
-            APPEARANCE_OPTIONS[item as keyof typeof APPEARANCE_OPTIONS],
-          ).toContain(choice);
+        const identity = residentIdentity(seed, id);
+        const { name, breed, sex, appearance } = identity;
+        if (
+          !(RESIDENT_NAMES as readonly string[]).includes(name) ||
+          !(CAT_BREED_IDS as readonly string[]).includes(breed) ||
+          !['F', 'M'].includes(sex) ||
+          Object.keys(appearance).sort().join() !== items ||
+          Object.entries(appearance).some(
+            ([item, choice]) =>
+              !(
+                APPEARANCE_OPTIONS[
+                  item as keyof typeof APPEARANCE_OPTIONS
+                ] as readonly string[]
+              ).includes(choice),
+          )
+        )
+          illegal.push({ seed, id, identity });
+        for (const [item, choice] of Object.entries(appearance))
           seen[item]!.add(choice);
-        }
         seen.breed!.add(breed);
         seen.sex!.add(sex);
       }
+    expect(illegal).toEqual([]);
     expect([...seen.breed!].sort()).toEqual([...CAT_BREED_IDS].sort());
     expect([...seen.sex!].sort()).toEqual(['F', 'M']);
     for (const [item, options] of Object.entries(APPEARANCE_OPTIONS))
