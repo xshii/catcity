@@ -32,10 +32,11 @@ import { mountFishingSettings } from './settings';
 import { motionAim } from '../art/water-view';
 import {
   castNotice,
+  CATCH_CARD_MS,
+  catchCountdown,
   fishingScreen,
   noticeShown,
   permissionNotice,
-  resultShown,
   ringHeld,
 } from './screen';
 import {
@@ -317,13 +318,9 @@ export function mountAngling(
       pause.textContent = screen.pauseLabel;
     }
     const destination = requestedSpot();
-    stage.render(
-      world,
-      selectedCat.id,
-      destination,
-      resultNote,
-      resultShown(state, run ?? null, world.fishing.lastResult),
-    );
+    const card = catchCountdown(state, run ?? null, world.fishing.lastResult);
+    cardTime(card);
+    stage.render(world, selectedCat.id, destination, resultNote, card);
     // Kept in the layout and fading on: the notice the card withdrew is only out of sight.
     shell.notice.style.visibility = noticeShown(
       state,
@@ -565,6 +562,11 @@ export function mountAngling(
         '收好鱼竿，稍后再来。体力和已用鱼饵不退回。',
       );
   });
+  // The catch card closes by itself after a while, or at once with a tap (R-02).
+  const cardTime = catchCardTimer(() => view.dispatch({ type: 'dismissed' }));
+  stage.card.addEventListener('click', () =>
+    view.dispatch({ type: 'dismissed' }),
+  );
   // A world change or a view change: either way, one render applies the screen.
   session.subscribe(() => {
     const world = session.getSnapshot();
@@ -611,5 +613,42 @@ export function mountAngling(
     said: () => view.dispatch({ type: 'said' }),
     aim,
     fishingClock: controls.clock,
+  };
+}
+
+/**
+ * The catch card's time (R-02), applied on every render: it starts as the card shows,
+ * stops while the card is held and goes on with what was left, and ends with the card,
+ * whatever takes it away, so it never fires for a card that is gone.
+ */
+function catchCardTimer(timeUp: () => void) {
+  let shown = false;
+  let left = 0;
+  let since = 0;
+  let timer: number | undefined;
+  const stop = () => {
+    window.clearTimeout(timer);
+    timer = undefined;
+  };
+  return (card: ReturnType<typeof catchCountdown>) => {
+    if (!card) {
+      stop();
+      shown = false;
+      return;
+    }
+    if (!shown) {
+      shown = true;
+      left = CATCH_CARD_MS;
+    }
+    if (card === 'running' && timer === undefined) {
+      since = performance.now();
+      timer = window.setTimeout(() => {
+        timer = undefined;
+        timeUp();
+      }, left);
+    } else if (card === 'held' && timer !== undefined) {
+      left -= performance.now() - since;
+      stop();
+    }
   };
 }

@@ -75,6 +75,12 @@ export const SCREEN_COPY = {
   },
 } as const;
 
+/**
+ * How long the catch card stays before it closes by itself (R-02): it floats over the
+ * scene, so it gives the scene back. Its countdown bar runs for the same time.
+ */
+export const CATCH_CARD_MS = 4000;
+
 type Run = Pick<AnglingRun, 'mode' | 'phase' | 'phaseTick'>;
 
 /**
@@ -285,6 +291,17 @@ export const resultShown = (
   run: AnglingRun | null,
   result: { runId: string } | null,
 ) => !run && !!result && result.runId === view.watched;
+
+/**
+ * The catch card's countdown (R-02): none without the card; it runs while the river is
+ * in play and is held while a panel, the settings or a hidden page covers it.
+ */
+export const catchCountdown = (
+  view: FishingView,
+  run: AnglingRun | null,
+  result: { runId: string } | null,
+): 'running' | 'held' | null =>
+  !resultShown(view, run, result) ? null : canPlay(view) ? 'running' : 'held';
 
 /**
  * The notice bar and the catch card float in the same place under the scene bar, so never

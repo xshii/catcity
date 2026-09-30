@@ -89,8 +89,9 @@
 - **验收**：三条测试在旧代码上失败、新代码上通过；`npm run test:coverage` 全绿；完整检查通过。
 - **注意**：`resultNote` 和 `fish-tastes` 是纯文字，可以照旧每次写。
 
-### [ ] T-02 河畔的猫醒着（R-01）
+### [x] T-02 河畔的猫醒着（R-01）
 
+- **完成**：PR #58（`875d128`），测试版 `test-20260930-0923-875d1286-974a27`。证据：`tests/unit/cat-look.test.ts` 河畔两条在旧代码上失败（`curled: true`）、新代码上通过；`tests/view/fishing-buttons.test.ts` 名册卡读屏不含"在休息"；推送前完整检查通过（单元与画面 709 条、E2E 51 条、验收 15 步），产物 `artifacts/2026-09-30T01-18-05-191Z-17214/`（`catcity-wt02`）；截图 `awake-after-cast.png`（390×844）与 `buttons-aim.png`（360×640）里猫坐着、睁眼。
 - **分支**：`fix/awake-at-river`
 - **依赖**：无。
 - **先读这些文件**：`src/view/art/cat-look.ts`（`catPose`）、`tests/unit/cat-look.test.ts`、`src/view/art/river.ts` 约 513 行、`src/view/fishing/stage.ts` 约 51 行、`src/view/shell/place.ts`。
