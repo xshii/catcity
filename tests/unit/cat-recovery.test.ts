@@ -1,4 +1,4 @@
-import { advance, buildCafe } from '../helpers/world';
+import { advance, buildCafe, invite } from '../helpers/world';
 import { fishingFixture as createWorld, catsAtPond } from './fishing-fixture';
 import { expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
@@ -34,7 +34,7 @@ it('recovers an idle cat on the shared clock, every tick of the recovery rate', 
 // Faster recovery beside the home apartment: city-loop.test.ts.
 it('does not recover a cat that is fishing, even before its cast, or walking', () => {
   const world = tired(50);
-  world.dispatch({ type: 'INVITE_PEPPER' });
+  invite(world);
   const game = catsAtPond(world);
   const pepper = game.getSnapshot().cats[1]!;
   expect(begin(game, 'mochi').ok).toBe(true);
@@ -88,7 +88,7 @@ it('feeds canned food to the specified cat only, with atomic rejection and no sh
   fixture.world.cats[0].needs.energy = 30;
   fixture.world.fishing.supplies.cans = 1;
   let world = loadWorld(JSON.stringify(fixture));
-  world.dispatch({ type: 'INVITE_PEPPER' });
+  invite(world);
   world = catsAtPond(world);
   const before = world.save();
   expect(world.dispatch({ type: 'USE_CAN', catId: 'missing' }).ok).toBe(false);

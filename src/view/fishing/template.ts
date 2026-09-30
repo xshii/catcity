@@ -14,7 +14,7 @@ export const ANGLING_MARKUP = `
     <label class="direction-label">抛投方向 <output id="direction-value"></output><input type="range" id="fish-direction" min="-${FISHING.input.maxDirection}" max="${FISHING.input.maxDirection}" step="5" value="-30" aria-label="抛投方向"></label>
     <label class="direction-label depth-label">近远落点 <output id="depth-value"></output><input type="range" id="fish-depth" min="0" max="100" step="5" value="50" aria-label="近远落点"></label>
     <p id="companion-specialty" class="fishing-clue"></p><p id="spot-hint" class="fishing-clue"></p><div id="spot-unlocks" class="spot-unlocks"></div>
-    <div class="fishing-actions"><button id="cast-start" class="primary">准备抛竿 ↗ · 抛出耗 ${CAST_COST} 体力</button><button id="invite-pepper">邀请 Pepper</button></div>
+    <div class="fishing-actions"><button id="cast-start" class="primary">准备抛竿 ↗ · 抛出耗 ${CAST_COST} 体力</button></div>
     <div id="angling-live" class="scene-console" hidden><div class="bar-heading"><strong id="angling-phase"></strong><span id="angling-status"></span></div><p id="angling-instruction"></p>
       <div id="angling-bar" class="angling-bar" role="meter" aria-label="钓鱼操作条" aria-valuemin="0" aria-valuemax="100"><span id="angling-green" class="angling-green"></span><i id="angling-cursor" class="angling-cursor"></i></div>
       <div class="fight-meters"><label>收线 <progress id="fish-progress" max="100" value="0"></progress></label><label>鱼线 <progress id="line-health" max="100" value="100"></progress></label></div>

@@ -1,9 +1,8 @@
 import { bondLevel } from '../content/care';
 import { MAX_COMPANIONS } from '../content/cats';
-import { BUILDINGS } from '../content/city';
 import { BREED_BOND_LEVEL, BREED_COOLDOWN_MINUTES } from '../content/family';
 import { MOOD } from '../content/mood';
-import { catStage, requireCat } from './cats';
+import { catStage, freeBeds, requireCat } from './cats';
 import type { CatEntity, WorldState } from './schema';
 
 /**
@@ -95,12 +94,8 @@ export function catBreedBlocks(
 
 /** What keeps the city from taking one more cat: a free bed, room among the companions. */
 export function cityBreedBlocks(world: WorldState): BreedBlock[] {
-  const beds = world.buildings.reduce(
-    (sum, building) => sum + BUILDINGS[building.type].homeCapacity,
-    0,
-  );
   return failing([
-    ['NO_BED', world.cats.filter((cat) => cat.home !== null).length >= beds],
+    ['NO_BED', !freeBeds(world).length],
     ['COMPANION_LIMIT', world.cats.length >= MAX_COMPANIONS],
   ]);
 }

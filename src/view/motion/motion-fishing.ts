@@ -125,6 +125,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   let calibrationTimer = 0;
   /** Event time until which flicks still belong to the calibration just finished. */
   let settleUntil = -Infinity;
+  /**
+   * After a calibration the aim centres on the pose held once it settles: the player may
+   * have turned or lain down since the river was entered (recorded 2026-09-30).
+   */
+  let rebaseAfterSettle = false;
 
   const overlay = document.createElement('div');
   overlay.id = 'motion-fishing';
@@ -211,6 +216,11 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     const next = tracker.sample(event.beta, event.gamma, screenAngle());
     if (!next) return;
     tilt = next;
+    if (rebaseAfterSettle && event.timeStamp >= settleUntil) {
+      rebaseAfterSettle = false;
+      // Only while aiming: a run keeps the centre its phase gave it.
+      if (motionWant(view.get(), deps.getRun()) === 'cast') rebase = true;
+    }
     if (rebase) {
       tip.calibrate(next);
       rebase = false;
@@ -307,6 +317,7 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
         tuning = result.tuning;
         gestures = createRodGestures(tuning);
         savePref(TUNING_KEY, JSON.stringify(tuning));
+        rebaseAfterSettle = true;
       }
       showNotice(
         result

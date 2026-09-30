@@ -121,7 +121,6 @@ export function mountAngling(
   const bar = get('angling-bar');
   const green = get('angling-green');
   const pause = get('fish-pause');
-  const invite = get('invite-pepper');
   /** The FISH_BEGIN the panel's choices ask for; the button flow leaves `mode` out. */
   const beginCommand = (castDirection: number) =>
     ({
@@ -298,7 +297,6 @@ export function mountAngling(
             `${SPOTS[id].name}：${spotUnlocked(id, f.xp, discovered) ? '已开放 ✓' : `钓技 ${level}/${SPOTS[id].level} 级 · 图鉴 ${discovered}/${SPOTS[id].species} 种`}`,
         )
         .join(' → ');
-      invite.hidden = world.cats.some((cat) => cat.definitionId === 'PEPPER');
       const cat = world.cats.find((cat) => cat.id === companion.value)!;
       get('companion-specialty').textContent =
         `${cat.name} · ${CAT_BREEDS[cat.breedId].name}：${CAT_BREEDS[cat.breedId].fishingHint}。鱼饵、落点和钓点条件仍需满足。`;
@@ -547,12 +545,6 @@ export function mountAngling(
     report(
       session.execute({ type: 'RECYCLE_TRASH' }),
       `回收了一件垃圾，获得 ${FISHING.supplies.trashCoins} 金币。`,
-    ),
-  );
-  invite.addEventListener('click', () =>
-    report(
-      session.execute({ type: 'INVITE_PEPPER' }),
-      'Pepper 来了！它喜欢鲈鱼和鲶鱼。',
     ),
   );
   root

@@ -1,5 +1,9 @@
 import { CARE } from '../../src/content/care';
-import { enterRiver, settle } from '../../harness/adapters/catcity/city-input';
+import {
+  clickTile,
+  enterRiver,
+  settle,
+} from '../../harness/adapters/catcity/city-input';
 import { expect, test, type Page } from '@playwright/test';
 import { FISHING } from '../../src/content/fishing';
 import { WATER_VIEW, waterPoint } from '../../src/view/art/water-view';
@@ -64,7 +68,12 @@ test('scene input aims at water, cat cards switch independent stamina, and idle 
   await page.locator('#visit-city').click();
   await openCats(page);
   await expect(mochi).toHaveAccessibleName(/在休息/);
-  await page.locator('#invite-pepper').click();
+  // Pepper needs a bed (spec 041 R-12): an apartment away from the pond, then the invitation.
+  await clickTile(page, 3, 4);
+  await page.locator('[data-build-type=CAT_APARTMENT]').click();
+  await openCats(page);
+  await page.locator('#invite-open').click();
+  await page.locator('[data-invite-cat="PEPPER"]').click();
   const pepper = (await readWorld(page)).cats[1]!;
   await page.locator(`[data-cat-id="${pepper.id}"]`).click();
   await closeRiverPanel(page);

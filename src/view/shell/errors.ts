@@ -1,3 +1,4 @@
+import { MAX_COMPANIONS } from '../../content/cats';
 import type { ErrorCode } from '../../core';
 
 /**
@@ -43,5 +44,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   BAG_FULL: '鱼篓满了，卖出或送出几条鱼再来吧。',
   FISH_NOT_FOUND: '鱼篓里找不到这条鱼了。',
   NO_SUPPLIES: '没有可以用的补给。',
-  ALREADY_INVITED: 'Pepper 已经来小城了。',
+  ALREADY_INVITED: '它已经住在小城了。',
+  COMPANION_LIMIT: `伙伴猫已经有 ${MAX_COMPANIONS} 只了，小城住不下更多伙伴。`,
+  NO_BED: '没有空床位：先建一座公寓。',
 };

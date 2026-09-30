@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance, interact } from '../helpers/world';
+import { advance, interact, invite } from '../helpers/world';
 import { fishingFixture, finishFishing } from './fishing-fixture';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import { BOND, BOND_LEVELS, bondLevel } from '../../src/content/care';
@@ -82,7 +82,7 @@ describe('bond levels (spec 036)', () => {
 describe('bond points (spec 038)', () => {
   it('a fish caught together earns the run cat its points, and no other cat', () => {
     const world = fishingFixture(42);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     catchFish(world);
     expect(world.getSnapshot().fishing.lastResult).toMatchObject({
       caught: true,
@@ -105,7 +105,7 @@ describe('bond points (spec 038)', () => {
 
   it('a favourite fish given earns more than another fish', () => {
     let world = fishingFixture(42);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     catchFish(world);
     catchFish(world);
     // The catches cheered Mochi up; a calm cat shows the plain points.
@@ -125,7 +125,7 @@ describe('bond points (spec 038)', () => {
 
   it('a chat earns points once per cat and game day', () => {
     const world = createWorld(42);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     const bonds = () => world.getSnapshot().cats.map((cat) => cat.playerBond);
     const pepper = world.getSnapshot().cats[1]!.id;
     chat(world);
@@ -173,7 +173,7 @@ describe('bond points (spec 038)', () => {
 
   it('only the first gifts of a game day count, for each cat; later ones are still taken', () => {
     let world = fishingFixture(42);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     const gifts = BOND.giftsPerDay + 2;
     for (let cast = 0; cast <= gifts; cast++) catchFish(world);
     world = edited(world, (cat) => Object.assign(cat, { mood: 30 }));

@@ -27,20 +27,25 @@ const PRICE_STEP = 5n;
 /** No price passes the most coins a world can hold (Core's WORLD_LIMIT). */
 export const MAX_PRICE = 1_000_000_000;
 /**
- * The price of one more building when `existing` of its type stand: base × growth^existing,
- * to the nearest 5 (an exact half rounds down), at most MAX_PRICE. Exact integers, never
- * floating point.
+ * base × growth^count, to the nearest 5 (an exact half rounds down), at most MAX_PRICE.
+ * Exact integers, never floating point. `growth` is a fraction.
  */
-export function buildingPrice(
-  type: (typeof BUILDING_IDS)[number],
-  existing: number,
+export function growingPrice(
+  basePrice: number,
+  growth: readonly [number, number],
+  count: number,
 ): number {
-  const { basePrice, growth } = BUILDINGS[type];
-  const value = BigInt(basePrice) * BigInt(growth[0]) ** BigInt(existing);
-  const unit = PRICE_STEP * BigInt(growth[1]) ** BigInt(existing);
+  const value = BigInt(basePrice) * BigInt(growth[0]) ** BigInt(count);
+  const unit = PRICE_STEP * BigInt(growth[1]) ** BigInt(count);
   const price = ((2n * value + unit - 1n) / (2n * unit)) * PRICE_STEP;
   return Number(price < BigInt(MAX_PRICE) ? price : BigInt(MAX_PRICE));
 }
+/** The price of one more building when `existing` of its type stand. */
+export const buildingPrice = (
+  type: (typeof BUILDING_IDS)[number],
+  existing: number,
+): number =>
+  growingPrice(BUILDINGS[type].basePrice, BUILDINGS[type].growth, existing);
 /** Land costs more the further it lies outside the starter district. */
 export const LAND_PRICE = { base: 50, perTile: 25 } as const;
 /** Roads cost a real share of land (spec 014); buildings never lay them for free. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance } from '../helpers/world';
+import { advance, invite } from '../helpers/world';
 import { fishingFixture } from './fishing-fixture';
 import { pettingTastes } from '../../src/core';
 import { createWorld, loadWorld, World } from '../../src/core/world';
@@ -165,7 +165,7 @@ describe('PET_CAT', () => {
 
   it('only changes the cat that was petted', () => {
     const world = createWorld(SEED);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     const before = world.getSnapshot();
     const pepper = before.cats[1]!;
     expect(
@@ -283,7 +283,7 @@ describe('the mood allowance (user 2026-09-30)', () => {
 
   it('is each cat’s own', () => {
     const world = createWorld(SEED);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     const pepper = cat(world, 1).id;
     rounds(world, LIFTS, poor);
     expect(rounds(world, 1, poor)).toMatchObject([{ full: false }]);
@@ -335,7 +335,7 @@ describe('the bond (spec 041 R-20)', () => {
 
   it('starts over with the next game day, for each cat by itself', () => {
     const world = calm(20);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     const pepper = cat(world, 1).id;
     const bonds = () => world.getSnapshot().cats.map((cat) => cat.playerBond);
     for (let round = 0; round < BOND.pettingPerDay; round++) pet(world, lovely);
@@ -405,7 +405,7 @@ describe('a rejected round leaves the world unchanged', () => {
 
   it('a cat in a fishing run; another cat can still be petted', () => {
     const world = fishingFixture(SEED);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     world.dispatch({
       type: 'FISH_BEGIN',
       catId: 'mochi',

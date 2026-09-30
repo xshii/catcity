@@ -71,8 +71,9 @@ for (const size of PHONES) {
       ).toBe(true);
       await page.screenshot({ path: `${SHOTS}/breed-list-${name}.png` });
 
-      // Longer than the panel: the page scrolls inside it, down to the last cat, whole.
-      const scroller = page.locator('#panel-cats');
+      // Longer than the panel: the roster page scrolls inside it (the tabs stay), down
+      // to the last cat, whole.
+      const scroller = page.locator('#cats-page-roster');
       expect(
         await scroller.evaluate(
           (panel) => panel.scrollHeight > panel.clientHeight,
@@ -86,8 +87,9 @@ for (const size of PHONES) {
       expect(shown.y + shown.height).toBeLessThanOrEqual(
         sheet.y + sheet.height,
       );
-      // The title and way back stay; the panel keeps off the tool bar.
+      // The title, way back and tabs stay; the panel keeps off the tool bar.
       await expect(page.locator('#river-tools-close')).toBeInViewport();
+      await expect(page.locator('#cats-tab-roster')).toBeInViewport();
       expect(overlap(sheet, await box(page.locator('#city-tools-nav')))).toBe(
         false,
       );

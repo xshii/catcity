@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
+import { CAT_DEFINITION_IDS } from '../content/cats';
 import { baitIdSchema, spotIdSchema } from './fishing/schema';
 import { positionSchema } from './schema';
 import { FISHING, type SpotId } from '../content/fishing';
@@ -93,7 +94,10 @@ export const commandSchema = z.discriminatedUnion('type', [
     type: z.literal('BUY_BAIT'),
     baitId: z.enum(['WORM', 'SHRIMP']),
   }),
-  z.strictObject({ type: z.literal('INVITE_PEPPER') }),
+  z.strictObject({
+    type: z.literal('INVITE_CAT'),
+    definitionId: z.enum(CAT_DEFINITION_IDS),
+  }),
   z.strictObject({
     type: z.literal('ADVANCE_TIME'),
     minutes: z.number().int().min(0).max(MAX_ADVANCE_MINUTES),
@@ -168,6 +172,7 @@ export type GameEvent =
       reason: 'walking';
     }
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
+  | { type: 'CatInvited'; minute: number; entityId: string; cost: number }
   | {
       type: 'CatPetted';
       minute: number;
@@ -221,7 +226,9 @@ export type ErrorCode =
   | 'BAG_FULL'
   | 'FISH_NOT_FOUND'
   | 'NO_SUPPLIES'
-  | 'ALREADY_INVITED';
+  | 'ALREADY_INVITED'
+  | 'COMPANION_LIMIT'
+  | 'NO_BED';
 export type CommandResult =
   { ok: true; events: GameEvent[] } | { ok: false; error: ErrorCode };
 /** A dry run: whether Core would accept the command now. */

@@ -755,16 +755,22 @@ body {
   margin: 12px 0;
 }
 #city-panel-guide,
-#panel-cats,
 #city-panel-outing {
   display: flow-root;
 }
 /*
- * A long cats page scrolls inside the sheet (ui-design 3.3): the sheet's title and way
- * back stay, and nothing reaches the tool bar. Its sides and foot leave a focused
- * control's ring (3px, 3px out) room, so the scroll box does not cut it.
+ * The cats panel is a column: its tabs stay, and the open page scrolls inside the sheet
+ * when it is longer (ui-design P2, 3.3), never past the sheet's foot onto the tool bar.
+ * The page's sides and foot leave a focused control's ring (3px, 3px out) room, so the
+ * scroll box does not cut it. The invite list fills its page and scrolls by itself, so
+ * its way back stays (cats/invite.css).
  */
-.game-screen #panel-cats {
+#panel-cats {
+  display: flex;
+  flex-direction: column;
+}
+#panel-cats > .tool-page {
+  flex: 1;
   overflow-y: auto;
   margin-inline: -6px;
   padding: 0 6px 6px;
@@ -797,12 +803,6 @@ body {
   flex-shrink: 0;
   min-height: 32px;
   padding: 6px 12px;
-  font-size: 11px;
-}
-.game-screen #cats-page-roster #invite-pepper {
-  width: 100%;
-  min-height: 34px;
-  margin-top: 10px;
   font-size: 11px;
 }
 .outing-intro {
