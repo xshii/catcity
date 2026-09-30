@@ -7,7 +7,7 @@ import {
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ChildProcess } from 'node:child_process';
-import type { GameAdapter, HarnessTask } from './contract';
+import type { BrowserTestChoice, GameAdapter, HarnessTask } from './contract';
 import { sourceIdentity } from './evidence';
 import {
   runProcess,
@@ -19,6 +19,7 @@ import {
 export async function runHarness(
   task: HarnessTask,
   adapter: GameAdapter,
+  browserTests: BrowserTestChoice,
 ): Promise<string> {
   const directory = join(
     'artifacts',
@@ -48,8 +49,20 @@ export async function runHarness(
   let context: BrowserContext | undefined;
   let page: Page | undefined;
   await write('task.json', task);
+  const chosen =
+    browserTests.files === 'all'
+      ? 'all'
+      : browserTests.files.join(' ') || 'none';
+  console.log(`[harness] browser tests: ${chosen}`);
+  await writeFile(
+    join(directory, 'checks.log'),
+    [...browserTests.notes, `browser tests: ${chosen}`, ''].join('\n'),
+  );
   try {
-    for (const command of task.commands) {
+    for (const command of [
+      ...task.commands,
+      ...task.browserTests(browserTests.files),
+    ]) {
       console.log(`[harness] ${command.name}`);
       await step(command.name, () =>
         runProcess(
@@ -139,6 +152,7 @@ export async function runHarness(
     await write('manifest.json', {
       task: task.id,
       buildVersion,
+      browserTests: browserTests.files,
       ...identity,
       completedAt: new Date().toISOString(),
       ok: failures.length === 0,
