@@ -33,6 +33,12 @@ for (const viewport of [
     const card = page.locator('#catch-reveal');
     const bar = card.locator('.catch-countdown');
     await expect(card).toBeVisible();
+    // The card pops in (fading from transparent); the picture waits until it has.
+    await card.evaluate((element) =>
+      Promise.all(
+        element.getAnimations().map((animation) => animation.finished),
+      ),
+    );
     // In the background the countdown waits, so the picture is taken at half time.
     await pageHidden(page, true);
     await expect(card).toHaveAttribute('data-countdown', 'held');
