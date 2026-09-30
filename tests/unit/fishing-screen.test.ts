@@ -39,12 +39,16 @@ import {
 import { replay } from '../helpers/fishing-view';
 import { fishingFixture } from './fishing-fixture';
 
-/** A device that finished the guide and calibrated before, unless told otherwise. */
+/**
+ * A device that finished the guide and calibrated before, and has not seen the aim hint,
+ * unless told otherwise.
+ */
 const view = (
   options: {
     phone?: boolean;
     preference?: 'motion' | 'buttons';
     guide?: GuideStep;
+    aimHintSeen?: boolean;
   } = {},
   ...events: FishingViewEvent[]
 ) =>
@@ -55,6 +59,7 @@ const view = (
       coarsePointer: options.phone ?? true,
       guide: options.guide ?? null,
       autoCalibrate: false,
+      aimHintSeen: options.aimHintSeen ?? false,
     }),
     ...events,
   );
@@ -388,6 +393,49 @@ describe('fishing screen', () => {
     ).toBe(SCREEN_COPY.hint.waiting);
   });
 
+  it('shows the aim hint once, with a close, and leaves the other hints alone (user, 2026-09-30)', () => {
+    const aiming = view({}, river, ready);
+    expect(fishingScreen(aiming, null)).toMatchObject({
+      hint: SCREEN_COPY.hint.aim,
+      aimHint: true,
+    });
+    // Seen on this device: the aim shows no hint at all.
+    const seen = view({ aimHintSeen: true }, river, ready);
+    expect(fishingScreen(seen, null)).toMatchObject({
+      hint: '',
+      aimHint: false,
+    });
+    // Calibration, its result and the guide's aim steps show instead, without a close.
+    for (const [state, hint] of [
+      [
+        replay(aiming, { type: 'calibrating', on: true }),
+        SCREEN_COPY.hint.calibrating,
+      ],
+      [replay(aiming, { type: 'notice', text: '校准完成' }), '校准完成'],
+      [view({ guide: 'aim' }, river, ready), SCREEN_COPY.guide.aim],
+    ] as const)
+      expect(fishingScreen(state, null)).toMatchObject({
+        hint,
+        aimHint: false,
+      });
+    // A run's hints stay once it is seen (each phase's words: the test above).
+    const playing = replay(
+      seen,
+      { type: 'run', runId: 'r' },
+      { type: 'resume' },
+    );
+    expect(fishingScreen(playing, runOf('motion', 'waiting'))).toMatchObject({
+      hint: SCREEN_COPY.hint.waiting,
+      aimHint: false,
+    });
+    // Never in button play.
+    expect(
+      fishingScreen(view({ preference: 'buttons' }, river, ready), null)
+        .aimHint,
+    ).toBe(false);
+    expect(SCREEN_COPY.hint.close).toBe('关闭提示');
+  });
+
   it('teaches the first cast in the hint, each step where it happens, with a skip', () => {
     const playing: FishingViewEvent[] = [
       river,
@@ -590,7 +638,6 @@ describe('fishing screen', () => {
         expect(castNotice(charge, null)).toBeNull();
       }
     expect(SCREEN_COPY.cast.onShadow).toBe('落在鱼影上');
-    expect(SCREEN_COPY.cast.legend).toBe('落点圈变绿＝对准了鱼影');
   });
 
   it('labels the pause button from the state', () => {

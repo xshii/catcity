@@ -204,6 +204,7 @@ export function mountPanel(
     notify,
     city,
     aim: angling.aim,
+    catMoves: angling.catMoves,
     fishingClock: angling.fishingClock,
     pettingClock: petting.clock,
   };
