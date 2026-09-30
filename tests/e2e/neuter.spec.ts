@@ -91,6 +91,12 @@ for (const size of PHONES) {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
+      // The fade-in over, or the screenshot shows the page through the dialog.
+      await dialog.evaluate((element) =>
+        Promise.all(
+          element.getAnimations().map((animation) => animation.finished),
+        ),
+      );
       await page.screenshot({ path: `${SHOTS}/neuter-confirm-${name}.png` });
 
       // Cancel sends nothing.

@@ -36,6 +36,7 @@ export const E2E_SPECS: Readonly<Record<string, SpecEntry>> = {
   'invite.spec.ts': { modules: ['cats'] },
   'main-page.spec.ts': { modules: ['city'], layout: true },
   'motion-fishing.spec.ts': { modules: ['fishing'] },
+  'neuter.spec.ts': { modules: ['cats'] },
   'notice-layer.spec.ts': {
     modules: ['city', 'fishing', 'cats'],
     layout: true,
