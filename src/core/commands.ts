@@ -105,8 +105,9 @@ export const commandSchema = z.discriminatedUnion('type', [
     type: z.literal('BREED_CATS'),
     motherId: id,
     fatherId: id,
-    /** The kitten's name, given as the player confirms (R-32). */
+    /** The kitten's name and sex, both the player's as it confirms (R-32, user 2026-09-30). */
     name: catNameSchema,
+    sex: z.enum(['F', 'M']),
   }),
   z.strictObject({
     type: z.literal('RENAME_CAT'),

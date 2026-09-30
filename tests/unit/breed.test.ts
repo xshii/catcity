@@ -20,15 +20,17 @@ import { familyMarks, inherit } from '../../src/core/inheritance';
 import { later, PEPPER_ID, readyPair, withKitten } from '../helpers/family';
 import { buildApartment, invite } from '../helpers/world';
 
-// Spec 041 R-32 – R-35 (design 5.2 – 5.4): a kitten of a ready pair, its identity drawn
-// from the seed and its id alone, each trait from one of its parents.
+// Spec 041 R-32 – R-35 (design 5.2 – 5.4): a kitten of a ready pair, its sex the
+// player's (user 2026-09-30), the rest of its identity drawn from the seed and its id
+// alone, each trait from one of its parents.
 
 const breed = (
   world: World,
   name = '团子',
   motherId = 'mochi',
   fatherId = PEPPER_ID,
-) => world.dispatch({ type: 'BREED_CATS', motherId, fatherId, name });
+  sex: 'F' | 'M' = 'F',
+) => world.dispatch({ type: 'BREED_CATS', motherId, fatherId, name, sex });
 /** The world with `change` made to its state: a save as play could have left it. */
 const edited = (world: World, change: (state: WorldState) => void): World => {
   const state = world.getSnapshot();
@@ -38,7 +40,6 @@ const edited = (world: World, change: (state: WorldState) => void): World => {
 /** The identity a kitten takes from its parents: everything `inherit` decides. */
 const identity = (cat: CatEntity) => ({
   breedId: cat.breedId,
-  sex: cat.sex,
   appearance: cat.appearance,
   personality: cat.personality,
   traits: cat.traits,
@@ -77,6 +78,7 @@ describe('BREED_CATS (spec 041 R-32, design 5.2)', () => {
       id,
       definitionId: null,
       name: '团子',
+      sex: 'F',
       bornMinute: before.minute,
       generation: 2,
       parents: { mother: mochi.id, father: pepper.id },
@@ -109,6 +111,41 @@ describe('BREED_CATS (spec 041 R-32, design 5.2)', () => {
     expect(after.cats.slice(0, 2)).toEqual(
       before.cats.map((cat) => ({ ...cat, lastBredMinute: before.minute })),
     );
+  });
+
+  it.each(['F', 'M'] as const)(
+    'gives the kitten the sex the player chose: %s',
+    (sex) => {
+      const world = readyPair();
+      expect(breed(world, '团子', 'mochi', PEPPER_ID, sex).ok).toBe(true);
+      const kitten = world.getSnapshot().cats.at(-1)!;
+      expect(kitten.sex).toBe(sex);
+      // The rest of it is the seed's either way.
+      const other = readyPair();
+      breed(other, '团子', 'mochi', PEPPER_ID, sex === 'F' ? 'M' : 'F');
+      expect(identity(other.getSnapshot().cats.at(-1)!)).toEqual(
+        identity(kitten),
+      );
+    },
+  );
+
+  it.each([
+    ['no sex', {}],
+    ['an unknown sex', { sex: 'X' }],
+    ['a sex in words', { sex: '母' }],
+  ])('rejects %s, and changes nothing', (_, sex) => {
+    const world = readyPair();
+    const before = world.save();
+    expect(
+      world.dispatch({
+        type: 'BREED_CATS',
+        motherId: 'mochi',
+        fatherId: PEPPER_ID,
+        name: '团子',
+        ...sex,
+      }),
+    ).toEqual({ ok: false, error: 'INVALID_COMMAND' });
+    expect(world.save()).toBe(before);
   });
 
   it('saves the kitten and restores it exactly', () => {
@@ -186,10 +223,10 @@ describe('BREED_CATS (spec 041 R-32, design 5.2)', () => {
   });
 
   it('rejects a kitten, a cat resting after its kitten and a cat of the family', () => {
+    // withKitten's kitten is a queen: with her father she is a pair of the other sex.
     const world = withKitten();
     const kitten = world.getSnapshot().cats[2]!;
-    const [mother, father] =
-      kitten.sex === 'F' ? [kitten.id, PEPPER_ID] : ['mochi', kitten.id];
+    const [mother, father] = [kitten.id, PEPPER_ID];
     rejects(world, 'CAT_TOO_YOUNG', '团子', mother, father);
     // The parents again, a minute later and happy as ever: they rest.
     rejects(later(world, 1, ['mochi', PEPPER_ID]), 'COOLING_DOWN');
@@ -217,6 +254,7 @@ describe('BREED_CATS (spec 041 R-32, design 5.2)', () => {
         motherId: 'mochi',
         fatherId: PEPPER_ID,
         name: '团子',
+        sex: 'M',
       }),
     ).toEqual({ ok: true });
     expect(world.save()).toBe(before);
@@ -313,7 +351,7 @@ describe('inherit (spec 041 R-33, R-35, design 5.3 – 5.4)', () => {
     }
   });
 
-  it('takes each trait from either parent about as often, and either sex', () => {
+  it('takes each trait from either parent about as often', () => {
     /** How many kittens took the mother's, for a trait that tells them apart. */
     const mothers = (
       take: (kitten: (typeof kittens)[number]) => unknown,
@@ -321,7 +359,6 @@ describe('inherit (spec 041 R-33, R-35, design 5.3 – 5.4)', () => {
     ) => kittens.filter((kitten) => take(kitten) === of).length;
     const shares = [
       mothers((kitten) => kitten.breedId, mother.breedId),
-      mothers((kitten) => kitten.sex, 'F'),
       ...(['colour', 'pattern', 'white', 'eyes', 'face'] as const).map((item) =>
         mothers((kitten) => kitten.appearance[item], mother.appearance[item]),
       ),
@@ -389,10 +426,10 @@ describe('family marks (家传, design 5.4)', () => {
     expect(kitten.heritage).toBe(3);
     // Each of the three raised once from nothing.
     expect(kitten.talent).toEqual({ feel: 1, stamina: 1, affection: 1 });
-    // Grown up, it has a kitten with a newcomer of the other sex: the line's three
-    // marks, the kitten's own mark (亲密) and the newcomer's two (家人).
+    // Grown up, the queen has a kitten with a tom newly come: the line's three marks,
+    // her own mark (亲密) and the newcomer's two (家人).
     const rich = edited(world, (state) => (state.coins = 10_000));
-    const partner = invite(rich, kitten.sex === 'F' ? 'ZHIMA' : 'NIANGAO');
+    const partner = invite(rich, 'ZHIMA');
     const grown = edited(
       later(rich, KITTEN_MINUTES, [kitten.id, partner.id]),
       (state) => {
@@ -400,8 +437,7 @@ describe('family marks (家传, design 5.4)', () => {
         state.cats.find((cat) => cat.id === partner.id)!.playerBond = bond(4);
       },
     );
-    const [motherId, fatherId] =
-      kitten.sex === 'F' ? [kitten.id, partner.id] : [partner.id, kitten.id];
+    const [motherId, fatherId] = [kitten.id, partner.id];
     // Its parents', the partner's and its own beds are taken: one more apartment.
     buildApartment(grown);
     expect(breed(grown, '小满', motherId, fatherId).ok).toBe(true);

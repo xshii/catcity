@@ -10,10 +10,12 @@ import {
 import { RandomService, runSeed, streamSeed } from './random';
 import type { CatEntity, WorldState } from './schema';
 
-/** What a kitten takes from its parents (R-33, R-35); everything else is its own. */
+/**
+ * What a kitten takes from its parents (R-33, R-35); everything else is its own, its sex
+ * the player's choice (user 2026-09-30).
+ */
 export interface Inheritance {
   breedId: CatEntity['breedId'];
-  sex: CatEntity['sex'];
   appearance: CatAppearance;
   personality: string[];
   traits: string[];
@@ -42,7 +44,7 @@ const LOOK_ITEMS = Object.keys(APPEARANCE_OPTIONS) as (keyof CatAppearance)[];
 /**
  * A kitten's inheritance (R-33, design 5.3 – 5.4), drawn from `streamSeed(seed,
  * 'inherit')` and its id serial alone, in a fixed order, so the save can draw it again:
- * the sex; the breed and each of the five looks from one parent; one personality word,
+ * the breed and each of the five looks from one parent; one personality word,
  * trait, like, dislike and favourite fish from each (one, when both give the same); each
  * talent from one parent; then one talent raised per family mark `passed` down, each at
  * most once, none past `MAX_TALENT`.
@@ -66,7 +68,6 @@ export function inherit(
     const theirs = fromFather[random.nextInt(fromFather.length)]!;
     return mine === theirs ? [mine] : [mine, theirs];
   };
-  const sex = either<CatEntity['sex']>('F', 'M');
   const breedId = either(mother.breedId, father.breedId);
   const appearance = Object.fromEntries(
     LOOK_ITEMS.map((item) => [
@@ -98,7 +99,6 @@ export function inherit(
     talent[name] = Math.min(MAX_TALENT, talent[name] + 1);
   return {
     breedId,
-    sex,
     appearance,
     personality,
     traits,
@@ -143,7 +143,6 @@ export function assertBorn(world: WorldState, cat: CatEntity): void {
   const expected = inherit(world.seed, cat.id, mother, father, passed);
   if (
     cat.breedId !== expected.breedId ||
-    cat.sex !== expected.sex ||
     !sameList(cat.personality, expected.personality) ||
     !sameList(cat.traits, expected.traits) ||
     !sameList(cat.preferences.likes, expected.likes) ||

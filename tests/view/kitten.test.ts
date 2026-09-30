@@ -23,8 +23,15 @@ const KITTEN = 'cat-3';
 const commands = (game: Game) => game.session.getDiagnostics().commandCount;
 const chips = () =>
   Array.from(
-    document.querySelectorAll<HTMLElement>('#name-dialog [role="radio"]'),
+    document.querySelectorAll<HTMLElement>('#name-suggestions [role="radio"]'),
   );
+/** The two sexes in a kitten's name box: 公 then 母. */
+const sexes = () =>
+  Array.from(
+    document.querySelectorAll<HTMLElement>('#name-sex [role="radio"]'),
+  );
+const sexChecked = () =>
+  sexes().map((choice) => choice.getAttribute('aria-checked') === 'true');
 /** Mochi's list of partners, open, by touch. */
 function openList() {
   openCats('roster');
@@ -109,22 +116,42 @@ describe('a kitten from the list of partners (T-22)', () => {
       chips()[0]!.textContent,
     );
     expect(document.activeElement).not.toBe($('#name-input'));
+    // Its sex, the player's (user 2026-09-30): 公 or 母, neither at first, and no
+    // kitten until one is chosen.
+    expect($('#name-sex').getAttribute('role')).toBe('radiogroup');
+    expect(sexes().map((choice) => choice.textContent)).toEqual([
+      '♂ 公',
+      '♀ 母',
+    ]);
+    expect(sexChecked()).toEqual([false, false]);
+    expect($<HTMLButtonElement>('#name-confirm').disabled).toBe(true);
+    expect(text('#name-sex-note')).toBe('先选：公猫还是母猫');
     const name = chips()[2]!.textContent;
-    click('#name-dialog [role="radio"]:nth-child(3)');
+    click('#name-suggestions [role="radio"]:nth-child(3)');
+    click('#name-sex [role="radio"]:nth-child(3)');
+    expect(sexChecked()).toEqual([false, true]);
+    expect(text('#name-sex-note')).toBe('');
     click('#name-confirm');
     expect(game.session.lastCommand()!.command).toEqual({
       type: 'BREED_CATS',
       motherId: 'mochi',
       fatherId: PEPPER_ID,
       name,
+      sex: 'F',
     });
     const kitten = game.world().cats.at(-1)!;
-    expect(kitten).toMatchObject({ id: `cat-${nextId}`, name, generation: 2 });
+    expect(kitten).toMatchObject({
+      id: `cat-${nextId}`,
+      name,
+      sex: 'F',
+      generation: 2,
+    });
     // ui-design 5.4 step 3: the card, a dialog with its one button in focus.
     expect(visible('#birth-card')).toBe(true);
     expect($('#birth-card').getAttribute('role')).toBe('dialog');
     expect(text('#birth-title')).toBe(`${name} 出生了`);
-    expect(text('#birth-about')).toContain('二代目');
+    // The sex chosen, the breed one of the parents'.
+    expect(text('#birth-about')).toMatch(/^♀ 母 · (布偶猫|英短猫) · 二代目$/);
     expect(text('#birth-like')).toMatch(/^眼睛/);
     expect(text('#birth-home')).toBe('它住进了 1 号公寓。');
     expect(text('#birth-grows')).toBe('再过 2 天就长大了。');
@@ -140,7 +167,7 @@ describe('a kitten from the list of partners (T-22)', () => {
     expect(text(`[data-partner-id="${PEPPER_ID}"]`)).toContain('还在休息');
   });
 
-  it('goes through with the keyboard alone', () => {
+  it('goes through with the keyboard alone, 母 chosen with the arrows', () => {
     const game = openGame({ storage: saved() });
     pressEnter('#city-tab-cats');
     pressEnter('#cats-tab-roster');
@@ -151,9 +178,21 @@ describe('a kitten from the list of partners (T-22)', () => {
     key('keydown', 'Enter');
     expect(visible('#name-dialog')).toBe(true);
     const name = $<HTMLInputElement>('#name-input').value;
+    // Tab first reaches the two sexes, then the field and the rest of the box.
+    key('keydown', 'Tab');
+    expect(document.activeElement).toBe(sexes()[0]);
+    key('keydown', 'ArrowRight');
+    expect(document.activeElement).toBe(sexes()[1]);
+    key('keydown', 'ArrowRight');
+    expect(document.activeElement).toBe(sexes()[0]);
+    key('keydown', 'ArrowLeft');
+    key('keydown', 'Enter');
+    expect(sexChecked()).toEqual([false, true]);
+    key('keydown', 'Tab');
+    expect(document.activeElement).toBe($('#name-input'));
     $('#name-confirm').focus();
     key('keydown', 'Enter');
-    expect(game.world().cats.at(-1)!.name).toBe(name);
+    expect(game.world().cats.at(-1)).toMatchObject({ name, sex: 'F' });
     expect(document.activeElement).toBe($('#birth-see'));
     key('keydown', 'Tab');
     expect(document.activeElement).toBe($('#birth-see'));
@@ -175,6 +214,7 @@ describe('a kitten from the list of partners (T-22)', () => {
     expect($(`[data-breed-with="${PEPPER_ID}"]`)).toBe(way);
     click(`[data-breed-with="${PEPPER_ID}"]`);
     click('#confirm-ok');
+    click('#name-sex [role="radio"]:nth-child(2)');
     click('#name-confirm');
     click('#birth-see');
     click('[data-cat-id="mochi"]');

@@ -43,7 +43,8 @@ const field = () => $<HTMLInputElement>('#name-input');
 /** The box over the page, opened as a kitten's naming would open it. */
 function mountBox(game: Game) {
   const offered = suggestNames(game.world(), KITTEN.salt, 0);
-  const done = vi.fn<(name: string | null) => void>();
+  // No sex is asked of this box: it gives none (T-22).
+  const done = vi.fn<(name: string | null, sex: 'F' | 'M' | null) => void>();
   mountNameDialog({
     layer: document.body,
     world: game.world(),
@@ -58,6 +59,12 @@ function openBox() {
   return { game, ...mountBox(game) };
 }
 describe('the name box (ui-design 5.4)', () => {
+  it('asks no sex unless it names a kitten (T-22)', () => {
+    openBox();
+    expect(document.querySelector('#name-sex')).toBeNull();
+    expect($<HTMLButtonElement>('#name-confirm').disabled).toBe(false);
+  });
+
   it('opens on the first suggestion, marked, and keeps the keyboard down', () => {
     const { offered } = openBox();
     expect(visible('#name-dialog')).toBe(true);
@@ -82,7 +89,7 @@ describe('the name box (ui-design 5.4)', () => {
     expect(checked()).toEqual([false, false, true, false, false, false]);
     expect(done).not.toHaveBeenCalled();
     click('#name-confirm');
-    expect(done).toHaveBeenCalledExactlyOnceWith(offered[2]);
+    expect(done).toHaveBeenCalledExactlyOnceWith(offered[2], null);
     expect(document.querySelector('#name-dialog')).toBeNull();
   });
 
@@ -107,7 +114,7 @@ describe('the name box (ui-design 5.4)', () => {
     expect(text('#name-note')).toBe(`不填的话就叫 ${offered[0]}`);
     expect($<HTMLButtonElement>('#name-confirm').disabled).toBe(false);
     click('#name-confirm');
-    expect(done).toHaveBeenCalledExactlyOnceWith(offered[0]);
+    expect(done).toHaveBeenCalledExactlyOnceWith(offered[0], null);
   });
 
   it('takes 12 characters at most, and no line break', () => {
@@ -126,7 +133,7 @@ describe('the name box (ui-design 5.4)', () => {
     ]) {
       const { done } = mountBox(game);
       close();
-      expect(done).toHaveBeenCalledExactlyOnceWith(null);
+      expect(done).toHaveBeenCalledExactlyOnceWith(null, null);
       expect(document.querySelector('#name-dialog')).toBeNull();
     }
   });

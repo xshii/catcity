@@ -1,6 +1,6 @@
 import './name-dialog.css';
 import { SUGGESTED_NAMES } from '../../content/names';
-import type { WorldState } from '../../core';
+import type { CatEntity, WorldState } from '../../core';
 import {
   NAME_COPY,
   nameDialogScreen,
@@ -17,17 +17,18 @@ const ARROWS: Record<string, number> = {
 
 /**
  * The name box (spec 041 R-16, ui-design 5.4) over a scrim (ui-design 3.1: layers 50 and
- * 51), for a rename and later a kitten (T-22): the question, the name in a field, six
- * suggested names, "换一批", cancel and confirm. The keyboard stays down until the field
- * is tapped. Confirm gives `done` the name; cancel, Escape or the scrim give null. It
- * sends no command; it goes, and the focus returns to where it was. Names are text only.
+ * 51), for a rename, the stray and a kitten (T-22): the question, for a kitten its sex
+ * (公 or 母, neither at first), the name in a field, six suggested names, "换一批", cancel
+ * and confirm. The keyboard stays down until the field is tapped. Confirm gives `done`
+ * the name and a kitten's sex; cancel, Escape or the scrim give null. It sends no
+ * command; it goes, and the focus returns to where it was. Names are text only.
  */
 export function mountNameDialog(deps: {
   layer: HTMLElement;
   /** The city as the box opens: its names and the seed its suggestions come from. */
   world: WorldState;
   input: NameDialogInput;
-  done: (name: string | null) => void;
+  done: (name: string | null, sex: CatEntity['sex'] | null) => void;
 }): HTMLElement {
   const { world, input } = deps;
   const opener = document.activeElement as HTMLElement | null;
@@ -35,7 +36,13 @@ export function mountNameDialog(deps: {
   root.className = 'name-dialog';
   root.innerHTML =
     '<div class="name-scrim"></div><form id="name-dialog" class="name-card" role="dialog" aria-modal="true" aria-labelledby="name-title" tabindex="-1">' +
-    '<h2 id="name-title"></h2><div class="name-field">' +
+    '<h2 id="name-title"></h2>' +
+    (input.askSex
+      ? `<div id="name-sex" class="name-sex" role="radiogroup" aria-labelledby="name-sex-label"><span id="name-sex-label">${NAME_COPY.sex.group}</span>` +
+        '<button type="button" role="radio"></button>'.repeat(2) +
+        '</div><small id="name-sex-note" class="name-note" aria-live="polite"></small>'
+      : '') +
+    '<div class="name-field">' +
     '<input id="name-input" aria-labelledby="name-title" aria-describedby="name-note" autocomplete="off" enterkeyhint="done" />' +
     `<button id="name-clear" type="button" tabindex="-1" aria-label="${NAME_COPY.clear}">✕</button></div>` +
     '<small id="name-note" class="name-note" aria-live="polite"></small>' +
@@ -48,19 +55,32 @@ export function mountNameDialog(deps: {
     root.querySelector<T>(`#${id}`)!;
   const box = $<HTMLFormElement>('name-dialog');
   const field = $<HTMLInputElement>('name-input');
-  const chips = Array.from(root.querySelectorAll<HTMLElement>('[role=radio]'));
+  const chips = Array.from(
+    root.querySelectorAll<HTMLElement>('#name-suggestions [role=radio]'),
+  );
+  const sexes = Array.from(
+    root.querySelectorAll<HTMLElement>('#name-sex [role=radio]'),
+  );
   // The caller's words, and the player's: text only.
   $('name-title').textContent = input.title;
   $('name-confirm').textContent = input.confirm;
   field.value = input.initial;
   let page = 0;
-  let model = nameDialogScreen(world, input, field.value, page);
+  let sex: CatEntity['sex'] | null = null;
+  let model = nameDialogScreen(world, input, field.value, page, sex);
   const render = () => {
-    model = nameDialogScreen(world, input, field.value, page);
+    model = nameDialogScreen(world, input, field.value, page, sex);
     model.suggestions.forEach(({ name, checked }, i) => {
       chips[i]!.textContent = name;
       chips[i]!.setAttribute('aria-checked', String(checked));
     });
+    model.sex?.choices.forEach(({ text, label, checked }, i) => {
+      sexes[i]!.textContent = text;
+      sexes[i]!.setAttribute('aria-label', label);
+      sexes[i]!.setAttribute('aria-checked', String(checked));
+    });
+    if (model.sex) $('name-sex-note').textContent = model.sex.note;
+    $<HTMLButtonElement>('name-confirm').disabled = !model.ready;
     $('name-note').textContent = model.note;
   };
   // With the keyboard up, the box keeps to the part of the screen still showing.
@@ -76,7 +96,7 @@ export function mountNameDialog(deps: {
     viewport?.removeEventListener('scroll', fit);
     root.remove();
     opener?.focus();
-    deps.done(name);
+    deps.done(name, name === null ? null : sex);
   };
   const keep = (event: Event) => {
     // An input method still composing keeps its text until it is done.
@@ -90,6 +110,12 @@ export function mountNameDialog(deps: {
   chips.forEach((chip, i) =>
     chip.addEventListener('click', () => {
       field.value = model.suggestions[i]!.name;
+      render();
+    }),
+  );
+  sexes.forEach((choice, i) =>
+    choice.addEventListener('click', () => {
+      sex = model.sex!.choices[i]!.value;
       render();
     }),
   );
@@ -107,7 +133,7 @@ export function mountNameDialog(deps: {
     .addEventListener('click', () => close(null));
   box.addEventListener('submit', (event) => {
     event.preventDefault();
-    close(model.name);
+    if (model.ready) close(model.name);
   });
   root.addEventListener('keydown', (event) => {
     const target = event.target as HTMLElement;
@@ -131,10 +157,13 @@ export function mountNameDialog(deps: {
             : stops.length - 1
           : (at + step + stops.length) % stops.length
       ]!.focus();
-    } else if (ARROWS[event.key] && chips.includes(target)) {
+    } else if (ARROWS[event.key]) {
+      // Arrows move within the group the focus is in: the suggestions, or the sexes.
+      const group = [chips, sexes].find((items) => items.includes(target));
+      if (!group) return;
       event.preventDefault();
-      const next = chips.indexOf(target) + ARROWS[event.key]! + chips.length;
-      chips[next % chips.length]!.focus();
+      const next = group.indexOf(target) + ARROWS[event.key]! + group.length;
+      group[next % group.length]!.focus();
     }
   });
   deps.layer.append(root);

@@ -62,7 +62,13 @@ export function applyCommand(
     case 'NEUTER_CAT':
       return neuterCat(world, command.catId);
     case 'BREED_CATS':
-      return breedCats(world, command.motherId, command.fatherId, command.name);
+      return breedCats(
+        world,
+        command.motherId,
+        command.fatherId,
+        command.name,
+        command.sex,
+      );
     case 'RESTYLE_CAT':
       return restyleCat(world, command.catId, command.appearance);
     case 'PET_CAT':

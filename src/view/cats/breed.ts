@@ -19,8 +19,8 @@ type Partner = Model['partners'][number];
  * "Who could it have a kitten with", under the cats roster for the selected cat (spec 041
  * T-21, ui-design 5.4): a button that shows or hides the list `breedScreen` decides, a
  * row per other cat made once and kept (design 10.2). A partner who misses nothing has a
- * way to a kitten (T-22): the confirmation, then the name box, and only a name sends
- * BREED_CATS; the card of the birth follows, and closing it selects the kitten.
+ * way to a kitten (T-22): the confirmation, then the name box, and only a name and a sex
+ * send BREED_CATS; the card of the birth follows, and closing it selects the kitten.
  */
 export function mountBreeding(deps: {
   session: GameSession;
@@ -132,9 +132,9 @@ export function mountBreeding(deps: {
         layer: deps.layer,
         world: session.getSnapshot(),
         input: flow.name,
-        done: (name) => {
-          if (name === null) return;
-          const result = session.execute(flow.command(name));
+        done: (name, sex) => {
+          if (name === null || sex === null) return;
+          const result = session.execute(flow.command(name, sex));
           if (!result.ok) return deps.notify(ERROR_MESSAGES[result.error]);
           const born = result.events.find((event) => event.type === 'CatBorn');
           const kittenId = born!.entityId;

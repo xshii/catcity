@@ -36,6 +36,16 @@
   font-size: 20px;
   overflow-wrap: anywhere;
 }
+/* A kitten's sex (T-22): two choices in a row, neither at first. */
+.name-sex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.name-sex button {
+  flex: 1;
+  font-size: 14px;
+}
 .name-field {
   display: flex;
   align-items: center;
@@ -82,7 +92,8 @@
   border-radius: var(--radius-pill);
   font-size: 14px;
 }
-.name-suggestions button[aria-checked='true'] {
+.name-suggestions button[aria-checked='true'],
+.name-sex button[aria-checked='true'] {
   border-color: var(--selected-line);
   background: var(--selected-bg);
   box-shadow: var(--glow-good);

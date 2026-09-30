@@ -66,7 +66,7 @@ export function crowdedFamily(): World {
 /** Pepper's id in `readyPair`. */
 export const PEPPER_ID = 'cat-2';
 
-/** `readyPair` after Mochi and Pepper had a kitten named 团子 (spec 041 R-32). */
+/** `readyPair` after Mochi and Pepper had a kitten named 团子, a queen (spec 041 R-32). */
 export function withKitten(): World {
   const world = readyPair();
   const born = world.dispatch({
@@ -74,6 +74,7 @@ export function withKitten(): World {
     motherId: 'mochi',
     fatherId: PEPPER_ID,
     name: '团子',
+    sex: 'F',
   });
   if (!born.ok) throw new Error(born.error);
   return world;

@@ -35,12 +35,15 @@ describe('the way to a kitten (T-22)', () => {
       confirm: '就叫这个',
       initial: suggestNames(world, world.nextId, 0)[0],
       salt: world.nextId,
+      // The player names its sex too (user 2026-09-30).
+      askSex: true,
     });
-    expect(flow.command('团子')).toEqual({
+    expect(flow.command('团子', 'M')).toEqual({
       type: 'BREED_CATS',
       motherId: 'mochi',
       fatherId: PEPPER_ID,
       name: '团子',
+      sex: 'M',
     });
   });
 
@@ -48,7 +51,7 @@ describe('the way to a kitten (T-22)', () => {
     const world = readyPair().getSnapshot();
     const flow = kittenFlow(world, PEPPER_ID, 'mochi');
     expect(flow.confirm.title).toBe('Mochi 和 Pepper 要有小猫了');
-    expect(flow.command('团子')).toMatchObject({
+    expect(flow.command('团子', 'F')).toMatchObject({
       motherId: 'mochi',
       fatherId: PEPPER_ID,
     });
@@ -124,6 +127,7 @@ describe('the card of a birth (ui-design 5.4)', () => {
       motherId: 'mochi',
       fatherId: PEPPER_ID,
       name: '团子',
+      sex: 'F',
     });
     expect(birthCard(world.getSnapshot(), KITTEN).talent).toBe(
       '钓感 1 · 耐力 1 · 亲人 1',

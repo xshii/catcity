@@ -114,7 +114,7 @@ breedBlocks(world, aId, bId): BreedBlock[] // 空数组表示可以生育；界�
 pairBreedBlocks(world, a, b)   // SAME_CAT（同一只时只报这一条）、NEED_PAIR、RELATED
 catBreedBlocks(world, cat)     // KITTEN、NEUTERED、NOT_HAPPY、BOND_TOO_LOW、COOLING_DOWN
 cityBreedBlocks(world)         // NO_BED（公寓床位 ≤ 有住所的猫）、COMPANION_LIMIT（MAX_COMPANIONS）
-inherit(seed, kittenId, mother, father, passed): { breedId, sex, appearance, personality, traits, likes, dislikes, favoriteFish, talent } // core/inheritance.ts; passed = 父母这次传下来的家传数
+inherit(seed, kittenId, mother, father, passed): { breedId, appearance, personality, traits, likes, dislikes, favoriteFish, talent } // core/inheritance.ts; passed = 父母这次传下来的家传数
 ```
 
 `breedBlocks` 返回**全部**未满足的条件，不是第一条。命令被拒绝时只报其中第一条对应的错误码。
@@ -123,10 +123,10 @@ inherit(seed, kittenId, mother, father, passed): { breedId, sex, appearance, per
 
 ### 5.2 命令
 
-| 命令         | 输入                           | 规则                                                                                                        |
-| ------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `NEUTER_CAT` | `catId`                        | 成年、未绝育、金币够；设 `neutered = true`，扣金币                                                          |
-| `BREED_CATS` | `motherId`、`fatherId`、`name` | `breedBlocks` 为空；分配新 id；`inherit`；小猫入住空床，出现在离住所最近的可走格子；父母记 `lastBredMinute` |
+| 命令         | 输入                                  | 规则                                                                                                                                                      |
+| ------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEUTER_CAT` | `catId`                               | 成年、未绝育、金币够；设 `neutered = true`，扣金币                                                                                                        |
+| `BREED_CATS` | `motherId`、`fatherId`、`name`、`sex` | `breedBlocks` 为空；分配新 id；性别用玩家起名时选的（用户 2026-09-30），其余 `inherit`；小猫入住空床，出现在离住所最近的可走格子；父母记 `lastBredMinute` |
 
 名字：去掉首尾空白后 1–12 个字符。
 
@@ -147,7 +147,7 @@ inherit(seed, kittenId, mother, father, passed): { breedId, sex, appearance, per
 
 ### 5.3 随机
 
-遗传用 `runSeed(streamSeed(world.seed, 'inherit'), kittenIdNumber)`（和推荐名同一种写法），先空抽四次，免得相邻种子的前几次抽取挨在一起。抽取顺序固定：性别、品种、外观五项各取父母之一；性格、特点、喜好、讨厌、喜欢的鱼各从父母那里各取一项（两边相同时只留一项）；三项属性各取父母之一；最后打乱三项属性的顺序给家传加成。界面**不预览**遗传结果（预览等于剧透，而且玩家可以反复取消重来）。确认前不分配 id，所以取消不消耗任何东西。
+遗传用 `runSeed(streamSeed(world.seed, 'inherit'), kittenIdNumber)`（和推荐名同一种写法），先空抽四次，免得相邻种子的前几次抽取挨在一起。抽取顺序固定：品种、外观五项各取父母之一（性别不抽：玩家在起名框里选公或母，用户 2026-09-30）；性格、特点、喜好、讨厌、喜欢的鱼各从父母那里各取一项（两边相同时只留一项）；三项属性各取父母之一；最后打乱三项属性的顺序给家传加成。界面**不预览**遗传结果（预览等于剧透，而且玩家可以反复取消重来）。确认前不分配 id，所以取消不消耗任何东西。
 
 ### 5.4 属性与传承
 

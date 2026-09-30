@@ -44,6 +44,7 @@ function giftedKitten(): World {
     motherId: 'mochi',
     fatherId: PEPPER_ID,
     name: '团子',
+    sex: 'F',
   });
   if (!born.ok) throw new Error(born.error);
   return catsAtPond(world);

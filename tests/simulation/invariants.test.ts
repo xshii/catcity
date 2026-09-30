@@ -118,6 +118,8 @@ function commandFor(
       motherId: catId(),
       fatherId: catId(),
       name: '团子',
+      // By the step, not a draw: the sex takes nothing from the sequence.
+      sex: step % 2 ? 'F' : 'M',
     }),
     () => ({
       type: 'ADVANCE_TIME',

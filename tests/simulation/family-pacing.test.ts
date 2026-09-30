@@ -47,7 +47,7 @@ const CASES = (['fishing', 'caring'] as const).flatMap((style: Style) =>
 );
 
 it.each(CASES)(
-  'a %s %s player casting every %i seconds, city clock %i×, raises a line to the fifth generation or runs out of room',
+  'a %s %s player casting every %i seconds, city clock %i×, raises a line to the fifth generation with 9 cats',
   (style, hands, castSeconds, speed) => {
     const pace: FamilyPace = playFamily({
       style,
@@ -57,9 +57,12 @@ it.each(CASES)(
       stray: 'RAGDOLL',
       generation: 5,
     });
-    expect(pace.born[2]).toBeGreaterThan(0);
-    if (pace.stuck) expect(pace.born[5]).toBeUndefined();
-    else expect(pace.born[5]).toBeGreaterThan(pace.born[4]!);
+    // With the sex chosen at naming (user 2026-09-30), no line runs out of room.
+    expect(pace.stuck).toBe(false);
+    expect(pace.born[5]).toBeGreaterThan(pace.born[4]!);
+    expect(pace.born[4]).toBeGreaterThan(pace.born[3]!);
+    expect(pace.born[3]).toBeGreaterThan(pace.born[2]!);
+    expect(pace.world.cats.length).toBeLessThanOrEqual(9);
     for (const cat of pace.world.cats)
       for (const name of TALENT_NAMES)
         expect(cat.talent[name]).toBeLessThanOrEqual(cat.generation - 1);

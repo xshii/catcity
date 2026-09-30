@@ -166,8 +166,9 @@ const asParents = (world: WorldState, a: string, b: string) => {
 
 /**
  * Having a kitten with `partnerId` (spec 041 R-32, T-22): the confirmation first
- * (ui-design 4.2), then the name box, which suggests by the id the kitten will have;
- * `command` is what the chosen name sends. Nothing is drawn or allocated before that.
+ * (ui-design 4.2), then the name box, which suggests by the id the kitten will have and
+ * asks its sex (user 2026-09-30); `command` is what the chosen name and sex send.
+ * Nothing is drawn or allocated before that.
  */
 export function kittenFlow(
   world: WorldState,
@@ -195,12 +196,14 @@ export function kittenFlow(
       confirm: KITTEN_COPY.name.confirm,
       initial: suggestNames(world, salt, 0)[0]!,
       salt,
+      askSex: true,
     } satisfies NameDialogInput,
-    command: (name: string): GameCommand => ({
+    command: (name: string, sex: CatEntity['sex']): GameCommand => ({
       type: 'BREED_CATS',
       motherId: mother.id,
       fatherId: father.id,
       name,
+      sex,
     }),
   };
 }

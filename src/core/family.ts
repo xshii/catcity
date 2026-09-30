@@ -167,8 +167,8 @@ const BLOCK_ERRORS: Record<BreedBlock, ErrorCode> = {
 
 /**
  * A kitten for a pair that meets every condition (spec 041 R-32, design 5.2): the next id,
- * its inheritance, the name the player gave it, the first free bed and the walkable tile
- * nearest it. It carries its line's family marks and those its parents earned; both
+ * its inheritance, the name and sex the player gave it, the first free bed and the
+ * walkable tile nearest it. It carries its line's family marks and those its parents earned; both
  * parents rest from now. Nothing is drawn or allocated for a refused pair.
  */
 export function breedCats(
@@ -176,6 +176,7 @@ export function breedCats(
   motherId: string,
   fatherId: string,
   name: string,
+  sex: CatEntity['sex'],
 ): GameEvent[] {
   const blocks = breedBlocks(world, motherId, fatherId);
   const mother = requireCat(world, motherId);
@@ -204,6 +205,7 @@ export function breedCats(
     id,
     definitionId: null,
     name,
+    sex,
     preferences: { likes, dislikes },
     bornMinute: world.minute,
     generation: Math.max(mother.generation, father.generation) + 1,

@@ -360,11 +360,6 @@ describe('a cat born in the city answers to its parents (spec 041 R-11, T-22)', 
       /inheritance/,
     ],
     [
-      'the other sex',
-      (kitten) => (kitten.sex = other(kitten.sex, ['F', 'M'])),
-      /inheritance/,
-    ],
-    [
       'another personality',
       (kitten) => (kitten.personality = ['brave']),
       /inheritance/,
@@ -417,6 +412,12 @@ describe('a cat born in the city answers to its parents (spec 041 R-11, T-22)', 
     const [mother, father, kitten] = save.world.cats as CatEntity[];
     tamper(kitten!, [mother!, father!]);
     expect(() => loadWorld(JSON.stringify(save))).toThrow(reason);
+  });
+
+  it('takes a kitten of either sex: the player chose it (user 2026-09-30)', () => {
+    const save = born();
+    kittenOf(save).sex = kittenOf(save).sex === 'F' ? 'M' : 'F';
+    expect(() => loadWorld(JSON.stringify(save))).not.toThrow();
   });
 
   it('rejects a kitten born later than now', () => {

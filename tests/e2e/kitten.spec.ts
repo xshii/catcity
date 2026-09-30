@@ -71,7 +71,7 @@ for (const size of PHONES) {
       const box = page.locator('#name-dialog');
       await expect(box).toBeInViewport({ ratio: 1 });
       await expect(page.locator('#name-title')).toHaveText('给小猫起个名字');
-      const chips = box.locator('[role="radio"]');
+      const chips = box.locator('#name-suggestions [role="radio"]');
       await expect(page.locator('#name-input')).toHaveValue(
         (await chips.first().textContent())!,
       );
@@ -79,6 +79,9 @@ for (const size of PHONES) {
       await page.screenshot({ path: `${SHOTS}/kitten-name-${name}.png` });
       const kittenName = (await chips.nth(1).textContent())!;
       await chips.nth(1).tap();
+      // Its sex is the player's (user 2026-09-30): 母.
+      await expect(page.locator('#name-confirm')).toBeDisabled();
+      await page.locator('#name-sex [role="radio"]').nth(1).tap();
       await page.locator('#name-confirm').tap();
 
       // ui-design 5.4 step 3: the card of the birth, whole, its button a thumb's size.
@@ -97,7 +100,11 @@ for (const size of PHONES) {
       let world = await readWorld(page);
       const kitten = world.cats.at(-1)!;
       expect(world.cats).toHaveLength(3);
-      expect(kitten).toMatchObject({ name: kittenName, generation: 2 });
+      expect(kitten).toMatchObject({
+        name: kittenName,
+        sex: 'F',
+        generation: 2,
+      });
       await page.locator('#birth-see').tap();
       await expect(card).toHaveCount(0);
 

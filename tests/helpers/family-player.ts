@@ -52,8 +52,10 @@ import { PLAYERS, rodTip } from './motion-player';
  *   the other sex who is not family, the pair with the least bond still to earn. With no
  *   such partner, a first-generation cat of that sex is invited; with none left, some pair
  *   has one more kitten: another of the newest generation, or one who is no family of a
- *   cat of it (an aunt or an uncle). A kitten's sex is the seed's, so the city may run out
- *   of room (MAX_COMPANIONS) first: the play is then `stuck` and never gets there.
+ *   cat of it (an aunt or an uncle). The player names each kitten's sex (user
+ *   2026-09-30): a cat of the line gets the sex with more partners left for it, a partner
+ *   the other sex from its cat. Were the city to run out of room (MAX_COMPANIONS) first,
+ *   the play would be `stuck` and never get there.
  * - The work. It fishes with whichever of the pair has more bond to earn (a kitten too:
  *   nothing stops it yet), with the hands of the fight balance simulation: the lift
  *   comes `delay` ticks into the bite, give or take the hand's jitter. It fishes the
@@ -176,11 +178,41 @@ type Goal =
   /** No room in the city for the kittens still needed (MAX_COMPANIONS). */
   | { kind: 'stuck' }
   | { kind: 'invite'; definitionId: (typeof INVITABLE_CATS)[number] }
-  | { kind: 'pair'; mother: CatEntity; father: CatEntity };
+  | { kind: 'pair'; mother: CatEntity; father: CatEntity; sex: Sex };
+type Sex = CatEntity['sex'];
+const other = (sex: Sex): Sex => (sex === 'F' ? 'M' : 'F');
 
 const deficit = (cat: CatEntity) => Math.max(0, TRUST - cat.playerBond);
 
 /** What the player works toward next. */
+/**
+ * How many partners a kitten of these parents and this sex could have: the cats of the
+ * other sex in the city who would not be its family (neither its parents nor theirs, nor
+ * their other kittens), and the first-generation cats of that sex still to invite.
+ */
+function partners(
+  state: WorldState,
+  { mother, father }: { mother: CatEntity; father: CatEntity },
+  sex: Sex,
+): number {
+  const family = (cat: CatEntity) =>
+    cat.id === mother.id ||
+    cat.id === father.id ||
+    related(state, cat, mother) ||
+    related(state, cat, father) ||
+    cat.parents?.mother === mother.id ||
+    cat.parents?.father === father.id;
+  const here = state.cats.filter(
+    (cat) => cat.sex !== sex && !cat.neutered && !family(cat),
+  ).length;
+  const coming = INVITABLE_CATS.filter(
+    (id) =>
+      CAT_DEFINITIONS[id].sex !== sex &&
+      !state.cats.some((cat) => cat.definitionId === id),
+  ).length;
+  return here + coming;
+}
+
 function nextGoal(state: WorldState, generation: number): Goal {
   const top = Math.max(...state.cats.map((cat) => cat.generation));
   if (top >= generation) return { kind: 'done' };
@@ -205,12 +237,18 @@ function nextGoal(state: WorldState, generation: number): Goal {
         deficit(b.father),
     )[0];
   const heads = usable.filter((cat) => cat.generation === top);
+  /** A new cat of the line: the sex that leaves it more partners. */
+  const ahead = (pair: { mother: CatEntity; father: CatEntity }): Goal => ({
+    kind: 'pair',
+    ...pair,
+    sex: partners(state, pair, 'M') > partners(state, pair, 'F') ? 'M' : 'F',
+  });
   const next = closest(
     pairs.filter((pair) =>
       [pair.mother, pair.father].some((cat) => cat.generation === top),
     ),
   );
-  if (next) return { kind: 'pair', ...next };
+  if (next) return ahead(next);
   const room = state.cats.length < MAX_COMPANIONS;
   const waiting = INVITABLE_CATS.filter(
     (id) => !state.cats.some((cat) => cat.definitionId === id),
@@ -226,17 +264,27 @@ function nextGoal(state: WorldState, generation: number): Goal {
     cat.parents?.mother,
     cat.parents?.father,
   ];
+  const served = (pair: { mother: CatEntity; father: CatEntity }) =>
+    heads.find(
+      (head) =>
+        !kin(head).includes(pair.mother.id) &&
+        !kin(head).includes(pair.father.id),
+    );
   const another = closest(
     pairs.filter(
-      ({ mother, father }) =>
-        Math.max(mother.generation, father.generation) === top - 1 ||
-        heads.some(
-          (head) =>
-            !kin(head).includes(mother.id) && !kin(head).includes(father.id),
-        ),
+      (pair) =>
+        Math.max(pair.mother.generation, pair.father.generation) === top - 1 ||
+        served(pair),
     ),
   );
-  if (another && room) return { kind: 'pair', ...another };
+  if (another && room) {
+    // A partner is of the other sex from the cat it is for; another of the line is one
+    // more cat of the newest generation.
+    const head = served(another);
+    return head
+      ? { kind: 'pair', ...another, sex: other(head.sex) }
+      : ahead(another);
+  }
   if (waiting[0] && room) return { kind: 'invite', definitionId: waiting[0] };
   return { kind: 'stuck' };
 }
@@ -600,6 +648,7 @@ export function playFamily(play: FamilyPlay): FamilyPace {
         motherId: ids[0],
         fatherId: ids[1],
         name: '团子',
+        sex: goal.sex,
       });
       const kitten = state.cats.at(-1)!;
       pace.born[kitten.generation] ??= real;
