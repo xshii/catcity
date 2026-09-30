@@ -27,6 +27,10 @@ const NEAR_GEAR = {
   card: '#catch-reveal',
   panelTitle: '#river-tools-title',
   panelClose: '#river-tools-close',
+  // The river's cat and its line (R-03), and the aim hint's close in motion play.
+  cat: '#river-cat',
+  bubble: '#river-cat-bubble',
+  hintClose: '#motion-hint-close',
 };
 /** The bars' gutter at the screen's sides; the gear keeps to it at the right. */
 const GUTTER_PX = 8;
@@ -158,6 +162,11 @@ for (const viewport of [
     await openSheet(page);
     await expect(page.locator('#settings-mode-buttons')).toBeVisible();
     await closeSheet(page);
+    // A tap on the cat: its line shows beside it for a moment, checked while it does
+    // (fishing-scene.spec keeps the line off the gear through a whole run).
+    await page.locator('#river-cat').click();
+    await expect(page.locator('#river-cat-bubble')).toBeVisible();
+    await gearClear(page, testInfo, `gear-river-cat-${size}`, ['cat']);
     // The river's longest notice, a gift's, stays centred beside the gear in two lines.
     const fish = (await readWorld(page)).fishing.inventory[0]!;
     await showBagFish(page, fish.id);

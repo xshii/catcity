@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RandomService } from '../../src/core/random';
 import { replay } from '../helpers/fishing-view';
 import {
+  aimHintShown,
   canPlay,
   createFishingView,
   initialFishingView,
@@ -14,15 +15,23 @@ import {
 } from '../../src/view/fishing/view-state';
 
 const phone = { needsPermission: true, coarsePointer: true };
-/** A phone that finished the guide and calibrated before, unless told otherwise. */
+/**
+ * A phone that finished the guide and calibrated before, and has not seen the aim hint,
+ * unless told otherwise.
+ */
 const start = (
-  device: { guide?: GuideStep | null; autoCalibrate?: boolean } = {},
+  device: {
+    guide?: GuideStep | null;
+    autoCalibrate?: boolean;
+    aimHintSeen?: boolean;
+  } = {},
 ) =>
   initialFishingView({
     preference: 'motion',
     ...phone,
     guide: null,
     autoCalibrate: false,
+    aimHintSeen: false,
     ...device,
   });
 const atRiver = (state = start()) =>
@@ -261,12 +270,58 @@ describe('fishing view state', () => {
             ...phone,
             guide: 'aim',
             autoCalibrate: false,
+            aimHintSeen: false,
           }),
         ),
         ready,
         aim,
       ).motion.guide,
     ).toBe('aim');
+  });
+
+  it('shows the aim hint once per device, until closed or cast (user, 2026-09-30)', () => {
+    const aiming = replay(atRiver(), ready);
+    expect(aimHintShown(aiming)).toBe(true);
+    const closed = replay(aiming, { type: 'aim-hint-seen' });
+    expect(closed.motion.aimHintSeen).toBe(true);
+    expect(aimHintShown(closed)).toBe(false);
+    // A cast while it shows sees it too; the next aim has none.
+    const cast = replay(aiming, { type: 'run', runId: 'a' });
+    expect(cast.motion.aimHintSeen).toBe(true);
+    expect(aimHintShown(replay(cast, { type: 'run', runId: null }))).toBe(
+      false,
+    );
+    // Mid-guide, re-aiming past the guide's aim steps, it shows too; closed or cast
+    // from, the next aim has none.
+    const midGuide = replay(atRiver(start({ guide: 'strike' })), ready);
+    expect(aimHintShown(midGuide)).toBe(true);
+    for (const seen of [
+      { type: 'aim-hint-seen' },
+      { type: 'run', runId: 'a' },
+    ] as const)
+      expect(
+        aimHintShown(replay(midGuide, seen, { type: 'run', runId: null })),
+      ).toBe(false);
+    // Not while the guide teaches at the aim, calibration or its notice is up, play is
+    // covered or motion is off; a cast then leaves it for later.
+    for (const hidden of [
+      replay(atRiver(start({ guide: 'aim' })), ready),
+      replay(aiming, { type: 'calibrating', on: true }),
+      replay(aiming, { type: 'notice', text: '校准完成' }),
+      replay(aiming, { type: 'tools', open: true }),
+      replay(aiming, { type: 'preference', preference: 'buttons' }),
+    ]) {
+      expect(aimHintShown(hidden)).toBe(false);
+      expect(
+        replay(hidden, { type: 'run', runId: 'a' }).motion.aimHintSeen,
+      ).toBe(false);
+    }
+    // The guide done or skipped, the next aim shows it.
+    expect(
+      aimHintShown(
+        replay(atRiver(start({ guide: 'aim' })), ready, { type: 'skip-guide' }),
+      ),
+    ).toBe(true);
   });
 
   it('calibrates by itself, the first time a never-calibrated device can aim, until one finishes', () => {
@@ -368,13 +423,21 @@ describe('fishing view state', () => {
     let autoFinished = 0;
     let episodes = 0;
     let steps = 0;
-    for (let i = 0; i < 20_000; i++) {
+    let hintCasts = 0;
+    for (let i = 0; i < 30_000; i++) {
+      // After 20 000 events, devices past the guide and calibration, aiming: the aim hint.
+      const seasoned = i >= 20_000;
       if (i % 500 === 0) {
-        state = start({ guide: pick(GUIDE_STEPS), autoCalibrate: true });
-        episodes++;
+        if (seasoned) state = replay(atRiver(), ready);
+        else {
+          state = start({ guide: pick(GUIDE_STEPS), autoCalibrate: true });
+          episodes++;
+        }
       }
       const event: FishingViewEvent =
-        rng.nextInt(200) === 0 ? { type: 'skip-guide' } : events();
+        rng.nextInt(200) === 0
+          ? { type: seasoned ? 'aim-hint-seen' : 'skip-guide' }
+          : events();
       const before = state;
       state = reduceFishingView(state, event);
       // Only the flag starts calibration without being asked; finishing one uses it up.
@@ -415,6 +478,14 @@ describe('fishing view state', () => {
         expect(state.settingsOpen).toBe(event.open);
       else expect(state.settingsOpen).toBe(before.settingsOpen);
       if (before.motion.asked) expect(state.motion.asked).toBe(true);
+      // The aim hint, once seen, stays seen: closed, or cast from while it showed.
+      if (before.motion.aimHintSeen)
+        expect(state.motion.aimHintSeen).toBe(true);
+      else if (state.motion.aimHintSeen && event.type !== 'aim-hint-seen') {
+        expect(event).toMatchObject({ type: 'run', runId: expect.any(String) });
+        expect(aimHintShown(before)).toBe(true);
+        hintCasts++;
+      }
       if (state.pressed) expect(state.paused).toBe(false);
       if (state.motion.calibrating) {
         expect(canPlay(state)).toBe(true);
@@ -428,6 +499,7 @@ describe('fishing view state', () => {
     expect(autoFinished).toBeGreaterThan(0);
     expect(autoFinished).toBeLessThanOrEqual(episodes);
     expect(steps).toBeGreaterThan(0);
+    expect(hintCasts).toBeGreaterThan(0);
   });
 
   it('notifies subscribers once per change and not for no-ops', () => {

@@ -1,0 +1,65 @@
+/*
+ * Tapping the cat at the river (R-03): a clear button over the cat as drawn and its
+ * bubble beside it, both placed in JS. The scene's own floating layer (ui-design 3.1):
+ * over the canvas and over the motion plane, whose taps strike during a run.
+ */
+.river-cat-tap {
+  position: absolute;
+  z-index: 10;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.river-cat-bubble {
+  position: absolute;
+  z-index: 11;
+  width: max-content;
+  margin: 0;
+  padding: 6px 12px;
+  border: var(--float-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-float);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: var(--shadow-soft);
+  pointer-events: none;
+  animation: cat-bubble-in 200ms ease-out;
+}
+/* The point on its left edge, at the cat's head: the line, then the fill over it. */
+.river-cat-bubble::before,
+.river-cat-bubble::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  border: 7px solid transparent;
+  border-left: 0;
+}
+.river-cat-bubble::before {
+  left: -8px;
+  border-right-color: var(--line);
+}
+.river-cat-bubble::after {
+  left: -6px;
+  border-right-color: var(--surface-float);
+}
+@keyframes cat-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.92);
+  }
+}
+/* Less motion: the bubble only fades in. */
+@keyframes cat-bubble-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .river-cat-bubble {
+    animation-name: cat-bubble-fade;
+  }
+}

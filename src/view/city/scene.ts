@@ -1,4 +1,4 @@
-import type { AimControl, PlaceState } from '../shell/place';
+import type { AimControl, CatMoves, PlaceState } from '../shell/place';
 import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
@@ -83,6 +83,8 @@ export class CityScene extends Phaser.Scene {
     private readonly aim: AimControl,
     /** Game minutes per real second chosen at the city clock. */
     private readonly clockSpeed: () => number,
+    /** The river cat's answers to taps, played on the river art (R-03). */
+    private readonly catMoves: CatMoves,
   ) {
     super('city');
   }
@@ -98,6 +100,9 @@ export class CityScene extends Phaser.Scene {
     const repaint = () => this.paint();
     const unsubscribePlace = this.place.subscribe(repaint);
     const unsubscribeAim = this.aim.subscribe(repaint);
+    const unsubscribeMoves = this.catMoves.subscribe((motion) =>
+      this.river.react(motion),
+    );
     // Phaser's parent is the map frame (#game).
     const game = this.scale.parent as HTMLElement;
     this.frame = { width: game.clientWidth, height: game.clientHeight };
@@ -128,6 +133,7 @@ export class CityScene extends Phaser.Scene {
       unsubscribe();
       unsubscribeView();
       unsubscribeAim();
+      unsubscribeMoves();
     });
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.riverMode) {

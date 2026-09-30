@@ -46,6 +46,8 @@ const PREFERENCE_KEY = 'cat-city.fishing-input';
 const TUNING_KEY = 'cat-city.rod-tuning.v2';
 /** Per-device first-cast guide progress: the step to learn next, or `done`. */
 const GUIDE_KEY = 'cat-city.fishing-guide';
+/** Per-device: the aim hint was seen (`seen`), so it shows only once (user, 2026-09-30). */
+const AIM_HINT_KEY = 'cat-city.aim-hint';
 /** How long the calibration result stays on screen. */
 const NOTICE_MS = 3000;
 const FEEL = FISHING.motion.feel;
@@ -67,6 +69,7 @@ export function motionStartup() {
     preference: readPreference(),
     guide: readGuide(),
     autoCalibrate: parseTuning(readJsonPref(TUNING_KEY)) === null,
+    aimHintSeen: readPref(AIM_HINT_KEY) === 'seen',
     needsPermission:
       typeof (window.DeviceMotionEvent as PermissionApi | undefined)
         ?.requestPermission === 'function',
@@ -127,13 +130,13 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
   overlay.id = 'motion-fishing';
   overlay.hidden = true;
   overlay.innerHTML =
-    '<p id="motion-fishing-hint" class="motion-fishing-hint" role="status"></p>' +
+    '<div class="motion-hint-row"><p id="motion-fishing-hint" class="motion-fishing-hint" role="status"></p>' +
+    `<button id="motion-hint-close" class="motion-hint-close" type="button" hidden aria-label="${SCREEN_COPY.hint.close}">✕</button></div>` +
     `<button id="motion-guide-skip" class="motion-guide-skip" hidden>${SCREEN_COPY.guide.skip}</button>` +
     '<strong id="motion-bite" class="motion-bite" hidden aria-live="assertive">！</strong>' +
     `<span id="motion-fish" class="motion-fish" hidden aria-hidden="true">${fishShadow()}</span>` +
     '<span id="motion-ring" class="motion-ring" hidden aria-hidden="true"></span>' +
     `<span id="motion-power" class="motion-power" hidden role="meter" aria-label="${POWER_COPY.label}" aria-valuemin="0" aria-valuemax="${FISHING.input.maxPower}"></span>` +
-    `<p id="motion-legend" class="motion-legend" hidden>${SCREEN_COPY.cast.legend}</p>` +
     '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>';
   deps.plane.append(overlay);
   const $ = <T extends HTMLElement>(id: string) =>
@@ -144,9 +147,9 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     fish: $('motion-fish'),
     ring: $('motion-ring'),
     power: $('motion-power'),
-    legend: $('motion-legend'),
     hold: $<HTMLProgressElement>('motion-hold'),
     skip: $('motion-guide-skip'),
+    close: $('motion-hint-close'),
   };
   // The water shows the power as the landing arc (spec 033 F5); the meter reads it out.
   const band = FISHING.cast.precisionPower;
@@ -270,6 +273,10 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     event.stopPropagation();
     view.dispatch({ type: 'skip-guide' });
   });
+  el.close.addEventListener('click', (event) => {
+    event.stopPropagation();
+    view.dispatch({ type: 'aim-hint-seen' });
+  });
 
   // One-tap calibration: two flicks down, then the rod follows this phone and player. The
   // view state turns it on (the settings sheet, or by itself on a device never calibrated).
@@ -309,14 +316,19 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     }, FISHING.motion.gesture.calibration.windowMs);
   };
   // The view state starts calibration, and ends it when play or motion stops (drop its
-  // samples then); guide progress is kept for this device.
+  // samples then); guide progress and the aim hint seen are kept for this device.
   let savedGuide = view.get().motion.guide;
+  let savedAimHint = view.get().motion.aimHintSeen;
   view.subscribe((state) => {
     if (!state.motion.calibrating && calibration) endCalibration();
     if (state.motion.calibrating && !calibration) startCalibration();
     if (state.motion.guide !== savedGuide) {
       savedGuide = state.motion.guide;
       savePref(GUIDE_KEY, savedGuide ?? 'done');
+    }
+    if (state.motion.aimHintSeen && !savedAimHint) {
+      savedAimHint = true;
+      savePref(AIM_HINT_KEY, 'seen');
     }
   });
 
@@ -369,8 +381,8 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     }
     overlay.dataset.phase = model.overlayPhase;
     el.skip.hidden = !model.guide;
+    el.close.hidden = !model.aimHint;
     el.power.hidden = !model.powerMeter;
-    el.legend.hidden = !model.powerMeter;
     el.power.setAttribute('aria-valuenow', String(power));
     el.power.setAttribute(
       'aria-valuetext',

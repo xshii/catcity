@@ -110,6 +110,7 @@ const playing = (...events: FishingViewEvent[]) =>
       coarsePointer: false,
       guide: null,
       autoCalibrate: false,
+      aimHintSeen: false,
     }),
     { type: 'place', place: 'river' },
     { type: 'run', runId: 'r' },
