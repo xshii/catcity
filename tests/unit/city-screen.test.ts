@@ -7,6 +7,7 @@ import {
   landPrice,
   WALK_MINUTES,
 } from '../../src/content/city';
+import { CAT_DEFINITIONS } from '../../src/content/cats';
 import { travelMinutes } from '../../src/core';
 import type { GameCommand, WorldState } from '../../src/core';
 import { walkMinutes } from '../../src/core/city';
@@ -421,6 +422,56 @@ describe('city screen', () => {
     }).guide;
     expect(grown.action).toBe('和 Mochi 聊聊共同回忆');
     expect(grown.steps.every((step) => step.complete)).toBe(true);
+  });
+
+  it('speaks of the first cat by the name the player gave it (T-25)', () => {
+    const world = createWorld(42, {
+      breed: 'DOMESTIC',
+      appearance: CAT_DEFINITIONS.MOCHI.appearance,
+      name: '团子',
+    });
+    const guide = () => screenOf(world, view()).guide;
+    const says = (...words: string[]) => {
+      const all = JSON.stringify(guide());
+      for (const word of words) expect(all).toContain(word);
+      expect(all).not.toContain('Mochi');
+    };
+    says('先给 团子 安个家', '再让 团子 入住');
+    const site = guideProgress(world.getSnapshot()).site!;
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_APARTMENT',
+      position: site,
+    });
+    says('选「团子 入住」', '让 团子 入住');
+    world.dispatch({
+      type: 'ASSIGN_HOME',
+      catId: 'mochi',
+      buildingId: world.getSnapshot().buildings[0]!.id,
+    });
+    expect(buildCafe(world, guideProgress(world.getSnapshot()).site!).ok).toBe(
+      true,
+    );
+    says('和 团子 一起钓一次鱼');
+    const snapshot = world.getSnapshot();
+    const remembered: WorldState = {
+      ...snapshot,
+      cats: snapshot.cats.map((cat) => ({
+        ...cat,
+        fishingMemory: {
+          runId: 'run-1',
+          speciesId: 'CRUCIAN',
+          spotId: 'POND',
+          minute: 0,
+        },
+      })),
+    };
+    expect(
+      cityScreen(remembered, view(), {
+        selectedCat: 'mochi',
+        blocked: () => null,
+      }).guide.action,
+    ).toBe('和 团子 聊聊共同回忆');
   });
 
   it('asks to move a cafe without customers, and again when it loses them', () => {
