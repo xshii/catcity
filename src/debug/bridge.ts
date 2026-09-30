@@ -1,6 +1,10 @@
 import type { GameSession } from '../application';
+import { APPEARANCE_OPTIONS, type CatAppearance } from '../content/cats';
 import { createWorld } from '../core';
 import type { Position } from '../core';
+import { ART_BREEDS } from '../view/art/cat-look';
+import { mountCatMaker } from '../view/cats/cat-maker';
+import type { CatChoice, CatMakerInput } from '../view/cats/cat-maker-screen';
 
 interface ViewObserver {
   tileScreenPosition: (position: Position) => Position | null;
@@ -16,7 +20,25 @@ interface ViewObserver {
 /** Largest single step; one fishing run never needs more ticks than this. */
 const MAX_STEP_TICKS = 1000;
 
+/** A cat maker input from a test: a breed and five choices the art draws. */
+function makerInput(input: CatMakerInput) {
+  const items = Object.keys(APPEARANCE_OPTIONS) as (keyof CatAppearance)[];
+  return (
+    typeof input?.pickBreed === 'boolean' &&
+    typeof input.confirm === 'string' &&
+    ART_BREEDS.includes(input.breed) &&
+    items.every((item) =>
+      (APPEARANCE_OPTIONS[item] as readonly string[]).includes(
+        input.appearance?.[item],
+      ),
+    )
+  );
+}
+
 function createBridge(session: GameSession, view?: ViewObserver) {
+  let maker: HTMLElement | null = null;
+  /** What the last cat maker gave: the choice, null if cancelled, undefined while open. */
+  let made: CatChoice | null | undefined;
   return {
     version: 1,
     buildVersion: __BUILD_VERSION__,
@@ -55,6 +77,28 @@ function createBridge(session: GameSession, view?: ViewObserver) {
       Number.isInteger(ticks) && ticks >= 1 && ticks <= MAX_STEP_TICKS
         ? (view?.pettingClock.step(ticks) ?? 0)
         : 0,
+    /**
+     * The cat maker over the page (spec 041 T-14; the game opens it from PR 2 on). Its 🎲
+     * takes `randoms` in turn when given, each in [0, 1). Changes nothing in the world.
+     */
+    showCatMaker: (input: CatMakerInput, randoms: readonly number[] = []) => {
+      if (!makerInput(input) || !randoms.every((n) => n >= 0 && n < 1))
+        return false;
+      let next = 0;
+      maker?.remove();
+      made = undefined;
+      maker = mountCatMaker({
+        // Where the petting screen floats, under the settings gear.
+        layer: document.querySelector<HTMLElement>('.shell') ?? document.body,
+        input,
+        random: randoms.length
+          ? () => randoms[next++ % randoms.length]!
+          : Math.random,
+        done: (choice) => (made = choice),
+      });
+      return true;
+    },
+    getCatMakerOutcome: () => made,
     getSelectedEntity: () => session.selectedEntity,
     getDiagnostics: () => session.getDiagnostics(),
     getReplay: () => session.getReplay(),

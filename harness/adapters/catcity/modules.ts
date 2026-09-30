@@ -38,11 +38,18 @@ export const MODULES = table({
   application: { paths: ['src/application/'], imports: ['core', 'content'] },
   providers: { paths: ['src/providers/'], imports: ['application', 'content'] },
   platform: { paths: ['src/platform/'], imports: ['application', 'core'] },
-  debug: { paths: ['src/debug/'], imports: ['application', 'core'] },
+  // The dev/test bridge opens the cat maker before the game flow does (T-14).
+  debug: {
+    paths: ['src/debug/'],
+    imports: ['application', 'core', 'content', 'art', 'cats'],
+  },
   // Shared view code, beneath every feature module.
   styles: { paths: ['src/view/styles/'], imports: [] },
   art: { paths: ['src/view/art/'], imports: ['core', 'content'] },
-  common: { paths: ['src/view/common/'], imports: ['core', 'content', 'art'] },
+  common: {
+    paths: ['src/view/common/'],
+    imports: ['core', 'content', 'minigames', 'art'],
+  },
   // View feature modules. Fishing includes its motion controls (fishing/motion/) and
   // keeps per-device choices and the device log in platform.
   city: { paths: ['src/view/city/'], imports: VIEW_FEATURE },
