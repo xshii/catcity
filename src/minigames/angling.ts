@@ -3,6 +3,7 @@ import {
   FISHING,
   fishById,
   canCatchFish,
+  catchLengthMm,
   SPOTS,
   type CatchKind,
   type BaitId,
@@ -211,12 +212,7 @@ function chooseFish(run: AnglingRun): void {
   const fish = fishById(species);
   run.weight =
     fish.minWeight + rng.nextInt(fish.maxWeight - fish.minWeight + 1);
-  run.lengthMm =
-    fish.minLengthMm +
-    Math.floor(
-      ((run.weight - fish.minWeight) * (fish.maxLengthMm - fish.minLengthMm)) /
-        (fish.maxWeight - fish.minWeight),
-    );
+  run.lengthMm = catchLengthMm(fish, run.weight);
 }
 /** `shadow`: the shadow's fish under the landing if this step releases the charge. */
 export function stepAngling(

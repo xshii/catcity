@@ -20,6 +20,15 @@ import {
 const noticeShows = () =>
   getComputedStyle($('#notice')).visibility !== 'hidden';
 
+/** The words a screen reader reads for an element: its text, less what is hidden from it. */
+function spoken(element: Element) {
+  const copy = element.cloneNode(true) as Element;
+  copy
+    .querySelectorAll('[hidden], [aria-hidden="true"]')
+    .forEach((node) => node.remove());
+  return copy.textContent ?? '';
+}
+
 describe('the button flow', () => {
   it('enters the river, casts, strikes, reels in, and leaves nothing behind', () => {
     const game = openGame();
@@ -309,6 +318,8 @@ describe('the button flow', () => {
     click('#fish-cancel');
     const tired = game.world().cats[0]!.needs.energy;
     expect(tired).toBeLessThan(100);
+    // At the river the companion stays awake (R-01); in the city it dozes while recovering.
+    backToCity();
     openCats();
     card.focus();
     advanceTime(10);
@@ -326,6 +337,31 @@ describe('the button flow', () => {
     expect(text('[data-cat-id="mochi"] strong')).toBe(name);
     expect(card.querySelectorAll('strong b')).toHaveLength(0);
     expect(card.isConnected).toBe(true);
+  });
+
+  it('the cat fishing with the player stays awake at the river after a cast, and dozes in the city (R-01)', () => {
+    const game = openGame();
+    enterRiver(game);
+    click('#cast-start');
+    catchFish(game);
+    expect(visible('#catch-reveal')).toBe(true);
+    // Idle and recovering: in the city this cat would doze.
+    expect(game.world().fishing.active).toBeNull();
+    expect(game.world().cats[0]!.needs.energy).toBeLessThan(100);
+    openCats();
+    const card = $('[data-cat-id="mochi"]');
+    expect(spoken(card)).toContain('Mochi');
+    expect(spoken(card)).not.toContain('在休息');
+    // The city clock runs on at the river: the same card, still awake.
+    for (let minute = 0; minute < 5; minute++)
+      game.session.execute({ type: 'ADVANCE_TIME', minutes: 1 });
+    expect($('[data-cat-id="mochi"]')).toBe(card);
+    expect(spoken(card)).not.toContain('在休息');
+    closeRiverPanel();
+    backToCity();
+    expect(game.world().cats[0]!.needs.energy).toBeLessThan(100);
+    openCats();
+    expect(spoken(card)).toContain('在休息');
   });
 
   it('leaving the river gives up an uncast rod, but keeps a cast one to come back to', () => {
