@@ -1,7 +1,7 @@
 import { FISHING } from '../../content/fishing';
-import type { MoodBand } from '../../content/mood';
 import type { AnglingRun } from '../../minigames/angling';
 import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
+import type { MoodBand } from '../../content/mood';
 import type { CatMotion } from '../art/cat-look';
 import {
   canPlay,
