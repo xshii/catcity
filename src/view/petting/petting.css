@@ -54,11 +54,17 @@
  * this screen too (2026-09-30): the heading's close and the meter under it end left of the
  * gear's column. A column that is centred on a wide screen is clear of it already.
  */
-.game-screen .petting-heading,
-.game-screen .petting-meter-row {
+.game-screen .petting-heading {
   padding-right: max(
     0px,
     calc(var(--gear-room) - max(16px, (100vw - 440px) / 2))
+  );
+}
+/* The meter row itself ends there, so nothing of it lies under the gear. */
+.game-screen .petting-meter-row {
+  align-self: flex-start;
+  width: calc(
+    100% - max(0px, calc(var(--gear-room) - max(16px, (100vw - 440px) / 2)))
   );
 }
 .petting-heading h2 {
