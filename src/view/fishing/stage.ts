@@ -212,7 +212,12 @@ export function mountFishingStage(
       }
       const result = world.fishing.lastResult;
       reveal.hidden = !countdown;
-      reveal.dataset.countdown = countdown ?? '';
+      if (reveal.dataset.countdown !== (countdown ?? '')) {
+        reveal.dataset.countdown = countdown ?? '';
+        // The bar stops or goes on now, with the timer: a hidden page draws no frame that
+        // would apply it before the page shows again.
+        void getComputedStyle(countdownBar).animationPlayState;
+      }
       if (result && resultKey !== JSON.stringify([result, resultNote])) {
         resultKey = JSON.stringify([result, resultNote]);
         if (result.caught && result.speciesId) {
