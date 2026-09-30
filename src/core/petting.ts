@@ -1,4 +1,3 @@
-import { MAX_STAT } from './limits';
 import { PETTING, PET_SPOTS } from '../content/petting';
 import {
   pettingOutcome,
@@ -8,6 +7,7 @@ import {
 import { BOND } from '../content/care';
 import { rewardBond, spendDaily } from './bond';
 import { requireCat } from './cats';
+import { liftMood } from './mood';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import { RandomService, streamSeed } from './random';
 import type { WorldState } from './schema';
@@ -59,12 +59,15 @@ export function petCat(
   const hour = Math.floor(world.minute / LIMIT.hourMinutes);
   const played = cat.petting.hour === hour ? cat.petting.rounds : 0;
   const full = played < LIMIT.fullRounds;
-  // Later rounds give half, never less than 1; what an unkind round takes stays.
-  const mood =
-    full || outcome.mood < 0
-      ? outcome.mood
-      : Math.max(1, Math.floor(outcome.mood / 2));
-  cat.mood = Math.max(0, Math.min(MAX_STAT, cat.mood + mood));
+  // Later rounds give half, never less than 1, and a happy cat half of that again, as
+  // every gain; what an unkind round takes stays whole.
+  const before = cat.mood;
+  if (outcome.mood < 0) cat.mood = Math.max(0, cat.mood + outcome.mood);
+  else
+    liftMood(
+      cat,
+      full ? outcome.mood : Math.max(1, Math.floor(outcome.mood / 2)),
+    );
   cat.petting = {
     discovered: PET_SPOTS.filter(
       (spot) =>
@@ -81,7 +84,7 @@ export function petCat(
       // The command has at least one stroke, and the first is always taken.
       spot: outcome.spot!,
       meter: outcome.meter,
-      mood,
+      mood: cat.mood - before,
       full,
     },
   ];

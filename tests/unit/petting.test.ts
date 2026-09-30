@@ -181,6 +181,47 @@ describe('PET_CAT', () => {
   });
 });
 
+describe('mood from a round (spec 041 R-21)', () => {
+  const half = (amount: number) => Math.max(1, Math.floor(amount / 2));
+  /** What one lovely round adds to a cat in `mood`, as the event tells it and in fact. */
+  const lifted = (mood: number) => {
+    const world = calm(mood);
+    const result = pet(world, lovely);
+    expect(result.ok && result.events[0]).toMatchObject({
+      mood: cat(world).mood - mood,
+    });
+    return cat(world).mood - mood;
+  };
+
+  it('lifts a calm cat in full, over the happy line', () => {
+    expect(lifted(CAT_MOOD.happy - 1)).toBe(LOVELY_MOOD);
+    expect(CAT_MOOD.happy - 1 + LOVELY_MOOD).toBeGreaterThan(CAT_MOOD.happy);
+  });
+
+  it('gives a happy cat half, as every gain does (spec 038)', () => {
+    expect(lifted(CAT_MOOD.happy)).toBe(half(LOVELY_MOOD));
+    expect(lifted(90)).toBe(half(LOVELY_MOOD));
+  });
+
+  it('halves a later round of the hour again for a happy cat, never below 1', () => {
+    const world = calm(90);
+    for (let round = 0; round < LIMIT.fullRounds; round++) pet(world, poor);
+    const before = cat(world).mood;
+    const later = pet(world, lovely);
+    expect(later.ok && later.events[0]).toMatchObject({
+      full: false,
+      mood: half(half(LOVELY_MOOD)),
+    });
+    expect(cat(world).mood).toBe(before + half(half(LOVELY_MOOD)));
+  });
+
+  it('takes a round mostly on the disliked spot whole from a happy cat', () => {
+    const world = calm(90);
+    pet(world, unkind);
+    expect(cat(world).mood).toBe(90 - MOOD.disliked);
+  });
+});
+
 describe('the hourly limit', () => {
   it('counts the first rounds of a game hour in full and later ones half', () => {
     const world = calm(20);
