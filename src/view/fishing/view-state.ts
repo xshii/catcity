@@ -33,8 +33,8 @@ export interface FishingView {
    */
   settingsOpen: boolean;
   /**
-   * The petting screen covers the place: it is a page of its own, so the settings sheet
-   * opened over it has no river section. Play is left as it was.
+   * The petting screen covers the place: a page of its own, so it covers play like the
+   * tools, and the settings sheet opened over it has no river section.
    */
   petting: boolean;
   pageHidden: boolean;
@@ -140,11 +140,15 @@ export function initialFishingView(
   };
 }
 
-/** The river is on screen, no tools or settings cover it and the page is in front. */
+/**
+ * The river is on screen, no tools, settings or petting screen cover it and the page is
+ * in front.
+ */
 export const canPlay = (view: FishingView) =>
   view.place === 'river' &&
   !view.toolsOpen &&
   !view.settingsOpen &&
+  !view.petting &&
   !view.pageHidden;
 export const motionActive = (view: FishingView) =>
   view.motion.preference === 'motion' && view.motion.capability === 'ready';

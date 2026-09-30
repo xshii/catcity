@@ -60,5 +60,5 @@
 - [ ] 2026-09-30 撸猫画面也有齿轮（用户决定：撸猫时打开设置，这一局暂停），分支 `feat/settings-petting`：
   - 齿轮层级升到撸猫画面之上；撸猫画面是模态对话框，打开时齿轮归它（`aria-owns`），Tab 在“不摸了”之后到齿轮，在齿轮上按 Esc 同样离开；标题行与满足条的右端让出齿轮。
   - 撸猫画面状态的 `settingsOpen` 跟随外壳的设置卡：打开时这一局不走时间、不收抚摸，倒计时与呼噜节奏都停，关掉后从停下的地方接着走。
-  - `shell/place.ts` 新增 `onPetting`：钓鱼画面状态记下撸猫画面开着（`petting`），这时设置卡没有河畔一节（撸猫盖在河畔上也是）。钓鱼能不能玩不因此改变。
+  - `shell/place.ts` 新增 `onPetting`：钓鱼画面状态记下撸猫画面开着（`petting`），这时设置卡没有河畔一节（撸猫盖在河畔上也是）；撸猫画面也像面板一样盖住钓鱼（`canPlay` 为假：体感甩竿、提竿与按钮输入都不生效，进行中的一竿暂停），关掉后需明确继续。之前撸猫盖在河畔上时体感甩竿仍能抛出一竿。
   - 测试：`tests/unit/place.test.ts`、`petting-view.test.ts`、`fishing-screen.test.ts`；`tests/view/settings.test.ts` 的撸猫一组；E2E `tests/e2e/settings-gear.spec.ts` 的撸猫用例（写好未运行）。

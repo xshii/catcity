@@ -108,7 +108,6 @@ const apart = (a: Box, b: Box) =>
 /** What else floats over the river scene (ui-design 3.2): the cat and its bubble keep clear. */
 const SCENE_FLOATS = [
   '#settings-gear',
-  '#motion-legend',
   '#motion-fishing-hint',
   '#motion-hold',
   '#motion-guide-skip',
