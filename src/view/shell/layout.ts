@@ -92,7 +92,7 @@ export function mountFishingLayout(
     ['talk', '说说话'],
     ['memory', '共同回忆'],
   ]);
-  cats.roster!.append(get('river-roster'), get('invite-pepper'));
+  cats.roster!.append(get('river-roster'));
   cats.talk!.append(document.querySelector<HTMLElement>('.cat-card')!);
   cats.memory!.append(document.querySelector<HTMLElement>('.journal')!);
   const replyPages = document.createElement('div');
