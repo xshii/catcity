@@ -35,6 +35,18 @@ const WINDOWS = {
     [-13, 5, 8, 9],
     [6, 5, 8, 9],
   ],
+  CAT_LODGE: [
+    [-13, -9, 8, 9],
+    [6, -9, 8, 9],
+    [-13, 5, 8, 9],
+    [6, 5, 8, 9],
+  ],
+} as const;
+/** Walls and roof per building: the lodge's roof is sage (spec 041 ui-design 6.2). */
+const COLOURS = {
+  CAT_CAFE: [C.cafe, C.cafeRoof],
+  CAT_APARTMENT: [C.apartment, C.apartmentRoof],
+  CAT_LODGE: [C.lodge, C.lodgeRoof],
 } as const;
 
 /** Dashes along from→to, `dash` long and `gap` apart; the last is cut at `to`. */
@@ -167,16 +179,16 @@ export function drawCityMap(
   }
   for (const building of world.buildings) {
     const { x, y } = tileCenter(building.position.x, building.position.y);
-    const apartment = building.type === 'CAT_APARTMENT';
+    const [walls, roof] = COLOURS[building.type];
     g.fillStyle(c(C.line), 0.16).fillEllipse(x + 2, y + 21, 48, 13);
     g.lineStyle(1.5, c(C.line));
-    g.fillStyle(c(apartment ? C.apartment : C.cafe))
+    g.fillStyle(c(walls))
       .fillRoundedRect(x - 22, y - 15, 44, 37, 5)
       .strokeRoundedRect(x - 22, y - 15, 44, 37, 5);
-    g.fillStyle(c(apartment ? C.apartmentRoof : C.cafeRoof))
+    g.fillStyle(c(roof))
       .fillTriangle(x - 27, y - 15, x, y - 31, x + 27, y - 15)
       .strokeTriangle(x - 27, y - 15, x, y - 31, x + 27, y - 15);
-    if (!apartment) {
+    if (building.type === 'CAT_CAFE') {
       // The café's awning and door.
       for (let i = 0; i < 6; i++)
         g.fillStyle(c(i % 2 ? C.board : C.cafeRoof)).fillRect(

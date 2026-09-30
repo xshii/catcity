@@ -52,6 +52,8 @@ import v21Content13 from '../fixtures/save-v21-content13.json';
 // Mochi, Pepper and 芝麻 each in one of four coats, from before a look was five choices
 // and Mochi the player's stray (save 22, content 14).
 import v22Content14 from '../fixtures/save-v22-content14.json';
+// A city past its first midnight, from before lodges and residents (save 23, content 15).
+import v23Content15 from '../fixtures/save-v23-content15.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -87,6 +89,7 @@ const incompatible = {
   v21Content12,
   v21Content13,
   v22Content14,
+  v23Content15,
   future,
 };
 
