@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { createServer, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
+import { savedNewGame } from '../../harness/adapters/catcity/browser';
 import { clickTile } from '../../harness/adapters/catcity/city-input';
 import { buildingPrice, CITY_START } from '../../src/content/city';
 
@@ -69,6 +70,7 @@ test('Pages subpath loads production assets and preserves a built cafe on reload
       errors.push(`${response.status()} ${response.url()}`);
   });
   page.on('requestfailed', (request) => errors.push(request.url()));
+  await savedNewGame(page);
   await page.goto(url);
   await expect(page.locator('canvas')).toBeVisible();
   expect(await page.evaluate(() => 'CAT_CITY_DEBUG' in window)).toBe(false);
