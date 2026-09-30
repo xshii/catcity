@@ -1,11 +1,10 @@
 import type { FishId } from '../../content/fishing';
 import {
-  colourOf,
   portraitShapes,
-  type CatCoat,
   type CatLook,
   type CatPose,
   type CatShape,
+  type Colour,
 } from './cat-look';
 
 /** Inline SVG illustrations for DOM cards; colors are art, not game data. */
@@ -29,19 +28,22 @@ export function fishShadow(): string {
   return `<svg viewBox="10 5 140 80" aria-hidden="true"><ellipse cx="96" cy="44" rx="58" ry="32" fill="#243b37" opacity=".3"/><path d="M52 43L16 18Q24 43 16 68L52 48" fill="#243b37"/><ellipse cx="99" cy="44" rx="53" ry="27" fill="#243b37"/><circle cx="131" cy="36" r="3.5" fill="#fffdf4" opacity=".5"/></svg>`;
 }
 /** One shape of the cat art as SVG markup. */
-export function shapeSvg(shape: CatShape, coat: CatCoat): string {
-  const fill = shape.fill ? colourOf(shape.fill, coat) : 'none';
+export function shapeSvg(
+  shape: CatShape,
+  colours: Readonly<Record<Colour, string>>,
+): string {
+  const fill = shape.fill ? colours[shape.fill] : 'none';
   const stroke = shape.stroke
-    ? ` stroke="${colourOf(shape.stroke, coat)}" stroke-width="${shape.width ?? 2}" stroke-linecap="round" stroke-linejoin="round"`
+    ? ` stroke="${colours[shape.stroke]}" stroke-width="${shape.width ?? 2}" stroke-linecap="round" stroke-linejoin="round"`
     : '';
   if (!shape.ellipse) return `<path d="${shape.d}" fill="${fill}"${stroke}/>`;
   const [cx, cy, rx, ry] = shape.ellipse;
   return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}"${stroke}/>`;
 }
 /** A cat's head as its pose shows it (style board 猫咪表情); the words live beside it. */
-export function catPortrait({ coat, breed }: CatLook, pose: CatPose): string {
-  const shapes = portraitShapes(breed, pose).map((shape) =>
-    shapeSvg(shape, coat),
+export function catPortrait(look: CatLook, pose: CatPose): string {
+  const shapes = portraitShapes(look, pose).map((shape) =>
+    shapeSvg(shape, look.colours),
   );
   return `<svg viewBox="4 0 64 64" aria-hidden="true">${shapes.join('')}</svg>`;
 }

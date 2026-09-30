@@ -2,7 +2,7 @@ import './petting.css';
 import type { GameSession } from '../../application';
 import { PETTING, PET_SPOTS, type PetSpot } from '../../content/petting';
 import { pettingTastes, type GameCommand } from '../../core';
-import { catLook, catPose } from '../art/cat-look';
+import { catPose, lookOf } from '../art/cat-look';
 import {
   PETTING_ART,
   pettingCat,
@@ -159,7 +159,7 @@ export function mountPetting(deps: {
     $('petting-meter-fill').style.width = `${model.meter.value}%`;
     catBox.dataset.purr = String(model.purr);
     catBox.dataset.away = String(model.away);
-    const nextArt = pettingCat(catLook(cat), model.pose);
+    const nextArt = pettingCat(lookOf(cat), model.pose);
     if (nextArt !== art) {
       art = nextArt;
       $('petting-art').innerHTML = art;

@@ -5,7 +5,7 @@ import type { GameSession } from '../../application';
 import type { Position } from '../../core';
 import { walkingMinutes } from '../../core/city';
 import { CatArt } from '../art/cat';
-import { catLook, catPose } from '../art/cat-look';
+import { catPose, lookOf } from '../art/cat-look';
 import type { City } from './panel';
 import { drawCityMap } from '../art/city-map';
 import { CityAmbience } from '../art/city-ambience';
@@ -263,7 +263,7 @@ export class CityScene extends Phaser.Scene {
     if (!this.lift) {
       this.lift = {
         catId,
-        ghost: new CatArt(this, 0, 0, 1, catLook(cat))
+        ghost: new CatArt(this, 0, 0, 1, lookOf(cat))
           .setPose(catPose(this.session.getSnapshot(), cat))
           .setDepth(8),
         marks: this.add.graphics().setDepth(7),
@@ -562,7 +562,7 @@ export class CityScene extends Phaser.Scene {
       let sprite = this.cats.get(cat.id);
       if (!sprite) {
         // `glide` moves the sprite, its name and the ring from here on.
-        sprite = new CatArt(this, x, y, 1, catLook(cat)).setDepth(5);
+        sprite = new CatArt(this, x, y, 1, lookOf(cat)).setDepth(5);
         this.cats.set(cat.id, sprite);
         this.names.set(cat.id, this.text(x, y + 31, cat.name, 11).setDepth(1));
       }

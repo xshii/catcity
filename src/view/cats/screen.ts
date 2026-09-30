@@ -2,7 +2,7 @@ import { CAT_BREEDS } from '../../content/breeds';
 import { fishById, SPOTS } from '../../content/fishing';
 import { MAX_STAT, type WorldState } from '../../core';
 import { catPortrait } from '../art/illustrations';
-import { catLook, catPose } from '../art/cat-look';
+import { catPose, lookOf } from '../art/cat-look';
 import { bondBadge } from '../shell/bond';
 import { moodBadge } from '../shell/mood';
 import { toViewModel } from '../shell/model';
@@ -28,7 +28,7 @@ export function rosterScreen(
     const level = bondBadge(cat.playerBond);
     return {
       id: cat.id,
-      portrait: catPortrait(catLook(cat), pose),
+      portrait: catPortrait(lookOf(cat), pose),
       pressed: cat.id === marked,
       disabled: !!world.fishing.active,
       name: cat.name,
