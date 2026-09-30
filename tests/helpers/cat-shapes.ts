@@ -1,3 +1,4 @@
+import { CAT_DEFINITIONS } from '../../src/content/cats';
 import type { CatShape } from '../../src/view/art/cat-look';
 
 // Geometry and colour measures of the cat art, as the drawing tests read it.
@@ -74,3 +75,15 @@ export function contrast(a: string, b: string) {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (light! + 0.05) / (dark! + 0.05);
 }
+
+/**
+ * T-13's four coats as the templates wear them since the look became five choices
+ * (spec 041 T-14), and the two breeds T-13 drew.
+ */
+export const T13_COATS = {
+  cream: CAT_DEFINITIONS.MOCHI.appearance,
+  gray: CAT_DEFINITIONS.PEPPER.appearance,
+  orange: CAT_DEFINITIONS.DOUBAO.appearance,
+  tuxedo: CAT_DEFINITIONS.ZHIMA.appearance,
+} as const;
+export const T13_BREEDS = ['RAGDOLL', 'BRITISH_SHORTHAIR'] as const;

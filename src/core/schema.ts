@@ -1,6 +1,6 @@
 import { CITY_START } from '../content/city';
 import {
-  CAT_COATS,
+  APPEARANCE_OPTIONS,
   CAT_DEFINITION_IDS,
   CAT_DEFINITIONS,
   STARTER_CAT_ID,
@@ -47,7 +47,14 @@ const catSchema = z.strictObject({
   id: text,
   definitionId: z.enum(CAT_DEFINITION_IDS),
   name: text,
-  appearance: z.strictObject({ coat: z.enum(CAT_COATS) }),
+  /** Five choices (spec 041 T-14): the player's for the stray, any legal ones for all. */
+  appearance: z.strictObject({
+    colour: z.enum(APPEARANCE_OPTIONS.colour),
+    pattern: z.enum(APPEARANCE_OPTIONS.pattern),
+    white: z.enum(APPEARANCE_OPTIONS.white),
+    eyes: z.enum(APPEARANCE_OPTIONS.eyes),
+    face: z.enum(APPEARANCE_OPTIONS.face),
+  }),
   /** Identity belongs to the instance (spec 041 R-10); age and children are derived. */
   sex: z.enum(['F', 'M']),
   /** Null for a first-generation cat, which arrives grown. */
@@ -130,8 +137,8 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 22;
-export const CONTENT_VERSION = 14;
+export const SAVE_VERSION = 23;
+export const CONTENT_VERSION = 15;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
   contentVersion: z.literal(CONTENT_VERSION),
@@ -213,7 +220,8 @@ const sameList = (a: readonly string[], b: readonly string[]) =>
 
 /**
  * A first-generation cat is its template: identity and tastes come from it, and it has no
- * birth, parents or talent. Only the name is free text.
+ * birth, parents or talent. The name is free text and the look any legal one (the stray's
+ * pick, later the salon's). Mochi is the stray: its breed is the player's pick (T-14).
  */
 function assertTemplate(cat: CatEntity, cats: readonly CatEntity[]) {
   const definition = CAT_DEFINITIONS[cat.definitionId];
@@ -223,8 +231,7 @@ function assertTemplate(cat: CatEntity, cats: readonly CatEntity[]) {
     cat.parents !== null ||
     cat.talent !== 0 ||
     cat.sex !== definition.sex ||
-    cat.breedId !== definition.breedId ||
-    cat.appearance.coat !== definition.coat ||
+    (cat.id !== STARTER_CAT_ID && cat.breedId !== definition.breedId) ||
     !sameList(cat.personality, definition.personality) ||
     !sameList(cat.traits, definition.traits) ||
     !sameList(cat.preferences.likes, definition.likes) ||

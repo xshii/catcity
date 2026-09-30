@@ -3,18 +3,19 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { settle } from '../../harness/adapters/catcity/city-input';
-import { CAT_BREED_IDS, CAT_BREEDS } from '../../src/content/breeds';
-import { CAT_COATS } from '../../src/content/cats';
+import { CAT_BREEDS } from '../../src/content/breeds';
 import { createWorld } from '../../src/core/world';
 import { invite } from '../helpers/world';
 import {
   catLook,
-  COAT_APPEARANCE,
   portraitShapes,
   type CatLook,
   type CatPose,
 } from '../../src/view/art/cat-look';
 import { catPortrait, shapeSvg } from '../../src/view/art/illustrations';
+import { T13_BREEDS, T13_COATS } from '../helpers/cat-shapes';
+
+const CAT_COATS = Object.keys(T13_COATS) as (keyof typeof T13_COATS)[];
 
 // Spec 041 T-13 (R-15, ui-design 2.2 and 6.1): coats and breeds drawn apart.
 
@@ -55,9 +56,9 @@ function sheet(tokens: string) {
         .map((shape) => shapeSvg(shape, look.colours))
         .join(''),
     );
-  const cells = CAT_BREED_IDS.flatMap((breed) =>
+  const cells = T13_BREEDS.flatMap((breed) =>
     CAT_COATS.map((coat) => {
-      const look = catLook(breed, COAT_APPEARANCE[coat]);
+      const look = catLook(breed, T13_COATS[coat]);
       return `<figure data-look="${coat}/${breed}">${figure(look)}${catPortrait(look, awake)}${catPortrait(look, { ...awake, curled: true })}<figcaption>${COAT_NAMES[coat]} · ${CAT_BREEDS[breed].name}</figcaption></figure>`;
     }),
   );
@@ -80,7 +81,7 @@ test('a sheet of the 4 coats × 2 breeds, as the map and the roster draw them', 
     sheet(await readFile('src/view/styles/tokens.css', 'utf8')),
   );
   const cells = page.locator('#sheet figure');
-  await expect(cells).toHaveCount(CAT_COATS.length * CAT_BREED_IDS.length);
+  await expect(cells).toHaveCount(CAT_COATS.length * T13_BREEDS.length);
   for (const cell of await cells.all())
     await expect(cell.locator('svg')).toHaveCount(3);
   await page.locator('#sheet').screenshot({ path: `${SHOTS}/coats.png` });

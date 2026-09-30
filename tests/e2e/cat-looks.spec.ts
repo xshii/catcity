@@ -1,8 +1,8 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { CAT_BREED_IDS } from '../../src/content/breeds';
 import { APPEARANCE_OPTIONS, type CatAppearance } from '../../src/content/cats';
 import {
-  ART_BREEDS,
   catLook,
   portraitShapes,
   type CatLook,
@@ -76,7 +76,7 @@ function sheet(tokens: string) {
     ...TYPICAL,
   ];
   const cells = rows.flatMap(([name, appearance]) =>
-    ART_BREEDS.map((breed) =>
+    CAT_BREED_IDS.map((breed) =>
       cell(
         catLook(breed, appearance),
         `${name} · ${CAT_MAKER_COPY.breeds[breed].name}`,
@@ -85,7 +85,7 @@ function sheet(tokens: string) {
   );
   return `<!doctype html><meta charset="utf-8"><style>${tokens}
     body { margin: 0; background: var(--paper); color: var(--text); font: 13px var(--font-ui); }
-    #sheet { display: grid; grid-template-columns: repeat(${ART_BREEDS.length}, 420px); gap: 10px; padding: 16px; width: max-content; }
+    #sheet { display: grid; grid-template-columns: repeat(${CAT_BREED_IDS.length}, 420px); gap: 10px; padding: 16px; width: max-content; }
     figure { margin: 0; display: grid; grid-template-columns: 100px 56px 56px 1fr; align-items: end; gap: 4px; }
     figure svg:first-child { width: 100px; height: 76px; }
     figure svg { width: 56px; height: 56px; }

@@ -7,7 +7,7 @@
 | [city/](city/)                     | 地图场景、局部选择/操作卡、镜头与教程                     |
 | [fishing/](fishing/)               | 钓鱼操作面板、图鉴/鱼篓、可选震动与音效                   |
 | [fishing/motion/](fishing/motion/) | 钓鱼的可选体感：只在改传感器输入时阅读                    |
-| [cats/](cats/)                     | 猫咪面板：名册与详情、邀请新伙伴、和谁生小猫              |
+| [cats/](cats/)                     | 猫咪面板：名册与详情、邀请新伙伴、和谁生小猫；捏猫、开局  |
 | [petting/](petting/)               | 撸猫画面                                                  |
 | [companion/](companion/)           | 事实回忆展示                                              |
 | [common/](common/)                 | 共用：地点状态与模块间接口、设置卡、文案、ViewModel       |
