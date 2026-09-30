@@ -39,7 +39,8 @@ import v18Content9 from '../fixtures/save-v18-content9.json';
 import v18Content10 from '../fixtures/save-v18-content10.json';
 // Two cats from before cats carried their own sex, birth, generation and family (save 19).
 import v19Content10 from '../fixtures/save-v19-content10.json';
-// Two cats from before a coat could be orange or tuxedo (save 20).
+// Pepper invited free and without a bed, from before INVITE_CAT and before a coat
+// could be orange or tuxedo (save 20, content 10).
 import v20Content10 from '../fixtures/save-v20-content10.json';
 
 const future = {

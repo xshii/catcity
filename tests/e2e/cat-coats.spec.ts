@@ -5,6 +5,7 @@ import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { CAT_BREED_IDS, CAT_BREEDS } from '../../src/content/breeds';
 import { CAT_COATS } from '../../src/content/cats';
 import { createWorld } from '../../src/core/world';
+import { invite } from '../helpers/world';
 import {
   CAT_ART,
   portraitShapes,
@@ -87,7 +88,7 @@ test('a sheet of the 4 coats × 2 breeds, as the map and the roster draw them', 
 /** Mochi (a cream ragdoll) and Pepper (a gray shorthair) in a save the page loads. */
 function twoCats() {
   const world = createWorld(42);
-  expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+  invite(world);
   return world.save();
 }
 

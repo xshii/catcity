@@ -5,7 +5,8 @@ import {
   CAFE,
   CITY_START,
 } from '../../src/content/city';
-import { advance, buildCafe } from '../helpers/world';
+import { invitePrice } from '../../src/content/cats';
+import { advance, buildCafe, invite } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
 import { expect, it } from 'vitest';
@@ -28,18 +29,14 @@ import {
 function unlocked() {
   const world = createWorld(42);
   buildCafe(world, { x: 4, y: 4 });
-  world.dispatch({ type: 'INVITE_PEPPER' });
-  // Pepper lives beside the cafe and is its customer; it idles away from home.
+  // Pepper moves into the apartment beside the cafe and is its customer; it idles beside
+  // its home, where it arrived.
   world.dispatch({
     type: 'BUILD_BUILDING',
     buildingType: 'CAT_APARTMENT',
     position: { x: 4, y: 3 },
   });
-  world.dispatch({
-    type: 'ASSIGN_HOME',
-    catId: world.getSnapshot().cats[1]!.id,
-    buildingId: world.getSnapshot().buildings[1]!.id,
-  });
+  expect(invite(world).home).toBe(world.getSnapshot().buildings[1]!.id);
   const fixture = JSON.parse(world.save());
   fixture.world.fishing.xp = skillXp(SPOTS.MOON.level);
   fixture.world.cats[1].needs.energy = 50;
@@ -106,15 +103,17 @@ it('queues real shore travel, advancing income and idle cats recovery only on th
   expect(state.coins).toBe(
     CITY_START.coins -
       buildingPrice('CAT_CAFE', 0) -
-      buildingPrice('CAT_APARTMENT', 0) +
+      buildingPrice('CAT_APARTMENT', 0) -
+      invitePrice(0) +
       CAFE.coinsPerCustomer *
         (Math.floor(state.minute / BUILDINGS.CAT_CAFE.intervalMinutes) -
           Math.floor(CITY_START.minute / BUILDINGS.CAT_CAFE.intervalMinutes)),
   );
   expect(state.cats.map((cat) => cat.needs.energy)).toEqual([
-    // Walking costs a tile each; idle Pepper recovers every tick from the start.
+    // Walking costs a tile each; Pepper, idle beside its home, recovers every tick from
+    // the start.
     100 - route.length,
-    Math.min(100, 50 + CARE.recovery.idle * Math.floor(elapsed / 10)),
+    Math.min(100, 50 + CARE.recovery.home * Math.floor(elapsed / 10)),
   ]);
   expect(state.cats[0]!.fishingSpotId).toBe('COAST');
   expect(state.cats[1]!.fishingSpotId).toBeNull();

@@ -287,7 +287,7 @@ test('tile cards explain disabled actions in words and offer road removal', asyn
   await expect(page.locator('#city-wait')).toHaveCount(0);
   await page.locator('#city-tab-cats').click();
   await expect(page.locator('#fish-rest')).toHaveCount(0);
-  await expect(page.locator('#invite-pepper')).toBeVisible();
+  await expect(page.locator('#invite-open')).toBeVisible();
   await expect(page.locator('#time-forward')).toHaveCount(0);
 });
 
@@ -299,8 +299,10 @@ test('a selected cat walks only through an explicit action; apartments list 入�
   await ready(page);
   await clickTile(page, 3, 4);
   await page.locator('[data-build-type=CAT_APARTMENT]').click();
+  // Pepper is invited into a bed of the new apartment (spec 041 R-12).
   await page.locator('#city-tab-cats').click();
-  await page.locator('#invite-pepper').click();
+  await page.locator('#invite-open').click();
+  await page.locator('[data-invite-cat="PEPPER"]').click();
   await page.locator('#river-tools-close').click();
   const before = await readWorld(page);
   const mochi = before.cats[0]!;
@@ -323,12 +325,15 @@ test('a selected cat walks only through an explicit action; apartments list 入�
   await clickTile(page, 3, 4);
   await expect(page.locator('#walk-here')).toHaveCount(0);
   await expect(page.locator('#assign-home-mochi')).toHaveText('Mochi 入住');
+  // Pepper already lives here, in the bed it was invited to.
   const pepper = walking.cats[1]!;
+  expect(pepper.home).toBe(walking.buildings[0]!.id);
   await expect(page.locator(`#assign-home-${pepper.id}`)).toHaveText(
     'Pepper 入住',
   );
-  await page.locator(`#assign-home-${pepper.id}`).click();
-  expect((await readWorld(page)).cats[1]!.home).toBe(walking.buildings[0]!.id);
   await expect(page.locator(`#assign-home-${pepper.id}`)).toBeDisabled();
   await expect(page.locator('#city-action-reason')).toContainText('已经住');
+  await page.locator('#assign-home-mochi').click();
+  expect((await readWorld(page)).cats[0]!.home).toBe(walking.buildings[0]!.id);
+  await expect(page.locator('#assign-home-mochi')).toBeDisabled();
 });

@@ -1,13 +1,31 @@
 import type { CatBreed } from './breeds';
+import { growingPrice } from './city';
 import type { FishId } from './fishing';
 
 /** Starter id of the first resident; other cats get allocated `cat-N` ids. */
 export const STARTER_CAT_ID = 'mochi';
 
-export const CAT_DEFINITION_IDS = ['MOCHI', 'PEPPER'] as const;
+export const CAT_DEFINITION_IDS = [
+  'MOCHI',
+  'PEPPER',
+  'NIANGAO',
+  'ZHIMA',
+  'BUDING',
+  'DOUBAO',
+] as const;
 export type CatDefinitionId = (typeof CAT_DEFINITION_IDS)[number];
 /** The coats a cat can wear (ui-design 6.1); the art gives each its colours. */
 export const CAT_COATS = ['cream', 'gray', 'orange', 'tuxedo'] as const;
+/** The first-generation cats a player can invite, in the order the list shows them; Mochi starts in the city. */
+export const INVITABLE_CATS: readonly CatDefinitionId[] =
+  CAT_DEFINITION_IDS.filter((id) => id !== 'MOCHI');
+/** Companion cats the city holds at most (R-13); the engine bound MAX_CATS is higher. */
+export const MAX_COMPANIONS = 8;
+/** An invitation costs 200 coins, twice as much as the one before (spec 041 design 4). */
+const INVITE = { basePrice: 200, growth: [2, 1] } as const;
+/** The price of the next invitation when `invited` cats have come by invitation. */
+export const invitePrice = (invited: number): number =>
+  growingPrice(INVITE.basePrice, INVITE.growth, invited);
 
 /** Resident templates: identity, tastes and starting needs. Instances live in Core. */
 export const CAT_DEFINITIONS: Record<
@@ -52,6 +70,59 @@ export const CAT_DEFINITIONS: Record<
     likes: ['fish', 'exploring'],
     dislikes: ['waiting'],
     favoriteFish: ['PERCH', 'CATFISH'],
+    unique: true,
+  },
+  // Each newcomer likes a coast fish and a Moon Lake fish, none that Mochi or Pepper likes.
+  NIANGAO: {
+    breedId: 'RAGDOLL',
+    name: '年糕',
+    sex: 'F',
+    coat: 'gray',
+    personality: ['gentle', 'sleepy', 'clingy'],
+    personalityLabel: '温柔 · 爱睡 · 黏人',
+    traits: ['calm'],
+    likes: ['fish', 'naps', 'laps'],
+    dislikes: ['cold'],
+    favoriteFish: ['MACKEREL', 'KOI'],
+    unique: true,
+  },
+  ZHIMA: {
+    breedId: 'RAGDOLL',
+    name: '芝麻',
+    sex: 'M',
+    coat: 'cream',
+    personality: ['brave', 'steady'],
+    personalityLabel: '勇敢 · 沉稳',
+    traits: ['steady'],
+    likes: ['fish', 'high-places'],
+    dislikes: ['rain'],
+    favoriteFish: ['SEA_BREAM', 'KOI'],
+    unique: true,
+  },
+  BUDING: {
+    breedId: 'BRITISH_SHORTHAIR',
+    name: '布丁',
+    sex: 'F',
+    coat: 'cream',
+    personality: ['sweet', 'chatty'],
+    personalityLabel: '爱撒娇 · 话多',
+    traits: ['cheerful'],
+    likes: ['fish', 'sunshine'],
+    dislikes: ['baths'],
+    favoriteFish: ['MACKEREL', 'MOON_CARP'],
+    unique: true,
+  },
+  DOUBAO: {
+    breedId: 'BRITISH_SHORTHAIR',
+    name: '豆包',
+    sex: 'M',
+    coat: 'gray',
+    personality: ['easygoing', 'lazy'],
+    personalityLabel: '随和 · 懒洋洋',
+    traits: ['easygoing'],
+    likes: ['fish', 'boxes'],
+    dislikes: ['hurry'],
+    favoriteFish: ['SEA_BREAM', 'MOON_CARP'],
     unique: true,
   },
 };

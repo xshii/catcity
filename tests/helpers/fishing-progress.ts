@@ -2,6 +2,7 @@ import { createWorld, type CommandResult, type World } from '../../src/core';
 import { FISHING, type BaitId, type SpotId } from '../../src/content/fishing';
 import { RandomService, runSeed } from '../../src/core/random';
 import { greenZone } from '../../src/minigames/angling';
+import { buildApartment } from './world';
 
 /**
  * Fishing progress played through Core commands, for view and E2E tests that start
@@ -82,7 +83,8 @@ function walkTo(world: World, spotId: SpotId) {
 /**
  * One playthrough of a new game (seed 42), saved at each point a test starts from: four
  * pond catches (one short of the reeds), the fifth (reeds open), the walk to the reeds,
- * and a perch caught there on worms.
+ * and a perch caught there on worms, with an apartment built after it so that Pepper has
+ * a bed to be invited into (spec 041 R-12).
  */
 export function progressSaves() {
   const world = createWorld(42);
@@ -94,6 +96,7 @@ export function progressSaves() {
   walkTo(world, 'REEDS');
   const atReeds = world.save();
   landFish(world, 'REEDS', 'WORM', FISHING.input.maxDirection);
+  buildApartment(world);
   return { oneCatchShort, reedsOpen, atReeds, perchAtReeds: world.save() };
 }
 

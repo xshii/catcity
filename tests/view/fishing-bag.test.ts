@@ -4,6 +4,7 @@ import { createWorld } from '../../src/core/world';
 import { finishFishing } from '../unit/fishing-fixture';
 import { $, choose, click, openGame, text } from '../helpers/view-rig';
 import { enterRiver, openGear, showBagFish } from '../helpers/view-player';
+import { invite } from '../helpers/world';
 
 /** Mochi's two pond catches, played through Core; Pepper invited when asked for. */
 function twoFish({ pepper = false } = {}) {
@@ -21,7 +22,7 @@ function twoFish({ pepper = false } = {}) {
     ).toBe(true);
     finishFishing(world);
   }
-  if (pepper) expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+  if (pepper) invite(world);
   expect(world.getSnapshot().fishing.inventory).toHaveLength(2);
   return { 'cat-city.save.v1': world.save() };
 }

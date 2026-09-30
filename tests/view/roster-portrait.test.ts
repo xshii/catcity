@@ -2,11 +2,12 @@ import { expect, it } from 'vitest';
 import { $, openGame } from '../helpers/view-rig';
 import { openCats } from '../helpers/view-player';
 import { createWorld } from '../../src/core/world';
+import { invite } from '../helpers/world';
 import { catLook, catPose, portraitShapes } from '../../src/view/art/cat-look';
 
 it('draws each cat in the roster with its own breed’s outline and coat (R-15)', () => {
   const world = createWorld(42);
-  expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+  invite(world);
   const game = openGame({ storage: { 'cat-city.save.v1': world.save() } });
   openCats('roster');
   const shown = game.world();

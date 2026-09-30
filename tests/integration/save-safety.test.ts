@@ -5,6 +5,7 @@ import { MAX_TALENT } from '../../src/content/family';
 import { fishById } from '../../src/content/fishing';
 import { createTestSession, memoryRepository } from '../helpers/session';
 import { holdTicks } from '../unit/fishing-fixture';
+import { invite } from '../helpers/world';
 
 it('offers a reset only for a rejected save, not after a failed write', () => {
   const rejected = createTestSession({
@@ -73,7 +74,7 @@ it('rejects an in-progress run whose encounter differs from its seed and inputs'
 
 it('rejects cats that no longer match their template or duplicate a unique resident', () => {
   const world = createWorld(42);
-  world.dispatch({ type: 'INVITE_PEPPER' });
+  invite(world);
   const base = world.save();
   expect(() => loadWorld(base)).not.toThrow();
   for (const forge of [
@@ -105,7 +106,7 @@ it('rejects cats that no longer match their template or duplicate a unique resid
 describe('a cat carries its own identity (spec 041 R-10, R-11)', () => {
   const twoCats = () => {
     const world = createWorld(42);
-    expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+    invite(world);
     return world;
   };
   it('saves the identity of each cat and restores it exactly', () => {
@@ -199,7 +200,7 @@ describe('a cat carries its own identity (spec 041 R-10, R-11)', () => {
 describe('a cat wears one of four coats (spec 041 R-15)', () => {
   const twoCats = () => {
     const world = createWorld(42);
-    expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+    invite(world);
     return world.save();
   };
   const withCoat = (index: number, coat: string) => {

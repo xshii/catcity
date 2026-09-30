@@ -3,7 +3,7 @@
   "contentVersion": 10,
   "world": {
     "seed": 42,
-    "minute": 420,
+    "minute": 480,
     "coins": 1000,
     "nextId": 2,
     "map": {
@@ -633,7 +633,7 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 70,
+        "mood": 68,
         "needs": { "energy": 100 },
         "memories": [],
         "playerBond": 0,
@@ -669,7 +669,7 @@
           "likes": ["fish", "exploring"],
           "dislikes": ["waiting"]
         },
-        "mood": 70,
+        "mood": 68,
         "needs": { "energy": 100 },
         "memories": [],
         "playerBond": 0,

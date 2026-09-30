@@ -4,6 +4,7 @@ import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
 import { CAT_COATS } from '../../src/content/cats';
 import type { WorldState } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
+import { invite } from '../helpers/world';
 import { MOOD_COPY } from '../../src/view/shell/mood';
 import {
   CAT_ART,
@@ -316,7 +317,7 @@ describe('each breed has its own outline (ui-design 6.1, R-15)', () => {
 
   it('reads a cat’s look from its coat and its breed', () => {
     const world = createWorld(42);
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     const [mochi, pepper] = world.getSnapshot().cats;
     expect(catLook(mochi!)).toEqual(MOCHI);
     expect(catLook(pepper!)).toEqual({
