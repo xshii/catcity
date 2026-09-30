@@ -211,13 +211,13 @@ cat.lastWishDay: number | null      // 上一个心愿完成的那一天，用�
 
 分支 `feat/petting` 的架构保留（纯引擎、一局结束发一条 `PET_CAT { catId, strokes }`、Core 重放结算）。合并前的改动：
 
-| 改动                                                                                                 | 位置                                         |
-| ---------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| 亲密改用 `rewardBond(cat, BOND.petting)` + `spendDaily(cat.pettingBond, minute, BOND.pettingPerDay)` | `src/core/petting.ts`、`src/content/care.ts` |
-| 心情改用 `liftMood`                                                                                  | `src/core/petting.ts`                        |
-| 每小时限制保留（作用于心情）；每日限制作用于亲密                                                     | —                                            |
-| 撸猫期间时钟固定 1×                                                                                  | 见下                                         |
-| 部位按钮移到猫身体轮廓之外，用引线指向部位                                                           | `src/view/petting/`                          |
+| 改动                                                                                                                          | 位置                                         |
+| ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 亲密改用 `rewardBond(cat, BOND.petting)` + `spendDaily(cat.pettingBond, minute, BOND.pettingPerDay)`                          | `src/core/petting.ts`、`src/content/care.ts` |
+| 心情改用 `liftMood`                                                                                                           | `src/core/petting.ts`                        |
+| 心情：任意 8 游戏小时内最多 3 局加心情（`CARE.pettingLifts`，用户 2026-09-30 决定，见 039 的“节奏”）；每日 3 局限制作用于亲密 | —                                            |
+| 撸猫期间时钟固定 1×                                                                                                           | 见下                                         |
+| 直接摸猫：四个部位是猫身体上的触摸区域，底部部位条供键盘和读屏（ui-design 5.5）                                               | `src/view/petting/`                          |
 
 时钟固定：`mountClockSpeed` 现在用 `place.get() !== 'city'` 判断是否锁定。撸猫是覆盖层，不是地点。在 `src/view/shell/place.ts` 增加一个只读的"小游戏进行中"标志（`place` 为 `river`，或撸猫画面打开），`mountClockSpeed` 和 `main.ts` 的时钟读取这个标志。不要把撸猫做成第三个 `Place`：地点决定底部工具条和场景，撸猫不改变它们。
 
