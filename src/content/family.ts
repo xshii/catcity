@@ -29,8 +29,11 @@ export const TALENT_EFFECTS = {
   feel: { strikeTicks: 1, hookZone: 2 },
   /** 耐力: stamina a cast costs less. */
   stamina: { castCost: 1 },
-  /** 亲人: how much less a happy cat's mood falls each hour, by level. */
-  affection: { slowerFall: [0, 0, 1, 1, 2] },
+  /**
+   * 亲人: of every `everyHours` game hours, on this many (by level) a happy cat's mood falls
+   * one point less; every hour it still falls.
+   */
+  affection: { everyHours: 16, gentleHours: [0, 1, 2, 3, 4] },
 } as const;
 
 /** The stamina one cast takes from a cat of this 耐力. */

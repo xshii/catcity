@@ -172,36 +172,64 @@ describe('耐力 (stamina)', () => {
 });
 
 describe('亲人 (affection)', () => {
-  it('slows a happy cat’s hourly fall by level, never below where a calm cat lands', () => {
-    const floor = MOOD.happy - 1 - MOOD.drift;
+  const { gentleHours, everyHours } = TALENT_EFFECTS.affection;
+  /** A happy cat's fall over `everyHours` hours on end, from 100, at this 亲人. */
+  const fallOver = (affection: number, from = 0) =>
+    Array.from(
+      { length: everyHours },
+      (_, hour) => 100 - moodAfterDrift(100, affection, from + hour),
+    ).reduce((sum, fall) => sum + fall, 0);
+
+  it('lets a happy cat fall one point less on some hours of every few, more of them by level', () => {
+    expect(gentleHours[0]).toBe(0);
     for (const affection of LEVELS) {
-      const fall =
-        MOOD.highDrift - TALENT_EFFECTS.affection.slowerFall[affection]!;
-      expect(fall).toBeGreaterThan(0);
-      expect(moodAfterDrift(100, affection)).toBe(100 - fall);
-      expect(moodAfterDrift(MOOD.happy, affection)).toBe(
-        Math.max(MOOD.happy - fall, floor),
+      expect(fallOver(affection)).toBe(
+        everyHours * MOOD.highDrift - gentleHours[affection]!,
       );
-      // Under the happy line the drift is every cat's.
-      expect(moodAfterDrift(MOOD.happy - 1, affection)).toBe(
-        MOOD.happy - 1 - MOOD.drift,
-      );
+      // Whichever hour the count starts from.
+      expect(fallOver(affection, 5)).toBe(fallOver(affection));
+      if (affection)
+        expect(gentleHours[affection]).toBeGreaterThan(
+          gentleHours[affection - 1]!,
+        );
     }
-    expect(TALENT_EFFECTS.affection.slowerFall[0]).toBe(0);
+    // At most one point less an hour: 亲人 slows the fall, it never keeps a cat happy.
+    expect(gentleHours[MAX_TALENT]).toBeLessThanOrEqual(everyHours);
+    expect(MOOD.highDrift).toBeGreaterThan(1);
   });
 
-  it('is the cat’s own as the city clock runs', () => {
+  it('never lets a happy cat fall below where a calm cat lands, and leaves the calm drift alone', () => {
+    const floor = MOOD.happy - 1 - MOOD.drift;
+    for (const affection of LEVELS)
+      for (let hour = 0; hour < everyHours; hour++) {
+        expect(
+          moodAfterDrift(MOOD.happy, affection, hour),
+        ).toBeGreaterThanOrEqual(floor);
+        expect(moodAfterDrift(MOOD.happy - 1, affection, hour)).toBe(
+          MOOD.happy - 1 - MOOD.drift,
+        );
+      }
+  });
+
+  it('is the cat’s own as the city clock runs, hour by hour', () => {
     const state: WorldState = readyPair().getSnapshot();
     const [plain, gifted] = state.cats;
     plain!.mood = 100;
     gifted!.mood = 100;
     // A state built here, not a save: no first-generation cat has talents.
     gifted!.talent = { ...NO_TALENT, affection: MAX_TALENT };
+    const hour = Math.floor(state.minute / 60) + 1;
     applyCommand(state, {
       type: 'ADVANCE_TIME',
-      minutes: 60 - (state.minute % 60),
+      minutes: hour * 60 - state.minute,
     });
-    expect(plain!.mood).toBe(moodAfterDrift(100, 0));
-    expect(gifted!.mood).toBe(moodAfterDrift(100, MAX_TALENT));
+    expect(plain!.mood).toBe(moodAfterDrift(100, 0, hour));
+    expect(gifted!.mood).toBe(moodAfterDrift(100, MAX_TALENT, hour));
+    // A long advance is the same as one hour at a time.
+    const stepped = structuredClone(state);
+    applyCommand(state, { type: 'ADVANCE_TIME', minutes: 10 * 60 });
+    for (let step = 0; step < 10; step++)
+      applyCommand(stepped, { type: 'ADVANCE_TIME', minutes: 60 });
+    expect(stepped.cats[1]!.mood).toBe(state.cats[1]!.mood);
   });
 });

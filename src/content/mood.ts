@@ -54,10 +54,17 @@ export function moodGain(mood: number, amount: number): number {
 /**
  * A mood an hour's drift down later: faster from the happy line up, but never to below
  * where a cat just under the line lands, so a happier cat is never left the sadder one.
- * A cat's 亲人 (spec 041 R-35) slows the fall from the happy line up.
+ * A cat's 亲人 (spec 041 R-35) makes the fall from the happy line up one point less on
+ * some game hours (`hour`, counted from the start of the game clock).
  */
-export function moodAfterDrift(mood: number, affection: number): number {
-  const fall = MOOD.highDrift - TALENT_EFFECTS.affection.slowerFall[affection]!;
+export function moodAfterDrift(
+  mood: number,
+  affection: number,
+  hour: number,
+): number {
+  const { everyHours, gentleHours } = TALENT_EFFECTS.affection;
+  const fall =
+    MOOD.highDrift - (hour % everyHours < gentleHours[affection]! ? 1 : 0);
   return mood >= MOOD.happy
     ? Math.max(mood - fall, MOOD.happy - 1 - MOOD.drift)
     : mood - MOOD.drift;

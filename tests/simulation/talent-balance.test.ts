@@ -36,15 +36,22 @@ import { PLAYERS, rodTip } from '../helpers/motion-player';
  * 耐力 changes no catch. 亲人 keeps a petted cat happy longer: the share of happy casts
  * comes from a petting player's day (below), and it weighs the happy and calm rates.
  *
- * Measured 2026-09-30 (TALENT_EFFECTS: 钓感 1 tick of strike window a level, 亲人 a
- * happy cat's hourly fall 4 → 3 at levels 2–3 and → 2 at 4; 200 fish): a novice lands
+ * 亲人 stays small (user 2026-09-30): a petting player's cat of 亲人 4 is happy on about
+ * 70% of casts or fewer, and every level adds a little.
+ *
+ * Measured 2026-09-30 (TALENT_EFFECTS: 钓感 1 tick of strike window a level; 亲人 a
+ * happy cat falls one point less on 1–4 of every 16 game hours; 200 fish): a novice lands
  * 1.5% of calm and 15% of happy 4★ runs without talents, 3% and 15.5% with full ones;
  * the lift is hooked on 71% of calm bites without 钓感 and on every one from 2 levels
- * up, but the fight decides the catch. The petting player's cat is happy on 55% / 60%
- * of casts at 30 / 60 minutes without 亲人 and on nearly all (99.7%) with 4, so its
- * lift is the largest: 6.5 / 5.9 points. (Without catches in the petting day, which lift
- * a calm cat a little, the happy share without 亲人 is lower than pacing.test.ts's 80%,
- * so the lift here is an upper bound.)
+ * up, but the fight decides the catch. The petting player's cat is happy on this share of
+ * casts, by 亲人 level 0–4, at 20 / 30 / 45 / 60 minutes:
+ *   0: 56.7 / 55.0 / 50.7 / 60.0%   1: 61.0 / 61.3 / 53.7 / 63.3%
+ *   2: 62.0 / 62.7 / 54.7 / 64.7%   3: 65.0 / 65.7 / 56.7 / 67.7%
+ *   4: 67.0 / 67.7 / 58.0 / 69.3%
+ * (a fall 4 → 3 at levels 2–3 and → 2 at 4, as first set, gave 99.7% at 4). The largest
+ * lift is the petting player's: 2.5 points at 30 minutes, 2.1 at 60. (Without catches in the
+ * petting day, which lift a calm cat a little, the happy share without 亲人 is lower than
+ * pacing.test.ts's 80%, so the lift here is an upper bound.)
  */
 const LIFT_MAX = 10;
 const SAMPLES = 200;
@@ -155,6 +162,21 @@ it.each([
     expect(lift, `lift ${lift.toFixed(1)} points`).toBeLessThanOrEqual(
       LIFT_MAX,
     );
+  },
+);
+
+/** The user's bound on 亲人 (2026-09-30): about 70% of casts happy at level 4, or fewer. */
+const AFFECTION_SHARE_MAX = 70;
+
+it.each([30, 60])(
+  'keeps a petting player’s cat happy a little longer at every level of 亲人, and at 4 on at most 70% of casts every %i minutes',
+  (minutes) => {
+    const shares = [0, 1, 2, 3, 4].map((level) => happyShare(level, minutes));
+    for (let level = 1; level <= MAX_TALENT; level++)
+      expect(shares[level], `level ${level}`).toBeGreaterThan(
+        shares[level - 1]!,
+      );
+    expect(shares[MAX_TALENT]).toBeLessThanOrEqual(AFFECTION_SHARE_MAX);
   },
 );
 

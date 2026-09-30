@@ -261,6 +261,29 @@ describe('BREED_CATS (spec 041 R-32, design 5.2)', () => {
   });
 });
 
+describe('a kitten and wishes (spec 041 R-50, T-40)', () => {
+  it('thinks of no wish while a kitten, and may once grown, as its day starts', () => {
+    const world = withKitten();
+    const kitten = () => world.getSnapshot().cats[2]!;
+    const grown = kitten().bornMinute! + KITTEN_MINUTES;
+    const DAY = 24 * 60;
+    let wishes = 0;
+    // Day by day, the kitten grows up in the second and has ten days to think of one.
+    for (let day = 1; day <= 12; day++) {
+      const minute = world.getSnapshot().minute;
+      const next = (Math.floor(minute / DAY) + 1) * DAY;
+      expect(
+        world.dispatch({ type: 'ADVANCE_TIME', minutes: next - minute }).ok,
+      ).toBe(true);
+      if (next < grown) expect(kitten().wish).toBeNull();
+      else if (kitten().wish) wishes++;
+    }
+    expect(wishes).toBeGreaterThan(0);
+    // Every day of it was a valid save.
+    expect(loadWorld(world.save()).save()).toBe(world.save());
+  });
+});
+
 describe('inherit (spec 041 R-33, R-35, design 5.3 – 5.4)', () => {
   const pair = readyPair().getSnapshot();
   /** Parents unlike each other in every trait, so each draw shows whose it took. */
