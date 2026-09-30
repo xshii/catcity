@@ -194,7 +194,19 @@ test('a catch long enough for its gold glints on the card; with reduced motion t
     'true',
   );
   await expect(page.locator('#catch-reveal .catch-gold')).toBeVisible();
-  // Taken while the card glints (about a second from when it shows).
+  // The card pops in from transparent; the glint runs on a little after it.
+  await page
+    .locator('#catch-reveal')
+    .evaluate((card) =>
+      Promise.all(card.getAnimations().map((animation) => animation.finished)),
+    );
+  await page.screenshot({ path: testInfo.outputPath('gold-catch-glint.png') });
+  // The star pops in after the card and stays in its corner.
+  await page
+    .locator('#catch-reveal .catch-gold')
+    .evaluate((mark) =>
+      Promise.all(mark.getAnimations().map((animation) => animation.finished)),
+    );
   await page.screenshot({ path: testInfo.outputPath('gold-catch.png') });
   await expect(page.locator('#catch-reveal .catch-countdown')).toBeAttached();
   await page.emulateMedia({ reducedMotion: 'reduce' });
