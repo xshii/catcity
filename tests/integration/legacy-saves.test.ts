@@ -39,6 +39,8 @@ import v18Content9 from '../fixtures/save-v18-content9.json';
 import v18Content10 from '../fixtures/save-v18-content10.json';
 // Two cats from before cats carried their own sex, birth, generation and family (save 19).
 import v19Content10 from '../fixtures/save-v19-content10.json';
+// Two cats from before a coat could be orange or tuxedo (save 20).
+import v20Content10 from '../fixtures/save-v20-content10.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -69,6 +71,7 @@ const incompatible = {
   v18Content9,
   v18Content10,
   v19Content10,
+  v20Content10,
   future,
 };
 

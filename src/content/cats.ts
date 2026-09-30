@@ -6,6 +6,8 @@ export const STARTER_CAT_ID = 'mochi';
 
 export const CAT_DEFINITION_IDS = ['MOCHI', 'PEPPER'] as const;
 export type CatDefinitionId = (typeof CAT_DEFINITION_IDS)[number];
+/** The coats a cat can wear (ui-design 6.1); the art gives each its colours. */
+export const CAT_COATS = ['cream', 'gray', 'orange', 'tuxedo'] as const;
 
 /** Resident templates: identity, tastes and starting needs. Instances live in Core. */
 export const CAT_DEFINITIONS: Record<
@@ -14,7 +16,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: CatBreed;
     name: string;
     sex: 'F' | 'M';
-    coat: 'cream' | 'gray';
+    coat: (typeof CAT_COATS)[number];
     personality: readonly string[];
     /** Player-facing summary of `personality`. */
     personalityLabel: string;

@@ -64,6 +64,14 @@
   --star-silver: #8a8680;
   --star-gold: #b07d12;
 
+  /* Cat coats (ui-design 2.2); the cat art mirrors them in view/art/cat-look.ts */
+  --coat-cream: #f7e3c4;
+  --coat-gray: #c9d0cf;
+  --coat-orange: #f2b880;
+  /* A tuxedo's dark crown and back (a warm black) and its light lower face and belly */
+  --coat-black: #6b5d55;
+  --coat-white: #fffaf0;
+
   /* Soft warm shadows */
   --shadow-tab: 0 2px 6px rgb(138 111 90 / 0.18);
   --shadow-soft: 0 6px 18px rgb(179 106 69 / 0.12);

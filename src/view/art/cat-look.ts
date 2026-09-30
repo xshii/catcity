@@ -49,17 +49,42 @@ export function catPose(
   };
 }
 
-/** Art colours from the palette in tokens.css; `coat` fills are the fur. */
+/**
+ * The art's colours from styles/tokens.css: `CAT_TOKENS` mirrors the values of the tokens
+ * of the same name (a unit test keeps them equal).
+ */
+export const CAT_TOKENS = {
+  paper: '#fbf6ec',
+  brown: '#8a6f5a',
+  ink: '#5e4b3e',
+  sakura: '#f2b8b5',
+  mint: '#9ccfc8',
+  coatCream: '#f7e3c4',
+  coatGray: '#c9d0cf',
+  coatOrange: '#f2b880',
+  coatBlack: '#6b5d55',
+  coatWhite: '#fffaf0',
+} as const;
+const T = CAT_TOKENS;
+/**
+ * Each coat's fur, its underside (a tuxedo's lower face, chest and belly) and the eyes on
+ * its fur: paper on a tuxedo's dark crown, to be seen (ui-design 6.1).
+ */
+const COATS: Record<CatCoat, Record<'coat' | 'under' | 'eye', string>> = {
+  cream: { coat: T.coatCream, under: T.coatCream, eye: T.ink },
+  gray: { coat: T.coatGray, under: T.coatGray, eye: T.ink },
+  orange: { coat: T.coatOrange, under: T.coatOrange, eye: T.ink },
+  tuxedo: { coat: T.coatBlack, under: T.coatWhite, eye: T.paper },
+};
+/** Colours every coat shares; the outline stays warm brown on any fur. */
 const CAT_COLOURS = {
-  coat: { cream: '#f7e3c4', gray: '#c9d0cf' },
-  line: '#8a6f5a',
-  eye: '#5e4b3e',
-  blush: '#f2b8b5',
+  line: T.brown,
+  blush: T.sakura,
   blushSoft: '#f7cfc8',
-  tear: '#9ccfc8',
+  tear: T.mint,
   doze: '#a08a75',
 } as const;
-type Colour = Exclude<keyof typeof CAT_COLOURS, 'coat'> | 'coat';
+type Colour = keyof typeof CAT_COLOURS | 'coat' | 'under' | 'eye';
 
 /**
  * One shape of the art in the style board's 72×64 portrait space: an ellipse
@@ -85,17 +110,30 @@ const mirror = (d: string) =>
     /([\d.]+) ([\d.]+)/g,
     (_, x: string, y: string) => `${72 - Number(x)} ${y}`,
   );
-/** A left part and its mirrored right twin, both of fur. */
-const pair = (d: string) => [fur(d), fur(mirror(d))];
+/** Light fur: a tuxedo's white, any other coat's own colour. */
+const tuft = (d: string): CatShape => ({ d, fill: 'under', stroke: 'line' });
+/** A left part and its mirrored right twin. */
+const pair = (d: string, part = fur) => [part(d), part(mirror(d))];
+/**
+ * Fur with its light underside, which shares the fur's lower edge; the outline goes over
+ * both.
+ */
+const furAndUnder = (d: string, under: string): CatShape[] => [
+  { d, fill: 'coat' },
+  { d: under, fill: 'under' },
+  { d, stroke: 'line' },
+];
 const cheeks = (y: number, rx: number, ry: number, fill: Colour) =>
   [22, 50].map((x): CatShape => ({ ellipse: [x, y, rx, ry], fill }));
 const zZ = [
   line('M48 14L56 14L48 22L56 22', 'doze', 1.8),
   line('M58 6L63 6L58 11L63 11', 'doze', 1.8),
 ];
-/** The dozing ball's body; its ear and wrapped tail are the breed's. */
-const BALL =
-  'M10 46C10 34 22 26 36 26C50 26 62 34 62 46C62 58 50 58 36 58C22 58 10 58 10 46Z';
+/** The dozing ball's body, light below; its ear and wrapped tail are the breed's. */
+const BALL = furAndUnder(
+  'M10 46C10 34 22 26 36 26C50 26 62 34 62 46C62 58 50 58 36 58C22 58 10 58 10 46Z',
+  'M10 46C20 52 52 52 62 46C62 58 50 58 36 58C22 58 10 58 10 46Z',
+);
 const DOZING_EYE = line('M22 42Q26 45 30 42', 'eye');
 
 /**
@@ -117,12 +155,12 @@ interface BreedArt {
 export const CAT_ART = {
   breeds: {
     RAGDOLL: {
-      ruff: pair('M13 39Q6 39 9 45Q3 48 8 51Q4 56 12 56Q14 61 20 57Z'),
-      head: [
-        fur(
-          'M12 40C12 26 22 16 36 16C50 16 60 26 60 40C60 54 50 58 36 58C22 58 12 54 12 40Z',
-        ),
-      ],
+      ruff: pair('M13 39Q6 39 9 45Q3 48 8 51Q4 56 12 56Q14 61 20 57Z', tuft),
+      // The light lower face dips under each eye and rises between them.
+      head: furAndUnder(
+        'M12 40C12 26 22 16 36 16C50 16 60 26 60 40C60 54 50 58 36 58C22 58 12 54 12 40Z',
+        'M12 40C16 46 26 47 30 44C33 42 35 40 36 40C37 40 39 42 42 44C46 47 56 46 60 40C60 54 50 58 36 58C22 58 12 54 12 40Z',
+      ),
       ears: {
         up: pair('M18 26L15 12L26 21'),
         mid: pair('M16 28L10 16L23 23'),
@@ -134,7 +172,7 @@ export const CAT_ART = {
         ),
       ],
       curled: [
-        fur(BALL),
+        ...BALL,
         fur('M18 32L16 22L25 28'),
         DOZING_EYE,
         fur(
@@ -145,11 +183,10 @@ export const CAT_ART = {
     },
     BRITISH_SHORTHAIR: {
       ruff: [],
-      head: [
-        fur(
-          'M10 41C10 27 21 18 36 18C51 18 62 27 62 41C62 54 51 58 36 58C21 58 10 54 10 41Z',
-        ),
-      ],
+      head: furAndUnder(
+        'M10 41C10 27 21 18 36 18C51 18 62 27 62 41C62 54 51 58 36 58C21 58 10 54 10 41Z',
+        'M10 41C15 47 26 47 30 44C33 42 35 40 36 40C37 40 39 42 42 44C46 47 57 47 62 41C62 54 51 58 36 58C21 58 10 54 10 41Z',
+      ),
       ears: {
         up: pair('M17 28Q13 10 28 21'),
         mid: pair('M14 30Q8 16 25 24'),
@@ -159,7 +196,7 @@ export const CAT_ART = {
         fur('M57 53C63 54 67 50 66 45C65 42 61 43 61 46C61 48 59 48 56 48Z'),
       ],
       curled: [
-        fur(BALL),
+        ...BALL,
         fur('M18 33Q14 22 26 28'),
         DOZING_EYE,
         line('M62 48Q66 54 60 57'),
@@ -211,4 +248,6 @@ export function portraitShapes(
 }
 
 export const colourOf = (colour: Colour, coat: CatCoat): string =>
-  colour === 'coat' ? CAT_COLOURS.coat[coat] : CAT_COLOURS[colour];
+  colour === 'coat' || colour === 'under' || colour === 'eye'
+    ? COATS[coat][colour]
+    : CAT_COLOURS[colour];
