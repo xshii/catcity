@@ -52,9 +52,12 @@ import v21Content13 from '../fixtures/save-v21-content13.json';
 // Mochi, Pepper and 芝麻 each in one of four coats, from before a look was five choices
 // and Mochi the player's stray (save 22, content 14).
 import v22Content14 from '../fixtures/save-v22-content14.json';
-// Mochi and Pepper with coins to spare, from before neutering cost 100 coins (save 23,
-// content 15).
+// Mochi petted three times in a row, the allowance of content 15 (3 rounds in 8 game hours);
+// content 16 allows 4 in 10 (user 2026-09-30).
 import v23Content15 from '../fixtures/save-v23-content15.json';
+// Mochi and Pepper with coins to spare, from before neutering cost 100 coins (save 23,
+// content 16).
+import v23Content16 from '../fixtures/save-v23-content16.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -91,6 +94,7 @@ const incompatible = {
   v21Content13,
   v22Content14,
   v23Content15,
+  v23Content16,
   future,
 };
 

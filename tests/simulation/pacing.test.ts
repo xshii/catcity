@@ -404,9 +404,9 @@ it.each(
  * each 12 game minutes at the 1× clock petting holds. The best petting player measures it
  * (user 2026-09-30); it must hold from any minute of the hour, a clock hour between rounds
  * or not, and within the allowance.
- * Measured 2026-09-30: 3 rounds from every minute. An attentive player (the balance
- * simulation's, +6 to +7 a round) needs 3 rounds only about a third of the time; the
- * rest wait for the window.
+ * Measured 2026-09-30 (4 rounds in 10 hours): 3 rounds from every minute. An attentive
+ * player (the balance simulation's, +6 to +7 a round) needs 3 or 4, 3.63 on average; with
+ * 3 rounds in 8 hours only about a third got there without waiting for the window.
  */
 it.each(CAT_BREED_IDS)(
   'a perfect petting player makes a calm %s stray happy in 2–3 rounds, from any minute of the hour',
@@ -449,10 +449,11 @@ it.each(CAT_BREED_IDS)(
 
 /**
  * R-23 (spec 041): a player who pets between casts has a happy cat on 70–85% of its casts.
- * The allowance of rounds that lift mood (`CARE.pettingLifts`, user 2026-09-30) keeps it
- * from 100%: a round keeps the cat happy for about two hours.
- * Measured 2026-09-30 at 30 / 60 (3 rounds in 8 hours): 75% / 75%; 7 hours 78% / 85%,
- * 9 hours 66% / 66%, 4 rounds in 10 hours 80% / 80%. The attentive player: 58% / 58%.
+ * The allowance of rounds that lift mood (`CARE.pettingLifts`, 4 rounds in 10 hours, user
+ * 2026-09-30) keeps it from 100%: a round keeps the cat happy for about two hours.
+ * Measured 2026-09-30 at 30 / 60: 80% / 80%; 3 rounds in 7 hours 78% / 85%, 8 hours
+ * 75% / 75%, 9 hours 66% / 66%, 4 rounds in 11 hours 72% / 73%. The attentive player:
+ * 62% / 60% (58% / 56% with 3 rounds in 8 hours).
  */
 const PETTING_HAPPY = { min: 70, max: 85 };
 
