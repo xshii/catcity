@@ -60,6 +60,9 @@ import v23Content15 from '../fixtures/save-v23-content15.json';
 import v23Content16 from '../fixtures/save-v23-content16.json';
 // A city past its first midnight, from before lodges and residents (save 23, content 17).
 import v23Content17 from '../fixtures/save-v23-content17.json';
+// A stray picked at the start, its home and a cafe, from before a city could have a cat
+// salon (save 24, content 18).
+import v24Content18 from '../fixtures/save-v24-content18.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -98,6 +101,7 @@ const incompatible = {
   v23Content15,
   v23Content16,
   v23Content17,
+  v24Content18,
   future,
 };
 

@@ -45,18 +45,20 @@ const memorySchema = z.strictObject({
   message: text,
   reply: text,
 });
+/** A look: five choices (spec 041 T-14), each one of its options. */
+export const appearanceSchema = z.strictObject({
+  colour: z.enum(APPEARANCE_OPTIONS.colour),
+  pattern: z.enum(APPEARANCE_OPTIONS.pattern),
+  white: z.enum(APPEARANCE_OPTIONS.white),
+  eyes: z.enum(APPEARANCE_OPTIONS.eyes),
+  face: z.enum(APPEARANCE_OPTIONS.face),
+});
 const catSchema = z.strictObject({
   id: text,
   definitionId: z.enum(CAT_DEFINITION_IDS),
   name: text,
-  /** Five choices (spec 041 T-14): the player's for the stray, any legal ones for all. */
-  appearance: z.strictObject({
-    colour: z.enum(APPEARANCE_OPTIONS.colour),
-    pattern: z.enum(APPEARANCE_OPTIONS.pattern),
-    white: z.enum(APPEARANCE_OPTIONS.white),
-    eyes: z.enum(APPEARANCE_OPTIONS.eyes),
-    face: z.enum(APPEARANCE_OPTIONS.face),
-  }),
+  /** The player's for the stray, the salon's since; any legal one for every cat. */
+  appearance: appearanceSchema,
   /** Identity belongs to the instance (spec 041 R-10); age and children are derived. */
   sex: z.enum(['F', 'M']),
   /** Null for a first-generation cat, which arrives grown. */
@@ -146,8 +148,8 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 24;
-export const CONTENT_VERSION = 18;
+export const SAVE_VERSION = 25;
+export const CONTENT_VERSION = 19;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
   contentVersion: z.literal(CONTENT_VERSION),

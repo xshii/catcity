@@ -61,6 +61,9 @@ export const CITY_COLOURS = {
   apartmentRoof: mix(T.sakura, T.brown, 0.2),
   lodge: mix(T.paper, T.wood, 0.4),
   lodgeRoof: mix(T.sage, T.brown, 0.15),
+  /** The cat salon (spec 041 T-15): light mint walls under a deeper mint roof. */
+  salon: mix(T.mint, T.paper, 0.55),
+  salonRoof: mix(T.mint, T.brown, 0.3),
   window: 0xfff4da,
   /** Windows in the evening and at night, with a warm glow around them. */
   lit: 0xffe39a,

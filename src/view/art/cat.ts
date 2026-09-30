@@ -94,7 +94,8 @@ export class CatArt extends Phaser.GameObjects.Container {
     x: number,
     y: number,
     scale: number,
-    private readonly look: CatLook,
+    /** What it draws; a new look (the salon's, T-15) needs a new sprite. */
+    readonly look: CatLook,
   ) {
     super(scene, x, y);
     scene.add.existing(this);

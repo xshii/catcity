@@ -37,10 +37,27 @@ export const CITY_PLAN = {
 } as const;
 
 const same = (a: Position, b: Position) => a.x === b.x && a.y === b.y;
+/**
+ * The same city with room for the salon too (spec 041 T-15). The plan's roads leave no
+ * plot free, so the road goes on south to (5,7): the apartment planned there moves to
+ * (6,7) beside it, and the salon stands across the road at (4,7).
+ */
+export const SALON_PLAN = {
+  plots: CITY_PLAN.plots.map((plot) =>
+    same(plot, { x: 5, y: 7 }) ? { x: 6, y: 7 } : plot,
+  ),
+  road: { x: 5, y: 7 },
+  salon: { x: 4, y: 7 },
+} as const;
 /** Grass away from the city for the cats to stand on; where they stand earns nothing. */
 const STANDING: Position[] = [2, 3, 4, 5, 6, 7]
   .flatMap((x) => [7, 8, 9].map((y) => ({ x, y })))
-  .filter((position) => !CITY_PLAN.plots.some((plot) => same(plot, position)));
+  .filter(
+    (position) =>
+      ![...CITY_PLAN.plots, ...SALON_PLAN.plots, SALON_PLAN.salon].some(
+        (plot) => same(plot, position),
+      ),
+  );
 
 const must = (world: World, command: unknown) => {
   const result = world.dispatch(command);
@@ -66,6 +83,15 @@ export const customersServed = (state: WorldState): number =>
     0,
   );
 
+type Building = 'CAT_CAFE' | 'CAT_APARTMENT' | 'CAT_SALON';
+/** What the plans build on the plot: the salon on its own, cafes on theirs. */
+const buildingOn = (plot: Position, cafes: readonly Position[]): Building =>
+  same(plot, SALON_PLAN.salon)
+    ? 'CAT_SALON'
+    : cafes.some((cafe) => same(cafe, plot))
+      ? 'CAT_CAFE'
+      : 'CAT_APARTMENT';
+
 /** Builds on the plot, with the land and road it needs; homeless cats move in at once. */
 export function buildOn(
   world: World,
@@ -78,16 +104,17 @@ export function buildOn(
       .map.tiles.find((item) => same(item.position, position))!;
   const build = {
     type: 'BUILD_BUILDING',
-    buildingType: cafes.some((cafe) => same(cafe, plot))
-      ? 'CAT_CAFE'
-      : 'CAT_APARTMENT',
+    buildingType: buildingOn(plot, cafes),
     position: plot,
   };
   if (!tile(plot).owned) must(world, { type: 'BUY_LAND', position: plot });
   if (world.check(build).ok === false) {
-    // Only the plots beside the planned road are away from the network.
-    must(world, { type: 'BUY_LAND', position: CITY_PLAN.road });
-    must(world, { type: 'PLACE_ROAD', position: CITY_PLAN.road });
+    // Only the plots beside a planned road are away from the network.
+    const road = [CITY_PLAN.road, SALON_PLAN.road].find(
+      (item) => Math.abs(item.x - plot.x) + Math.abs(item.y - plot.y) === 1,
+    )!;
+    must(world, { type: 'BUY_LAND', position: road });
+    must(world, { type: 'PLACE_ROAD', position: road });
   }
   must(world, build);
   const home = world.getSnapshot().buildings.at(-1)!;
@@ -110,7 +137,7 @@ function appraise(world: World, plot: Position, cafes: readonly Position[]) {
   const after = trial.getSnapshot();
   return {
     plot,
-    cafe: cafes.some((cafe) => same(cafe, plot)),
+    building: buildingOn(plot, cafes),
     cost: FUNDS - after.coins,
     gain: customersServed(after) - before,
   };
@@ -120,9 +147,13 @@ function appraise(world: World, plot: Position, cafes: readonly Position[]) {
  * The next most useful purchase: the most new customers per coin; while nothing adds
  * customers, the cheapest apartment, so cats have homes. Ties go to the plan's order.
  */
-function nextPurchase(world: World, cafes: readonly Position[]) {
+function nextPurchase(
+  world: World,
+  cafes: readonly Position[],
+  plots: readonly Position[],
+) {
   const built = world.getSnapshot().buildings;
-  const open = CITY_PLAN.plots
+  const open = plots
     .filter((plot) => !built.some((item) => same(item.position, plot)))
     .map((plot) => appraise(world, plot, cafes));
   const earning = open
@@ -130,14 +161,16 @@ function nextPurchase(world: World, cafes: readonly Position[]) {
     .sort((a, b) => b.gain * a.cost - a.gain * b.cost)[0];
   return (
     earning ??
-    open.filter((item) => !item.cafe).sort((a, b) => a.cost - b.cost)[0] ??
+    open
+      .filter((item) => item.building === 'CAT_APARTMENT')
+      .sort((a, b) => a.cost - b.cost)[0] ??
     open[0]
   );
 }
 
 interface Purchase {
   realMinute: number;
-  building: 'CAT_CAFE' | 'CAT_APARTMENT';
+  building: Building;
   cost: number;
   customers: number;
 }
@@ -154,7 +187,13 @@ export function playCity(options: {
   realMinutes: number;
   /** The new game's stray (spec 041 T-14); Mochi's template without one. */
   stray?: Stray;
+  /**
+   * Builds the salon before anything else, on the salon plan (spec 041 T-15): the
+   * player it slows down the most, since every coin spent waits longest to earn.
+   */
+  salonFirst?: boolean;
 }) {
+  const plots = options.salonFirst ? SALON_PLAN.plots : CITY_PLAN.plots;
   const minutesPerRealMinute = 60 * options.speed;
   let world = crowdedStart(options.stray);
   const purchases: Purchase[] = [];
@@ -162,7 +201,9 @@ export function playCity(options: {
   let realMinute = 0;
   // What to buy next depends on what stands, not on coins or the clock: appraised once
   // per purchase and kept while the player saves up for it.
-  let next = nextPurchase(world, CITY_PLAN.cafes);
+  let next = options.salonFirst
+    ? appraise(world, SALON_PLAN.salon, CITY_PLAN.cafes)
+    : nextPurchase(world, CITY_PLAN.cafes, plots);
   while (realMinute <= options.realMinutes) {
     if (!next) return { world, purchases, filledAt: realMinute, cafeIncome };
     const state = world.getSnapshot();
@@ -170,11 +211,11 @@ export function playCity(options: {
       buildOn(world, next.plot);
       purchases.push({
         realMinute,
-        building: next.cafe ? 'CAT_CAFE' : 'CAT_APARTMENT',
+        building: next.building,
         cost: next.cost,
         customers: customersServed(world.getSnapshot()),
       });
-      next = nextPurchase(world, CITY_PLAN.cafes);
+      next = nextPurchase(world, CITY_PLAN.cafes, plots);
       continue;
     }
     // Wait as many whole real minutes as cannot yet pay for it, at least one: a real

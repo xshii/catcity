@@ -49,4 +49,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   NO_BED: '没有空床位：先建一座公寓。',
   ALREADY_NEUTERED: '它已经绝育了。',
   CAT_TOO_YOUNG: '它还小，长大后才可以。',
+  NO_SALON: '先建一座猫咪美容院，才能给猫改造外观。',
+  APPEARANCE_UNCHANGED: '样子和原来一样，没有改造，也没有收费。',
 };

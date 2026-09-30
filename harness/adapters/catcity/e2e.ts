@@ -49,6 +49,7 @@ export const E2E_SPECS: Readonly<Record<string, SpecEntry>> = {
     modules: ['fishing', 'city', 'cats', 'companion'],
     layout: true,
   },
+  'salon.spec.ts': { modules: ['cats', 'city'] },
   // Storage between tabs: platform code, whose changes run every spec.
   'save-tabs.spec.ts': { modules: [] },
   'settings-gear.spec.ts': {
