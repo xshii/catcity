@@ -1,0 +1,112 @@
+/*
+ * The name box (spec 041 ui-design 5.4): a card in the middle of what the screen still
+ * shows (name-dialog.ts follows the keyboard), over a scrim (ui-design 3.1: 50 and 51).
+ * Too short for the card, the card scrolls and its actions stay at its bottom.
+ */
+.name-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 12px 16px;
+}
+.name-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+}
+.name-card {
+  position: relative;
+  z-index: 51;
+  width: min(360px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  padding: 16px 16px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-sheet);
+  color: var(--text);
+}
+.name-card h2 {
+  margin: 0;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.name-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.name-field input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  /* 16px keeps iOS from zooming in on the field. */
+  font-size: 16px;
+}
+.name-card button:not(.primary) {
+  min-height: 44px;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  color: var(--text);
+}
+#name-clear {
+  width: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+.name-note {
+  min-height: 1.4em;
+  font-size: 12px;
+  color: var(--text-accent);
+}
+.name-suggestions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.name-suggestions button {
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+}
+.name-suggestions button[aria-checked='true'] {
+  border-color: var(--selected-line);
+  background: var(--selected-bg);
+  box-shadow: var(--glow-good);
+  font-weight: 600;
+}
+.name-card #name-more {
+  justify-self: end;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.name-actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 0 16px;
+  background: var(--paper);
+}
+.name-actions .primary {
+  min-height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  font-size: 14px;
+}
