@@ -156,9 +156,11 @@ describe('a player who fishes, keeps the clock at 4× and reinvests', () => {
         speed: FASTEST,
         realMinutes: 120,
       });
+    // Two plays, compared in both ways: a third play would only cost time.
     const first = play();
-    expect(play().purchases).toEqual(first.purchases);
-    expect(play().world.save()).toBe(first.world.save());
+    const second = play();
+    expect(second.purchases).toEqual(first.purchases);
+    expect(second.world.save()).toBe(first.world.save());
   });
 });
 

@@ -158,8 +158,10 @@ export function playCity(options: {
   const purchases: Purchase[] = [];
   let cafeIncome = 0;
   let realMinute = 0;
+  // What to buy next depends on what stands, not on coins or the clock: appraised once
+  // per purchase and kept while the player saves up for it.
+  let next = nextPurchase(world, CITY_PLAN.cafes);
   while (realMinute <= options.realMinutes) {
-    const next = nextPurchase(world, CITY_PLAN.cafes);
     if (!next) return { world, purchases, filledAt: realMinute, cafeIncome };
     const state = world.getSnapshot();
     if (next.cost <= state.coins) {
@@ -170,6 +172,7 @@ export function playCity(options: {
         cost: next.cost,
         customers: customersServed(world.getSnapshot()),
       });
+      next = nextPurchase(world, CITY_PLAN.cafes);
       continue;
     }
     // Wait as many whole real minutes as cannot yet pay for it, at least one: a real
