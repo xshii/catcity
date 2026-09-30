@@ -17,3 +17,16 @@ it('a minigame is on at the river or while the petting screen is open, over eith
   // Listeners hear each turn once, and nothing when the flag stays as it was.
   expect(turns).toEqual([true, false]);
 });
+
+it('tells who follows the petting screen when it opens or closes, over either place', () => {
+  const place = createPlace();
+  const heard: boolean[] = [];
+  place.onPetting((open) => heard.push(open));
+  place.set('river');
+  place.setPetting(true);
+  expect([place.get(), heard]).toEqual(['river', [true]]);
+  place.setPetting(true);
+  place.setPetting(false);
+  // Each change once, whether or not it turned the minigame flag.
+  expect(heard).toEqual([true, false]);
+});

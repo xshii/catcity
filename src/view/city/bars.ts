@@ -1,13 +1,13 @@
 /**
  * What floats over the city map (spec 031), one source for the scene and the harness. The
  * camera frames the board between the persistent `bars`: scene bar and tool bar. The
- * next-step hint and the action card float over the map without moving it, so `covers`,
- * which real clicks and a revealed selection keep clear of, is all of them.
+ * next-step hint, the settings gear and the action card float over the map without moving
+ * it, so `covers`, which real clicks and a revealed selection keep clear of, is all of them.
  */
 export const BAR_SELECTORS = {
   bars: { top: '#map-heading', bottom: '#city-tools-nav' },
   covers: {
-    top: '#map-heading, .city-map-hint',
+    top: '#map-heading, .city-map-hint, #settings-gear',
     bottom: '#city-tools-nav, #city-action-card',
   },
 } as const;

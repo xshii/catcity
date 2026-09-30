@@ -20,6 +20,11 @@ body {
   /* Below the scene bar, and above the tool bar. */
   --under-bar: calc(var(--safe-top) + var(--bar-height) + 8px);
   --over-nav: calc(var(--safe-bottom) + var(--nav-height) + 8px);
+  /* The settings gear, at the right under the scene bar on every page (2026-09-30). */
+  --gear-right: max(8px, env(safe-area-inset-right));
+  --gear-size: 44px;
+  /* What floats beside the gear keeps this far from the right edge. */
+  --gear-room: calc(var(--gear-right) + var(--gear-size) + 8px);
 }
 .game-screen.shell {
   position: fixed;
@@ -117,10 +122,14 @@ body {
 }
 /*
  * The river's chip is lower than the city's hint row: right under it, two lines of a
- * message end above the water's far edge on short phones too.
+ * message end above the water's far edge on short phones too. That is beside the settings
+ * gear, so the message keeps as far from both sides as the gear's column reaches, still
+ * centred. (In the city it starts where the gear ends.)
  */
 .game-screen.river-screen #notice {
   top: calc(var(--under-bar) + 32px);
+  left: var(--gear-room);
+  right: var(--gear-room);
 }
 /*
  * An open panel covers the scene and the bar's usual place: the message shows over the
@@ -129,6 +138,8 @@ body {
 .game-screen.panel-open #notice {
   z-index: 38;
   top: auto;
+  left: 16px;
+  right: 16px;
   bottom: calc(var(--over-nav) + 6px);
 }
 /* A message stays readable for a while, then gives the scene back. */
@@ -402,6 +413,11 @@ body {
   align-items: center;
   gap: 12px;
   height: 47px;
+  /*
+   * The settings gear floats over the panel's top right: its close button keeps clear,
+   * less the panel's own right edge, border and padding.
+   */
+  padding-right: calc(var(--gear-room) - 8px - 1px - 14px);
   border-bottom: 1px solid var(--line);
 }
 .game-screen .river-tools-heading h2 {

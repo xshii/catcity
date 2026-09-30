@@ -20,6 +20,7 @@ import {
   closeSettings,
   enterRiver,
   FLICK,
+  openCats,
   followFish,
   inMotionRiver,
   lift,
@@ -127,6 +128,22 @@ describe('motion fishing', () => {
     expect(game.world().fishing.active!.direction).toBe(
       -FISHING.input.maxDirection,
     );
+  });
+
+  it('the petting screen over the river covers the rod: a swing casts nothing until it closes', () => {
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    openCats('roster');
+    click('#pet-cat');
+    expect(visible('#petting')).toBe(true);
+    swing();
+    expect(game.world().fishing.active).toBeNull();
+    expect(game.session.lastCommand()?.command.type ?? 'none').not.toMatch(
+      /^FISH_/,
+    );
+    click('#petting-close');
+    swing();
+    expect(game.world().fishing.active?.phase).toBe('waiting');
   });
 
   it('a paused motion run ignores gestures and says how to resume', () => {
@@ -405,8 +422,8 @@ describe('motion fishing', () => {
     game.reload();
     expect(game.sensorAsks).toEqual(ASKED_IN_TAP);
     // The gear and the tools open over the river: their taps ask nothing.
-    click('#river-settings');
-    expect(visible('#river-settings-sheet')).toBe(true);
+    click('#settings-gear');
+    expect(visible('#settings-sheet')).toBe(true);
     key('keydown', 'Escape');
     click('#river-tab-gear');
     expect(visible('#river-tools')).toBe(true);
@@ -522,8 +539,8 @@ describe('motion fishing', () => {
     expect(visible('#settings-calibrate')).toBe(true);
     click('#settings-calibrate');
     // The sheet closes, calibration starts on the water, and focus is back on the gear.
-    expect(visible('#river-settings-sheet')).toBe(false);
-    expect(document.activeElement).toBe($('#river-settings'));
+    expect(visible('#settings-sheet')).toBe(false);
+    expect(document.activeElement).toBe($('#settings-gear'));
     expect(hint()).toBe(SCREEN_COPY.hint.calibrating);
     expect($('#settings-calibrate').hidden).toBe(true);
     // No flicks: the window closes without a result and calibration is offered again.

@@ -19,7 +19,7 @@ import {
   openGear,
   showBagFish,
 } from '../../harness/adapters/catcity/navigation';
-import { progressSaves } from '../helpers/fishing-progress';
+import { progressSaves, withNextCatch } from '../helpers/fishing-progress';
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -173,6 +173,51 @@ test('the catch card withdraws the standing notice and gives way to a later one'
   await page.screenshot({ path: testInfo.outputPath('notice-after-card.png') });
 });
 
+test('a catch long enough for its gold glints on the card; with reduced motion the star stands still (T-42)', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() =>
+    localStorage.setItem('cat-city.fishing-input', 'buttons'),
+  );
+  await page.goto('/');
+  await ready(page);
+  await page.evaluate(
+    (save) => window.CAT_CITY_DEBUG!.loadFixture({ save }),
+    withNextCatch(progressSaves().oneCatchShort, true),
+  );
+  await enterRiver(page);
+  await page.locator('#cast-start').click();
+  await catchFish(page);
+  await expect(page.locator('#catch-reveal')).toHaveAttribute(
+    'data-gold',
+    'true',
+  );
+  await expect(page.locator('#catch-reveal .catch-gold')).toBeVisible();
+  // The card pops in from transparent; the glint runs on a little after it.
+  await page
+    .locator('#catch-reveal')
+    .evaluate((card) =>
+      Promise.all(card.getAnimations().map((animation) => animation.finished)),
+    );
+  await page.screenshot({ path: testInfo.outputPath('gold-catch-glint.png') });
+  // The star pops in after the card and stays in its corner.
+  await page
+    .locator('#catch-reveal .catch-gold')
+    .evaluate((mark) =>
+      Promise.all(mark.getAnimations().map((animation) => animation.finished)),
+    );
+  await page.screenshot({ path: testInfo.outputPath('gold-catch.png') });
+  await expect(page.locator('#catch-reveal .catch-countdown')).toBeAttached();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(
+    await page
+      .locator('#catch-reveal .catch-gold')
+      .evaluate((mark) => getComputedStyle(mark).animationName),
+  ).toBe('none');
+  await expect(page.locator('#catch-reveal .catch-gold')).toBeVisible();
+});
+
 test('picking a cat says it can also be lifted and dragged, clear of the hint and the card', async ({
   page,
 }, testInfo) => {
@@ -192,6 +237,7 @@ test('picking a cat says it can also be lifted and dragged, clear of the hint an
   await clearOfControls(page, [
     '#map-heading',
     '.city-map-hint',
+    '#settings-gear',
     '#city-action-card',
     '.scene-tools-nav',
   ]);
@@ -201,7 +247,7 @@ test('picking a cat says it can also be lifted and dragged, clear of the hint an
 /** What the river shows that a notice must keep off, by name. */
 const RIVER_PARTS = {
   chip: '#river-place',
-  gear: '#river-settings',
+  gear: '#settings-gear',
   plane: '#motion-fishing',
   hint: '#motion-fishing-hint',
   card: '#catch-reveal',

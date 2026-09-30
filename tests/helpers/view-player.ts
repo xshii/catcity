@@ -172,14 +172,14 @@ export function sensorsOn(withOrientation = true) {
   expect($('#settings-mode-motion').getAttribute('aria-pressed')).toBe('true');
 }
 
-/** The river's settings sheet, opened with the gear over the water (spec 034). */
+/** The settings sheet, opened with the one gear every page shows (2026-09-30). */
 export function openSettings() {
-  click('#river-settings');
-  expect(visible('#river-settings-sheet')).toBe(true);
+  click('#settings-gear');
+  expect(visible('#settings-sheet')).toBe(true);
 }
 export function closeSettings() {
-  click('#river-settings-close');
-  expect(visible('#river-settings-sheet')).toBe(false);
+  click('#settings-close');
+  expect(visible('#settings-sheet')).toBe(false);
 }
 
 /** At the river with the sensors reporting: motion is the default (spec 034). */
@@ -219,8 +219,9 @@ const RIVER_CONTROLS = [
   '#angling-live',
   '#fish-control',
   '#motion-fishing',
-  '#river-settings',
-  '#river-settings-sheet',
+  // The settings gear is every page's; only its river section is the river's.
+  '#settings-page',
+  '#settings-mode-motion',
   '#river-hud',
   '#river-tools-nav',
 ];

@@ -41,6 +41,11 @@ export interface PettingView {
   focus: PetSpot;
   /** A settled round, shown until the player goes on; 'none' for a round without a stroke. */
   result: PettingResult | 'none' | null;
+  /**
+   * The settings sheet is open over the screen (followed from the shell): a round holds,
+   * its countdown and purr waiting, and goes on when the sheet closes (user 2026-09-30).
+   */
+  settingsOpen: boolean;
 }
 
 export type PettingViewEvent =
@@ -52,6 +57,7 @@ export type PettingViewEvent =
   | { type: 'focus'; spot: PetSpot }
   | { type: 'arrow'; key: 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown' }
   | { type: 'settled'; result: PettingResult | 'none' }
+  | { type: 'settings'; open: boolean }
   /** The page went to the background: a round does not wait. */
   | { type: 'page'; hidden: boolean };
 
@@ -61,6 +67,7 @@ export const closedPetting = (): PettingView => ({
   strokes: [],
   focus: PET_SPOTS[0],
   result: null,
+  settingsOpen: false,
 });
 
 export type PettingPhase = 'closed' | 'playing' | 'settling' | 'result';
@@ -85,28 +92,29 @@ export function reducePettingView(
   event: PettingViewEvent,
 ): PettingView {
   const phase = pettingPhase(view);
+  // A new screen keeps what it does not own: the keys' spot and the shell's sheet.
+  const closed = () => ({
+    ...closedPetting(),
+    focus: view.focus,
+    settingsOpen: view.settingsOpen,
+  });
   switch (event.type) {
     case 'open':
       return {
-        ...closedPetting(),
+        ...closed(),
         catId: event.catId,
         round: startPetting(event.tastes),
-        focus: view.focus,
       };
     case 'close':
-      return phase === 'closed'
-        ? view
-        : { ...closedPetting(), focus: view.focus };
+      return phase === 'closed' ? view : closed();
     case 'page':
-      return event.hidden && phase !== 'closed'
-        ? { ...closedPetting(), focus: view.focus }
-        : view;
+      return event.hidden && phase !== 'closed' ? closed() : view;
     case 'tick':
-      return phase === 'playing'
+      return phase === 'playing' && !view.settingsOpen
         ? { ...view, round: stepPetting(view.round!, event.ticks) }
         : view;
     case 'stroke': {
-      if (phase !== 'playing') return view;
+      if (phase !== 'playing' || view.settingsOpen) return view;
       const round = strokePetting(view.round!, event.spot);
       // A stroke the cat did not take (it had pulled away) is not part of the round.
       return round === view.round
@@ -128,6 +136,10 @@ export function reducePettingView(
         : view;
     case 'settled':
       return phase === 'settling' ? { ...view, result: event.result } : view;
+    case 'settings':
+      return view.settingsOpen === event.open
+        ? view
+        : { ...view, settingsOpen: event.open };
   }
 }
 

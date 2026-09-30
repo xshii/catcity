@@ -15,7 +15,13 @@ import { bondBadge } from '../shell/bond';
 import { catPortrait, fishIllustration } from '../art/illustrations';
 import { catPose } from '../art/cat-look';
 import { riverBackdrop } from '../art/river-palette';
-import { CATCH_CARD_MS, type catchCountdown } from './screen';
+import {
+  CATCH_CARD_MS,
+  goldCatch,
+  SCREEN_COPY,
+  type catchCountdown,
+} from './screen';
+import type { SettingsSheet } from '../shell/settings';
 
 /** The river caption before a run. */
 const READY_TIP = '点击水面选择落点，再准备抛竿';
@@ -95,6 +101,8 @@ export interface FishingShell {
   visitRiver: HTMLElement;
   /** The notice bar: the fishing screen keeps it off the catch card. */
   notice: HTMLElement;
+  /** The settings sheet of every page: its sound and haptics, and the river's section. */
+  settings: SettingsSheet;
 }
 
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */
@@ -228,9 +236,13 @@ export function mountFishingStage(
       }
       if (result && resultKey !== JSON.stringify([result, resultNote])) {
         resultKey = JSON.stringify([result, resultNote]);
+        const gold = goldCatch(result);
+        // The card of a gold catch glints once and its star pops, in CSS (ui-design 5.9).
+        reveal.dataset.gold = String(gold);
         if (result.caught && result.speciesId) {
           const fish = fishById(result.speciesId);
-          reveal.innerHTML = `<small>这次的收获</small>${fishIllustration(fish.id)}<strong>${fishStars(fish.stars)} ${fish.name}</strong><span>${(result.lengthMm / 10).toFixed(1)} cm · ${result.weight} g</span><span class="catch-price">${fish.price} 金币 · 已放入鱼篓</span>`;
+          const { glyph, goldCatch: goldLabel } = SCREEN_COPY.atlas;
+          reveal.innerHTML = `${gold ? `<i class="catch-gold" role="img" aria-label="${goldLabel}">${glyph.lit}</i>` : ''}<small>这次的收获</small>${fishIllustration(fish.id)}<strong>${fishStars(fish.stars)} ${fish.name}</strong><span>${(result.lengthMm / 10).toFixed(1)} cm · ${result.weight} g</span><span class="catch-price">${fish.price} 金币 · 已放入鱼篓</span>`;
         } else {
           const title = result.trashAmount
             ? '鱼溜走了，钓到一件垃圾'

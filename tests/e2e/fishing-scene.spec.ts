@@ -107,8 +107,7 @@ const apart = (a: Box, b: Box) =>
   b.y + b.height <= a.y;
 /** What else floats over the river scene (ui-design 3.2): the cat and its bubble keep clear. */
 const SCENE_FLOATS = [
-  '#river-settings',
-  '#motion-legend',
+  '#settings-gear',
   '#motion-fishing-hint',
   '#motion-hold',
   '#motion-guide-skip',

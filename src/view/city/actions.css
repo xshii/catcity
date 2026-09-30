@@ -1,10 +1,10 @@
-/* The next step floats under the scene bar (spec 031). */
+/* The next step floats under the scene bar (spec 031), left of the settings gear. */
 .city-map-hint {
   position: absolute;
   z-index: 33;
   top: var(--under-bar);
   left: 8px;
-  right: 8px;
+  right: var(--gear-room);
   display: flex;
   align-items: center;
   gap: 8px;

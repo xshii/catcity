@@ -127,9 +127,11 @@ describe('fishing view state', () => {
     ).toBe(true);
   });
 
-  it('opens the settings sheet only on the river, where it covers play like the tools', () => {
+  it('follows the settings sheet, open on any page, which covers play like the tools', () => {
     const open: FishingViewEvent = { type: 'settings', open: true };
-    expect(replay(start(), open).settingsOpen).toBe(false);
+    const close: FishingViewEvent = { type: 'settings', open: false };
+    // One gear on every page (2026-09-30): the shell opens and closes the sheet.
+    expect(replay(start(), open).settingsOpen).toBe(true);
     const playing = replay(
       atRiver(),
       { type: 'run', runId: 'a' },
@@ -141,28 +143,45 @@ describe('fishing view state', () => {
     expect(sheet).toMatchObject({ settingsOpen: true, paused: true });
     expect(canPlay(sheet)).toBe(false);
     // Closing it asks the player to resume, as closing the tools does.
-    expect(replay(sheet, { type: 'settings', open: false })).toMatchObject({
+    expect(replay(sheet, close)).toMatchObject({
       settingsOpen: false,
       paused: true,
     });
-    // Leaving the river or opening the tools closes it.
-    for (const away of [
-      { type: 'place', place: 'city' },
-      { type: 'tools', open: true },
-    ] as FishingViewEvent[])
-      expect(replay(sheet, away).settingsOpen).toBe(false);
-    expect(
-      replay(atRiver(), { type: 'tools', open: true }, open).settingsOpen,
-    ).toBe(false);
+    // Opened over a panel, it closes back to the panel: play stays covered.
+    const both = replay(playing, { type: 'tools', open: true }, open);
+    expect(both).toMatchObject({ settingsOpen: true, toolsOpen: true });
+    expect(canPlay(replay(both, close))).toBe(false);
   });
 
-  it('starting calibration from the settings sheet closes it and calibrates', () => {
+  it('the petting screen covers play like a panel, and gives it back when it closes', () => {
+    const playing = replay(
+      atRiver(),
+      ready,
+      { type: 'run', runId: 'a' },
+      { type: 'resume' },
+    );
+    const petting = replay(playing, { type: 'petting', open: true });
+    expect(canPlay(petting)).toBe(false);
+    expect(petting).toMatchObject({ petting: true, paused: true });
+    const back = replay(petting, { type: 'petting', open: false });
+    expect(canPlay(back)).toBe(true);
+    // As after a panel, a run waits for the player to go on.
+    expect(back.paused).toBe(true);
+  });
+
+  it('calibration starts once the settings sheet has closed, never under it', () => {
     const sheet = replay(atRiver(), ready, { type: 'settings', open: true });
-    expect(sheet.motion.calibrating).toBe(false);
-    expect(replay(sheet, { type: 'calibrating', on: true })).toMatchObject({
-      settingsOpen: false,
-      motion: { calibrating: true },
-    });
+    expect(
+      replay(sheet, { type: 'calibrating', on: true }).motion.calibrating,
+    ).toBe(false);
+    // The sheet's button closes the sheet, then calibrates.
+    expect(
+      replay(
+        sheet,
+        { type: 'settings', open: false },
+        { type: 'calibrating', on: true },
+      ).motion.calibrating,
+    ).toBe(true);
   });
 
   it('remembers that sensors were asked for on this page', () => {
@@ -380,6 +399,8 @@ describe('fishing view state', () => {
         { type: 'place', place: pick(['city', 'river'] as const) },
         { type: 'tools', open: pick([true, false]) },
         { type: 'settings', open: pick([true, false]) },
+        // Closed often, opened rarely below: a screen the player opens now and then.
+        { type: 'petting', open: false },
         { type: 'page', hidden: pick([true, false]) },
         { type: 'run', runId: pick([null, 'a', 'b']) },
         {
@@ -431,10 +452,13 @@ describe('fishing view state', () => {
           episodes++;
         }
       }
+      const roll = rng.nextInt(200);
       const event: FishingViewEvent =
-        rng.nextInt(200) === 0
+        roll === 0
           ? { type: seasoned ? 'aim-hint-seen' : 'skip-guide' }
-          : events();
+          : roll === 1
+            ? { type: 'petting', open: true }
+            : events();
       const before = state;
       state = reduceFishingView(state, event);
       // Only the flag starts calibration without being asked; finishing one uses it up.
@@ -470,10 +494,10 @@ describe('fishing view state', () => {
         expect(state.paused).toBe(true);
         expect(state.pressed).toBe(false);
       }
-      if (state.settingsOpen) {
-        expect(state.place).toBe('river');
-        expect(state.toolsOpen).toBe(false);
-      }
+      // The sheet is the shell's: the state follows it, whatever else happens.
+      if (event.type === 'settings')
+        expect(state.settingsOpen).toBe(event.open);
+      else expect(state.settingsOpen).toBe(before.settingsOpen);
       if (before.motion.asked) expect(state.motion.asked).toBe(true);
       // The aim hint, once seen, stays seen: closed, or cast from while it showed.
       if (before.motion.aimHintSeen)

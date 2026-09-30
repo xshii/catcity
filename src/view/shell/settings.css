@@ -1,0 +1,95 @@
+/*
+ * The one settings gear (2026-09-30): at the right under the scene bar, level with the
+ * row there (the city's next step, the river's name) and the same on every page. Over the
+ * panels and the petting screen, whose headings leave it room.
+ */
+.settings-gear {
+  position: absolute;
+  z-index: 41;
+  /* Centred on the row under the bar; it ends where the city's notice starts. */
+  top: calc(var(--under-bar) - 4px);
+  right: var(--gear-right);
+  display: grid;
+  place-items: center;
+  width: var(--gear-size);
+  height: var(--gear-size);
+  padding: 0;
+  border: var(--float-border);
+  border-radius: var(--radius-pill);
+  background: var(--float-bg);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--float-blur);
+  -webkit-backdrop-filter: var(--float-blur);
+}
+.settings-gear svg {
+  display: block;
+}
+#settings-shade:not([hidden]) {
+  display: block;
+  position: absolute;
+  z-index: 42;
+  inset: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--scrim);
+}
+/* Scoped by id: the sheet floats in the scene, whose own button styles load later. */
+#settings-sheet {
+  position: absolute;
+  z-index: 43;
+  top: var(--under-bar);
+  right: var(--gear-right);
+  width: min(340px, calc(100% - 16px));
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-sheet);
+}
+#settings-sheet button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  color: var(--text);
+  font-size: 13px;
+}
+#settings-sheet button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.settings-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-heading h2 {
+  font-size: 17px;
+}
+#settings-sheet .settings-heading button {
+  width: 44px;
+  padding: 0;
+}
+.settings-section {
+  display: grid;
+  gap: 10px;
+}
+.settings-section h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.settings-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}

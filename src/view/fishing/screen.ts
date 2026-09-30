@@ -85,10 +85,8 @@ export const SCREEN_COPY = {
     done: (peak: number) => `校准完成：下甩 ${peak}°/s`,
     failed: '没感到两次一致的下甩，打开设置点「校准甩竿」再试一次',
   },
-  /** The gear over the water and its sheet (spec 034). */
+  /** The river's section of the settings sheet (spec 034). */
   settings: {
-    title: '设置',
-    close: '关闭设置',
     mode: '钓鱼方式',
     motion: '体感',
     buttons: '按钮',
@@ -114,6 +112,8 @@ export const SCREEN_COPY = {
     newSpecies: (name: string, star: string | null) =>
       `图鉴新添：${name}${star ? `，评上${star}` : ''}`,
     reached: (name: string, star: string) => `${name}的纪录评上${star}`,
+    /** Read for the gold mark on the card of a catch long enough for gold. */
+    goldCatch: '够金星的个头',
   },
 } as const;
 
@@ -155,6 +155,18 @@ export function atlasNote(before: Atlas, after: Atlas): string {
   }).join('。');
 }
 
+type Result = NonNullable<WorldState['fishing']['lastResult']>;
+/**
+ * The catch is long enough for its species' gold (R-54), whether or not the record had
+ * it already: its card shines. Supplies, trash and a fish that got away never do.
+ */
+export const goldCatch = (
+  result: Pick<Result, 'caught' | 'speciesId' | 'lengthMm'> | null,
+) =>
+  !!result?.caught &&
+  !!result.speciesId &&
+  lengthStar(result.speciesId, result.lengthMm) === 3;
+
 /**
  * How long the catch card stays before it closes by itself (R-02): it floats over the
  * scene, so it gives the scene back. Its countdown bar runs for the same time.
@@ -193,10 +205,9 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
     /** The in-run console (pause, leave; and the button flow's meters). */
     console: river && !!run,
     consoleMode: river && run ? run.mode : null,
-    /** The gear over the water and the sheet it opens (spec 034). */
+    /** The river's section of the settings sheet: not over the petting screen (spec 034). */
     settings: {
-      gear: river,
-      open: river && view.settingsOpen,
+      page: river && !view.petting,
       mode: modeChoices(view, run, active),
       /** Calibration is offered while motion aims: before a run, not over one. */
       calibrate: river && active && !run && !view.motion.calibrating,
