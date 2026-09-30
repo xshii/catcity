@@ -52,7 +52,8 @@ describe('the first-generation cats (R-12)', () => {
     expect(INVITABLE_CATS).toEqual(
       CAT_DEFINITION_IDS.filter((id) => id !== 'MOCHI'),
     );
-    expect(MAX_COMPANIONS).toBe(8);
+    // Ten, not eight (user 2026-09-30): a fifth generation needs nine cats.
+    expect(MAX_COMPANIONS).toBe(10);
     expect(MAX_COMPANIONS).toBeLessThanOrEqual(MAX_CATS);
   });
 
@@ -204,19 +205,20 @@ describe('INVITE_CAT rejections leave the world unchanged', () => {
     rejects(world, 'MOCHI', 'ALREADY_INVITED');
   });
 
-  it('at the companion limit', () => {
-    const world = withBeds();
+  it('at the companion limit: the tenth cat comes, the eleventh does not', () => {
+    const world = withBeds(2);
     // Grass south of the city, clear of the starter district.
     const grass = [2, 3, 4, 5, 6, 7].flatMap((x) => [
       { x, y: 7 },
       { x, y: 8 },
     ]);
-    for (const position of grass.slice(0, MAX_COMPANIONS - 1))
+    for (const position of grass.slice(0, MAX_COMPANIONS - 2))
       expect(world.dispatch({ type: 'DEBUG_SPAWN_CAT', position }).ok).toBe(
         true,
       );
+    expect(invite(world, 'PEPPER').ok).toBe(true);
     expect(world.getSnapshot().cats).toHaveLength(MAX_COMPANIONS);
-    rejects(world, 'PEPPER', 'COMPANION_LIMIT');
+    rejects(world, 'NIANGAO', 'COMPANION_LIMIT');
   });
 
   it('without a free bed: no apartment, a full one, or only a cafe', () => {
