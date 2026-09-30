@@ -16,6 +16,7 @@ import {
 import { BOND, CARE } from '../content/care';
 import { PET_SPOTS } from '../content/petting';
 import { MAX_TALENT } from '../content/family';
+import { MAX_RESIDENTS } from '../content/residents';
 import { gameDay } from './bond';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
@@ -30,6 +31,7 @@ import {
 } from './fishing/schema';
 import { assertFishing } from './fishing/validation';
 import { catNameSchema } from './names';
+import { assertResidents } from './residents';
 
 const integer = z.number().int().min(0).max(WORLD_LIMIT);
 export const positionSchema = z.strictObject({ x: integer, y: integer });
@@ -110,6 +112,12 @@ const buildingSchema = z.strictObject({
   position: positionSchema,
   builtAtMinute: integer,
 });
+/** A resident is saved as the least there is: who it is follows from the seed (R-42). */
+const residentSchema = z.strictObject({
+  id: text,
+  home: text,
+  arrivedMinute: integer,
+});
 const worldSchema = z.strictObject({
   seed: z.number().int().min(0).max(0xffffffff),
   minute: integer,
@@ -132,13 +140,14 @@ const worldSchema = z.strictObject({
   }),
   buildings: z.array(buildingSchema).max(MAX_BUILDINGS),
   cats: z.array(catSchema).min(1).max(MAX_CATS),
+  residents: z.array(residentSchema).max(MAX_RESIDENTS),
   fishing: fishingSchema,
 });
 export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 23;
+export const SAVE_VERSION = 24;
 export const CONTENT_VERSION = 20;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
@@ -212,6 +221,7 @@ export function assertWorld(value: unknown): WorldState {
     }
   }
   assertCity(world);
+  assertResidents(world);
   assertFishing(world, uniqueId);
   return world;
 }

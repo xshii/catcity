@@ -436,8 +436,8 @@ describe('saves', () => {
     return world;
   };
 
-  it('are version 23 and carry what was found out and the lifts in the window', () => {
-    expect(SAVE_VERSION).toBe(23);
+  it('are version 24 and carry what was found out and the lifts in the window', () => {
+    expect(SAVE_VERSION).toBe(24);
     const world = played();
     const save = world.save();
     const loaded = loadWorld(save);

@@ -194,6 +194,7 @@ export type GameEvent =
       /** The round counted in full: an unkind one always, a kind one while the allowance had a lift. */
       full: boolean;
     }
+  | { type: 'ResidentArrived'; minute: number; entityId: string }
   | { type: 'DebugChanged'; minute: number };
 
 export type ErrorCode =

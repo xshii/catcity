@@ -11,6 +11,7 @@ export {
 } from './family';
 export { gameDay } from './bond';
 export { nameSalt, suggestNames } from './names';
+export { nextResidentHome, residentIdentity } from './residents';
 export { pettingTastes } from './petting';
 export { travelMinutes } from './fishing/travel';
 export { fishShadows, shadowUnderCast } from './fishing/shadows';
