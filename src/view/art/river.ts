@@ -510,7 +510,9 @@ export class RiverView {
       );
       this.root.addAt(this.companion, this.root.getIndex(this.rod));
     }
-    this.companion.setPose(catPose(world, cat)).animate(this.root.visible);
+    this.companion
+      .setPose(catPose(world, cat, { atRiver: true }))
+      .animate(this.root.visible);
     const cast = !!active && active.phase !== 'charge';
     const aim = castPreview(
       world,

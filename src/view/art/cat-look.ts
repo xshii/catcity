@@ -20,14 +20,19 @@ const EARS: Record<MoodBand, CatEars> = {
 /**
  * A cat's look (style board 猫咪表情): face and ears follow its mood band; a cat that
  * recovers energy by itself (idle as Core's `catIdle` says, below full) curls up to
- * doze. A walking or fishing cat is not idle, so it stays up.
+ * doze. A walking or fishing cat is not idle, so it stays up. `atRiver`: drawn as the
+ * cat fishing with the player at the river, which stays awake between casts (R-01).
  */
-export function catPose(world: WorldState, cat: CatEntity): CatPose {
+export function catPose(
+  world: WorldState,
+  cat: CatEntity,
+  { atRiver }: { atRiver: boolean } = { atRiver: false },
+): CatPose {
   const face = moodBand(cat.mood);
   return {
     face,
     ears: EARS[face],
-    curled: catIdle(world, cat) && cat.needs.energy < MAX_STAT,
+    curled: !atRiver && catIdle(world, cat) && cat.needs.energy < MAX_STAT,
   };
 }
 
