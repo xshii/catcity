@@ -12,6 +12,7 @@ import {
   reactionLine,
 } from '../../src/view/petting/screen';
 import { BOND, CARE } from '../../src/content/care';
+import { CAT_DEFINITION_IDS } from '../../src/content/cats';
 import {
   closedPetting,
   pettingPhase,
@@ -418,7 +419,7 @@ describe('good rounds left today', () => {
 describe('reaction lines', () => {
   it('differ by cat, by how it takes the spot and by how the round went', () => {
     const lines = new Set<string>();
-    for (const cat of ['MOCHI', 'PEPPER'] as const)
+    for (const cat of CAT_DEFINITION_IDS)
       for (const spot of ['CHIN', 'HEAD', 'BELLY'] as const)
         for (const good of [true, false]) {
           const line = reactionLine(cat, TASTES, spot, good);
@@ -426,7 +427,7 @@ describe('reaction lines', () => {
           expect(line).not.toContain('{');
           lines.add(line);
         }
-    expect(lines.size).toBe(12);
+    expect(lines.size).toBe(CAT_DEFINITION_IDS.length * 6);
   });
 
   it('name the spot they are about', () => {

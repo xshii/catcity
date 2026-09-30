@@ -2,7 +2,7 @@ import { buildCafe } from '../helpers/world';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 
-it('rejects removed choice-game and cafe-alias commands without changing the world', () => {
+it('rejects removed choice-game, cafe-alias and Pepper-only commands without changing the world', () => {
   const world = createWorld(42);
   const before = world.save();
   for (const command of [
@@ -10,6 +10,8 @@ it('rejects removed choice-game and cafe-alias commands without changing the wor
     { type: 'CAST_LINE', runId: 'outing-1', spot: 0 },
     { type: 'CANCEL_FISHING', runId: 'outing-1' },
     { type: 'BUILD_CAFE', position: { x: 4, y: 4 } },
+    // INVITE_CAT replaced it (spec 041 R-12); no alias.
+    { type: 'INVITE_PEPPER' },
   ]) {
     expect(world.dispatch(command)).toEqual({
       ok: false,

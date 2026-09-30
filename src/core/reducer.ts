@@ -6,7 +6,7 @@ import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
 import { rewardBond, spendDaily } from './bond';
 import { liftMood } from './mood';
-import { instantiateCat, requireCat } from './cats';
+import { instantiateCat, inviteCat, requireCat } from './cats';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { simulate } from './simulation';
@@ -43,8 +43,9 @@ export function applyCommand(
     case 'SELL_FISH':
     case 'GIFT_FISH':
     case 'BUY_BAIT':
-    case 'INVITE_PEPPER':
       return applyAngling(world, command);
+    case 'INVITE_CAT':
+      return inviteCat(world, command.definitionId);
     case 'PET_CAT':
       return petCat(world, command);
     case 'ADVANCE_TIME':

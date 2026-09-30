@@ -551,7 +551,7 @@ export function mountAngling(
   );
   invite.addEventListener('click', () =>
     report(
-      session.execute({ type: 'INVITE_PEPPER' }),
+      session.execute({ type: 'INVITE_CAT', definitionId: 'PEPPER' }),
       'Pepper 来了！它喜欢鲈鱼和鲶鱼。',
     ),
   );

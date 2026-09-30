@@ -1,4 +1,4 @@
-import { advance } from '../helpers/world';
+import { advance, invite } from '../helpers/world';
 import {
   fishingFixture as createWorld,
   finishWalk,
@@ -209,8 +209,10 @@ describe('skill-based angling', () => {
 
   it('lets two cats have different favorite fish and consumes gifted fish once', () => {
     const world = createWorld(42);
-    expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
-    expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(false);
+    invite(world);
+    expect(
+      world.dispatch({ type: 'INVITE_CAT', definitionId: 'PEPPER' }).ok,
+    ).toBe(false);
     const pepper = world
       .getSnapshot()
       .cats.find((cat) => cat.definitionId === 'PEPPER')!;

@@ -36,3 +36,27 @@ it('keeps a replayable checkpoint when the diagnostic window rotates', () => {
   expect(session.getReplay().entries).toHaveLength(3);
   expect(replayWorld(session.getReplay())).toEqual(session.getSnapshot());
 });
+
+it('replays invitations: the one that moves in and the ones Core turned away', () => {
+  const session = createTestSession({
+    repository: { read: () => null, write: () => {} },
+  });
+  const invite = { type: 'INVITE_CAT', definitionId: 'BUDING' } as const;
+  expect(session.execute(invite)).toEqual({ ok: false, error: 'NO_BED' });
+  session.execute({
+    type: 'BUILD_BUILDING',
+    buildingType: 'CAT_APARTMENT',
+    position: { x: 4, y: 3 },
+  });
+  expect(session.execute(invite).ok).toBe(true);
+  expect(session.execute(invite)).toEqual({
+    ok: false,
+    error: 'ALREADY_INVITED',
+  });
+  session.execute({ type: 'ADVANCE_TIME', minutes: 60 });
+  expect(replayWorld(session.getReplay())).toEqual(session.getSnapshot());
+  expect(session.getSnapshot().cats.map((cat) => cat.name)).toEqual([
+    'Mochi',
+    '布丁',
+  ]);
+});

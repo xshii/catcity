@@ -169,21 +169,25 @@ describe('the first cafe of a new game', () => {
     const world = createWorld(CITY_PLAN.seed);
     const must = (command: unknown) =>
       expect(world.dispatch(command).ok).toBe(true);
-    must({ type: 'INVITE_PEPPER' });
     must({
       type: 'BUILD_BUILDING',
       buildingType: 'CAT_APARTMENT',
       position: { x: 4, y: 4 },
     });
     const home = world.getSnapshot().buildings[0]!.id;
-    for (const cat of world.getSnapshot().cats)
-      must({ type: 'ASSIGN_HOME', catId: cat.id, buildingId: home });
+    must({ type: 'ASSIGN_HOME', catId: 'mochi', buildingId: home });
     must({
       type: 'BUILD_BUILDING',
       buildingType: 'CAT_CAFE',
       position: { x: 4, y: 3 },
     });
-    // Both buildings come out of the starting coins.
+    // Pepper moves into the apartment's other bed.
+    must({ type: 'INVITE_CAT', definitionId: 'PEPPER' });
+    expect(world.getSnapshot().cats.map((cat) => cat.home)).toEqual([
+      home,
+      home,
+    ]);
+    // Both buildings and the invitation come out of the starting coins.
     expect(world.getSnapshot().coins).toBeGreaterThanOrEqual(0);
     return world;
   };
