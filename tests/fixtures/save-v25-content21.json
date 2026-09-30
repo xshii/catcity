@@ -1,10 +1,10 @@
 {
   "saveVersion": 25,
-  "contentVersion": 20,
+  "contentVersion": 21,
   "world": {
     "seed": 42,
-    "minute": 3000,
-    "coins": 272,
+    "minute": 3300,
+    "coins": 300,
     "nextId": 4,
     "map": {
       "width": 10,
@@ -919,7 +919,7 @@
         "type": "CAT_APARTMENT",
         "position": {
           "x": 4,
-          "y": 4
+          "y": 3
         },
         "builtAtMinute": 420
       },
@@ -927,17 +927,8 @@
         "id": "building-2",
         "type": "CAT_CAFE",
         "position": {
-          "x": 4,
-          "y": 3
-        },
-        "builtAtMinute": 420
-      },
-      {
-        "id": "building-3",
-        "type": "CAT_LODGE",
-        "position": {
           "x": 6,
-          "y": 4
+          "y": 6
         },
         "builtAtMinute": 420
       }
@@ -946,7 +937,7 @@
       {
         "id": "mochi",
         "definitionId": "MOCHI",
-        "name": "Mochi",
+        "name": "小橘",
         "appearance": {
           "colour": "cream",
           "pattern": "solid",
@@ -984,8 +975,58 @@
         "lastChatMoodMinute": null,
         "fishingSpotId": "POND",
         "walk": null,
-        "breedId": "RAGDOLL",
+        "breedId": "DOMESTIC",
         "favoriteFish": ["SILVER", "CRUCIAN"],
+        "fishingMemory": null,
+        "fishGift": null,
+        "petting": {
+          "discovered": [],
+          "lifted": []
+        }
+      },
+      {
+        "id": "cat-3",
+        "definitionId": "PEPPER",
+        "name": "Pepper",
+        "appearance": {
+          "colour": "gray",
+          "pattern": "solid",
+          "white": "none",
+          "eyes": "copper",
+          "face": "round"
+        },
+        "sex": "M",
+        "bornMinute": null,
+        "generation": 1,
+        "parents": null,
+        "neutered": false,
+        "talent": 0,
+        "lastBredMinute": null,
+        "personality": ["curious", "playful"],
+        "traits": ["adventurous"],
+        "preferences": {
+          "likes": ["fish", "exploring"],
+          "dislikes": ["waiting"]
+        },
+        "mood": 61,
+        "needs": {
+          "energy": 100
+        },
+        "memories": [],
+        "playerBond": 0,
+        "home": "building-1",
+        "position": {
+          "x": 4,
+          "y": 2
+        },
+        "chatBond": null,
+        "giftBond": null,
+        "pettingBond": null,
+        "lastChatMoodMinute": null,
+        "fishingSpotId": null,
+        "walk": null,
+        "breedId": "BRITISH_SHORTHAIR",
+        "favoriteFish": ["PERCH", "CATFISH"],
         "fishingMemory": null,
         "fishGift": null,
         "petting": {
@@ -994,18 +1035,7 @@
         }
       }
     ],
-    "residents": [
-      {
-        "id": "resident-1",
-        "home": "building-3",
-        "arrivedMinute": 1440
-      },
-      {
-        "id": "resident-2",
-        "home": "building-3",
-        "arrivedMinute": 2880
-      }
-    ],
+    "residents": [],
     "fishing": {
       "supplies": {
         "trash": 0,

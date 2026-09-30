@@ -23,6 +23,7 @@ import {
   tileAt,
   touchesNetwork,
   walkMinutes,
+  type Customer,
 } from '../../core/city';
 import {
   MAX_STAT,
@@ -50,13 +51,25 @@ const cafePay = (customers: number) =>
  * frozen snapshot per world change, so renders and drag checks of it share the result.
  */
 const seatings = new WeakMap<WorldState, ReturnType<typeof cafeAssignment>>();
-function customersOf(world: WorldState, cafeId: string): CatEntity[] {
+function customersOf(world: WorldState, cafeId: string): Customer[] {
   let seating = seatings.get(world);
   if (!seating) {
     seating = cafeAssignment(world);
     seatings.set(world, seating);
   }
   return seating.get(cafeId) ?? [];
+}
+
+/** A cafe's customers in the player's words: companions by name, residents counted (spec 041 ui-design 5.7). */
+function guests(customers: Customer[]): string {
+  const names = customers.flatMap((customer) =>
+    'name' in customer ? [customer.name] : [],
+  );
+  const residents = customers.length - names.length;
+  const counted = residents ? `${residents} 位居民` : '';
+  return names.length && residents
+    ? `${names.join('、')} 和 ${counted}`
+    : names.join('、') || counted;
 }
 
 /** What a card button does; the DOM maps each kind to its handler. */
@@ -305,7 +318,7 @@ function card(
     return done(
       title,
       building.type === 'CAT_CAFE'
-        ? `客人 ${customers.length}/${CAFE.seats} · ${cafePay(customers.length)}${customers.length ? ` · ${customers.map((cat) => cat.name).join('、')}` : ` · 家在 ${CAFE.range} 格内的猫会来做客，搬移免费`}`
+        ? `客人 ${customers.length}/${CAFE.seats} · ${cafePay(customers.length)}${customers.length ? ` · ${guests(customers)}` : ` · 家在 ${CAFE.range} 格内的猫会来做客，搬移免费`}`
         : `住户 ${residents.length}/${BUILDINGS.CAT_APARTMENT.homeCapacity}${residents.length ? ` · ${residents.map((cat) => cat.name).join('、')}` : ' · 住在家旁边，体力恢复更快'}`,
     );
   }

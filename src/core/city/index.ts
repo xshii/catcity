@@ -8,6 +8,7 @@ export {
   tileAt,
 } from './map';
 export { cafeAssignment, nextBuildingPrice } from './customers';
+export type { Customer } from './customers';
 export { touchesNetwork } from './path';
 export type { CityMap, CityTile, Terrain } from './map';
 export { walkingMinutes } from './path';
