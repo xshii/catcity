@@ -9,11 +9,20 @@
 #motion-fishing[data-phase='fight'] {
   pointer-events: auto;
 }
-.motion-fishing-hint {
+/* The hint, and beside it the once-only aim hint's close (user, 2026-09-30). */
+.motion-hint-row {
   position: absolute;
   left: 50%;
   bottom: 6%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* The plane is 60% of the canvas: hints may widen past it, within the canvas. */
+  width: max-content;
+  max-width: 160%;
+}
+.motion-fishing-hint {
   margin: 0;
   padding: 8px 16px;
   border-radius: 999px;
@@ -21,10 +30,23 @@
   color: var(--text);
   font-size: 14px;
   font-weight: 600;
-  /* The plane is 60% of the canvas: hints may widen past it, within the canvas. */
-  width: max-content;
-  max-width: 160%;
   text-align: center;
+}
+/* No hint: the live region stays, drawn as nothing. */
+.motion-fishing-hint:empty {
+  padding: 0;
+}
+.motion-hint-close {
+  flex: none;
+  /* A finger-sized target; the ✕ keeps the text size. */
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  pointer-events: auto;
+  border: var(--float-border);
+  border-radius: var(--radius-pill);
+  background: var(--float-bg);
+  color: var(--text);
 }
 /*
  * The first-cast guide's way out, under the settings gear (44px at 4px from this plane's
@@ -152,7 +174,7 @@
 }
 @keyframes motion-nibble {
   50% {
-    transform: translateX(-50%) translateY(4px);
+    transform: translateY(4px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -180,18 +202,4 @@
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
-}
-/* What a green landing ring means, across from the settings gear. */
-.motion-legend {
-  position: absolute;
-  right: 4px;
-  top: 4px;
-  margin: 0;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--surface-float);
-  color: var(--text-good);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
 }

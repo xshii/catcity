@@ -35,6 +35,8 @@ import v17 from '../fixtures/save-v17.json';
 import v17Content8 from '../fixtures/save-v17-content8.json';
 // A cafe paid 10 coins an hour without customers, at the flat prices (content 9).
 import v18Content9 from '../fixtures/save-v18-content9.json';
+// Two cats from before cats carried a petting record (save 18, content 10).
+import v18Content10 from '../fixtures/save-v18-content10.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -63,6 +65,7 @@ const incompatible = {
   v17,
   v17Content8,
   v18Content9,
+  v18Content10,
   future,
 };
 

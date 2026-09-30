@@ -3,6 +3,7 @@ import {
   CAT_ART,
   colourOf,
   type CatCoat,
+  type CatMotion,
   type CatPose,
   type CatShape,
 } from './cat-look';
@@ -13,6 +14,9 @@ const EYE_LINE = 38;
 /** Portrait units to sprite pixels; the feet sit where the old sprite's paws did. */
 const SIZE = 0.85;
 const FEET_Y = 19;
+/** A cat's answer to the player (R-03): a small hop, or a head tilt with an overshoot. */
+const HOP = { rise: 10, ms: 180 } as const;
+const TILT = { angle: 8, ms: 200, holdMs: 100 } as const;
 
 /** Points along one subpath of the art's own absolute M/L/Q/C/Z paths. */
 function pathPoints(d: string, origin: { x: number; y: number }) {
@@ -80,6 +84,9 @@ export class CatArt extends Phaser.GameObjects.Container {
   private readonly face: Phaser.GameObjects.Graphics;
   private readonly curled: Phaser.GameObjects.Graphics;
   private readonly idle: Phaser.Tweens.Tween[] = [];
+  private reaction: Phaser.Tweens.Tween | null = null;
+  private readonly still = window.matchMedia('(prefers-reduced-motion: reduce)')
+    .matches;
   private pose = '';
   private moving = true;
 
@@ -112,7 +119,7 @@ export class CatArt extends Phaser.GameObjects.Container {
       .setScale(SIZE);
     this.add([scene.add.ellipse(0, 19, 38, 11, 0x3b6354, 0.16), this.figure]);
     this.setPose({ face: 'calm', ears: 'up', curled: false });
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (this.still) return;
     const loop = { yoyo: true, repeat: -1, ease: 'Sine.easeInOut' };
     tail.setAngle(-8);
     this.idle.push(
@@ -141,9 +148,40 @@ export class CatArt extends Phaser.GameObjects.Container {
       }),
     );
     // Looping tweens outlive their targets unless stopped with them.
-    this.once(Phaser.GameObjects.Events.DESTROY, () =>
-      this.idle.forEach((tween) => tween.remove()),
+    this.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.idle.forEach((tween) => tween.remove());
+      this.reaction?.remove();
+    });
+  }
+
+  /**
+   * A small move as the cat answers the player (R-03), replacing one still playing;
+   * none under `prefers-reduced-motion: reduce`.
+   */
+  react(motion: CatMotion) {
+    this.reaction?.remove();
+    this.reaction = null;
+    this.figure.setAngle(0).setY(FEET_Y);
+    if (motion === 'none' || this.still) return this;
+    this.reaction = this.scene.tweens.add(
+      motion === 'hop'
+        ? {
+            targets: this.figure,
+            y: FEET_Y - HOP.rise,
+            duration: HOP.ms,
+            yoyo: true,
+            ease: 'Quad.easeOut',
+          }
+        : {
+            targets: this.figure,
+            angle: TILT.angle,
+            duration: TILT.ms,
+            hold: TILT.holdMs,
+            yoyo: true,
+            ease: 'Back.easeOut',
+          },
     );
+    return this;
   }
 
   setPose(pose: CatPose) {

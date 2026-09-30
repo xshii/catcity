@@ -2,12 +2,39 @@ import { FISH, FISHING, lengthStar, type FishId } from '../../content/fishing';
 import type { WorldState } from '../../core';
 import type { AnglingRun } from '../../minigames/angling';
 import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
+import type { MoodBand } from '../../content/mood';
+import type { CatMotion } from '../art/cat-look';
 import {
+  aimHintShown,
   canPlay,
+  GUIDE_PHASES,
   motionActive,
   type FishingView,
   type GuideStep,
 } from './view-state';
+
+/**
+ * What the cat beside the player says to a tap at the river (R-03), two lines for each
+ * moment, taken in turns: aiming or between casts it speaks its mood; it whispers while
+ * the float waits, cheers a bite and a fight on, is glad of a catch and kind about a fish
+ * that got away. At most 14 characters: a line and a half of its bubble.
+ */
+export const CAT_LINES = {
+  label: (name: string) => `摸摸 ${name}`,
+  idle: {
+    happy: ['今天的风好舒服喵～', '和你钓鱼最开心了！'],
+    calm: ['喵？要抛到哪里呀', '水面好安静呢'],
+    glum: ['嗯……有点闷闷的', '坐近一点好不好'],
+    low: ['喵……没什么精神', '靠着你坐一会儿'],
+  },
+  waiting: ['嘘……鱼快来了', '（小声）别出声哦'],
+  cheer: ['加油！拉住它！', '喵！稳住稳住！'],
+  caught: ['喵～钓到啦！', '你真厉害喵！'],
+  escaped: ['没关系，下次一定！', '鱼儿回家啦，再来～'],
+} as const;
+
+/** How long the cat's bubble stays, and how soon after a tap the next one counts (R-03). */
+export const CAT_TAP_MS = { bubble: 1500, repeat: 500 } as const;
 
 /** Player-facing words of the fishing screen's switchable controls. */
 export const SCREEN_COPY = {
@@ -20,6 +47,8 @@ export const SCREEN_COPY = {
     settle: '稳住，用圈罩住鱼',
     fight: '倾斜手机，让圈罩住鱼',
     pull: '往回拉！',
+    /** The aim hint shows once, with this close (user, 2026-09-30). */
+    close: '关闭提示',
   },
   /** The first motion cast, one step at a time (spec 033 F3). */
   guide: {
@@ -49,7 +78,6 @@ export const SCREEN_COPY = {
   },
   /** The ring turns green over a fish shadow, and a cast says so once (spec 033 F5b). */
   cast: {
-    legend: '落点圈变绿＝对准了鱼影',
     onShadow: '落在鱼影上',
   },
   calibrate: {
@@ -76,6 +104,8 @@ export const SCREEN_COPY = {
   },
   /** A caught species' record stars (R-54): which are collected, never the lengths. */
   atlas: {
+    /** A species never caught: named only once it is (user decision, 2026-09-30). */
+    unknown: '未发现的鱼影',
     stars: ['铜星', '银星', '金星'],
     names: ['铜', '银', '金'],
     glyph: { lit: '★', unlit: '☆' },
@@ -155,16 +185,6 @@ const GUIDE_AIM = {
   direction: Math.round(FISHING.input.maxDirection / 3),
   power: 65,
 };
-/** Where each guide step is taught: aiming before a run, then the run's phases. */
-const GUIDE_PHASES: Record<GuideStep, readonly (AnglingRun['phase'] | null)[]> =
-  {
-    aim: [null],
-    power: [null],
-    cast: [null],
-    strike: ['waiting', 'hook'],
-    fight: ['fight'],
-  };
-
 /**
  * What the fishing scene shows (spec 015). Pure: the DOM only applies this, after every
  * change, so no route can leave a control stale. Nothing of the river shows elsewhere,
@@ -209,6 +229,8 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
         : usual,
     /** The first-cast guide's step whose hint shows, with a way to skip the guide. */
     guide,
+    /** The one-time aim hint shows, with a way to close it. */
+    aimHint: aiming && aimHintShown(view),
     pauseLabel: view.paused
       ? SCREEN_COPY.pause.resume
       : SCREEN_COPY.pause.pause,
@@ -399,7 +421,7 @@ function hint(view: FishingView, motionRun: AnglingRun | null): string {
   const words = SCREEN_COPY.hint;
   if (view.motion.calibrating) return words.calibrating;
   if (view.motion.notice && !motionRun) return view.motion.notice;
-  if (!motionRun) return words.aim;
+  if (!motionRun) return aimHintShown(view) ? words.aim : '';
   if (view.paused) return words.paused;
   if (motionRun.phase === 'waiting') return words.waiting;
   if (motionRun.phase === 'hook') return words.hook;
@@ -411,4 +433,45 @@ function hint(view: FishingView, motionRun: AnglingRun | null): string {
     return fish.warning || fish.dashing ? words.pull : words.fight;
   }
   return '';
+}
+
+/** The catch on the card now (`resultShown`), for the cat to talk about: none without it. */
+export const shownCatch = (
+  view: FishingView,
+  run: AnglingRun | null,
+  result: { runId: string; caught: boolean } | null,
+): 'caught' | 'escaped' | null =>
+  result && resultShown(view, run, result)
+    ? result.caught
+      ? 'caught'
+      : 'escaped'
+    : null;
+
+/**
+ * The cat's answer to the player's `count`th tap at the river (R-03): a line from
+ * `CAT_LINES` for the moment and a small move. `phase` is the run's, or null between
+ * runs; `result` the catch on the card (`shownCatch`). Only words and a move: a tap
+ * changes nothing in the world.
+ */
+export function catReaction({
+  band,
+  phase,
+  result,
+  count,
+}: {
+  band: MoodBand;
+  phase: AnglingRun['phase'] | null;
+  result: 'caught' | 'escaped' | null;
+  count: number;
+}): { motion: CatMotion; line: string } {
+  const say = (lines: readonly string[], motion: CatMotion) => ({
+    motion,
+    line: lines[count % lines.length]!,
+  });
+  if (phase === 'waiting') return say(CAT_LINES.waiting, 'none');
+  if (phase === 'hook' || phase === 'fight')
+    return say(CAT_LINES.cheer, 'tilt');
+  if (result === 'caught') return say(CAT_LINES.caught, 'hop');
+  if (result === 'escaped') return say(CAT_LINES.escaped, 'tilt');
+  return say(CAT_LINES.idle[band], 'tilt');
 }

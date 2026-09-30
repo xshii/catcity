@@ -77,10 +77,3 @@ export async function showFish(page: Page, species: string) {
   await page.locator('#atlas-species').selectOption(species);
   await expect(page.locator(`[data-species="${species}"]`)).toBeVisible();
 }
-
-/** Pepper is invited from the cats panel of either scene; the panel closes after. */
-export async function invitePepper(page: Page) {
-  await openCats(page);
-  await page.locator('#invite-pepper').click();
-  await closeRiverPanel(page);
-}

@@ -22,19 +22,21 @@ export function readClockSpeed(
 }
 
 /**
- * The speed button beside the city clock. Minigames run at 1× and lock it; leaving one
- * keeps 1× until the player taps again. Returns game minutes per real second.
+ * The speed button beside the city clock. Minigames (the river, petting) run at 1× and
+ * lock it; leaving one keeps 1× until the player taps again. Returns game minutes per
+ * real second.
  */
 export function mountClockSpeed(place: PlaceState, button: HTMLButtonElement) {
   let speed = readClockSpeed(() => localStorage);
   const render = () => {
-    const locked = place.get() !== 'city';
+    const locked = place.minigame();
+    const game = place.get() === 'river' ? '钓鱼' : '撸猫';
     button.disabled = locked;
-    button.textContent = locked ? `钓鱼 ${speed}×` : `速度 ${speed}×`;
-    button.title = locked ? '钓鱼时按正常速度' : '点按切换小城时间速度';
+    button.textContent = locked ? `${game} ${speed}×` : `速度 ${speed}×`;
+    button.title = locked ? `${game}时按正常速度` : '点按切换小城时间速度';
     button.setAttribute(
       'aria-label',
-      `小城时间 ${speed} 倍速，${locked ? '钓鱼时按正常速度' : '点按切换'}`,
+      `小城时间 ${speed} 倍速，${locked ? `${game}时按正常速度` : '点按切换'}`,
     );
   };
   const set = (next: ClockSpeed) => {
@@ -43,9 +45,9 @@ export function mountClockSpeed(place: PlaceState, button: HTMLButtonElement) {
     render();
   };
   button.addEventListener('click', () => set(nextClockSpeed(speed)));
-  place.subscribe((next) => {
-    if (next === 'city') render();
-    else set(NORMAL);
+  place.onMinigame((on) => {
+    if (on) set(NORMAL);
+    else render();
   });
   render();
   return () => speed;

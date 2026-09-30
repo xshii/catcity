@@ -1,0 +1,700 @@
+{
+  "saveVersion": 18,
+  "contentVersion": 10,
+  "world": {
+    "seed": 42,
+    "minute": 935,
+    "coins": 1000,
+    "nextId": 3,
+    "map": {
+      "width": 10,
+      "height": 10,
+      "generationVersion": 1,
+      "tiles": [
+        {
+          "position": { "x": 0, "y": 0 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 0 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 0 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 0 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 0 },
+          "terrain": "LAKE",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 0 },
+          "terrain": "LAKE",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 6, "y": 0 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 0 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 0 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 0 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 1 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 1 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 1 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 1 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 1 },
+          "terrain": "LAKE",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 1 },
+          "terrain": "LAKE",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 6, "y": 1 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 1 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 1 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 1 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 2 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 2 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 6, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 2 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 3 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 3 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 3 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 3 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 3 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 3 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": "DIRT"
+        },
+        {
+          "position": { "x": 6, "y": 3 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 3 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 3 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 3 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 4 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 4 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 4 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 4 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 4 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 4 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": "DIRT"
+        },
+        {
+          "position": { "x": 6, "y": 4 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 4 },
+          "terrain": "POND",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 4 },
+          "terrain": "POND",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 4 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 5 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 5 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 5 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 5 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": "DIRT"
+        },
+        {
+          "position": { "x": 4, "y": 5 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": "DIRT"
+        },
+        {
+          "position": { "x": 5, "y": 5 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": "DIRT"
+        },
+        {
+          "position": { "x": 6, "y": 5 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": "DIRT"
+        },
+        {
+          "position": { "x": 7, "y": 5 },
+          "terrain": "POND",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 5 },
+          "terrain": "POND",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 5 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 6 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 6 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 6 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 6 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 6 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 6 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": "DIRT"
+        },
+        {
+          "position": { "x": 6, "y": 6 },
+          "terrain": "GRASS",
+          "owned": true,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 6 },
+          "terrain": "POND",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 6 },
+          "terrain": "POND",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 6 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 7 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 7 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 7 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 7 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 7 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 7 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 6, "y": 7 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 7 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 7 },
+          "terrain": "SEA",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 7 },
+          "terrain": "SEA",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 8 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 8 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 8 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 8 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 8 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 8 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 6, "y": 8 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 8 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 8 },
+          "terrain": "SEA",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 8 },
+          "terrain": "SEA",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 0, "y": 9 },
+          "terrain": "RIVER",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 1, "y": 9 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 2, "y": 9 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 3, "y": 9 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 4, "y": 9 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 5, "y": 9 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 6, "y": 9 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 7, "y": 9 },
+          "terrain": "GRASS",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 8, "y": 9 },
+          "terrain": "SEA",
+          "owned": false,
+          "road": null
+        },
+        {
+          "position": { "x": 9, "y": 9 },
+          "terrain": "SEA",
+          "owned": false,
+          "road": null
+        }
+      ]
+    },
+    "buildings": [],
+    "cats": [
+      {
+        "id": "mochi",
+        "definitionId": "MOCHI",
+        "name": "Mochi",
+        "appearance": { "coat": "cream" },
+        "personality": ["shy", "food-loving", "slow-to-warm"],
+        "traits": ["gentle"],
+        "preferences": {
+          "likes": ["fish", "quiet", "windows"],
+          "dislikes": ["noise", "crowds"]
+        },
+        "mood": 60,
+        "needs": { "energy": 100 },
+        "memories": [
+          {
+            "id": "memory-2",
+            "kind": "conversation",
+            "minute": 450,
+            "message": "今天想去哪里？",
+            "reply": "去池塘边晒太阳。"
+          }
+        ],
+        "playerBond": 1,
+        "home": null,
+        "position": { "x": 7, "y": 3 },
+        "chatBond": { "day": 0, "count": 1 },
+        "giftBond": null,
+        "lastChatMoodMinute": 450,
+        "fishingSpotId": "POND",
+        "walk": null,
+        "breedId": "RAGDOLL",
+        "favoriteFish": ["SILVER", "CRUCIAN"],
+        "fishingMemory": null,
+        "fishGift": null
+      },
+      {
+        "id": "cat-1",
+        "definitionId": "PEPPER",
+        "name": "Pepper",
+        "appearance": { "coat": "gray" },
+        "personality": ["curious", "playful"],
+        "traits": ["adventurous"],
+        "preferences": {
+          "likes": ["fish", "exploring"],
+          "dislikes": ["waiting"]
+        },
+        "mood": 60,
+        "needs": { "energy": 100 },
+        "memories": [],
+        "playerBond": 0,
+        "home": null,
+        "position": { "x": 5, "y": 5 },
+        "chatBond": null,
+        "giftBond": null,
+        "lastChatMoodMinute": null,
+        "fishingSpotId": null,
+        "walk": null,
+        "breedId": "BRITISH_SHORTHAIR",
+        "favoriteFish": ["PERCH", "CATFISH"],
+        "fishingMemory": null,
+        "fishGift": null
+      }
+    ],
+    "fishing": {
+      "supplies": { "trash": 0, "cans": 0, "coinBags": 0 },
+      "xp": 0,
+      "baits": { "WORM": 6, "SHRIMP": 3 },
+      "active": null,
+      "inventory": [],
+      "atlas": {
+        "SILVER": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 },
+        "CRUCIAN": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 },
+        "PERCH": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 },
+        "CATFISH": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 },
+        "KOI": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 },
+        "MOON_CARP": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 },
+        "MACKEREL": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 },
+        "SEA_BREAM": { "count": 0, "bestWeight": 0, "bestLengthMm": 0 }
+      },
+      "lastResult": null
+    }
+  }
+}

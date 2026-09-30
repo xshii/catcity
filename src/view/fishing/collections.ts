@@ -1,4 +1,5 @@
 import { FISH, fishStars } from '../../content/fishing';
+import { SCREEN_COPY } from './screen';
 import './collections.css';
 
 /** Paginate the rendered collection. Navigation never changes inventory or world state. */
@@ -39,7 +40,11 @@ export function mountFishingCollections(
   species.id = 'atlas-species';
   species.append(
     ...FISH.map(
-      (fish) => new Option(`${fishStars(fish.stars)} ${fish.name}`, fish.id),
+      (fish) =>
+        new Option(
+          `${fishStars(fish.stars)} ${SCREEN_COPY.atlas.unknown}`,
+          fish.id,
+        ),
     ),
   );
   speciesChoice.append(species);
@@ -79,6 +84,16 @@ export function mountFishingCollections(
       .forEach((card) => {
         card.hidden = card.dataset.species !== species.value;
       });
+    // The picker names a species only once it is caught, as its entry does.
+    FISH.forEach((fish, index) => {
+      const caught =
+        get('atlas-list').querySelector<HTMLElement>(
+          `[data-species="${fish.id}"]`,
+        )?.dataset.discovered === 'true';
+      const label = `${fishStars(fish.stars)} ${caught ? fish.name : SCREEN_COPY.atlas.unknown}`;
+      const option = species.options[index]!;
+      if (option.text !== label) option.text = label;
+    });
     atlasPage.textContent = `${index + 1} / ${FISH.length} 种`;
     atlasPrev.disabled = index === 0;
     atlasNext.disabled = index === FISH.length - 1;

@@ -42,6 +42,7 @@ function syntheticLog(
     coarsePointer: true,
     guide: null,
     autoCalibrate: false,
+    aimHintSeen: false,
   });
   entry('view', {
     ...view,
