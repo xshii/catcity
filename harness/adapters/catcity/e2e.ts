@@ -53,6 +53,7 @@ export const E2E_SPECS: Readonly<Record<string, SpecEntry>> = {
     modules: ['fishing', 'city', 'petting'],
     layout: true,
   },
+  'stray-start.spec.ts': { modules: ['cats', 'city'] },
 };
 
 export interface E2EChoice {
