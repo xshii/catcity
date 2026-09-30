@@ -4,27 +4,27 @@
 
 ## 目录与责任
 
-| 位置                                       | 责任与边界                                                                                                           |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `src/core/`                                | World、命令/状态 schema、统一时钟、RNG、模拟与关系规则；纯 TypeScript                                                |
-| `src/core/city/`                           | 地图、建设、寻路、行走、城市状态校验                                                                                 |
-| `src/core/fishing/`                        | 钓鱼命令、旅行资格、结果结算、持久状态与校验                                                                         |
-| `src/content/`                             | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`、`cats`、`mood`；与实例分离                               |
-| `src/minigames/angling.ts`                 | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界                                                      |
-| `src/minigames/petting.ts`                 | 独立纯撸猫模拟（spec 039）：一局不入档，Core 重放整局的抚摸来结算                                                    |
-| `src/application/`                         | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验                                              |
-| `src/providers/`、`src/platform/`          | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                                                         |
-| `src/view/city/`、`src/view/fishing/`      | 城市和钓鱼交互、面板与只读状态呈现                                                                                   |
-| `src/view/fishing/motion/`                 | 钓鱼的可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                                             |
-| `src/view/cats/`                           | 猫咪面板（spec 041）：名册与详情、邀请新伙伴的名单、"和谁生小猫"的条件列表；捏猫画面（T-14）                         |
-| `src/view/petting/`、`src/view/companion/` | 撸猫画面（spec 039）；事实回忆                                                                                       |
-| `src/view/common/`                         | 各 View 模块共用：地点状态与模块间接口（`Tools`、`Aim`、`CatMoves`）、设置卡、心情/关系/错误/摸摸喜好文案、ViewModel |
-| `src/view/art/`                            | 美工：城市地图与棋盘几何、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                                                |
-| `src/view/shell/`、`src/view/index.ts`     | 装配：挂载各画面、页面结构、导航与工具面板布局、时钟速度                                                             |
-| `src/view/styles/`                         | 视觉 token（`tokens.css`）与共用基础样式；玩法布局样式留在对应 View 模块                                             |
-| `src/debug/`                               | 仅开发/测试存在的观察桥与验证后调试命令                                                                              |
-| `harness/runner/`、`adapters/`、`tasks/`   | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                                                        |
-| `tests/`                                   | 按 unit / simulation / integration / view / e2e 分层，旧存档仅作拒绝 fixture                                         |
+| 位置                                       | 责任与边界                                                                                                                   |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `src/core/`                                | World、命令/状态 schema、统一时钟、RNG、模拟与关系规则；纯 TypeScript                                                        |
+| `src/core/city/`                           | 地图、建设、寻路、行走、城市状态校验                                                                                         |
+| `src/core/fishing/`                        | 钓鱼命令、旅行资格、结果结算、持久状态与校验                                                                                 |
+| `src/content/`                             | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`、`cats`、`mood`；与实例分离                                       |
+| `src/minigames/angling.ts`                 | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界                                                              |
+| `src/minigames/petting.ts`                 | 独立纯撸猫模拟（spec 039）：一局不入档，Core 重放整局的抚摸来结算                                                            |
+| `src/application/`                         | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验                                                      |
+| `src/providers/`、`src/platform/`          | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                                                                 |
+| `src/view/city/`、`src/view/fishing/`      | 城市和钓鱼交互、面板与只读状态呈现                                                                                           |
+| `src/view/fishing/motion/`                 | 钓鱼的可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                                                     |
+| `src/view/cats/`                           | 猫咪面板（spec 041）：名册与详情（含绝育）、邀请新伙伴的名单、"和谁生小猫"的条件列表；捏猫画面（T-14）                       |
+| `src/view/petting/`、`src/view/companion/` | 撸猫画面（spec 039）；事实回忆                                                                                               |
+| `src/view/common/`                         | 各 View 模块共用：地点状态与模块间接口（`Tools`、`Aim`、`CatMoves`）、设置卡、确认框、心情/关系/错误/摸摸喜好文案、ViewModel |
+| `src/view/art/`                            | 美工：城市地图与棋盘几何、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                                                        |
+| `src/view/shell/`、`src/view/index.ts`     | 装配：挂载各画面、页面结构、导航与工具面板布局、时钟速度                                                                     |
+| `src/view/styles/`                         | 视觉 token（`tokens.css`）与共用基础样式；玩法布局样式留在对应 View 模块                                                     |
+| `src/debug/`                               | 仅开发/测试存在的观察桥与验证后调试命令                                                                                      |
+| `harness/runner/`、`adapters/`、`tasks/`   | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                                                                |
+| `tests/`                                   | 按 unit / simulation / integration / view / e2e 分层，旧存档仅作拒绝 fixture                                                 |
 
 `src/main.ts` 注入具体依赖并连接 View、Debug 与平台时间。`src/view/index.ts` 的 `mountGameView(session)` 封装 Phaser/面板装配。Core/content 不依赖 DOM、Phaser、网络、真实时钟、模型 SDK、全局单例或 `Math.random()`。View 不拥有可变世界引用；快照不能写回世界：`GameSession.getSnapshot()` 每次世界变化只拷贝一次并深度冻结，之后的读取共用同一对象，写入即抛错。
 
@@ -58,7 +58,7 @@ Core 派生资源消耗、奖励和关系变化，不接受客户端自报鱼种
 
 当前信封为 **saveVersion 24 / contentVersion 18**。运行时严格验证字段与语义，包括地图、位置、路线、引用、时间、鱼池及记录一致性；读档不重新生成地形或个体。当前版本必须精确往返并能继续未完成操作，包括体感遛鱼的累计进度、鱼线张力与鱼连续在圈外的 tick 数。
 
-原型不向后兼容，不保留旧命令别名、迁移层或缺字段默认补全。旧、损坏及未来版本拒绝读取，浏览器保留原数据并阻止自动覆盖；显式重置才创建新世界。写入失败只提示重试，不提供重置；其他标签页写入新存档后，本页停止保存并提示刷新。校验会按种子与抛竿输入重新推导进行中一竿的遭遇。猫的身份属于实例（性别、出生时刻、世代、父母、绝育、天赋、上次生育时刻，spec 041 R-10）：外观是五项选择（毛色、花纹、白斑、眼色、脸型，spec 041 T-14），每项只校验是合法选项，不和模板比；初代猫的性格、喜好、喜欢的鱼与性别必须与模板一致，并且没有出生时刻、父母和天赋；品种也等于模板，只有初始猫 Mochi 例外：它是新游戏捡到的流浪猫，品种由玩家在田园猫、布偶、英短中选。新游戏由 `createWorld(seed, stray)` 创建，流浪猫的品种和外观是创建世界的参数（和种子一样），不是命令，所以回放的起始存档里就有这次选择；`GameSession.resetDemo(stray)` 用它开始新游戏。还没有能生出小猫的命令，没有模板的猫一律拒绝。年龄阶段由出生时刻推导（`catStage`），不入档；能否生小猫同样由世界推导（`core/family.ts` 的 `breedBlocks`：一公一母、成年、未绝育、开心、亲密到「信任」、不是亲属、不在冷却、有空床位、伙伴猫未满，spec 041 R-31），还没有生育命令。居民（spec 041 R-40 – R-42、R-46）只存编号、住所与到来时刻：`resident-n` 按到来顺序从 1 编号，每个游戏日开始时最多来一只，住所必须是居民楼且每座不超过 4 只，到来时刻不晚于现在，全城最多 16 只；名字、品种、外观与性别由世界种子和编号推导（`core/residents.ts` 的 `residentIdentity`），不入档，也不是伙伴猫。存储键 `cat-city.save.v1` 是固定位置，信封版本决定格式。
+原型不向后兼容，不保留旧命令别名、迁移层或缺字段默认补全。旧、损坏及未来版本拒绝读取，浏览器保留原数据并阻止自动覆盖；显式重置才创建新世界。写入失败只提示重试，不提供重置；其他标签页写入新存档后，本页停止保存并提示刷新。校验会按种子与抛竿输入重新推导进行中一竿的遭遇。猫的身份属于实例（性别、出生时刻、世代、父母、绝育、天赋、上次生育时刻，spec 041 R-10）：外观是五项选择（毛色、花纹、白斑、眼色、脸型，spec 041 T-14），每项只校验是合法选项，不和模板比；初代猫的性格、喜好、喜欢的鱼与性别必须与模板一致，并且没有出生时刻、父母和天赋；品种也等于模板，只有初始猫 Mochi 例外：它是新游戏捡到的流浪猫，品种由玩家在田园猫、布偶、英短中选。新游戏由 `createWorld(seed, stray)` 创建，流浪猫的品种和外观是创建世界的参数（和种子一样），不是命令，所以回放的起始存档里就有这次选择；`GameSession.resetDemo(stray)` 用它开始新游戏。还没有能生出小猫的命令，没有模板的猫一律拒绝。年龄阶段由出生时刻推导（`catStage`），不入档；能否生小猫同样由世界推导（`core/family.ts` 的 `breedBlocks`：一公一母、成年、未绝育、开心、亲密到「信任」、不是亲属、不在冷却、有空床位、伙伴猫未满，spec 041 R-31），还没有生育命令；`NEUTER_CAT` 给成年、未绝育的猫绝育（`NEUTER_PRICE` 100 金币，spec 041 R-30），只改 `neutered` 与金币。居民（spec 041 R-40 – R-42、R-46）只存编号、住所与到来时刻：`resident-n` 按到来顺序从 1 编号，每个游戏日开始时最多来一只，住所必须是居民楼且每座不超过 4 只，到来时刻不晚于现在，全城最多 16 只；名字、品种、外观与性别由世界种子和编号推导（`core/residents.ts` 的 `residentIdentity`），不入档，也不是伙伴猫。存储键 `cat-city.save.v1` 是固定位置，信封版本决定格式。
 
 ## 可观察与扩展
 

@@ -11,3 +11,6 @@ export const BREED_BOND_LEVEL = 2;
 
 /** After a kitten, each parent rests three game days before it can have another (R-31). */
 export const BREED_COOLDOWN_MINUTES = 3 * 1440;
+
+/** Neutering a grown cat costs a few coins and needs no building (R-30, requirements D-3). */
+export const NEUTER_PRICE = 100;

@@ -236,12 +236,13 @@
 
 顺序：T-20、T-21 可并行 → T-22 → T-23、T-24 可并行。
 
-### [ ] T-20 绝育（R-30）
+### [x] T-20 绝育（R-30）
 
-- **分支**：`feat/neuter`。依赖 T-12。内容 12。
+- **分支**：`feat/neuter`。依赖 T-12。内容 17（开工时 main 是存档 23、内容 15，合并前 main 已用掉内容 16；存档格式不变，`neutered` 是 T-10 加的），补 `save-v23-content16.json` 拒绝样本。确认框是可复用的 `view/common/confirm.ts`，T-22 的生小猫可以直接用。
 - **做什么**：命令 `NEUTER_CAT { catId }`；content `NEUTER_PRICE = 100`；错误码 `ALREADY_NEUTERED`、`CAT_TOO_YOUNG`；猫详情"家人"分区里的按钮，点了先出确认框，写明"不可撤销"。
 - **测试**：成功扣费并置位；重复、幼猫、金币不足被拒且世界不变；确认框取消不发命令。
 - **验收**：三条命令；完整检查；截图确认框。
+- **完成**：PR #83（`bf480a9`），内容 17，测试版 `test-20260930-1847-bf480a98-02b6d4`。证据：`tests/unit/neuter.test.ts`（扣费置位、重复/幼猫/99 金币被拒且世界不变、存档往返）、`tests/unit/neuter-screen.test.ts`、`tests/view/neuter.test.ts`（取消不发命令、只用键盘、时钟推进后按钮和确认框不变）；随机命令测试把 `NEUTER_CAT` 放回命令池，断言不改，种子换为 `play(3)` 与 5–16；推送前完整检查通过（单元与画面 1207 条、E2E 80 条、验收），产物 `artifacts/2026-09-30T10-38-24-223Z-56712/`（`catcity-wt20`）；截图 `artifacts/T-20/neuter-confirm-{390x844,360x640}.png`（等淡入结束再拍）。钓鱼、散步中也能绝育。
 
 ### [x] T-21 生育条件（R-31）
 
