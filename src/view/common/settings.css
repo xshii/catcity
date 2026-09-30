@@ -36,12 +36,16 @@
   background: var(--scrim);
 }
 /* Scoped by id: the sheet floats in the scene, whose own button styles load later. */
+/* In the middle of the screen (user, 2026-09-30); a long sheet scrolls inside itself. */
 #settings-sheet {
   position: absolute;
   z-index: 43;
-  top: var(--under-bar);
-  right: var(--gear-right);
-  width: min(340px, calc(100% - 16px));
+  inset: 0;
+  margin: auto;
+  width: min(340px, calc(100% - 32px));
+  height: fit-content;
+  max-height: calc(100% - 2 * var(--under-bar));
+  overflow-y: auto;
   display: grid;
   gap: 10px;
   padding: 0 14px 14px;
