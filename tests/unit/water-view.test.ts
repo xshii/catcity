@@ -147,10 +147,10 @@ describe('the cat beside the player on the page (R-03)', () => {
   };
   const phones = [
     // 390×844: the canvas fills its box, wider than the screen.
-    { box: { left: -78, top: 140 }, side: 546, screenRight: 390 },
+    { box: { left: -78, top: 132 }, side: 546, screenRight: 390 },
     // 360×640 and 375×553: shorter screens draw the river smaller.
-    { box: { left: -35, top: 52 }, side: 430, screenRight: 360 },
-    { box: { left: 16, top: 52 }, side: 343, screenRight: 375 },
+    { box: { left: -27, top: 60 }, side: 414, screenRight: 360 },
+    { box: { left: 24, top: 60 }, side: 327, screenRight: 375 },
   ];
 
   it('takes a tap anywhere on the cat as drawn, at least a finger wide and tall', () => {
