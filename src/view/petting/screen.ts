@@ -61,7 +61,7 @@ export const PETTING_COPY = {
 
 /**
  * One line in the cat's own voice, by its personality, how it takes the spot stroked
- * most, and whether the round went well.
+ * most, and whether the round went well. `{first}` is the first cat, by its name now.
  */
 const LINES: Record<
   CatDefinitionId,
@@ -139,7 +139,7 @@ const LINES: Record<
     },
     disliked: {
       good: '哎呀{spot}不要！别的地方好舒服，原谅你啦。',
-      poor: '{spot}不可以！哼，我要去告诉 Mochi。',
+      poor: '{spot}不可以！哼，我要去告诉 {first}。',
     },
   },
   // Easygoing and lazy: drawls, and cannot be bothered to run off.
@@ -164,12 +164,13 @@ export function reactionLine(
   tastes: PetTastes,
   spot: PetSpot,
   good: boolean,
+  /** The first cat's name: Mochi, or what the player named it (T-25). */
+  first: string,
 ): string {
   const line = LINES[definitionId][tasteOf(tastes, spot)];
-  return (good ? line.good : line.poor).replaceAll(
-    '{spot}',
-    PET_SPOT_NAMES[spot],
-  );
+  return (good ? line.good : line.poor)
+    .replaceAll('{spot}', PET_SPOT_NAMES[spot])
+    .replaceAll('{first}', first);
 }
 
 /** The cats panel's way in: always free, closed only by what Core would refuse. */
@@ -208,6 +209,8 @@ export function pettingScreen(
   cat: Pick<CatEntity, 'name' | 'definitionId' | 'petting'> | null,
   /** The cat's look when nothing is happening to it. */
   rest: CatPose,
+  /** The first cat's name, which a line may mention. */
+  first: string,
 ) {
   const phase = pettingPhase(view);
   const round = view.round;
@@ -286,6 +289,7 @@ export function pettingScreen(
               round.tastes,
               result.spot,
               result.meter >= PETTING.good,
+              first,
             ),
             change: `心情 ${signed(result.mood)}`,
             mood: moodBadge(result.moodAfter).text,

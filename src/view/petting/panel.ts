@@ -1,5 +1,6 @@
 import './petting.css';
 import type { GameSession } from '../../application';
+import { STARTER_CAT_ID } from '../../content/cats';
 import { PETTING, PET_SPOTS, type PetSpot } from '../../content/petting';
 import { pettingTastes, type GameCommand } from '../../core';
 import { catPose, lookOf } from '../art/cat-look';
@@ -139,6 +140,7 @@ export function mountPetting(deps: {
       view.get(),
       cat,
       cat ? catPose(world, cat) : { face: 'calm', ears: 'up', curled: false },
+      world.cats.find((item) => item.id === STARTER_CAT_ID)?.name ?? '',
     );
     screen.hidden = !model.open;
     // A modal dialog: the gear floating over it is one of its own while it is open.
