@@ -75,8 +75,9 @@
 
 目标：把做了一半的东西做完，让"开心"这个状态拿得到。M0 的任务之间基本独立，T-01 到 T-04 可以并行开发、依次合并。
 
-### [ ] T-01 鱼篓按钮不重建（R-04）
+### [x] T-01 鱼篓按钮不重建（R-04）
 
+- **完成**：PR #57（`5ee9c44`），测试版 `test-20260930-0917-5ee9c44c-31d489`。证据：`tests/view/fishing-bag.test.ts` 三条在旧代码上失败、新代码上通过；`npm run test:coverage` 74 个文件 705 条通过；推送前完整检查通过（E2E 51 条，验收 15 步），产物 `artifacts/2026-09-30T01-10-16-000Z-7137/`（`catcity-wt01`）。实现是 `catalog.ts` 的 `mountFishBag`；图鉴列表没有可点击元素，未改。
 - **分支**：`fix/bag-buttons-stay`
 - **依赖**：无。存档和内容版本不变。
 - **先读这些文件**：`src/view/city/actions.ts`（参考实现）、`tests/view/city-panels.test.ts`（参考测试）、`src/view/fishing/catalog.ts`、`src/view/fishing/panel.ts` 里调用 `renderFishingCatalog` 的地方。
@@ -88,8 +89,9 @@
 - **验收**：三条测试在旧代码上失败、新代码上通过；`npm run test:coverage` 全绿；完整检查通过。
 - **注意**：`resultNote` 和 `fish-tastes` 是纯文字，可以照旧每次写。
 
-### [ ] T-02 河畔的猫醒着（R-01）
+### [x] T-02 河畔的猫醒着（R-01）
 
+- **完成**：PR #58（`875d128`），测试版 `test-20260930-0923-875d1286-974a27`。证据：`tests/unit/cat-look.test.ts` 河畔两条在旧代码上失败（`curled: true`）、新代码上通过；`tests/view/fishing-buttons.test.ts` 名册卡读屏不含"在休息"；推送前完整检查通过（单元与画面 709 条、E2E 51 条、验收 15 步），产物 `artifacts/2026-09-30T01-18-05-191Z-17214/`（`catcity-wt02`）；截图 `awake-after-cast.png`（390×844）与 `buttons-aim.png`（360×640）里猫坐着、睁眼。
 - **分支**：`fix/awake-at-river`
 - **依赖**：无。
 - **先读这些文件**：`src/view/art/cat-look.ts`（`catPose`）、`tests/unit/cat-look.test.ts`、`src/view/art/river.ts` 约 513 行、`src/view/fishing/stage.ts` 约 51 行、`src/view/shell/place.ts`。
