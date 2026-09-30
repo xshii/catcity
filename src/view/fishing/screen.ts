@@ -85,10 +85,8 @@ export const SCREEN_COPY = {
     done: (peak: number) => `校准完成：下甩 ${peak}°/s`,
     failed: '没感到两次一致的下甩，打开设置点「校准甩竿」再试一次',
   },
-  /** The gear over the water and its sheet (spec 034). */
+  /** The river's section of the settings sheet (spec 034). */
   settings: {
-    title: '设置',
-    close: '关闭设置',
     mode: '钓鱼方式',
     motion: '体感',
     buttons: '按钮',
@@ -207,10 +205,9 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
     /** The in-run console (pause, leave; and the button flow's meters). */
     console: river && !!run,
     consoleMode: river && run ? run.mode : null,
-    /** The gear over the water and the sheet it opens (spec 034). */
+    /** The river's section of the settings sheet every page opens (spec 034). */
     settings: {
-      gear: river,
-      open: river && view.settingsOpen,
+      page: river,
       mode: modeChoices(view, run, active),
       /** Calibration is offered while motion aims: before a run, not over one. */
       calibrate: river && active && !run && !view.motion.calibrating,

@@ -10,6 +10,7 @@ import { toViewModel } from './model';
 import { bondNote } from './bond';
 import { withMoodNote } from './mood';
 import { ERROR_MESSAGES } from './errors';
+import { mountSettings } from './settings';
 import type { Trace } from '../../platform/device-log';
 
 const TALK_RETRY = '暂时没能完成对话，请再试一次。';
@@ -143,6 +144,8 @@ export function mountPanel(
       });
     });
   mountCompanionship(session);
+  // One gear on every page, right after the scene bar (2026-09-30).
+  const settings = mountSettings({ place, after: get('map-heading') });
   const angling = mountAngling(
     session,
     place,
@@ -154,6 +157,7 @@ export function mountPanel(
       visitCity: get('visit-city'),
       visitRiver: get('visit-river'),
       notice: get('notice'),
+      settings,
     },
   );
   said = angling.said;

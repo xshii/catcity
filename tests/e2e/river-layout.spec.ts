@@ -40,7 +40,7 @@ async function singleScreen(page: Page) {
       'panel-cats',
       'city-panel-guide',
       'city-panel-outing',
-      'river-settings-sheet',
+      'settings-sheet',
     ]
       .map((id) => document.getElementById(id)!)
       .filter((element) => element.getClientRects().length)
@@ -271,12 +271,12 @@ for (const viewport of [
     await openGear(page, 'supplies');
     await onScreen(page.locator('[data-buy-bait="WORM"]'));
     await singleScreen(page);
-    // Settings open from the gear over the water, all on one screen (spec 034).
+    // Settings open from the gear, all on one screen (spec 034, 2026-09-30).
     await closeRiverPanel(page);
-    await onScreen(page.locator('#river-settings'));
-    await page.locator('#river-settings').click();
+    await onScreen(page.locator('#settings-gear'));
+    await page.locator('#settings-gear').click();
     for (const id of [
-      'river-settings-close',
+      'settings-close',
       'settings-mode-motion',
       'settings-mode-buttons',
       'sound-toggle',
@@ -284,8 +284,8 @@ for (const viewport of [
     ])
       await onScreen(page.locator(`#${id}`));
     await singleScreen(page);
-    await page.locator('#river-settings-close').click();
-    await expect(page.locator('#river-settings-sheet')).toBeHidden();
+    await page.locator('#settings-close').click();
+    await expect(page.locator('#settings-sheet')).toBeHidden();
     await openGear(page, 'info');
     await onScreen(page.locator('#companion-specialty'));
     await onScreen(page.locator('#spot-unlocks'));
@@ -421,7 +421,7 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
 ])
-  test(`phone ${viewport.width}×${viewport.height}: the settings gear sits over the water, clear of the aim hint`, async ({
+  test(`phone ${viewport.width}×${viewport.height}: the settings gear sits off the water at the right under the bar, clear of the aim hint`, async ({
     browser,
   }) => {
     const context = await phoneContext(browser, viewport);
@@ -432,19 +432,22 @@ for (const viewport of [
     await ready(page);
     await enterRiver(page);
     await sensorsOn(page);
-    const gear = page.locator('#river-settings');
+    const gear = page.locator('#settings-gear');
     // The first aim on this device: the once-only aim hint and its close show.
     const hint = page.locator('#motion-fishing-hint');
     const close = page.locator('#motion-hint-close');
     for (const control of [gear, hint, close]) await onScreen(control);
     const box = (await gear.boundingBox())!;
-    // A finger-sized target on the water, where calibration used to sit.
+    // A finger-sized target at the right edge, under the scene bar, above the water.
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(44);
-    const water = (await page.locator('#motion-fishing').boundingBox())!;
-    expect(box.x).toBeGreaterThanOrEqual(water.x);
-    expect(box.y).toBeGreaterThanOrEqual(water.y);
-    for (const other of [hint, close])
+    expect(
+      Math.abs(viewport.width - (box.x + box.width) - 8),
+    ).toBeLessThanOrEqual(1);
+    const bar = (await page.locator('#map-heading').boundingBox())!;
+    expect(box.y).toBeGreaterThan(bar.y + bar.height);
+    // Off the motion plane, so off all it shows, and clear of the aim hint and its close.
+    for (const other of [page.locator('#motion-fishing'), hint, close])
       expect(apart(box, (await other.boundingBox())!)).toBe(true);
     // The hint's close is finger-sized too.
     const closeBox = (await close.boundingBox())!;
@@ -453,7 +456,7 @@ for (const viewport of [
     // In button mode it stays clear of the cast button.
     await gear.click();
     await page.locator('#settings-mode-buttons').click();
-    await page.locator('#river-settings-close').click();
+    await page.locator('#settings-close').click();
     await onScreen(page.locator('#cast-start'));
     await onScreen(gear);
     expect(

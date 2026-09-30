@@ -237,6 +237,7 @@ test('picking a cat says it can also be lifted and dragged, clear of the hint an
   await clearOfControls(page, [
     '#map-heading',
     '.city-map-hint',
+    '#settings-gear',
     '#city-action-card',
     '.scene-tools-nav',
   ]);
@@ -246,7 +247,7 @@ test('picking a cat says it can also be lifted and dragged, clear of the hint an
 /** What the river shows that a notice must keep off, by name. */
 const RIVER_PARTS = {
   chip: '#river-place',
-  gear: '#river-settings',
+  gear: '#settings-gear',
   plane: '#motion-fishing',
   hint: '#motion-fishing-hint',
   card: '#catch-reveal',

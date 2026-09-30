@@ -164,9 +164,9 @@ test('during a motion run the gear takes its own taps: the settings open and not
   const { page, context } = await inMotionRiver(browser);
   await swing(page);
   await toBite(page);
-  // The water around the gear takes taps as strikes now; the gear is over it.
-  await page.locator('#river-settings').tap({ timeout: 5000 });
-  await expect(page.locator('#river-settings-sheet')).toBeVisible();
+  // The water takes taps as strikes now; the gear, off the water, takes its own.
+  await page.locator('#settings-gear').tap({ timeout: 5000 });
+  await expect(page.locator('#settings-sheet')).toBeVisible();
   expect((await readWorld(page)).fishing.active!.phase).toBe('hook');
   await context.close();
 });
@@ -206,7 +206,7 @@ test(
     await expect(hint).toHaveText(SCREEN_COPY.calibrate.failed, {
       timeout: FISHING.motion.gesture.calibration.windowMs + 5000,
     });
-    await expect(page.locator('#river-settings')).toBeVisible();
+    await expect(page.locator('#settings-gear')).toBeVisible();
     await expect(calibrate).toHaveJSProperty('hidden', false);
     await expect(hint).toHaveText(SCREEN_COPY.guide.aim);
     await expect(skip).toBeVisible();

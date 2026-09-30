@@ -27,7 +27,10 @@ export const GUIDE_PHASES: Record<
 export interface FishingView {
   place: Place;
   toolsOpen: boolean;
-  /** The river's settings sheet (spec 034); like the tools, it covers play. */
+  /**
+   * The settings sheet, opened from the one gear every page shows (2026-09-30) and
+   * followed from the shell; like the tools, it covers play.
+   */
   settingsOpen: boolean;
   pageHidden: boolean;
   /** Fishing input waits for the player; opening anything pauses it. */
@@ -81,7 +84,7 @@ export type FishingViewEvent =
   | { type: 'ask' }
   /** Permission granted again: a refusal is forgotten, a ready sensor stays ready. */
   | { type: 'grant' }
-  /** Starting calibration (from the settings sheet) closes the sheet. */
+  /** Starting calibration (from the settings sheet, once it has closed). */
   | { type: 'calibrating'; on: boolean }
   | { type: 'notice'; text: string | null }
   /** The notice bar was given a message, by anything on the page. */
@@ -154,21 +157,17 @@ export const aimHintShown = (view: FishingView) =>
 
 /**
  * Pure transitions. Invariants (unit-tested under random event sequences): outside play
- * input is paused and released; a held button implies play; the settings sheet is only
- * open on the river with no tools over it; calibration only runs while motion is active
- * and playable, before a run, and starts by itself only until one finishes; the guide
- * only moves forward, one step per move, and only in motion play; the aim hint, once
- * seen (closed, or cast from while it showed), stays seen.
+ * input is paused and released; a held button implies play; the settings sheet is as the
+ * shell says; calibration only runs while motion is active and playable, before a run,
+ * and starts by itself only until one finishes; the guide only moves forward, one step
+ * per move, and only in motion play; the aim hint, once seen (closed, or cast from while
+ * it showed), stays seen.
  */
 export function reduceFishingView(
   view: FishingView,
   event: FishingViewEvent,
 ): FishingView {
-  const stepped = step(view, event);
-  const next =
-    stepped.settingsOpen && (stepped.place !== 'river' || stepped.toolsOpen)
-      ? { ...stepped, settingsOpen: false }
-      : stepped;
+  const next = step(view, event);
   if (!canPlay(next) || next.runId !== view.runId)
     return settle({ ...next, paused: true, pressed: false }, view);
   return settle(next, view);
@@ -229,7 +228,7 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
         : view;
     case 'calibrating':
       return event.on
-        ? { ...motion({ calibrating: true }), settingsOpen: false }
+        ? motion({ calibrating: true })
         : motion({
             calibrating: false,
             // A calibration that ran to its end, whatever it found.
