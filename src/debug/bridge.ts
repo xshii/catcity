@@ -8,6 +8,10 @@ interface ViewObserver {
     setManual: (manual: boolean) => void;
     step: (ticks: number) => number;
   };
+  pettingClock: {
+    setManual: (manual: boolean) => void;
+    step: (ticks: number) => number;
+  };
 }
 /** Largest single step; one fishing run never needs more ticks than this. */
 const MAX_STEP_TICKS = 1000;
@@ -43,6 +47,13 @@ function createBridge(session: GameSession, view?: ViewObserver) {
     stepFishing: (ticks: number) =>
       Number.isInteger(ticks) && ticks >= 1 && ticks <= MAX_STEP_TICKS
         ? (view?.fishingClock.step(ticks) ?? 0)
+        : 0,
+    /** The same for a round of petting: strokes stay real, ticks come from the test. */
+    useManualPettingClock: (manual: boolean) =>
+      view?.pettingClock.setManual(manual === true),
+    stepPetting: (ticks: number) =>
+      Number.isInteger(ticks) && ticks >= 1 && ticks <= MAX_STEP_TICKS
+        ? (view?.pettingClock.step(ticks) ?? 0)
         : 0,
     getSelectedEntity: () => session.selectedEntity,
     getDiagnostics: () => session.getDiagnostics(),

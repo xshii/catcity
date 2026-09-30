@@ -38,7 +38,9 @@ export function instantiateCat(
     home: null,
     chatBond: null,
     giftBond: null,
+    pettingBond: null,
     lastChatMoodMinute: null,
+    petting: { discovered: [], lifted: [] },
   };
 }
 
