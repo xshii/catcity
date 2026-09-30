@@ -42,6 +42,8 @@ import v19Content10 from '../fixtures/save-v19-content10.json';
 // Pepper invited free and without a bed, from before INVITE_CAT and before a coat
 // could be orange or tuxedo (save 20, content 10).
 import v20Content10 from '../fixtures/save-v20-content10.json';
+// Pepper, 芝麻 and 豆包 invited while 芝麻 was cream and 豆包 gray (save 20, content 11).
+import v20Content11 from '../fixtures/save-v20-content11.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -73,6 +75,7 @@ const incompatible = {
   v18Content10,
   v19Content10,
   v20Content10,
+  v20Content11,
   future,
 };
 
@@ -107,3 +110,10 @@ it.each(Object.entries(incompatible))(
     expect(loadWorld(data).save()).toBe(data);
   },
 );
+
+it('rejects the coats of content 11 even in the current envelope (content 12)', () => {
+  const old = { ...v20Content11, saveVersion: SAVE_VERSION };
+  expect(() => loadWorld(JSON.stringify(old))).toThrow(/contentVersion/);
+  const coats = { ...old, contentVersion: CONTENT_VERSION };
+  expect(() => loadWorld(JSON.stringify(coats))).toThrow(/template/);
+});

@@ -90,7 +90,8 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'RAGDOLL',
     name: '芝麻',
     sex: 'M',
-    coat: 'cream',
+    // Black sesame on white.
+    coat: 'tuxedo',
     personality: ['brave', 'steady'],
     personalityLabel: '勇敢 · 沉稳',
     traits: ['steady'],
@@ -116,7 +117,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'BRITISH_SHORTHAIR',
     name: '豆包',
     sex: 'M',
-    coat: 'gray',
+    coat: 'orange',
     personality: ['easygoing', 'lazy'],
     personalityLabel: '随和 · 懒洋洋',
     traits: ['easygoing'],
