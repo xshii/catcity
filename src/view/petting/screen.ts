@@ -16,8 +16,9 @@ import {
   type PetTastes,
 } from '../../minigames/petting';
 import type { CatPose } from '../art/cat-look';
-import { ERROR_MESSAGES } from '../shell/errors';
-import { moodBadge } from '../shell/mood';
+import { ERROR_MESSAGES } from '../common/errors';
+import { moodBadge } from '../common/mood';
+import { knownTastes, TASTE_COPY } from '../common/tastes';
 import { pettingPhase, type PettingView } from './view-state';
 
 /** How long a reaction stays on the cat's face and in its bubble. */
@@ -31,12 +32,8 @@ export const PETTING_COPY = {
   meter: '满足',
   again: '再摸一会儿',
   done: '好了',
-  tastes: {
-    favourite: { mark: '♥', label: '最喜欢' },
-    neutral: { mark: '○', label: '还行' },
-    disliked: { mark: '✕', label: '不喜欢' },
-  } satisfies Record<PetTaste, { mark: string; label: string }>,
-  unknown: '还不知道',
+  tastes: TASTE_COPY.tastes,
+  unknown: TASTE_COPY.unknown,
   /** The bar's mark for a spot not yet found out. */
   unknownMark: '?',
   reactions: {
@@ -173,17 +170,6 @@ export function reactionLine(
     '{spot}',
     PET_SPOT_NAMES[spot],
   );
-}
-
-/** The spots of a cat the player knows, as words: '最喜欢 下巴 · 不喜欢 肚子'. */
-export function knownTastes(tastes: PetTastes, discovered: readonly PetSpot[]) {
-  return (['favourite', 'disliked'] as const)
-    .filter((taste) => discovered.includes(tastes[taste]))
-    .map(
-      (taste) =>
-        `${PETTING_COPY.tastes[taste].label} ${PET_SPOT_NAMES[tastes[taste]]}`,
-    )
-    .join(' · ');
 }
 
 /** The cats panel's way in: always free, closed only by what Core would refuse. */

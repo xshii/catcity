@@ -1,6 +1,6 @@
 import type { GameSession } from '../../application';
 import { FISHING } from '../../content/fishing';
-import { TIME_SCALE } from '../time-scale';
+import { TIME_SCALE } from './time-scale';
 import { canPlay, type FishingViewStore } from './view-state';
 
 export interface FishingControlsDeps {

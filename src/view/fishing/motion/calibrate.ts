@@ -1,4 +1,4 @@
-import { FISHING } from '../../content/fishing';
+import { FISHING } from '../../../content/fishing';
 import type { RodTuning } from './rod';
 
 const G = FISHING.motion.gesture;

@@ -1,6 +1,6 @@
 import { CITY_TIME } from '../../content/city';
 import { readPref, savePref } from '../../platform/local-prefs';
-import type { PlaceState } from './place';
+import type { PlaceState } from '../common/place';
 
 export type ClockSpeed = (typeof CITY_TIME.speeds)[number];
 /** Per-device choice; never part of the world or a save. */

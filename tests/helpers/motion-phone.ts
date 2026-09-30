@@ -5,7 +5,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { FISHING } from '../../src/content/fishing';
-import { DEFAULT_TUNING } from '../../src/view/motion/rod';
+import { DEFAULT_TUNING } from '../../src/view/fishing/motion/rod';
 
 /**
  * A phone in a real browser for motion fishing (spec 034): a coarse touch pointer, and

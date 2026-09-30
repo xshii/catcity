@@ -20,7 +20,7 @@
 | `npm run check`            | 类型 → 静态检查/格式 → Headless 测试与覆盖率 → 构建 → E2E  |
 | `npm run harness`          | 完整 Gate，再启动验收浏览器、采集证据并验证回放            |
 
-Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真实格子点击、按钮、键盘和触摸，不能注入获胜结果。测试构建（`--mode test`）把纯等待（等咬钩、传感器启动期限）按 `src/view/time-scale.ts` 加速，提竿、遛鱼和甩竿窗口保持真实速度；Debug Bridge 的 `stepFishing` 可逐 tick 推进钓鱼以消除短窗口竞态，输入仍是真实按键。生产构建始终 1×。截图是观察证据，当前没有强制像素基线；不得自动接受新快照来通过测试。
+Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真实格子点击、按钮、键盘和触摸，不能注入获胜结果。测试构建（`--mode test`）把纯等待（等咬钩、传感器启动期限）按 `src/view/fishing/time-scale.ts` 加速，提竿、遛鱼和甩竿窗口保持真实速度；Debug Bridge 的 `stepFishing` 可逐 tick 推进钓鱼以消除短窗口竞态，输入仍是真实按键。生产构建始终 1×。截图是观察证据，当前没有强制像素基线；不得自动接受新快照来通过测试。
 
 每个检出目录的测试服务使用自己的端口（测试构建、生产构建、验收预览三个相邻端口，由目录路径推导，`CAT_CITY_TEST_PORT` 可指定起始端口，见 [test-ports.ts](../harness/runner/test-ports.ts)），因此多个 worktree 的门禁与 E2E 可同时运行；实机试玩预览固定为 4178。E2E 以 2 个 worker 并行（测试相互独立：各自的浏览器上下文与存储）；测试构建把 Phaser 限到 15 帧（无头浏览器用软件渲染，测试只需画出来，不需要流畅动画），生产构建不受影响。[Playwright 配置](../playwright.config.ts) 中 Chromium 执行全量 E2E，WebKit 仅执行带 `@motion-smoke` 标记的代表性体感输入与延迟恢复用例，二者都属于 `check`。体感 E2E 用触屏上下文（`hasTouch`；不设 `isMobile`：WebKit 的手机模拟把竖屏页面报成屏幕角 90°）与 iOS 式授权替身，记录每次请求时的 `navigator.userActivation.isActive`（[motion-phone.ts](../tests/helpers/motion-phone.ts)）。可用 `npm run test:e2e -- --project=webkit-motion` 定向验证；自动化注入读数用于验证浏览器适配，仍需 Safari 实机确认权限弹窗、传感器和手感。
 

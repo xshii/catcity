@@ -28,14 +28,14 @@ AI 不得在没有证据时把状态改为"完成"。一次会话结束前更新
 
 ## 代码五类（渐进披露）
 
-| 类别     | 位置                                                                                                     | 何时读             |
-| -------- | -------------------------------------------------------------------------------------------------------- | ------------------ |
-| 核心架构 | `src/core/*.ts`、`src/application/`、`src/main.ts`、`src/view/index.ts`                                  | 任何改动           |
-| 玩法模块 | `src/core/{city,fishing}/`、`src/content/`、`src/minigames/`、`src/view/{city,fishing,shell,companion}/` | 改到对应功能时     |
-| 体感     | `src/view/motion/`                                                                                       | 只在改传感器输入时 |
-| 美工     | `src/view/art/`（绘图、调色板）与各模块样式                                                              | 换画面时           |
-| 工具     | `harness/`、`src/debug/`、`src/platform/`、`tests/helpers/`、构建配置                                    | 改构建/验证/发布时 |
-| 用例     | `tests/`                                                                                                 | 验证时             |
+| 类别     | 位置                                                                                                                         | 何时读             |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 核心架构 | `src/core/*.ts`、`src/application/`、`src/main.ts`、`src/view/index.ts`                                                      | 任何改动           |
+| 玩法模块 | `src/core/{city,fishing}/`、`src/content/`、`src/minigames/`、`src/view/{city,fishing,cats,petting,companion,common,shell}/` | 改到对应功能时     |
+| 体感     | `src/view/fishing/motion/`                                                                                                   | 只在改传感器输入时 |
+| 美工     | `src/view/art/`（绘图、调色板）与各模块样式                                                                                  | 换画面时           |
+| 工具     | `harness/`、`src/debug/`、`src/platform/`、`tests/helpers/`、构建配置                                                        | 改构建/验证/发布时 |
+| 用例     | `tests/`                                                                                                                     | 验证时             |
 
 ## 索引
 

@@ -1,4 +1,4 @@
-import type { Aim, AimControl, PlaceState, Tools } from '../shell/place';
+import type { Aim, AimControl, PlaceState, Tools } from '../common/place';
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
 import type { GameCommand, WorldState } from '../../core';
@@ -24,9 +24,8 @@ import { mountFishingSound } from './sound';
 import { mountFishingStage, type FishingShell } from './stage';
 import { mountFishBag, renderFishingCatalog } from './catalog';
 import { mountCatTap } from './cat-tap';
-import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
-import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
+import { motionStartup, mountMotionFishing } from './motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
 import { mountFishingSettings } from './settings';
@@ -51,9 +50,9 @@ import {
   BUTTON_PHASE_INSTRUCTIONS,
   BUTTON_PHASE_NAMES,
 } from './template';
-import { ERROR_MESSAGES } from '../shell/errors';
-import { withMoodNote } from '../shell/mood';
-import { giftNotice, outcomeNote } from '../shell/bond';
+import { ERROR_MESSAGES } from '../common/errors';
+import { withMoodNote } from '../common/mood';
+import { giftNotice, outcomeNote } from '../common/bond';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;
@@ -414,7 +413,7 @@ export function mountAngling(
     rodTip: () => motion.point(),
     onCastStart: () => begin(),
   });
-  const layout = mountFishingLayout(session, place, () =>
+  const layout = shell.layout(() =>
     view.dispatch({ type: 'tools', open: layout.isOpen() }),
   );
   const collections = mountFishingCollections(get);

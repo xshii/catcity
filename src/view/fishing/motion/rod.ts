@@ -1,4 +1,4 @@
-import { FISHING } from '../../content/fishing';
+import { FISHING } from '../../../content/fishing';
 
 const G = FISHING.motion.gesture;
 

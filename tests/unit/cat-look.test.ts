@@ -4,7 +4,7 @@ import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
 import type { WorldState } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
 import { invite } from '../helpers/world';
-import { MOOD_COPY } from '../../src/view/shell/mood';
+import { MOOD_COPY } from '../../src/view/common/mood';
 import {
   CAT_TOKENS,
   catLook,

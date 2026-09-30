@@ -22,7 +22,7 @@ import {
   type CityView,
   type CityViewEvent,
 } from '../../src/view/city/view-state';
-import { ERROR_MESSAGES } from '../../src/view/shell/errors';
+import { ERROR_MESSAGES } from '../../src/view/common/errors';
 import { advance, buildCafe, invite, untilPayout } from '../helpers/world';
 
 const HOURS = BUILDINGS.CAT_CAFE.intervalMinutes / 60;

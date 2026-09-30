@@ -5,9 +5,9 @@ import {
   parseTuning,
   rateAxesFor,
   screenRates,
-} from '../../src/view/motion/calibrate';
-import { createRodGestures } from '../../src/view/motion/rod';
-import { centreOnPhase, createRodTip } from '../../src/view/motion/tip';
+} from '../../src/view/fishing/motion/calibrate';
+import { createRodGestures } from '../../src/view/fishing/motion/rod';
+import { centreOnPhase, createRodTip } from '../../src/view/fishing/motion/tip';
 
 const G = FISHING.motion.gesture;
 const C = G.calibration;

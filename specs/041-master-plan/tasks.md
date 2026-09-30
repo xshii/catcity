@@ -187,8 +187,9 @@
 - **验收**：三条命令；完整检查；截图"邀请名单"。
 - **注意**：旧流程里 Pepper 免费且不需要床位，新手引导和测试存档点（`tests/helpers/fishing-progress.ts`）依赖它，要一起改。
 
-### [ ] T-12 猫咪面板重组（R-14）
+### [x] T-12 猫咪面板重组（R-14）
 
+- **完成**：PR #74（`54c1365`，搬迁，行为不变）与 PR #77（`6fd393a`，纵向名册与详情），测试版 `test-20260930-1636-6fd393a3-2a0758`。证据：`tests/unit/cats-screen.test.ts`、`tests/view/cats-panel.test.ts`（10 只猫的存档、切换选中、5 次时钟推进后行元素不变、键盘走一遍）；推送前完整检查通过（单元与画面 1062 条、E2E 76 条、验收 15 步），产物 `artifacts/2026-09-30T08-28-58-716Z-49163/`（`catcity-wt37`）；截图 `artifacts/T-12/{roster,roster-end,detail}-{390x844,360x640}.png`。与 ui-design 5.1/5.2 的差别见 PR #77：选中行只加"详情 ›"，品种与位置在详情里，详情底部暂无摸摸/说说话。
 - **分支**：先 `refactor/cats-panel-move`，再 `feat/cats-panel`（两个 PR）
 - **依赖**：T-11。
 - **先读这些文件**：design.md 10.1、10.2；`src/view/fishing/stage.ts`（名册）；`src/view/shell/panel.ts`、`src/view/shell/model.ts`、`src/view/companion/journal.ts`、`src/view/shell/bond.ts`、`src/view/shell/mood.ts`；spec 015；`tests/view/cat-bond.test.ts`。
@@ -241,8 +242,9 @@
 - **测试**：成功扣费并置位；重复、幼猫、金币不足被拒且世界不变；确认框取消不发命令。
 - **验收**：三条命令；完整检查；截图确认框。
 
-### [ ] T-21 生育条件（R-31）
+### [x] T-21 生育条件（R-31）
 
+- **完成**：PR #72（`7d88c57`），内容 13，测试版 `test-20260930-1539-7d88c57c-f27193`。用户决定：直系含祖孙；伙伴猫上限改为 10 只。证据：`tests/unit/breed-check.test.ts`（每个条件、直系与同胞、上限临界）、`tests/view/breed.test.ts`；推送前完整检查通过（单元与画面 1005 条、E2E 71 条、验收 15 步），产物 `artifacts/2026-09-30T07-27-39-409Z-4691/`（`catcity-wt21`）；截图 `artifacts/T-21/breed-list{,-end}-{390x844,360x640}.png`。
 - **分支**：`feat/breed-check`。依赖 T-10。
 - **做什么**：`src/core/family.ts` 的 `related`、`breedBlocks`（design.md 5.1）；content `family.ts`：`BREED_BOND_LEVEL = 2`（信任）、`BREED_COOLDOWN_MINUTES = 3 × 1440`；界面：在猫详情选"和谁生小猫"，列出其他猫，每只下面逐条显示未满足的条件（中文文案放 `screen.ts`）。
 - **测试**：每个条件单独不满足时恰好返回那一条；多条不满足时全部返回；同胞和父母—子女被判定为亲属，表亲不算。

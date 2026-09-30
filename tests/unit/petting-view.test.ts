@@ -4,8 +4,8 @@ import { RandomService } from '../../src/core/random';
 import { playPetting, stepPetting } from '../../src/minigames/petting';
 import type { CatPose } from '../../src/view/art/cat-look';
 import { reduceStroke, STROKE_TRAVEL_PX } from '../../src/view/petting/gesture';
+import { knownTastes } from '../../src/view/common/tastes';
 import {
-  knownTastes,
   pettingBondLeft,
   pettingEntry,
   pettingScreen,

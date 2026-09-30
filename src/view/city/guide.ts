@@ -1,4 +1,4 @@
-import type { Tools } from '../shell/place';
+import type { Tools } from '../common/place';
 import { STARTER_CAT_ID } from '../../content/cats';
 import type { GameSession } from '../../application';
 import type { CityActions } from './actions';

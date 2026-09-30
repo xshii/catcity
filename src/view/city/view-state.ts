@@ -1,13 +1,7 @@
-import type { SpotId } from '../../content/fishing';
-import type { Position, WorldState } from '../../core';
+import type { WorldState } from '../../core';
 import { tileAt } from '../../core/city';
-import type { Place } from '../shell/place';
-
-export type CitySelection =
-  | { kind: 'tile'; position: Position }
-  | { kind: 'cat'; catId: string }
-  | { kind: 'water'; position: Position; spotId: SpotId }
-  | null;
+import type { CitySelection } from '../art/city-map';
+import type { Place } from '../common/place';
 
 /**
  * Everything the city screen decides from, besides the world snapshot (spec 015).

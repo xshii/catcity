@@ -14,7 +14,7 @@ import {
   type GameCommand,
   type WorldState,
 } from '../../core';
-import { ERROR_MESSAGES } from '../shell/errors';
+import { ERROR_MESSAGES } from '../common/errors';
 
 /** Words of the invite list (ui-design 5.3). */
 export const INVITE_COPY = {

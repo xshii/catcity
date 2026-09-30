@@ -1,4 +1,4 @@
-import { FISHING } from '../content/fishing';
+import { FISHING } from '../../content/fishing';
 
 /**
  * Test builds fast-forward the pure wait for a bite so

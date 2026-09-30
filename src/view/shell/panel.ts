@@ -1,20 +1,22 @@
-import type { PlaceState } from './place';
+import type { PlaceState } from '../common/place';
 import type { GameSession } from '../../application';
+import { mountFishingLayout } from './layout';
 import { mountAngling } from '../fishing/panel';
 import { mountCity } from '../city/panel';
 import { mountClockSpeed } from './clock-speed';
 import { mountCompanionship } from '../companion/journal';
 import { mountPetting } from '../petting/panel';
 import { mountBreeding } from '../cats/breed';
+import { createCatsView } from '../cats/view-state';
 import { mountDetail } from '../cats/detail';
 import { mountInvite } from '../cats/invite';
 import { mountRoster } from '../cats/roster';
 import { mountStrayStart } from '../cats/stray';
-import { toViewModel } from './model';
-import { bondNote } from './bond';
-import { withMoodNote } from './mood';
-import { ERROR_MESSAGES } from './errors';
-import { mountSettings } from './settings';
+import { toViewModel } from '../common/model';
+import { bondNote } from '../common/bond';
+import { withMoodNote } from '../common/mood';
+import { ERROR_MESSAGES } from '../common/errors';
+import { mountSettings } from '../common/settings';
 import type { Trace } from '../../platform/device-log';
 
 const TALK_RETRY = '暂时没能完成对话，请再试一次。';
@@ -56,11 +58,9 @@ export function mountPanel(
     void notice.offsetWidth;
     notice.classList.add('fading');
   };
-  // The selected cat's card above the chat; the level a chat reached stays on it.
-  const detail = mountDetail({
-    session,
-    card: document.querySelector<HTMLElement>('.cat-card')!,
-  });
+  // What the cats panel shows besides the world: the level a chat reached stays on the
+  // card above the chat; which detail is open, and its sections.
+  const cats = createCatsView();
   const render = () => {
     const model = toViewModel(session.getSnapshot(), session.selectedEntity);
     get('coins').textContent = model.coins;
@@ -95,7 +95,7 @@ export function mountPanel(
         const after = session.getSnapshot();
         const name = after.cats.find((cat) => cat.id === catId)?.name ?? '小猫';
         const note = bondNote(before, after, catId);
-        detail.chatted(catId, note);
+        cats.dispatch({ type: 'chatted', catId, note });
         notify(withMoodNote(`${name} 轻轻动了动耳朵，回应了你。`, note));
         render();
       } else
@@ -144,6 +144,7 @@ export function mountPanel(
       visitRiver: get('visit-river'),
       notice: get('notice'),
       settings,
+      layout: (toggled) => mountFishingLayout(session, place, toggled),
     },
   );
   said = angling.said;
@@ -162,8 +163,17 @@ export function mountPanel(
       outing: get('city-panel-outing'),
     },
   });
-  // The roster heads the cats panel's first page, before petting, kittens and invites.
-  mountRoster({ session, place, page: get('cats-page-roster') });
+  // The roster heads the cats panel's first page, before petting, kittens and invites;
+  // a cat's detail takes its place. The detail listens first: it shows the roster again
+  // before the roster takes the focus back.
+  mountDetail({
+    session,
+    place,
+    view: cats,
+    card: document.querySelector<HTMLElement>('.cat-card')!,
+    page: get('cats-page-roster'),
+  });
+  mountRoster({ session, place, view: cats, page: get('cats-page-roster') });
   const petting = mountPetting({
     session,
     place,
