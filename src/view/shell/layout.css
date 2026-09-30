@@ -754,10 +754,6 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-#clock-speed.guide-target {
-  border-color: var(--accent-strong);
-  box-shadow: var(--glow-accent);
-}
 .city-save {
   display: flex;
   align-items: center;

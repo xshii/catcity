@@ -1,4 +1,4 @@
-import type { GameCommand, Position, WorldState } from '../../core';
+import type { ErrorCode, GameCommand, Position, WorldState } from '../../core';
 import { spotAt } from '../../core/city';
 import { MAP_VIEW } from './geometry';
 import { cityScreen, type CardIntent } from './screen';
@@ -106,7 +106,7 @@ export function catDrop(
   world: WorldState,
   catId: string,
   tile: Position | null,
-  blocked: (command: GameCommand) => string | null,
+  blocked: (command: GameCommand) => ErrorCode | null,
 ): CatDrop {
   if (!tile || !world.cats.some((cat) => cat.id === catId))
     return { kind: 'none' };

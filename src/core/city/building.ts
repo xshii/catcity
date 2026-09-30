@@ -3,11 +3,13 @@ import {
   BUILDINGS,
   CITY_COSTS,
   CITY_START,
+  landPrice,
   ROAD_PRICE,
 } from '../../content/city';
 import { samePosition, tileAt } from './map';
 import { isWalkable, touchesNetwork } from './path';
 import { replanWalk } from './walking';
+import { nextBuildingPrice } from './customers';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
 import type { WorldState } from '../schema';
 import { requireCat } from '../cats';
@@ -63,7 +65,7 @@ export function applyCity(
     throw new CommandError('INVALID_PLACEMENT');
   if (command.type === 'BUY_LAND') {
     if (tile.owned) throw new CommandError('LAND_ALREADY_OWNED');
-    pay(CITY_COSTS.buyLand);
+    pay(landPrice(command.position));
     tile.owned = true;
   } else {
     if (!tile.owned) throw new CommandError('LAND_NOT_OWNED');
@@ -128,8 +130,9 @@ export function applyCity(
         });
       } else if (command.type === 'BUILD_BUILDING') {
         const type = command.buildingType;
-        const definition = BUILDINGS[type];
-        pay(definition.cost);
+        // The price rises with every building of the type already standing.
+        const cost = nextBuildingPrice(world, type);
+        pay(cost);
         const building = {
           id: `building-${world.nextId++}`,
           type,
@@ -141,7 +144,7 @@ export function applyCity(
           type: 'BuildingBuilt',
           minute: world.minute,
           entityId: building.id,
-          cost: definition.cost,
+          cost,
         });
       }
       for (const cat of world.cats)

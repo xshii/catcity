@@ -1,5 +1,12 @@
-import { advance, buildCafe } from '../helpers/world';
-import { CITY_START } from '../../src/content/city';
+import { advance, buildCafe, untilPayout } from '../helpers/world';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_COSTS,
+  CITY_START,
+  landPrice,
+} from '../../src/content/city';
 import { expect, it } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core/world';
 
@@ -27,7 +34,8 @@ it('buys land and a road before building a connected cafe, and preserves income 
   expect(world.dispatch({ type: 'BUY_LAND', position: land.position }).ok).toBe(
     true,
   );
-  expect(world.getSnapshot().coins).toBe(950);
+  let coins = CITY_START.coins - landPrice(land.position);
+  expect(world.getSnapshot().coins).toBe(coins);
   // Buildings never lay roads: connect the plot to the starter network first.
   const bought = world.save();
   expect(
@@ -48,30 +56,47 @@ it('buys land and a road before building a connected cafe, and preserves income 
       position: land.position,
     }).ok,
   ).toBe(true);
-  expect(world.getSnapshot().coins).toBe(620);
+  coins -= CITY_COSTS.placeRoad + buildingPrice('CAT_CAFE', 0);
+  expect(world.getSnapshot().coins).toBe(coins);
   expect(
     world
       .getSnapshot()
       .map.tiles.find((tile) => tile.position.x === 4 && tile.position.y === 3)!
       .road,
   ).toBe('DIRT');
-  advance(world, 55);
+  // Mochi lives two tiles from the cafe, and three from where it moves to.
+  expect(
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_APARTMENT',
+      position: { x: 4, y: 4 },
+    }).ok,
+  ).toBe(true);
+  expect(
+    world.dispatch({
+      type: 'ASSIGN_HOME',
+      catId: 'mochi',
+      buildingId: world.getSnapshot().buildings[1]!.id,
+    }).ok,
+  ).toBe(true);
+  coins -= buildingPrice('CAT_APARTMENT', 0);
+  advance(world, untilPayout(world) - 5);
   const building = world.getSnapshot().buildings[0]!;
   expect(
     world.dispatch({
       type: 'MOVE_BUILDING',
       buildingId: building.id,
-      position: { x: 6, y: 4 },
+      position: { x: 6, y: 3 },
     }).ok,
   ).toBe(true);
   expect(world.getSnapshot().buildings[0]).toMatchObject({
     id: building.id,
     builtAtMinute: CITY_START.minute,
-    position: { x: 6, y: 4 },
+    position: { x: 6, y: 3 },
   });
-  expect(world.getSnapshot().coins).toBe(620);
+  expect(world.getSnapshot().coins).toBe(coins);
   advance(world, 5);
-  expect(world.getSnapshot().coins).toBe(630);
+  expect(world.getSnapshot().coins).toBe(coins + CAFE.coinsPerCustomer);
   expect(loadWorld(world.save()).save()).toBe(world.save());
 });
 
@@ -99,7 +124,7 @@ it('rejects water ownership, occupied construction and unaffordable or disconnec
     expect(world.save()).toBe(initial);
   }
   const fixture = JSON.parse(world.save());
-  fixture.world.coins = 299;
+  fixture.world.coins = buildingPrice('CAT_CAFE', 0) - 1;
   const poor = loadWorld(JSON.stringify(fixture));
   const poorBefore = poor.save();
   expect(buildCafe(poor, { x: 4, y: 4 })).toEqual({
@@ -171,16 +196,22 @@ it('gives apartments two homes and recovery only to assigned cats resting beside
   expect(resting.getSnapshot().cats.map((cat) => cat.needs.energy)).toEqual([
     45, 50, 45,
   ]);
-  expect(resting.getSnapshot().coins).toBe(750);
+  expect(resting.getSnapshot().coins).toBe(
+    CITY_START.coins - buildingPrice('CAT_APARTMENT', 0),
+  );
 });
 
 it('lays and upgrades owned roads once, with no world mutation on rejected repeats', () => {
   const world = createWorld(42);
   const position = { x: 3, y: 3 };
   expect(world.dispatch({ type: 'PLACE_ROAD', position }).ok).toBe(true);
-  expect(world.getSnapshot().coins).toBe(970);
+  expect(world.getSnapshot().coins).toBe(
+    CITY_START.coins - CITY_COSTS.placeRoad,
+  );
   expect(world.dispatch({ type: 'UPGRADE_ROAD', position }).ok).toBe(true);
-  expect(world.getSnapshot().coins).toBe(930);
+  expect(world.getSnapshot().coins).toBe(
+    CITY_START.coins - CITY_COSTS.placeRoad - CITY_COSTS.upgradeRoad,
+  );
   const before = world.save();
   for (const command of [
     { type: 'PLACE_ROAD', position },
@@ -192,12 +223,49 @@ it('lays and upgrades owned roads once, with no world mutation on rejected repea
 });
 
 it('pays cafe income per instance and moves only into valid owned connected land', () => {
-  const world = createWorld(42);
+  const save = JSON.parse(createWorld(42).save());
+  save.world.coins = 5000;
+  const world = loadWorld(JSON.stringify(save));
   buildCafe(world, { x: 4, y: 4 });
   buildCafe(world, { x: 6, y: 4 });
-  expect(world.getSnapshot().coins).toBe(400);
-  advance(world, 60);
-  expect(world.getSnapshot().coins).toBe(420);
+  // One resident beside each cafe: each cafe earns from its own customer.
+  for (const [index, position] of [
+    { x: 4, y: 3 },
+    { x: 6, y: 3 },
+  ].entries()) {
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_APARTMENT',
+      position,
+    });
+    if (index)
+      world.dispatch({ type: 'DEBUG_SPAWN_CAT', position: { x: 6, y: 6 } });
+    world.dispatch({
+      type: 'ASSIGN_HOME',
+      catId: world.getSnapshot().cats[index]!.id,
+      buildingId: world.getSnapshot().buildings.at(-1)!.id,
+    });
+  }
+  const built =
+    5000 -
+    buildingPrice('CAT_CAFE', 0) -
+    buildingPrice('CAT_CAFE', 1) -
+    buildingPrice('CAT_APARTMENT', 0) -
+    buildingPrice('CAT_APARTMENT', 1);
+  expect(world.getSnapshot().coins).toBe(built);
+  const paid = advance(world, BUILDINGS.CAT_CAFE.intervalMinutes);
+  expect(
+    paid.ok &&
+      paid.events.flatMap((event) =>
+        event.type === 'IncomeGenerated' ? [event.entityId, event.amount] : [],
+      ),
+  ).toEqual([
+    'building-1',
+    CAFE.coinsPerCustomer,
+    'building-2',
+    CAFE.coinsPerCustomer,
+  ]);
+  expect(world.getSnapshot().coins).toBe(built + 2 * CAFE.coinsPerCustomer);
   const first = world.getSnapshot().buildings[0]!;
   const before = world.save();
   for (const position of [

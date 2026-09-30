@@ -1,5 +1,10 @@
 import { CARE } from '../../src/content/care';
-import { CITY_START } from '../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../src/content/city';
 import { advance, buildCafe } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
@@ -24,6 +29,17 @@ function unlocked() {
   const world = createWorld(42);
   buildCafe(world, { x: 4, y: 4 });
   world.dispatch({ type: 'INVITE_PEPPER' });
+  // Pepper lives beside the cafe and is its customer; it idles away from home.
+  world.dispatch({
+    type: 'BUILD_BUILDING',
+    buildingType: 'CAT_APARTMENT',
+    position: { x: 4, y: 3 },
+  });
+  world.dispatch({
+    type: 'ASSIGN_HOME',
+    catId: world.getSnapshot().cats[1]!.id,
+    buildingId: world.getSnapshot().buildings[1]!.id,
+  });
   const fixture = JSON.parse(world.save());
   fixture.world.fishing.xp = skillXp(SPOTS.MOON.level);
   fixture.world.cats[1].needs.energy = 50;
@@ -87,7 +103,14 @@ it('queues real shore travel, advancing income and idle cats recovery only on th
   expect(state.minute).toBe(CITY_START.minute + 20 + duration);
   // The game starts on a full hour: income and recovery count from there.
   const elapsed = state.minute - CITY_START.minute;
-  expect(state.coins).toBe(700 + 10 * Math.floor(elapsed / 60));
+  expect(state.coins).toBe(
+    CITY_START.coins -
+      buildingPrice('CAT_CAFE', 0) -
+      buildingPrice('CAT_APARTMENT', 0) +
+      CAFE.coinsPerCustomer *
+        (Math.floor(state.minute / BUILDINGS.CAT_CAFE.intervalMinutes) -
+          Math.floor(CITY_START.minute / BUILDINGS.CAT_CAFE.intervalMinutes)),
+  );
   expect(state.cats.map((cat) => cat.needs.energy)).toEqual([
     // Walking costs a tile each; idle Pepper recovers every tick from the start.
     100 - route.length,

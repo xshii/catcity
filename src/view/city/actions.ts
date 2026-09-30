@@ -61,26 +61,51 @@ export function mountCityActions(deps: {
         return deps.enterFishing(intent.spotId, intent.catId);
     }
   };
+  /** The card's buttons by id, each with what it does now. */
+  const made = new Map<
+    string,
+    { element: HTMLButtonElement; intent: CardIntent }
+  >();
+  let applied = '';
   const apply = (screen: CityCard | null) => {
+    // The clock changes the world every second: the same card keeps its elements, so
+    // a tap that spans a tick, keyboard focus and a test's click all land.
+    const signature = JSON.stringify(screen);
+    if (signature === applied) return;
+    applied = signature;
     card.hidden = !screen;
-    actions.replaceChildren();
+    const shown = (screen?.buttons ?? []).map((item) => {
+      let button = made.get(item.id);
+      if (!button) {
+        const element = document.createElement('button');
+        element.id = item.id;
+        element.className = 'quiet';
+        element.addEventListener('click', () => run(made.get(item.id)!.intent));
+        button = { element, intent: item.intent };
+        made.set(item.id, button);
+      }
+      button.intent = item.intent;
+      const { element } = button;
+      element.textContent = item.text;
+      element.disabled = item.reason !== null;
+      element.title = item.reason ?? '';
+      if (item.reason !== null)
+        element.setAttribute('aria-describedby', reasonLine.id);
+      else element.removeAttribute('aria-describedby');
+      if (item.buildType) element.dataset.buildType = item.buildType;
+      return element;
+    });
+    for (const [id, { element }] of made)
+      if (!shown.includes(element)) made.delete(id);
+    // Only another set of buttons touches the list; labels and reasons change in place.
+    if (
+      shown.length !== actions.children.length ||
+      shown.some((element, index) => element !== actions.children[index])
+    )
+      actions.replaceChildren(...shown);
     if (!screen) return;
     title.textContent = screen.title;
     detail.textContent = screen.detail;
-    for (const item of screen.buttons) {
-      const element = document.createElement('button');
-      element.id = item.id;
-      element.className = 'quiet';
-      element.textContent = item.text;
-      element.disabled = item.reason !== null;
-      if (item.reason !== null) {
-        element.title = item.reason;
-        element.setAttribute('aria-describedby', reasonLine.id);
-      }
-      if (item.buildType) element.dataset.buildType = item.buildType;
-      element.addEventListener('click', () => run(item.intent));
-      actions.append(element);
-    }
     reasonLine.textContent = screen.reasons.join(' · ');
     reasonLine.hidden = !screen.reasons.length;
   };

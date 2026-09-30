@@ -33,6 +33,8 @@ import v16 from '../fixtures/save-v16.json';
 import v17 from '../fixtures/save-v17.json';
 // A walk scheduled under the slower walking minutes (content 8, save 17).
 import v17Content8 from '../fixtures/save-v17-content8.json';
+// A cafe paid 10 coins an hour without customers, at the flat prices (content 9).
+import v18Content9 from '../fixtures/save-v18-content9.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -60,6 +62,7 @@ const incompatible = {
   v16,
   v17,
   v17Content8,
+  v18Content9,
   future,
 };
 

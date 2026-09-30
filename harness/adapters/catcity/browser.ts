@@ -1,5 +1,11 @@
 import { BOND, CARE } from '../../../src/content/care';
-import { CITY_START } from '../../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../../src/content/city';
+import { cityLoopCoins } from '../../tasks/city-loop';
 import { catchFish } from './angling-input';
 import assert from 'node:assert/strict';
 import { expect, type Page } from '@playwright/test';
@@ -28,9 +34,19 @@ export async function ready(page: Page) {
 }
 export const readWorld = (page: Page) =>
   page.evaluate(() => window.CAT_CITY_DEBUG!.getWorldState());
-/** Full hours of play: a new game starts on a full hour, and income is paid on each. */
-const hoursSinceStart = (minute: number) =>
-  Math.floor((minute - CITY_START.minute) / 60);
+/** The whole city is paid when the game clock reaches a multiple of this. */
+const INTERVAL = BUILDINGS.CAT_CAFE.intervalMinutes;
+/** Payouts since the run's cafe was built, at the start of the game. */
+const paymentsSinceStart = (minute: number) =>
+  Math.floor(minute / INTERVAL) - Math.floor(CITY_START.minute / INTERVAL);
+const {
+  afterLand: AFTER_LAND,
+  afterRoad: AFTER_ROAD,
+  afterHome: AFTER_HOME,
+  built: BUILT,
+  payment: PAYMENT,
+  fishSold: FISH_SOLD,
+} = cityLoopCoins;
 
 export function createCatCityAdapter(): GameAdapter {
   let capturedReplay: ReplayRecord | undefined;
@@ -42,7 +58,7 @@ export function createCatCityAdapter(): GameAdapter {
       );
       await step('initial-world', async () => {
         const world = await readWorld(page);
-        assert.equal(world.coins, 1000);
+        assert.equal(world.coins, CITY_START.coins);
         assert.equal(world.seed, 42);
         assert.equal(world.cats[0]!.name, 'Mochi');
         assert.ok(
@@ -56,7 +72,7 @@ export function createCatCityAdapter(): GameAdapter {
       await step('land-and-road', async () => {
         await clickTile(page, 2, 5);
         await page.locator('#buy-land').click();
-        await expect(page.getByTestId('coins')).toHaveText('950');
+        await expect(page.getByTestId('coins')).toHaveText(String(AFTER_LAND));
         await page.locator('#place-road').click();
         await page.locator('#upgrade-road').click();
         const tile = (await readWorld(page)).map.tiles.find(
@@ -64,20 +80,27 @@ export function createCatCityAdapter(): GameAdapter {
         )!;
         assert.equal(tile.owned, true);
         assert.equal(tile.road, 'STONE');
-        assert.equal((await readWorld(page)).coins, 880);
+        assert.equal((await readWorld(page)).coins, AFTER_ROAD);
       });
       await step('apartment-and-home', async () => {
         await clickTile(page, 4, 6);
         await page.locator('[data-build-type="CAT_APARTMENT"]').click();
         await page.locator('#assign-home-mochi').click();
         const world = await readWorld(page);
-        assert.equal(world.coins, 630);
+        assert.equal(world.coins, AFTER_HOME);
         assert.equal(world.cats[0]!.home, world.buildings[0]!.id);
       });
       await step('build-cafe', async () => {
         await clickTile(page, 4, 4);
+        await expect(page.locator('[data-build-type="CAT_CAFE"]')).toHaveText(
+          `猫咖 · ${buildingPrice('CAT_CAFE', 0)}`,
+        );
         await page.locator('[data-build-type="CAT_CAFE"]').click();
-        await expect(page.getByTestId('coins')).toHaveText('330');
+        await expect(page.getByTestId('coins')).toHaveText(String(BUILT));
+        // Mochi's home is two tiles away: the cafe has its customer.
+        await expect(page.locator('#city-action-detail')).toContainText(
+          `客人 1/${CAFE.seats} · 每 ${INTERVAL / 60} 小时 ${PAYMENT} 金币 · Mochi`,
+        );
         const world = await readWorld(page);
         assert.equal(world.buildings.length, 2);
         assert.equal(world.buildings[1]!.type, 'CAT_CAFE');
@@ -85,20 +108,32 @@ export function createCatCityAdapter(): GameAdapter {
       });
       await step('move-building', async () => {
         await page.locator('#move-building').click();
-        await clickTile(page, 6, 4);
+        // Moving is free; the new plot is still within range of Mochi's home.
+        await clickTile(page, 6, 6);
         const world = await readWorld(page);
-        assert.deepEqual(world.buildings[1]!.position, { x: 6, y: 4 });
-        assert.equal(world.coins, 330);
+        assert.deepEqual(world.buildings[1]!.position, { x: 6, y: 6 });
+        assert.equal(world.coins, BUILT);
         assert.equal(world.buildings.length, 2);
       });
       await step('income', async () => {
-        // The guide points at the clock speed; the test build's clock is advanced explicitly.
+        // The guide says who the cafe serves and when the city is paid next; the test
+        // build's clock is advanced explicitly.
         await page.locator('#city-tab-guide').click();
-        await page.getByRole('button', { name: '去调快时间' }).click();
-        await expect(page.locator('#clock-speed')).toBeFocused();
-        await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
-        await expect(page.getByTestId('coins')).toHaveText('340');
-        assert.equal((await readWorld(page)).minute, CITY_START.minute + 60);
+        await expect(page.locator('#cafe-income')).toContainText(
+          `客人 1/${CAFE.seats} · 每 ${INTERVAL / 60} 小时 ${PAYMENT} 金币 · 距离下次结算 ${INTERVAL - (CITY_START.minute % INTERVAL)} 游戏分钟`,
+        );
+        await page.locator('#river-tools-close').click();
+        await page.evaluate(
+          (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
+          INTERVAL,
+        );
+        await expect(page.getByTestId('coins')).toHaveText(
+          String(BUILT + PAYMENT),
+        );
+        assert.equal(
+          (await readWorld(page)).minute,
+          CITY_START.minute + INTERVAL,
+        );
       });
       await step('select-cat', async () => {
         const cat = (await readWorld(page)).cats[0]!;
@@ -187,12 +222,15 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.locator('#memory-fact')).toContainText('银鱼');
         await expect(page.locator('#memory-fact')).toBeVisible();
         const world = await readWorld(page);
-        assert.equal(world.coins, 330 + hoursSinceStart(world.minute) * 10);
+        assert.equal(
+          world.coins,
+          BUILT + paymentsSinceStart(world.minute) * PAYMENT,
+        );
         assert.equal(world.fishing.inventory.length, 1);
         assert.equal(world.cats[0]!.fishingMemory!.speciesId, 'SILVER');
         await openBag(page);
         await page.locator('[data-sell-fish]').click();
-        assert.equal((await readWorld(page)).coins, world.coins + 8);
+        assert.equal((await readWorld(page)).coins, world.coins + FISH_SOLD);
         await openChat(page);
         await page.getByRole('button', { name: '聊聊我们的回忆' }).click();
         await expect(page.getByTestId('dialogue')).toContainText('银鱼');
@@ -225,14 +263,19 @@ export function createCatCityAdapter(): GameAdapter {
         // An idle cat recovers by itself on the city clock; nothing to press.
         const before = await readWorld(page);
         assert.ok(before.cats[0]!.needs.energy < 100);
-        await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
+        // One payment interval: exactly one payout of the city falls in it.
+        await page.evaluate(
+          (minutes) => window.CAT_CITY_DEBUG!.advanceTime(minutes),
+          INTERVAL,
+        );
         const recovered = await readWorld(page);
-        assert.equal(recovered.minute, before.minute + 60);
+        assert.equal(recovered.minute, before.minute + INTERVAL);
         assert.equal(recovered.cats[0]!.needs.energy, 100);
-        assert.equal(recovered.coins, before.coins + 10);
+        assert.equal(recovered.coins, before.coins + PAYMENT);
+        // The silver fish was sold in between.
         assert.equal(
           recovered.coins,
-          338 + hoursSinceStart(recovered.minute) * 10,
+          BUILT + FISH_SOLD + paymentsSinceStart(recovered.minute) * PAYMENT,
         );
       });
       await step('save-reload', async () => {
