@@ -4,7 +4,7 @@ import { createWorld, loadWorld } from '../../src/core/world';
 import { MOOD_COPY } from '../../src/view/shell/mood';
 import { catPose, type CatPose } from '../../src/view/art/cat-look';
 import { catPortrait } from '../../src/view/art/illustrations';
-import { fishingFixture } from './fishing-fixture';
+import { finishFishing, fishingFixture } from './fishing-fixture';
 
 type Cat = WorldState['cats'][number];
 const withCat = (edit: (cat: Cat) => void): WorldState => {
@@ -78,6 +78,45 @@ describe('a cat’s pose (style board 猫咪表情)', () => {
       runId: game.getSnapshot().fishing.active!.id,
     });
     expect(poseOf(game.getSnapshot()).curled).toBe(true);
+  });
+});
+
+describe('the cat fishing with the player stays awake at the river (R-01)', () => {
+  const at = (world: WorldState, atRiver: boolean) =>
+    catPose(world, world.cats[0]!, { atRiver });
+  const idleAt = (energy: number) =>
+    withCat((cat) => {
+      cat.mood = 60;
+      cat.needs.energy = energy;
+    });
+
+  it('sits up between casts though it is recovering, its face still its mood', () => {
+    const world = idleAt(50);
+    expect(world.fishing.active).toBeNull();
+    expect(at(world, true)).toEqual({ ...at(world, false), curled: false });
+  });
+
+  it('sits up while the catch just made is shown', () => {
+    const game = fishingFixture(42);
+    game.dispatch({
+      type: 'FISH_BEGIN',
+      catId: 'mochi',
+      spotId: 'POND',
+      baitId: 'BREAD',
+      direction: 0,
+      aimDepth: 50,
+    });
+    finishFishing(game);
+    const world = game.getSnapshot();
+    expect(world.fishing.lastResult?.catId).toBe('mochi');
+    // The same idle, tired cat would doze in the city.
+    expect(at(world, false).curled).toBe(true);
+    expect(at(world, true).curled).toBe(false);
+  });
+
+  it('keeps an idle cat in the city dozing while it recovers, and up once rested', () => {
+    expect(at(idleAt(50), false).curled).toBe(true);
+    expect(at(idleAt(100), false).curled).toBe(false);
   });
 });
 
