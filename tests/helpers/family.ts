@@ -47,3 +47,18 @@ export function pairAndStranger(): World {
   state.cats[1]!.mood = MOOD.happy - 1;
   return new World(state);
 }
+
+/** `pairAndStranger` and four more copies of Mochi: a list longer than a phone's panel. */
+export function crowdedFamily(): World {
+  const world = pairAndStranger();
+  for (const position of [
+    { x: 2, y: 8 },
+    { x: 2, y: 9 },
+    { x: 3, y: 8 },
+    { x: 3, y: 9 },
+  ]) {
+    const spawned = world.dispatch({ type: 'DEBUG_SPAWN_CAT', position });
+    if (!spawned.ok) throw new Error(spawned.error);
+  }
+  return world;
+}

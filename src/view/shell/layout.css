@@ -759,6 +759,16 @@ body {
 #city-panel-outing {
   display: flow-root;
 }
+/*
+ * A long cats page scrolls inside the sheet (ui-design 3.3): the sheet's title and way
+ * back stay, and nothing reaches the tool bar. Its sides and foot leave a focused
+ * control's ring (3px, 3px out) room, so the scroll box does not cut it.
+ */
+.game-screen #panel-cats {
+  overflow-y: auto;
+  margin-inline: -6px;
+  padding: 0 6px 6px;
+}
 .game-screen #cats-page-roster #river-roster {
   padding: 4px 0;
 }
