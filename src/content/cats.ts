@@ -13,6 +13,7 @@ export const CAT_DEFINITIONS: Record<
   {
     breedId: CatBreed;
     name: string;
+    sex: 'F' | 'M';
     coat: 'cream' | 'gray';
     personality: readonly string[];
     /** Player-facing summary of `personality`. */
@@ -28,6 +29,7 @@ export const CAT_DEFINITIONS: Record<
   MOCHI: {
     breedId: 'RAGDOLL',
     name: 'Mochi',
+    sex: 'F',
     coat: 'cream',
     personality: ['shy', 'food-loving', 'slow-to-warm'],
     personalityLabel: '胆小 · 贪吃 · 慢热',
@@ -40,6 +42,7 @@ export const CAT_DEFINITIONS: Record<
   PEPPER: {
     breedId: 'BRITISH_SHORTHAIR',
     name: 'Pepper',
+    sex: 'M',
     coat: 'gray',
     personality: ['curious', 'playful'],
     personalityLabel: '好奇 · 活泼 · 爱冒险',

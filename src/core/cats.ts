@@ -6,7 +6,10 @@ import {
 import { CommandError } from './commands';
 import type { CatEntity, Position, WorldState } from './schema';
 
-/** Creates a fresh resident from its template; saves carry the instance thereafter. */
+/**
+ * Creates a first-generation cat from its template: grown, without parents or talent.
+ * Saves carry the instance thereafter.
+ */
 export function instantiateCat(
   definitionId: CatDefinitionId,
   id: string,
@@ -19,6 +22,13 @@ export function instantiateCat(
     breedId: definition.breedId,
     name: definition.name,
     appearance: { coat: definition.coat },
+    sex: definition.sex,
+    bornMinute: null,
+    generation: 1,
+    parents: null,
+    neutered: false,
+    talent: 0,
+    lastBredMinute: null,
     personality: [...definition.personality],
     traits: [...definition.traits],
     preferences: {
