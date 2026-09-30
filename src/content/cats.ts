@@ -54,6 +54,12 @@ export const CAT_DEFINITIONS: Record<
   },
 };
 
+/**
+ * Companion cats a city can have, however they came (design 4); Core's MAX_CATS is the
+ * engine bound above it.
+ */
+export const MAX_COMPANIONS = 8;
+
 /** Every new resident starts with these needs and mood. */
 export const CAT_START = {
   mood: 70,
