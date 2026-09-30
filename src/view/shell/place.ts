@@ -1,4 +1,5 @@
 import type { SpotId } from '../../content/fishing';
+import type { CatMotion } from '../art/cat-look';
 
 /** Which scene is on screen. View-local: it never enters the world or a save. */
 export type Place = 'city' | 'river';
@@ -44,4 +45,9 @@ export interface AimControl {
   subscribe: (listener: () => void) => () => void;
   /** The motion fight ring's centre on the 100×100 water plane; the line runs to it. */
   ringCentre: () => { x: number; y: number };
+}
+
+/** The river cat's moves as it answers a tap (R-03): the fishing panel says them, the art plays them. */
+export interface CatMoves {
+  subscribe: (listener: (motion: CatMotion) => void) => () => void;
 }
