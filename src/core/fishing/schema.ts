@@ -51,11 +51,18 @@ const anglingSchema = z.strictObject({
   tension: pct,
   progress: pct,
   lineHealth: pct,
-  reason: z.enum(['none', 'missed-hook', 'line-break', 'escaped']),
+  reason: z.enum([
+    'none',
+    'missed-hook',
+    'line-break',
+    'escaped',
+    'out-of-ring',
+  ]),
   mode: z.enum(['buttons', 'motion']),
   strike: z.enum(['none', 'perfect', 'good']),
   spooked: z.boolean(),
   hold: count,
+  outside: count,
   happy: z.boolean(),
   shadow: fishIdSchema.nullable(),
 });
@@ -91,7 +98,13 @@ export const fishingSchema = z.strictObject({
       lengthMm: count,
       lootAmount: count,
       weight: count,
-      reason: z.enum(['none', 'missed-hook', 'line-break', 'escaped']),
+      reason: z.enum([
+        'none',
+        'missed-hook',
+        'line-break',
+        'escaped',
+        'out-of-ring',
+      ]),
     })
     .nullable(),
 });

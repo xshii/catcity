@@ -49,13 +49,16 @@ export interface AnglingRun {
   tension: number;
   progress: number;
   lineHealth: number;
-  reason: 'none' | 'missed-hook' | 'line-break' | 'escaped';
+  /** `out-of-ring`: a motion fish outside the ring too long in a row broke free. */
+  reason: 'none' | 'missed-hook' | 'line-break' | 'escaped' | 'out-of-ring';
   /** Buttons keep the frozen tension fight; motion runs use angling-motion.ts. */
   mode: 'buttons' | 'motion';
   /** Motion runs: lift quality, a spooked nibble, and hold earned inside the ring. */
   strike: 'none' | 'perfect' | 'good';
   spooked: boolean;
   hold: number;
+  /** Motion fights: ticks in a row the fish has been outside the ring, after settling in. */
+  outside: number;
   /** The cat was happy when the run began (spec 032): a small bonus for the whole run. */
   happy: boolean;
   /** The fish of the shadow the cast landed on (spec 033); null before the cast or off shadows. */
@@ -99,6 +102,7 @@ export function initialAngling(
     strike: 'none',
     spooked: false,
     hold: 0,
+    outside: 0,
     shadow: null,
   };
 }
