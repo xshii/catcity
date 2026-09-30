@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { CatArt } from './cat';
-import { catPose, type CatMotion } from './cat-look';
+import { catLook, catPose, type CatLook, type CatMotion } from './cat-look';
 import { rodPose, rodShape, rodStance, type RodStance } from './rod-pose';
 import {
   castPreview,
@@ -124,7 +124,8 @@ export class RiverView {
   /** The fishing line from the rod tip to the float, while one is cast. */
   private line: { width: number; colour: number } | null = null;
   private companion: CatArt;
-  private coat = 'cream';
+  /** The companion's look; redrawn when the cat by the water looks different. */
+  private companionLook: CatLook = { coat: 'cream', breed: 'RAGDOLL' };
   private waterKind: SpotId = 'POND';
   private waterFrame = -1;
   /** The spot and light last painted, as `spot/light`. */
@@ -177,6 +178,7 @@ export class RiverView {
       COMPANION.x,
       COMPANION.y,
       COMPANION.scale,
+      this.companionLook,
     );
     this.root.add([
       this.backdrop,
@@ -498,15 +500,19 @@ export class RiverView {
     const cat =
       world.cats.find((cat) => cat.id === (active?.catId ?? preview.catId)) ??
       world.cats[0]!;
-    if (cat.appearance.coat !== this.coat) {
+    const { coat, breed } = catLook(cat);
+    if (
+      coat !== this.companionLook.coat ||
+      breed !== this.companionLook.breed
+    ) {
       this.companion.destroy();
-      this.coat = cat.appearance.coat;
+      this.companionLook = { coat, breed };
       this.companion = new CatArt(
         this.scene,
         COMPANION.x,
         COMPANION.y,
         COMPANION.scale,
-        cat.appearance.coat,
+        this.companionLook,
       );
       this.root.addAt(this.companion, this.root.getIndex(this.rod));
     }

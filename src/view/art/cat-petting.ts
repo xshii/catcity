@@ -1,7 +1,7 @@
 import type { PetSpot } from '../../content/petting';
 import {
   portraitShapes,
-  type CatCoat,
+  type CatLook,
   type CatPose,
   type CatShape,
 } from './cat-look';
@@ -69,14 +69,14 @@ const FRONT_PAWS: readonly CatShape[] = [
 ];
 
 /** The whole cat as the petting screen shows it; the face and ears follow `pose`. */
-export function pettingCat(coat: CatCoat, pose: CatPose): string {
+export function pettingCat({ coat, breed }: CatLook, pose: CatPose): string {
   const draw = (shapes: readonly CatShape[]) =>
     shapes.map((shape) => shapeSvg(shape, coat)).join('');
   return (
     `<svg viewBox="0 0 ${PETTING_ART.width} ${PETTING_ART.height}" aria-hidden="true" focusable="false">` +
     `<ellipse cx="92" cy="94" rx="64" ry="5" fill="#8a6f5a" opacity=".12"/>` +
     draw(BODY) +
-    `<g transform="translate(${HEAD.x} ${HEAD.y}) scale(${HEAD.scale})">${draw(portraitShapes({ ...pose, curled: false }))}</g>` +
+    `<g transform="translate(${HEAD.x} ${HEAD.y}) scale(${HEAD.scale})">${draw(portraitShapes(breed, { ...pose, curled: false }))}</g>` +
     draw(FRONT_PAWS) +
     '</svg>'
   );

@@ -3,6 +3,7 @@ import {
   CAT_ART,
   colourOf,
   type CatCoat,
+  type CatLook,
   type CatMotion,
   type CatPose,
   type CatShape,
@@ -94,26 +95,28 @@ export class CatArt extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    scale = 1,
-    private readonly coat: CatCoat = 'cream',
+    scale: number,
+    private readonly look: CatLook,
   ) {
     super(scene, x, y);
     scene.add.existing(this);
     this.setScale(scale);
+    const { coat } = look;
+    const art = CAT_ART.breeds[look.breed];
     const tailRoot = { x: 58, y: 50 };
-    const tail = draw(scene.add.graphics(), CAT_ART.tail, coat, tailRoot);
+    const tail = draw(scene.add.graphics(), art.tail, coat, tailRoot);
     tail.setPosition(tailRoot.x - FEET.x, tailRoot.y - FEET.y);
     this.ears = scene.add.graphics();
     this.eyes = scene.add.graphics().setPosition(0, EYE_LINE - FEET.y);
     this.face = scene.add.graphics();
     this.awake = scene.add.container(0, 0, [
       tail,
-      draw(scene.add.graphics(), CAT_ART.head, coat, FEET),
+      draw(scene.add.graphics(), [...art.ruff, ...art.head], coat, FEET),
       this.ears,
       this.eyes,
       this.face,
     ]);
-    this.curled = draw(scene.add.graphics(), CAT_ART.curled, coat, FEET);
+    this.curled = draw(scene.add.graphics(), art.curled, coat, FEET);
     this.figure = scene.add
       .container(0, FEET_Y, [this.awake, this.curled])
       .setScale(SIZE);
@@ -190,12 +193,13 @@ export class CatArt extends Phaser.GameObjects.Container {
     this.pose = key;
     this.awake.setVisible(!pose.curled);
     this.curled.setVisible(pose.curled);
-    draw(this.ears.clear(), CAT_ART.ears[pose.ears], this.coat, FEET);
-    draw(this.eyes.clear(), CAT_ART.eyes[pose.face], this.coat, {
+    const { coat, breed } = this.look;
+    draw(this.ears.clear(), CAT_ART.breeds[breed].ears[pose.ears], coat, FEET);
+    draw(this.eyes.clear(), CAT_ART.eyes[pose.face], coat, {
       x: FEET.x,
       y: EYE_LINE,
     });
-    draw(this.face.clear(), CAT_ART.face[pose.face], this.coat, FEET);
+    draw(this.face.clear(), CAT_ART.face[pose.face], coat, FEET);
     return this;
   }
 

@@ -3,6 +3,7 @@ import {
   colourOf,
   portraitShapes,
   type CatCoat,
+  type CatLook,
   type CatPose,
   type CatShape,
 } from './cat-look';
@@ -38,7 +39,9 @@ export function shapeSvg(shape: CatShape, coat: CatCoat): string {
   return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}"${stroke}/>`;
 }
 /** A cat's head as its pose shows it (style board 猫咪表情); the words live beside it. */
-export function catPortrait(coat: CatCoat, pose: CatPose): string {
-  const shapes = portraitShapes(pose).map((shape) => shapeSvg(shape, coat));
+export function catPortrait({ coat, breed }: CatLook, pose: CatPose): string {
+  const shapes = portraitShapes(breed, pose).map((shape) =>
+    shapeSvg(shape, coat),
+  );
   return `<svg viewBox="4 0 64 64" aria-hidden="true">${shapes.join('')}</svg>`;
 }

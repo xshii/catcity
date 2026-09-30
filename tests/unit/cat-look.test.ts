@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
 import type { WorldState } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
 import { MOOD_COPY } from '../../src/view/shell/mood';
-import { catPose, type CatPose } from '../../src/view/art/cat-look';
+import {
+  CAT_ART,
+  catLook,
+  catPose,
+  portraitShapes,
+  type CatEars,
+  type CatLook,
+  type CatPose,
+  type CatShape,
+} from '../../src/view/art/cat-look';
 import { catPortrait } from '../../src/view/art/illustrations';
 import { finishFishing, fishingFixture } from './fishing-fixture';
+
+const MOCHI: CatLook = { coat: 'cream', breed: 'RAGDOLL' };
 
 type Cat = WorldState['cats'][number];
 const withCat = (edit: (cat: Cat) => void): WorldState => {
@@ -123,9 +135,9 @@ describe('the cat fishing with the player stays awake at the river (R-01)', () =
 describe('the card portrait draws the pose', () => {
   const faces = Object.keys(MOOD_COPY.bands) as CatPose['face'][];
   const awake = (face: CatPose['face'], ears: CatPose['ears'] = 'up') =>
-    catPortrait('cream', { face, ears, curled: false });
+    catPortrait(MOCHI, { face, ears, curled: false });
   const curled = (face: CatPose['face']) =>
-    catPortrait('cream', { face, ears: 'up', curled: true });
+    catPortrait(MOCHI, { face, ears: 'up', curled: true });
 
   it('draws each face and each ear position differently', () => {
     expect(new Set(faces.map((face) => awake(face))).size).toBe(4);
@@ -149,12 +161,164 @@ describe('the card portrait draws the pose', () => {
 
   it('colours the fur by coat, outlines in warm brown and stays decorative', () => {
     const pose: CatPose = { face: 'calm', ears: 'up', curled: false };
-    expect(catPortrait('cream', pose)).toContain('fill="#f7e3c4"');
-    expect(catPortrait('gray', pose)).not.toContain('fill="#f7e3c4"');
+    expect(catPortrait(MOCHI, pose)).toContain('fill="#f7e3c4"');
+    expect(catPortrait({ ...MOCHI, coat: 'gray' }, pose)).not.toContain(
+      'fill="#f7e3c4"',
+    );
     for (const markup of [...faces.map((face) => awake(face)), curled('low')]) {
       expect(markup).toContain('stroke="#8a6f5a"');
       // Square like before, so card layouts keep their size; words live beside it.
       expect(markup).toMatch(/^<svg viewBox="4 0 64 64" aria-hidden="true">/);
     }
+  });
+});
+
+type Point = readonly [number, number];
+/** A point of a Bézier curve through its control points (de Casteljau). */
+const bezier = (points: readonly Point[], t: number): Point =>
+  points.length === 1
+    ? points[0]!
+    : bezier(
+        points
+          .slice(1)
+          .map((next, i): Point => [
+            points[i]![0] + (next[0] - points[i]![0]) * t,
+            points[i]![1] + (next[1] - points[i]![1]) * t,
+          ]),
+        t,
+      );
+/** Points along a shape: an ellipse's box corners, or a path with its curves sampled. */
+function outline(shape: CatShape): Point[] {
+  if (shape.ellipse) {
+    const [cx, cy, rx, ry] = shape.ellipse;
+    return [
+      [cx - rx, cy - ry],
+      [cx + rx, cy + ry],
+    ];
+  }
+  const points: Point[] = [];
+  for (const part of shape.d!.match(/[MLQCZ][^MLQCZ]*/g)!) {
+    const numbers = part
+      .slice(1)
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean);
+    const given: Point[] = [];
+    for (let i = 0; i < numbers.length; i += 2)
+      given.push([Number(numbers[i]), Number(numbers[i + 1])]);
+    if (part[0] === 'Q' || part[0] === 'C') {
+      const from = points.at(-1)!;
+      for (let step = 1; step <= 10; step++)
+        points.push(bezier([from, ...given], step / 10));
+    } else points.push(...given);
+  }
+  return points;
+}
+function box(shapes: readonly CatShape[]) {
+  const points = shapes.flatMap(outline);
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const [left, right] = [Math.min(...xs), Math.max(...xs)];
+  const [top, bottom] = [Math.min(...ys), Math.max(...ys)];
+  return {
+    left,
+    right,
+    top,
+    bottom,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+describe('each breed has its own outline (ui-design 6.1, R-15)', () => {
+  const art = (breed: CatBreed) => CAT_ART.breeds[breed];
+  const ragdoll = art('RAGDOLL');
+  const shorthair = art('BRITISH_SHORTHAIR');
+  const colours = (markup: string) => new Set(markup.match(/#[0-9a-f]{6}/g));
+
+  it('tells the breeds apart awake and dozing, by shape and not by colour', () => {
+    for (const curled of [false, true]) {
+      const pose: CatPose = { face: 'calm', ears: 'up', curled };
+      const [first, second] = CAT_BREED_IDS.map((breed) =>
+        catPortrait({ coat: 'cream', breed }, pose),
+      );
+      expect(first).not.toBe(second);
+      expect(colours(first!)).toEqual(colours(second!));
+    }
+  });
+
+  it('gives a shorthair a rounder face than a ragdoll: wider for its height', () => {
+    const round = (breed: CatBreed) => {
+      const face = box(art(breed).head);
+      return face.width / face.height;
+    };
+    expect(round('BRITISH_SHORTHAIR')).toBeGreaterThan(round('RAGDOLL'));
+  });
+
+  it('gives a shorthair smaller ears, whose tips stay lower, in every ear position', () => {
+    for (const ears of ['up', 'mid', 'down'] satisfies CatEars[]) {
+      const [big, small] = [ragdoll, shorthair].map(({ ears: shapes }) =>
+        box([shapes[ears][0]!]),
+      );
+      expect(small!.width * small!.height).toBeLessThan(
+        big!.width * big!.height,
+      );
+      expect(small!.top).toBeGreaterThan(big!.top);
+    }
+  });
+
+  it('fluffs a ragdoll’s cheeks out past its face; a shorthair has no ruff', () => {
+    const face = box(ragdoll.head);
+    const ruff = box(ragdoll.ruff);
+    expect(ruff.left).toBeLessThan(face.left);
+    expect(ruff.right).toBeGreaterThan(face.right);
+    // The ruff is at the cheeks, below the eyes.
+    expect(ruff.top).toBeGreaterThan(38);
+    expect(shorthair.ruff).toEqual([]);
+  });
+
+  it('gives a ragdoll a big plume of a tail and a shorthair a short one', () => {
+    const root = { x: 58, y: 50 };
+    const reach = (shapes: readonly CatShape[]) =>
+      Math.max(
+        ...shapes
+          .flatMap(outline)
+          .map(([x, y]) => Math.hypot(x - root.x, y - root.y)),
+      );
+    const area = (shapes: readonly CatShape[]) => {
+      const { width, height } = box(shapes);
+      return width * height;
+    };
+    expect(reach(shorthair.tail)).toBeLessThan(reach(ragdoll.tail) * 0.7);
+    expect(area(shorthair.tail)).toBeLessThan(area(ragdoll.tail) / 2);
+  });
+
+  it('draws a portrait as the map cat without its tail: the breed’s ruff, face and ears', () => {
+    for (const breed of CAT_BREED_IDS) {
+      const pose: CatPose = { face: 'happy', ears: 'mid', curled: false };
+      const shapes = portraitShapes(breed, pose);
+      expect(shapes).toEqual(
+        expect.arrayContaining([
+          ...art(breed).ruff,
+          ...art(breed).head,
+          ...art(breed).ears.mid,
+        ]),
+      );
+      expect(shapes).not.toEqual(expect.arrayContaining(art(breed).tail));
+      expect(portraitShapes(breed, { ...pose, curled: true })).toBe(
+        art(breed).curled,
+      );
+    }
+  });
+
+  it('reads a cat’s look from its coat and its breed', () => {
+    const world = createWorld(42);
+    world.dispatch({ type: 'INVITE_PEPPER' });
+    const [mochi, pepper] = world.getSnapshot().cats;
+    expect(catLook(mochi!)).toEqual(MOCHI);
+    expect(catLook(pepper!)).toEqual({
+      coat: 'gray',
+      breed: 'BRITISH_SHORTHAIR',
+    });
   });
 });
