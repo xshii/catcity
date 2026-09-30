@@ -1,5 +1,5 @@
 import { NAME_MAX_LENGTH } from '../../content/names';
-import { suggestNames, type WorldState } from '../../core';
+import { cityNames, suggestNames, type WorldState } from '../../core';
 
 /** Words of the name box (spec 041 ui-design 5.4). */
 export const NAME_COPY = {
@@ -43,8 +43,9 @@ export function nameDialogScreen(
 ) {
   const typed = text.trim();
   const fallback = suggestNames(world, input.salt, 0)[0]!;
+  // Companions and residents alike (T-30); the cat being renamed is no namesake of itself.
   const namesakes =
-    world.cats.filter((cat) => cat.name === typed).length -
+    cityNames(world).filter((name) => name === typed).length -
     (typed === input.initial ? 1 : 0);
   return {
     suggestions: suggestNames(world, input.salt, page).map((name) => ({

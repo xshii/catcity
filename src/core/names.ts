@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CAT_NAMES, NAME_MAX_LENGTH, SUGGESTED_NAMES } from '../content/names';
 import { RandomService, runSeed, streamSeed } from './random';
+import { residentIdentity } from './residents';
 import type { WorldState } from './schema';
 
 /**
@@ -18,13 +19,19 @@ export const catNameSchema = z.string().refine((name) => {
   );
 }, 'Invalid cat name');
 
+/** Every name in the city: the companions' and the residents', which follow from the seed. */
+export const cityNames = (world: WorldState): string[] => [
+  ...world.cats.map((cat) => cat.name),
+  ...world.residents.map(({ id }) => residentIdentity(world.seed, id).name),
+];
+
 /** What a cat's suggestions shuffle by: its id serial; Mochi's id has none, so 0. */
 export const nameSalt = (catId: string): number =>
   Number(/^cat-(\d+)$/.exec(catId)?.[1] ?? 0);
 
 /**
  * Six names to suggest (design 5.2.1): the names table shuffled by the world seed and
- * `salt`, less the names cats in the city have, six at a time. A page is the six after
+ * `salt`, less the names in the city (companions' and residents'), six at a time. A page is the six after
  * the page before; once the table is used up, the first six come again. Nothing is drawn
  * from the world: the same world, salt and page give the same names.
  */
@@ -41,7 +48,7 @@ export function suggestNames(
     const pick = random.nextInt(last + 1);
     [names[last], names[pick]] = [names[pick]!, names[last]!];
   }
-  const taken = new Set(world.cats.map((cat) => cat.name));
+  const taken = new Set(cityNames(world));
   const free = names.filter((name) => !taken.has(name));
   const pages = Math.ceil(free.length / SUGGESTED_NAMES);
   const start = (page % pages) * SUGGESTED_NAMES;

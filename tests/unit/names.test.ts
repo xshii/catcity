@@ -4,10 +4,12 @@ import {
   NAME_MAX_LENGTH,
   SUGGESTED_NAMES,
 } from '../../src/content/names';
+import { RESIDENT_NAMES } from '../../src/content/residents';
 import {
   createWorld,
   loadWorld,
   nameSalt,
+  residentIdentity,
   suggestNames,
   type World,
   type WorldState,
@@ -70,6 +72,30 @@ describe('suggested names (design 5.2.1)', () => {
     expect(offered.filter((name) => taken.has(name))).toEqual([]);
     // Nine pages offer each of the 54 names left once.
     expect(new Set(offered).size).toBe(CAT_NAMES.length - 6);
+  });
+
+  it('leave out every resident’s name too (T-30)', () => {
+    // Residents 1 to 24 of seed 42 hold every name of theirs, 可可 among them.
+    const lodged: WorldState = {
+      ...world,
+      residents: RESIDENT_NAMES.map((_, i) => ({
+        id: `resident-${i + 1}`,
+        home: 'building-1',
+        arrivedMinute: 0,
+      })),
+    };
+    const names = lodged.residents.map(
+      ({ id }) => residentIdentity(lodged.seed, id).name,
+    );
+    expect(new Set(names)).toEqual(new Set(RESIDENT_NAMES));
+    const offered = (city: WorldState) =>
+      Array.from({ length: 10 }, (_, page) =>
+        suggestNames(city, 0, page),
+      ).flat();
+    expect(offered(world)).toContain('可可');
+    expect(offered(lodged).filter((name) => names.includes(name))).toEqual([]);
+    // The one name both tables have is gone; the other 59 still come round.
+    expect(new Set(offered(lodged)).size).toBe(CAT_NAMES.length - 1);
   });
 
   it('turn page by page without a repeat until the table is used up, then start over', () => {

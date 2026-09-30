@@ -24,15 +24,15 @@ export const STRAY_MAKER: CatMakerInput = {
 };
 
 /**
- * The name box after the maker (T-25): the city the stray starts, with no cat in it yet
- * (the template waiting behind the start is nobody's namesake), and the box on its first
- * suggestion, shuffled as Mochi's names always are.
+ * The name box after the maker (T-25): the city the stray starts, with no cat or resident
+ * in it yet (the template waiting behind the start is nobody's namesake), and the box on
+ * its first suggestion, shuffled as Mochi's names always are.
  */
 export function strayNaming(world: WorldState): {
   world: WorldState;
   input: NameDialogInput;
 } {
-  const city = { ...world, cats: [] };
+  const city = { ...world, cats: [], residents: [] };
   const salt = nameSalt(STARTER_CAT_ID);
   return {
     world: city,

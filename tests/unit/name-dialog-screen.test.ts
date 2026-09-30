@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { suggestNames, type WorldState } from '../../src/core';
+import {
+  residentIdentity,
+  suggestNames,
+  type WorldState,
+} from '../../src/core';
 import {
   nameDialogScreen,
   typedName,
@@ -70,6 +74,16 @@ describe('the name box (ui-design 5.4)', () => {
       cats: pair.cats.map((cat) => ({ ...cat, name: 'Mochi' })),
     };
     expect(screen('Mochi', 0, twins).note).toBe('城里已经有一只Mochi了');
+  });
+
+  it('warns of a resident with the same name (T-30)', () => {
+    const lodged: WorldState = {
+      ...pair,
+      residents: [{ id: 'resident-1', home: 'building-1', arrivedMinute: 0 }],
+    };
+    const name = residentIdentity(pair.seed, 'resident-1').name;
+    expect(screen(name, 0, lodged).note).toBe(`城里已经有一只${name}了`);
+    expect(screen(name, 0, pair).note).toBe('');
   });
 
   it('says a name has at most 12 characters once it has them', () => {
