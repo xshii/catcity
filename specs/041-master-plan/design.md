@@ -1,6 +1,6 @@
 # 041 总体规划：架构设计
 
-- 配套文档：[需求分析](requirements.md)、[任务分解](tasks.md)、[美工、界面与交互](ui-design.md)
+- 配套文档：[需求分析](requirements.md)、[任务分解](tasks.md)、[美工、界面与交互](ui-design.md)、[能玩很多年](long-life.md)
 - 现有架构以 [docs/architecture.md](../../docs/architecture.md) 为准，本文件只写**为了实现新需求要改变或新增的部分**，以及每个决定的理由和被放弃的方案。
 - 约定：文中"伙伴猫"指玩家可以调遣的猫（`world.cats`），"居民"指 NPC（`world.residents`）。
 
