@@ -3,6 +3,7 @@ import { CAT_DEFINITIONS } from '../../content/cats';
 import { fishById, SPOTS } from '../../content/fishing';
 import {
   MAX_STAT,
+  nameSalt,
   pettingTastes,
   type CatEntity,
   type WorldState,
@@ -37,6 +38,13 @@ export const CATS_COPY = {
   // T-24 names the parents and the kittens; until T-22 every cat is first-generation.
   fromAfar: '从别处来到小城',
   noKittens: '还没有孩子',
+  /** The pencil beside the name and the name box it opens (R-16, ui-design 5.4). */
+  rename: {
+    label: (name: string) => `给 ${name} 改名字`,
+    title: (name: string) => `给 ${name} 改个名字`,
+    confirm: '就叫这个',
+    done: (name: string) => `以后它就叫 ${name} 了。`,
+  },
 } as const;
 
 /** The cat with the player: the one on the rod while a run lasts, else the selected one, else the first. */
@@ -160,6 +168,15 @@ export function detailScreen(
       open: view.open.includes(id),
       lines: lines[id],
     })),
+    rename: {
+      label: CATS_COPY.rename.label(cat.name),
+      dialog: {
+        title: CATS_COPY.rename.title(cat.name),
+        confirm: CATS_COPY.rename.confirm,
+        initial: cat.name,
+        salt: nameSalt(cat.id),
+      },
+    },
   };
 }
 
