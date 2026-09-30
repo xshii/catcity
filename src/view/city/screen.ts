@@ -11,6 +11,7 @@ import {
   WALK_MINUTES,
 } from '../../content/city';
 import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
+import { MAX_RESIDENTS } from '../../content/residents';
 import {
   cafeAssignment,
   gridDistance,
@@ -23,6 +24,8 @@ import {
 } from '../../core/city';
 import {
   MAX_STAT,
+  nextResidentHome,
+  residentIdentity,
   travelMinutes,
   type CatEntity,
   type ErrorCode,
@@ -265,6 +268,8 @@ function card(
           blocked(home),
         );
       }
+    if (building.type === 'CAT_LODGE')
+      return done(title, lodgeDetail(world, building.id));
     const customers = customersOf(world, building.id);
     return done(
       title,
@@ -351,6 +356,23 @@ function card(
     );
   }
   return done(title, detail);
+}
+
+/** Who lives in a lodge, and whether the next resident comes to it (spec 041 ui-design 5.7). */
+function lodgeDetail(world: WorldState, lodgeId: string): string {
+  const names = world.residents
+    .filter((resident) => resident.home === lodgeId)
+    .map((resident) => residentIdentity(world.seed, resident.id).name);
+  const rooms = BUILDINGS.CAT_LODGE.residentCapacity;
+  const next =
+    names.length === rooms
+      ? ''
+      : nextResidentHome(world)?.id === lodgeId
+        ? ' · 下一位居民明天搬来'
+        : world.residents.length >= MAX_RESIDENTS
+          ? ` · 小城最多住 ${MAX_RESIDENTS} 位居民`
+          : ' · 前面的居民楼住满后，居民才搬来这里';
+  return `居民 ${names.length}/${rooms}${names.length ? ` · ${names.join('、')}` : ''}${next}`;
 }
 
 /** How long a walk Core accepts takes, beside its button. */
