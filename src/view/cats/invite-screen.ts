@@ -42,7 +42,7 @@ export function inviteCard(id: CatDefinitionId) {
   const cat = CAT_DEFINITIONS[id];
   return {
     name: cat.name,
-    coat: cat.coat,
+    look: { coat: cat.coat, breed: cat.breedId },
     sex: SEX[cat.sex],
     breed: CAT_BREEDS[cat.breedId].name,
     personality: cat.personalityLabel,

@@ -48,7 +48,7 @@ describe('the invite list (ui-design 5.3)', () => {
   it('shows who each cat is: sex in words, breed, personality, favourite fish, what its breed draws', () => {
     expect(inviteCard('DOUBAO')).toEqual({
       name: '豆包',
-      coat: 'gray',
+      look: { coat: 'orange', breed: 'BRITISH_SHORTHAIR' },
       sex: { symbol: '♂', word: '公' },
       breed: '英短猫',
       personality: '随和 · 懒洋洋',

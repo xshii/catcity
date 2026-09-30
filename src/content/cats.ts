@@ -14,6 +14,8 @@ export const CAT_DEFINITION_IDS = [
   'DOUBAO',
 ] as const;
 export type CatDefinitionId = (typeof CAT_DEFINITION_IDS)[number];
+/** The coats a cat can wear (ui-design 6.1); the art gives each its colours. */
+export const CAT_COATS = ['cream', 'gray', 'orange', 'tuxedo'] as const;
 /** The first-generation cats a player can invite, in the order the list shows them; Mochi starts in the city. */
 export const INVITABLE_CATS: readonly CatDefinitionId[] =
   CAT_DEFINITION_IDS.filter((id) => id !== 'MOCHI');
@@ -32,7 +34,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: CatBreed;
     name: string;
     sex: 'F' | 'M';
-    coat: 'cream' | 'gray';
+    coat: (typeof CAT_COATS)[number];
     personality: readonly string[];
     /** Player-facing summary of `personality`. */
     personalityLabel: string;
@@ -88,7 +90,8 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'RAGDOLL',
     name: '芝麻',
     sex: 'M',
-    coat: 'cream',
+    // Black sesame on white.
+    coat: 'tuxedo',
     personality: ['brave', 'steady'],
     personalityLabel: '勇敢 · 沉稳',
     traits: ['steady'],
@@ -114,7 +117,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'BRITISH_SHORTHAIR',
     name: '豆包',
     sex: 'M',
-    coat: 'gray',
+    coat: 'orange',
     personality: ['easygoing', 'lazy'],
     personalityLabel: '随和 · 懒洋洋',
     traits: ['easygoing'],

@@ -56,7 +56,7 @@ export function mountInvite(deps: {
       item.className = 'invite-card';
       item.dataset.invite = id;
       item.innerHTML =
-        `<span class="invite-portrait">${catPortrait(card.coat, NEWCOMER)}</span>` +
+        `<span class="invite-portrait">${catPortrait(card.look, NEWCOMER)}</span>` +
         '<div class="invite-about"><p class="invite-name"><strong></strong><span class="invite-sex" role="img"></span><span class="invite-breed"></span></p><p class="invite-personality"></p><p class="invite-likes"></p><p class="invite-hint"></p></div>' +
         `<button type="button" class="invite-button" data-invite-cat="${id}"></button><small class="invite-reason"></small>`;
       const part = (selector: string) =>

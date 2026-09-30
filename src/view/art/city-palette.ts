@@ -69,8 +69,13 @@ export const CITY_COLOURS = {
   selected: T.btnPrimaryBg,
   /** Under a lifted cat: a tile it cannot be sent to. */
   blocked: mix(T.paper, T.ink, 0.65),
-  /** Walk routes use each cat's coat colour. */
-  route: { cream: 0xc38d55, gray: 0x68758d },
+  /** Walk routes use a deeper shade of each cat's coat colour. */
+  route: {
+    cream: 0xc38d55,
+    gray: 0x68758d,
+    orange: 0xd9773a,
+    tuxedo: 0x4f4540,
+  },
   routeDot: T.paper,
 } as const;
 

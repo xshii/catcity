@@ -196,3 +196,44 @@ describe('a cat carries its own identity (spec 041 R-10, R-11)', () => {
     expect(() => loadWorld(JSON.stringify(save))).toThrow(field);
   });
 });
+
+describe('a cat wears one of four coats (spec 041 R-15)', () => {
+  const twoCats = () => {
+    const world = createWorld(42);
+    invite(world);
+    return world.save();
+  };
+  const withCoat = (index: number, coat: string) => {
+    const save = JSON.parse(twoCats());
+    save.world.cats[index].appearance.coat = coat;
+    return JSON.stringify(save);
+  };
+
+  it('saves each cat’s coat and restores it exactly', () => {
+    const saved = twoCats();
+    const coats = (save: string) =>
+      JSON.parse(save).world.cats.map(
+        (cat: { appearance: { coat: string } }) => cat.appearance.coat,
+      );
+    expect(coats(saved)).toEqual(['cream', 'gray']);
+    expect(loadWorld(saved).save()).toBe(saved);
+  });
+
+  it.each([
+    ['Mochi', 'orange', 0],
+    ['Mochi', 'tuxedo', 0],
+    ['Pepper', 'orange', 1],
+  ])(
+    'rejects %s in %s, one of the four coats but not its template’s',
+    (_, coat, index) => {
+      expect(() => loadWorld(withCoat(index, coat))).toThrow(/template/);
+    },
+  );
+
+  it.each(['calico', 'black', ''])(
+    'rejects a coat outside the four: "%s"',
+    (coat) => {
+      expect(() => loadWorld(withCoat(0, coat))).toThrow(/coat/);
+    },
+  );
+});
