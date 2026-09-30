@@ -100,6 +100,8 @@ export function openGame(device: Device = {}) {
     },
     /** Let real time pass: timers and intervals due by then run. */
     wait: (ms: number) => vi.advanceTimersByTime(ms),
+    /** Game minutes the city clock takes each real second, as src/main.ts reads it. */
+    clockSpeed: () => page.clockSpeed(),
     /**
      * Fishing ticks through the view's own clock, each after its 50 ms of real time;
      * returns how many applied (none while paused).
@@ -152,6 +154,7 @@ function load(device: Device) {
   return {
     session,
     clock: view.fishingClock,
+    clockSpeed: view.clockSpeed,
     vibrations,
     audio,
     unload() {

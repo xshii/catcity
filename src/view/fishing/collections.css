@@ -143,3 +143,25 @@
     margin-bottom: 4px;
   }
 }
+/* A caught species' record stars (R-54): lit ones in bronze, silver, gold; the name follows. */
+.length-stars {
+  white-space: nowrap;
+}
+.length-stars i {
+  font-style: normal;
+  color: var(--text-muted);
+}
+.length-stars i.lit:nth-child(1) {
+  color: var(--star-bronze);
+}
+.length-stars i.lit:nth-child(2) {
+  color: var(--star-silver);
+}
+.length-stars i.lit:nth-child(3) {
+  color: var(--star-gold);
+}
+.fish-entry[data-length-stars='3'] .fish-silhouette svg {
+  outline: 1px solid var(--star-gold);
+  outline-offset: 2px;
+  border-radius: 50%;
+}

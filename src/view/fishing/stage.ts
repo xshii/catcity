@@ -15,6 +15,7 @@ import { bondBadge } from '../shell/bond';
 import { catPortrait, fishIllustration } from '../art/illustrations';
 import { catPose } from '../art/cat-look';
 import { riverBackdrop } from '../art/river-palette';
+import { CATCH_CARD_MS, type catchCountdown } from './screen';
 
 /** The river caption before a run. */
 const READY_TIP = '点击水面选择落点，再准备抛竿';
@@ -114,6 +115,13 @@ export function mountFishingStage(
   hud.innerHTML = `<div class="river-caption"><span class="eyebrow">A LITTLE RIVERSIDE</span><h2 id="river-place"></h2><p id="river-tip">${READY_TIP}</p></div><span id="river-clock" class="river-clock"></span><div id="catch-reveal" class="catch-reveal" hidden></div>`;
   stage.append(hud);
   const $ = (id: string) => hud.querySelector<HTMLElement>(`#${id}`)!;
+  const reveal = $('catch-reveal');
+  // The card's time runs out along its bottom edge (R-02): CSS animates it, as long as
+  // the card's own countdown.
+  reveal.style.setProperty('--catch-card-ms', `${CATCH_CARD_MS}ms`);
+  const countdownBar = document.createElement('span');
+  countdownBar.className = 'catch-countdown';
+  countdownBar.setAttribute('aria-hidden', 'true');
   const roster = document.createElement('section');
   roster.id = 'river-roster';
   roster.setAttribute('aria-label', '猫咪体力');
@@ -144,6 +152,8 @@ export function mountFishingStage(
   shell.visitCity.addEventListener('click', () => show(false));
   return {
     stage,
+    /** The catch card: a tap on it closes it. */
+    card: reveal,
     showRiver,
     /**
      * World changes that move the scene: a new run shows the river; a cat that left the
@@ -161,14 +171,15 @@ export function mountFishingStage(
     /**
      * `resultNote`: what the last result changed for the cat (mood band, bond level), if
      * anything;
-     * `showResult`: whether the last result is this visit's catch (`resultShown`).
+     * `countdown`: whether the last result is this visit's catch, and if so whether its
+     * card counts down or is held (`catchCountdown`).
      */
     render(
       world: WorldState,
       selected: string,
       spot: SpotId,
       resultNote: string,
-      showResult: boolean,
+      countdown: ReturnType<typeof catchCountdown>,
     ) {
       const run = world.fishing.active;
       const clock = toViewModel(world, selected);
@@ -207,9 +218,14 @@ export function mountFishingStage(
         card.button.remove();
         cards.delete(id);
       }
-      const reveal = $('catch-reveal');
       const result = world.fishing.lastResult;
-      reveal.hidden = !showResult;
+      reveal.hidden = !countdown;
+      if (reveal.dataset.countdown !== (countdown ?? '')) {
+        reveal.dataset.countdown = countdown ?? '';
+        // The bar stops or goes on now, with the timer: a hidden page draws no frame that
+        // would apply it before the page shows again.
+        void getComputedStyle(countdownBar).animationPlayState;
+      }
       if (result && resultKey !== JSON.stringify([result, resultNote])) {
         resultKey = JSON.stringify([result, resultNote]);
         if (result.caught && result.speciesId) {
@@ -231,6 +247,7 @@ export function mountFishingStage(
           note.textContent = resultNote;
           reveal.append(note);
         }
+        reveal.append(countdownBar);
       }
     },
   };

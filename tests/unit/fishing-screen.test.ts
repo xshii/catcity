@@ -11,6 +11,8 @@ import {
   aimedSteps,
   askSensors,
   castNotice,
+  CATCH_CARD_MS,
+  catchCountdown,
   fishingScreen,
   motionNibble,
   motionWant,
@@ -789,5 +791,68 @@ describe('the catch card', () => {
       expect(resultShown(landed, null, { runId: 'next' })).toBe(true);
       expect(noticeShown(landed, null, { runId: 'next' })).toBe(false);
     }
+  });
+
+  it('closes when dismissed, by a tap or its time, and the next catch shows as before (R-02)', () => {
+    const ended = view(
+      {},
+      river,
+      { type: 'run', runId: 'r' },
+      { type: 'run', runId: null },
+    );
+    const dismissed = replay(ended, { type: 'dismissed' });
+    expect(resultShown(dismissed, null, result)).toBe(false);
+    expect(noticeShown(dismissed, null, result)).toBe(true);
+    // Nothing brings it back: not a panel closing, not a later notice.
+    const later = replay(
+      dismissed,
+      { type: 'tools', open: true },
+      { type: 'tools', open: false },
+      { type: 'said' },
+    );
+    expect(resultShown(later, null, result)).toBe(false);
+    // In a run there is no card: dismissing changes nothing, and the run's result shows.
+    const next = replay(dismissed, { type: 'run', runId: 'next' });
+    expect(replay(next, { type: 'dismissed' })).toBe(next);
+    const landed = replay(next, { type: 'run', runId: null });
+    expect(resultShown(landed, null, { runId: 'next' })).toBe(true);
+    expect(noticeShown(landed, null, { runId: 'next' })).toBe(false);
+  });
+
+  it('counts down while the river is in play; a panel, the settings or a hidden page hold it', () => {
+    const ended = view(
+      {},
+      river,
+      { type: 'run', runId: 'r' },
+      { type: 'run', runId: null },
+    );
+    expect(CATCH_CARD_MS).toBe(4000);
+    expect(catchCountdown(ended, null, result)).toBe('running');
+    for (const [cover, uncover] of [
+      [
+        { type: 'tools', open: true },
+        { type: 'tools', open: false },
+      ],
+      [
+        { type: 'settings', open: true },
+        { type: 'settings', open: false },
+      ],
+      [
+        { type: 'page', hidden: true },
+        { type: 'page', hidden: false },
+      ],
+    ] satisfies [FishingViewEvent, FishingViewEvent][]) {
+      const covered = replay(ended, cover);
+      expect(catchCountdown(covered, null, result)).toBe('held');
+      expect(catchCountdown(replay(covered, uncover), null, result)).toBe(
+        'running',
+      );
+    }
+    // No card, no countdown: in a run, for a save's result, after it closed.
+    expect(catchCountdown(ended, runOf('buttons'), result)).toBeNull();
+    expect(catchCountdown(view({}, river), null, result)).toBeNull();
+    expect(
+      catchCountdown(replay(ended, { type: 'dismissed' }), null, result),
+    ).toBeNull();
   });
 });

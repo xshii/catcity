@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { BOND, BOND_LEVELS, bondLevel } from '../../src/content/care';
+import { BOND, BOND_LEVELS, bondLevel, CARE } from '../../src/content/care';
 import {
   BAITS,
   FISHING,
@@ -10,9 +10,12 @@ import {
   type BaitId,
   type SpotId,
 } from '../../src/content/fishing';
+import { MOOD } from '../../src/content/mood';
+import { PETTING, type PetSpot } from '../../src/content/petting';
 import { commandSchema, type GameCommand } from '../../src/core/commands';
 import { spendDaily } from '../../src/core/bond';
 import { MAX_STAT } from '../../src/core/limits';
+import { pettingLiftsLeft, pettingTastes } from '../../src/core/petting';
 import { RandomService } from '../../src/core/random';
 import { applyCommand } from '../../src/core/reducer';
 import { createWorld, World } from '../../src/core/world';
@@ -32,7 +35,7 @@ import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
  *   the whole world for every command, which is too slow for some 170 000 of them a run;
  *   the state is validated as a world once, when the run ends. A rejected command throws.
  * - The always happy player's mood is written into the state before each cast. No command
- *   can do that: it stands in for petting, which is a later slice.
+ *   can do that, petting included: it is the bound on growth.
  *
  * Assumptions of the simulation, not of the game:
  * - A steady rhythm: one cast every `minutes` of game time, whatever the run itself took.
@@ -46,6 +49,9 @@ import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
  *   at once; otherwise it fishes like the skilled player.
  * - The hands are those of the fight balance simulation; the lift comes `delay` ticks
  *   into the bite window.
+ * - The petting player (spec 041 R-23) has the skilled hands. Between casts, while the cat
+ *   is not happy and the allowance still has a round that lifts mood, it pets one round,
+ *   perfectly (`PERFECT`); the round's own time is inside the rhythm.
  */
 /** Game minutes from one cast to the next. */
 const RHYTHMS = [20, 30, 45, 60] as const;
@@ -70,12 +76,28 @@ const AIMS: Record<'novice' | 'skilled', Aim[]> = {
 };
 /** Strong enough for every aimed fish; too strong for bread to hook supplies. */
 const POWER = 60;
+/**
+ * The best petting there is (design.md 12): the cat's favourite spot, twice in every purr,
+ * unhurried. It fills the meter: a round worth the most mood.
+ */
+const PERFECT = (favourite: PetSpot) =>
+  Array.from(
+    { length: (2 * PETTING.roundTicks) / PETTING.purr.periodTicks },
+    (_, stroke) => ({
+      tick:
+        Math.floor(stroke / 2) * PETTING.purr.periodTicks +
+        (stroke % 2) * Math.floor(PETTING.purr.windowTicks / 2),
+      spot: favourite,
+    }),
+  );
 
 interface Pace {
   casts: number;
   happyCasts: number;
   /** Gifts that counted. */
   gifts: number;
+  /** Rounds of petting. */
+  pets: number;
   /** Fish caught when each waterway opened. */
   opened: Partial<Record<SpotId, number>>;
   fullSkill: number;
@@ -83,7 +105,7 @@ interface Pace {
   bond: number[];
 }
 
-type Style = 'fishing' | 'always happy' | 'gifting';
+type Style = 'fishing' | 'always happy' | 'gifting' | 'petting';
 
 function play(
   player: 'novice' | 'skilled',
@@ -92,6 +114,7 @@ function play(
 ): Pace {
   const state = createWorld(42).getSnapshot();
   const mochi = state.cats[0]!;
+  const { favourite } = pettingTastes(state.seed, mochi.id);
   const hand = new RandomService(104729);
   const { delay, jitter } = PLAYERS[player];
   const wobble = () => hand.nextInt(2 * jitter + 1) - jitter;
@@ -103,6 +126,7 @@ function play(
     casts: 0,
     happyCasts: 0,
     gifts: 0,
+    pets: 0,
     opened: {},
     fullSkill: 0,
     bond: [0],
@@ -148,8 +172,16 @@ function play(
       run({ type: 'ADVANCE_TIME', minutes: 10 });
       continue;
     }
-    // Stands in for a player who pets the cat before every cast (petting is a later slice).
+    // Beyond any player: no command keeps a cat this happy.
     if (style === 'always happy') mochi.mood = MAX_STAT;
+    if (
+      style === 'petting' &&
+      mochi.mood < MOOD.happy &&
+      pettingLiftsLeft(mochi, state.minute) > 0
+    ) {
+      run({ type: 'PET_CAT', catId: mochi.id, strokes: PERFECT(favourite) });
+      pace.pets++;
+    }
     run({
       type: 'FISH_BEGIN',
       catId: mochi.id,
@@ -327,6 +359,73 @@ it.each(RHYTHMS)(
     );
     expect(pace.fullSkill, `full skill ${at}`).toBeGreaterThanOrEqual(
       GIFTING.fullSkill,
+    );
+  },
+);
+
+/**
+ * R-23 (spec 041): from calm (60) to happy takes 2–3 rounds of petting one after another,
+ * each 12 game minutes at the 1× clock petting holds. The best petting player measures it
+ * (user 2026-09-30); it must hold from any minute of the hour, a clock hour between rounds
+ * or not, and within the allowance.
+ * Measured 2026-09-30: 3 rounds from every minute. An attentive player (the balance
+ * simulation's, +6 to +7 a round) needs 3 rounds only about a third of the time; the
+ * rest wait for the window.
+ */
+it('a perfect petting player makes a calm cat happy in 2–3 rounds, from any minute of the hour', () => {
+  const ROUND_MINUTES = PETTING.roundTicks / PETTING.ticksPerSecond;
+  const base = createWorld(42).getSnapshot();
+  const { favourite } = pettingTastes(base.seed, base.cats[0]!.id);
+  const needed = new Set<number>();
+  for (let start = 0; start < 60; start++) {
+    const state = structuredClone(base);
+    const mochi = state.cats[0]!;
+    applyCommand(state, {
+      type: 'ADVANCE_TIME',
+      minutes: 60 - (state.minute % 60) + start,
+    });
+    mochi.mood = 60;
+    let rounds = 0;
+    while (mochi.mood < MOOD.happy && rounds < 10) {
+      if (rounds)
+        applyCommand(state, { type: 'ADVANCE_TIME', minutes: ROUND_MINUTES });
+      applyCommand(
+        state,
+        commandSchema.parse({
+          type: 'PET_CAT',
+          catId: mochi.id,
+          strokes: PERFECT(favourite),
+        }),
+      );
+      rounds++;
+    }
+    needed.add(rounds);
+  }
+  expect(Math.min(...needed)).toBeGreaterThanOrEqual(2);
+  expect(Math.max(...needed)).toBeLessThanOrEqual(3);
+  expect(CARE.pettingLifts.rounds).toBeGreaterThanOrEqual(Math.max(...needed));
+});
+
+/**
+ * R-23 (spec 041): a player who pets between casts has a happy cat on 70–85% of its casts.
+ * The allowance of rounds that lift mood (`CARE.pettingLifts`, user 2026-09-30) keeps it
+ * from 100%: a round keeps the cat happy for about two hours.
+ * Measured 2026-09-30 at 30 / 60 (3 rounds in 8 hours): 75% / 75%; 7 hours 78% / 85%,
+ * 9 hours 66% / 66%, 4 rounds in 10 hours 80% / 80%. The attentive player: 58% / 58%.
+ */
+const PETTING_HAPPY = { min: 70, max: 85 };
+
+it.each([30, 60])(
+  'a player who pets between casts, casting every %i game minutes, has a happy cat on 70–85% of casts',
+  (minutes) => {
+    const pace = paceOf('skilled', minutes, 'petting');
+    const share = Math.round((pace.happyCasts / pace.casts) * 100);
+    expect(pace.pets).toBeGreaterThan(0);
+    expect(share, `happy share at ${minutes}`).toBeGreaterThanOrEqual(
+      PETTING_HAPPY.min,
+    );
+    expect(share, `happy share at ${minutes}`).toBeLessThanOrEqual(
+      PETTING_HAPPY.max,
     );
   },
 );

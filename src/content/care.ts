@@ -5,6 +5,12 @@ export const CARE = {
   walkEnergyPerTile: 1,
   /** Recent chat kept per cat; shared-activity facts are stored separately. */
   memoryLimit: 50,
+  /**
+   * Petting lifts a cat's mood in at most `rounds` rounds within any `windowMinutes` of game
+   * time; later rounds lift nothing (user 2026-09-30, spec 041 R-23). A sliding window,
+   * not a clock hour. Tuned by tests/simulation/pacing.test.ts.
+   */
+  pettingLifts: { rounds: 3, windowMinutes: 8 * 60 },
 } as const;
 
 /**
@@ -22,6 +28,9 @@ export const BOND = {
   chatsPerDay: 1,
   /** Gifts that earn points and lift mood, per cat and game day; later ones are kept. */
   giftsPerDay: 3,
+  /** A good round of petting (spec 039), for the first `pettingPerDay` of a game day per cat. */
+  petting: 2,
+  pettingPerDay: 3,
   dayMinutes: 24 * 60,
 } as const;
 

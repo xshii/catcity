@@ -5,6 +5,7 @@ import { mountAngling } from '../fishing/panel';
 import { mountCity } from '../city/panel';
 import { mountClockSpeed } from './clock-speed';
 import { mountCompanionship } from '../companion/journal';
+import { mountPetting } from '../petting/panel';
 import { toViewModel } from './model';
 import { bondNote } from './bond';
 import { withMoodNote } from './mood';
@@ -171,6 +172,14 @@ export function mountPanel(
       outing: get('city-panel-outing'),
     },
   });
+  const petting = mountPetting({
+    session,
+    place,
+    notify,
+    tools: angling.tools,
+    roster: get('cats-page-roster'),
+    layer: document.querySelector<HTMLElement>('.shell')!,
+  });
   // The scene switch and the map card follow the place.
   const showPlace = () => {
     const river = place.get() === 'river';
@@ -197,5 +206,6 @@ export function mountPanel(
     aim: angling.aim,
     catMoves: angling.catMoves,
     fishingClock: angling.fishingClock,
+    pettingClock: petting.clock,
   };
 }

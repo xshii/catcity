@@ -9,6 +9,7 @@ import {
 import { BOND } from '../../src/content/care';
 import { MOOD } from '../../src/content/mood';
 import { BAITS, FISHING, fishById, SPOT_IDS } from '../../src/content/fishing';
+import { PETTING, PET_SPOTS } from '../../src/content/petting';
 import { createWorld, loadWorld } from '../../src/core';
 import type { CommandResult, GameCommand, WorldState } from '../../src/core';
 import { RandomService } from '../../src/core/random';
@@ -23,7 +24,11 @@ const STEPS = 400;
 /** Round-trip the save this often; parsing a save is the slow part. */
 const ROUND_TRIP_EVERY = 20;
 
-function commandFor(world: WorldState, rng: RandomService): GameCommand {
+function commandFor(
+  world: WorldState,
+  rng: RandomService,
+  step: number,
+): GameCommand {
   const pick = <T>(items: readonly T[]): T => items[rng.nextInt(items.length)]!;
   const chance = (percent: number) => rng.nextInt(100) < percent;
   const size = world.map.width;
@@ -104,6 +109,15 @@ function commandFor(world: WorldState, rng: RandomService): GameCommand {
       minutes: chance(90) ? rng.nextInt(90) : 600,
     }),
     () => ({ type: 'INTERACT', catId: catId(), message: '你好', reply: '喵' }),
+    () => ({
+      type: 'PET_CAT',
+      catId: catId(),
+      // Mostly slow strokes on one spot, so rounds end well, badly and in between.
+      strokes: Array.from({ length: 1 + rng.nextInt(12) }, (_, index) => ({
+        tick: chance(95) ? index * 20 : PETTING.roundTicks,
+        spot: chance(80) ? PET_SPOTS[step % 4]! : pick(PET_SPOTS),
+      })),
+    }),
   ])();
 }
 
@@ -172,6 +186,7 @@ function coinChange(
     case 'GIFT_FISH':
     case 'INVITE_PEPPER':
     case 'INTERACT':
+    case 'PET_CAT':
     case 'DEBUG_SPAWN_CAT':
       return 0;
   }
@@ -180,7 +195,8 @@ function coinChange(
 /** Whether a command may move a cat's mood (spec 032); every other command must not. */
 function moodMayChange(command: GameCommand): boolean {
   switch (command.type) {
-    // Hourly drift, exhaustion while walking, chat, a run's end, a gift.
+    // Hourly drift, exhaustion while walking, chat, a run's end, a gift, petting.
+    case 'PET_CAT':
     case 'ADVANCE_TIME':
     case 'INTERACT':
     case 'FISH_CONTROL':
@@ -249,7 +265,7 @@ function play(seed: number) {
   for (let step = 0; step < STEPS; step++) {
     const before = world.getSnapshot();
     const saved = world.save();
-    const command = commandFor(before, rng);
+    const command = commandFor(before, rng, step);
     commands.push(command);
     const result = world.dispatch(command);
     const after = world.getSnapshot();
@@ -270,7 +286,7 @@ function play(seed: number) {
       moodMoves.add(`${command.type}${change > 0 ? '+' : '-'}`);
     }
     // The bond only grows, by its source's points and one more from a happy cat, from
-    // chat, a gift or a run's end (specs 036, 038).
+    // chat, a gift, a run's end (specs 036, 038) or a good round of petting (spec 039).
     for (const [index, cat] of before.cats.entries()) {
       const grown = after.cats[index]!.playerBond - cat.playerBond;
       if (!grown) continue;
@@ -279,14 +295,15 @@ function play(seed: number) {
           ? [BOND.chat]
           : command.type === 'GIFT_FISH'
             ? [BOND.gift, BOND.favoriteGift]
-            : ['FISH_CONTROL', 'FISH_MOTION_CONTROL'].includes(command.type)
-              ? [BOND.catch]
-              : [];
-      // A catch reads the happy of its run; a gift or a chat the mood of the moment.
-      const happy =
-        command.type === 'INTERACT' || command.type === 'GIFT_FISH'
-          ? cat.mood >= MOOD.happy
-          : before.fishing.active!.happy;
+            : command.type === 'PET_CAT'
+              ? [BOND.petting]
+              : ['FISH_CONTROL', 'FISH_MOTION_CONTROL'].includes(command.type)
+                ? [BOND.catch]
+                : [];
+      // A catch reads the happy of its run; a gift, a chat or petting the mood of the moment.
+      const happy = ['INTERACT', 'GIFT_FISH', 'PET_CAT'].includes(command.type)
+        ? cat.mood >= MOOD.happy
+        : before.fishing.active!.happy;
       expect(
         points.map((base) => base + (happy ? BOND.happy : 0)),
         `bond: ${where}`,
@@ -327,14 +344,16 @@ describe('Core under random command sequences', () => {
     expect(stopped).toBeGreaterThan(0);
   });
 
-  it('reaches mood drift both ways, chat and an escape', () => {
+  it('reaches mood drift both ways, chat, an escape and petting both ways', () => {
     // Random play rarely lands a fish; catch and gift mood are unit-tested (mood.test.ts).
     // Exhaustion while walking shows up as ADVANCE_TIME− alongside drift.
-    expect([...play(7).moodMoves].sort()).toEqual([
+    expect([...play(32).moodMoves].sort()).toEqual([
       'ADVANCE_TIME+',
       'ADVANCE_TIME-',
       'FISH_CONTROL-',
       'INTERACT+',
+      'PET_CAT+',
+      'PET_CAT-',
     ]);
   });
 
