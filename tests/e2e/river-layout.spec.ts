@@ -421,7 +421,7 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
 ])
-  test(`phone ${viewport.width}×${viewport.height}: the settings gear sits over the water, clear of the aim legend and hint`, async ({
+  test(`phone ${viewport.width}×${viewport.height}: the settings gear sits off the water at the right under the bar, clear of the aim hint`, async ({
     browser,
   }) => {
     const context = await phoneContext(browser, viewport);
@@ -432,23 +432,25 @@ for (const viewport of [
     await ready(page);
     await enterRiver(page);
     await sensorsOn(page);
-    const gear = page.locator('#river-settings');
-    const legend = page.locator('#motion-legend');
+    const gear = page.locator('#settings-gear');
     const hint = page.locator('#motion-fishing-hint');
-    for (const control of [gear, legend, hint]) await onScreen(control);
+    for (const control of [gear, hint]) await onScreen(control);
     const box = (await gear.boundingBox())!;
-    // A finger-sized target on the water, where calibration used to sit.
+    // A finger-sized target at the right edge, under the scene bar, above the water.
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(44);
-    const water = (await page.locator('#motion-fishing').boundingBox())!;
-    expect(box.x).toBeGreaterThanOrEqual(water.x);
-    expect(box.y).toBeGreaterThanOrEqual(water.y);
-    for (const other of [legend, hint])
+    expect(
+      Math.abs(viewport.width - (box.x + box.width) - 8),
+    ).toBeLessThanOrEqual(1);
+    const bar = (await page.locator('#map-heading').boundingBox())!;
+    expect(box.y).toBeGreaterThan(bar.y + bar.height);
+    // Off the motion plane, so off all it shows, and clear of the aim hint.
+    for (const other of [page.locator('#motion-fishing'), hint])
       expect(apart(box, (await other.boundingBox())!)).toBe(true);
     // In button mode it stays clear of the cast button.
     await gear.click();
     await page.locator('#settings-mode-buttons').click();
-    await page.locator('#river-settings-close').click();
+    await page.locator('#settings-close').click();
     await onScreen(page.locator('#cast-start'));
     await onScreen(gear);
     expect(

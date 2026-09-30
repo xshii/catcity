@@ -192,6 +192,7 @@ test('picking a cat says it can also be lifted and dragged, clear of the hint an
   await clearOfControls(page, [
     '#map-heading',
     '.city-map-hint',
+    '#settings-gear',
     '#city-action-card',
     '.scene-tools-nav',
   ]);
