@@ -6,7 +6,8 @@ import {
   type PetSpot,
   type PetTaste,
 } from '../../content/petting';
-import type { CatEntity, CheckResult } from '../../core';
+import { BOND } from '../../content/care';
+import { gameDay, type CatEntity, type CheckResult } from '../../core';
 import {
   pettingAway,
   purring,
@@ -16,6 +17,7 @@ import {
 } from '../../minigames/petting';
 import type { CatPose } from '../art/cat-look';
 import { ERROR_MESSAGES } from '../shell/errors';
+import { moodBadge } from '../shell/mood';
 import { pettingPhase, type PettingView } from './view-state';
 
 /** How long a reaction stays on the cat's face and in its bubble. */
@@ -35,6 +37,8 @@ export const PETTING_COPY = {
     disliked: { mark: '✕', label: '不喜欢' },
   } satisfies Record<PetTaste, { mark: string; label: string }>,
   unknown: '还不知道',
+  /** The bar's mark for a spot not yet found out. */
+  unknownMark: '?',
   reactions: {
     purr: '呼噜呼噜♪',
     like: '喜欢～',
@@ -47,10 +51,13 @@ export const PETTING_COPY = {
     purr: '呼噜声起来了，现在摸',
     away: (name: string) => `${name} 躲开了，等它回来`,
   },
-  purr: '呼噜…',
   halved: '这个小时摸了好几回了，这一回效果减半',
+  bond: (points: number) => `亲密 +${points}`,
+  bondLeft: (rounds: number) => `今天还有 ${rounds} 次摸摸会让关系更近`,
+  bondDone: '今天的亲密已经到了，摸摸还是会让它开心',
   untouched: '这一回还没摸到它。想摸的时候再来。',
   keys: '键盘：方向键选部位，空格抚摸',
+  bar: '摸哪里',
 } as const;
 
 /**
@@ -131,6 +138,16 @@ export function pettingEntry(
   };
 }
 
+/** Good rounds that still earn bond points today (041 R-20): the day's allowance less those counted. */
+export function pettingBondLeft(
+  cat: Pick<CatEntity, 'pettingBond'>,
+  minute: number,
+): number {
+  const counted =
+    cat.pettingBond?.day === gameDay(minute) ? cat.pettingBond.count : 0;
+  return BOND.pettingPerDay - counted;
+}
+
 const signed = (value: number) =>
   value < 0 ? `−${Math.abs(value)}` : `+${value}`;
 
@@ -181,20 +198,22 @@ export function pettingScreen(
       const taste = known(spot)
         ? PETTING_COPY.tastes[tasteOf(round.tastes, spot)]
         : null;
+      /** The stroke the cat is reacting to landed here. */
+      const touched = last?.spot === spot;
       return {
         spot,
         name: PET_SPOT_NAMES[spot],
-        mark: taste?.mark ?? '',
+        mark: taste?.mark ?? PETTING_COPY.unknownMark,
         label: `${PET_SPOT_NAMES[spot]}，${taste?.label ?? PETTING_COPY.unknown}`,
         focused: playing && view.focus === spot,
         disabled: !playing,
-        /** The stroke the cat is reacting to landed here. */
-        touched: last?.spot === spot,
+        touched,
+        /** The region on the cat and the bar's cell glow in the colour of the spot's taste. */
+        glow: touched ? tasteOf(round.tastes, spot) : null,
       };
     }),
-    bubble: last
-      ? { spot: last.spot, text: PETTING_COPY.reactions[last.reaction] }
-      : null,
+    /** The cat's reaction, always below it (ui-design 5.5). */
+    bubble: last ? PETTING_COPY.reactions[last.reaction] : null,
     hint: !playing
       ? ''
       : away
@@ -205,7 +224,14 @@ export function pettingScreen(
     result: !result
       ? null
       : result === 'none'
-        ? { line: PETTING_COPY.untouched, change: '', notes: [] as string[] }
+        ? {
+            line: PETTING_COPY.untouched,
+            change: '',
+            mood: '',
+            bond: '',
+            today: '',
+            notes: [] as string[],
+          }
         : {
             line: reactionLine(
               cat.definitionId,
@@ -214,6 +240,12 @@ export function pettingScreen(
               result.meter >= PETTING.good,
             ),
             change: `心情 ${signed(result.mood)}`,
+            mood: moodBadge(result.moodAfter).text,
+            bond: result.bond > 0 ? PETTING_COPY.bond(result.bond) : '',
+            today:
+              result.bondLeft > 0
+                ? PETTING_COPY.bondLeft(result.bondLeft)
+                : PETTING_COPY.bondDone,
             notes: [
               ...(result.full ? [] : [PETTING_COPY.halved]),
               ...(result.note ? [result.note] : []),

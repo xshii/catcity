@@ -6,10 +6,12 @@ import type { CatPose } from '../../src/view/art/cat-look';
 import { reduceStroke, STROKE_TRAVEL_PX } from '../../src/view/petting/gesture';
 import {
   knownTastes,
+  pettingBondLeft,
   pettingEntry,
   pettingScreen,
   reactionLine,
 } from '../../src/view/petting/screen';
+import { BOND } from '../../src/content/care';
 import {
   closedPetting,
   pettingPhase,
@@ -38,6 +40,9 @@ const RESULT = {
   mood: 6,
   full: true,
   note: '',
+  moodAfter: 66,
+  bond: 2,
+  bondLeft: 2,
 } as const;
 const screenOf = (view: PettingView, cat: typeof MOCHI | null = MOCHI) => {
   const screen = pettingScreen(view, cat, REST);
@@ -121,25 +126,22 @@ describe('petting view state', () => {
     expect(again.round).toMatchObject({ tick: 0, meter: 0 });
   });
 
-  it('moves the keyboard between the spots like a grid of two by two', () => {
+  it('moves the keyboard along the bar of spots, round from either end', () => {
     const focus = (
       ...keys: ('ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown')[]
     ) =>
       after([open, ...keys.map((key) => ({ type: 'arrow', key }) as const)])
         .focus;
-    expect(focus()).toBe('HEAD');
-    expect(focus('ArrowRight')).toBe('BACK');
-    expect(focus('ArrowDown')).toBe('CHIN');
-    expect(focus('ArrowRight', 'ArrowDown')).toBe('BELLY');
-    expect(focus('ArrowRight', 'ArrowDown', 'ArrowLeft')).toBe('CHIN');
-    expect(focus('ArrowDown', 'ArrowUp')).toBe('HEAD');
-    const seen = new Set([
-      focus(),
-      focus('ArrowRight'),
-      focus('ArrowDown'),
-      focus('ArrowRight', 'ArrowDown'),
-    ]);
-    expect([...seen].sort()).toEqual([...PET_SPOTS].sort());
+    expect(focus()).toBe(PET_SPOTS[0]);
+    expect(
+      PET_SPOTS.map((_, moves) =>
+        focus(...Array.from({ length: moves }, () => 'ArrowRight' as const)),
+      ),
+    ).toEqual([...PET_SPOTS]);
+    expect(focus('ArrowDown')).toBe(PET_SPOTS[1]);
+    expect(focus('ArrowLeft')).toBe(PET_SPOTS.at(-1));
+    expect(focus('ArrowUp')).toBe(PET_SPOTS.at(-1));
+    expect(focus('ArrowRight', 'ArrowLeft')).toBe(PET_SPOTS[0]);
   });
 
   it('keeps its invariants under random events: Core will replay the very round shown', () => {
@@ -201,11 +203,14 @@ describe('petting screen', () => {
     expect(
       screen.spots.map((spot) => [spot.name, spot.mark, spot.label]),
     ).toEqual([
-      ['头顶', '', '头顶，还不知道'],
-      ['下巴', '', '下巴，还不知道'],
-      ['后背', '', '后背，还不知道'],
-      ['肚子', '', '肚子，还不知道'],
+      ['头顶', '?', '头顶，还不知道'],
+      ['下巴', '?', '下巴，还不知道'],
+      ['后背', '?', '后背，还不知道'],
+      ['肚子', '?', '肚子，还不知道'],
     ]);
+    expect(screen.spots.every((spot) => !spot.touched && !spot.glow)).toBe(
+      true,
+    );
     expect(
       screen.spots.filter((spot) => spot.focused).map((spot) => spot.spot),
     ).toEqual(['HEAD']);
@@ -223,7 +228,7 @@ describe('petting screen', () => {
       '后背，还不知道',
       '肚子，不喜欢',
     ]);
-    expect(screen.spots.map((spot) => spot.mark)).toEqual(['', '♥', '', '✕']);
+    expect(screen.spots.map((spot) => spot.mark)).toEqual(['?', '♥', '?', '✕']);
   });
 
   it('follows the purr, and says when to stroke', () => {
@@ -243,11 +248,30 @@ describe('petting screen', () => {
     const stroked = after([open, stroke('CHIN')]);
     expect(screenOf(stroked)).toMatchObject({
       pose: { face: 'happy', ears: 'up' },
-      bubble: { spot: 'CHIN', text: '呼噜呼噜♪' },
+      bubble: '呼噜呼噜♪',
       meter: { value: PETTING.meter.favourite.purring },
     });
     const later = screenOf(after(ticks(PETTING.ticksPerSecond), stroked));
     expect(later).toMatchObject({ pose: REST, bubble: null });
+  });
+
+  it('lights the stroked spot in the colour of its taste, on the cat and in the bar, for a moment', () => {
+    const glow = (view: PettingView) =>
+      screenOf(view).spots.map((spot) => [spot.touched, spot.glow]);
+    const loved = after([open, stroke('CHIN')]);
+    expect(glow(loved)).toEqual([
+      [false, null],
+      [true, 'favourite'],
+      [false, null],
+      [false, null],
+    ]);
+    expect(glow(after([open, stroke('HEAD')]))[0]).toEqual([true, 'neutral']);
+    expect(glow(after([open, stroke('BELLY')]))[3]).toEqual([true, 'disliked']);
+    expect(
+      glow(after(ticks(PETTING.ticksPerSecond), loved)).every(
+        ([touched, glow]) => !touched && !glow,
+      ),
+    ).toBe(true);
   });
 
   it('shows the cat pulled away, and back a second later', () => {
@@ -256,7 +280,7 @@ describe('petting screen', () => {
       away: true,
       purr: false,
       pose: { face: 'glum', ears: 'mid' },
-      bubble: { spot: 'BELLY', text: '不要摸这里' },
+      bubble: '不要摸这里',
       hint: 'Mochi 躲开了，等它回来',
     });
     expect(screenOf(after(ticks(PETTING.awayTicks), away)).away).toBe(false);
@@ -271,7 +295,7 @@ describe('petting screen', () => {
     ]);
     expect(screenOf(hurried)).toMatchObject({
       away: true,
-      bubble: { text: '太快啦' },
+      bubble: '太快啦',
     });
   });
 
@@ -287,6 +311,9 @@ describe('petting screen', () => {
       result: {
         line: '……下巴这里，再摸一会儿也可以。',
         change: '心情 +6',
+        mood: '😺 平静',
+        bond: '亲密 +2',
+        today: '今天还有 2 次摸摸会让关系更近',
         notes: [],
       },
     });
@@ -301,12 +328,18 @@ describe('petting screen', () => {
       mood: -1,
       full: false,
       note: 'Mochi 心情落了一点（有点闷）',
+      moodAfter: 49,
+      bond: 0,
+      bondLeft: 0,
     } as const;
     expect(
       screenOf(after([{ type: 'settled', result }], ended)).result,
     ).toEqual({
       line: '肚子……不要。我先躲一下。',
       change: '心情 −1',
+      mood: '😾 有点闷',
+      bond: '',
+      today: '今天的亲密已经到了，摸摸还是会让它开心',
       notes: [
         '这个小时摸了好几回了，这一回效果减半',
         'Mochi 心情落了一点（有点闷）',
@@ -323,8 +356,25 @@ describe('petting screen', () => {
     expect(screenOf(ended).result).toEqual({
       line: '这一回还没摸到它。想摸的时候再来。',
       change: '',
+      mood: '',
+      bond: '',
+      today: '',
       notes: [],
     });
+  });
+});
+
+describe('good rounds left today', () => {
+  it('are the day’s allowance less the rounds counted today; earlier days do not count', () => {
+    const minute = 3 * BOND.dayMinutes + 100;
+    const left = (pettingBond: { day: number; count: number } | null) =>
+      pettingBondLeft({ pettingBond }, minute);
+    expect(left(null)).toBe(BOND.pettingPerDay);
+    expect(left({ day: 3, count: 1 })).toBe(BOND.pettingPerDay - 1);
+    expect(left({ day: 3, count: BOND.pettingPerDay })).toBe(0);
+    expect(left({ day: 2, count: BOND.pettingPerDay })).toBe(
+      BOND.pettingPerDay,
+    );
   });
 });
 

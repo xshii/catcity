@@ -9,6 +9,7 @@ import { createWorld } from '../../src/core/world';
 const TICK_MS = 1000 / PETTING.ticksPerSecond;
 const { favourite, disliked } = pettingTastes(42, 'mochi');
 const spot = (id: PetSpot) => `[data-spot="${id}"]`;
+const region = (id: PetSpot) => `[data-region="${id}"]`;
 const focused = () => (document.activeElement as HTMLElement).dataset.spot;
 const arrow = (name: 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown') =>
   document.activeElement!.dispatchEvent(
@@ -79,7 +80,15 @@ describe('petting from the cats panel (spec 039)', () => {
       events: [{ type: 'CatPetted', meter: 80, mood: 6, full: true }],
     });
     expect(text('#petting-change')).toBe('心情 +6');
+    expect(text('#petting-mood')).toBe('😺 平静');
+    expect(text('#petting-bond')).toBe(`亲密 +${BOND.petting}`);
+    expect(text('#petting-today')).toBe(
+      `今天还有 ${BOND.pettingPerDay - 1} 次摸摸会让关系更近`,
+    );
     expect(text('#petting-line')).toContain('再摸一会儿也可以');
+    // The result stands alone: no meter, no bar of spots.
+    expect(visible('#petting-bar')).toBe(false);
+    expect(visible('#petting-meter')).toBe(false);
     const after = game.world().cats[0]!;
     expect(after.mood).toBe(before.mood + 6);
     expect(after.playerBond).toBe(before.playerBond + BOND.petting);
@@ -98,9 +107,15 @@ describe('petting from the cats panel (spec 039)', () => {
     expect($('#petting-meter').getAttribute('aria-valuenow')).toBe(
       String(PETTING.meter.favourite.purring),
     );
+    // The stroked spot glows on the cat and in the bar, in the colour of its taste.
+    expect($(spot(favourite)).dataset.glow).toBe('favourite');
+    expect($(region(favourite)).dataset.glow).toBe('favourite');
     game.wait(10 * TICK_MS);
     click(spot(disliked));
     expect($('#petting-cat').dataset.away).toBe('true');
+    expect($('#petting').dataset.away).toBe('true');
+    expect($(region(disliked)).dataset.glow).toBe('disliked');
+    expect($(region(favourite)).dataset.glow).toBe('');
     expect(text('#petting-hint')).toBe('Mochi 躲开了，等它回来');
     expect(text('#petting-bubble')).toBe('不要摸这里');
     expect($(spot(disliked)).getAttribute('aria-label')).toContain('不喜欢');
@@ -114,6 +129,25 @@ describe('petting from the cats panel (spec 039)', () => {
       { tick: 0, spot: favourite },
       { tick: 10, spot: disliked },
     ]);
+  });
+
+  it('keeps its controls while the city clock runs (design.md 10.2)', () => {
+    const game = startPetting();
+    const controls = () =>
+      Array.from(
+        document.querySelectorAll('#petting button, #petting [data-region]'),
+      );
+    const before = controls();
+    for (let minute = 0; minute < 5; minute++)
+      expect(
+        game.session.execute({ type: 'ADVANCE_TIME', minutes: 1 }).ok,
+      ).toBe(true);
+    const after = controls();
+    expect(after).toHaveLength(before.length);
+    expect(after.every((element, index) => element === before[index])).toBe(
+      true,
+    );
+    expect(before.every((element) => element.isConnected)).toBe(true);
   });
 
   it('leaving in the middle of a round changes nothing', () => {

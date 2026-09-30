@@ -8,17 +8,47 @@ import {
 import { shapeSvg } from './illustrations';
 
 /** The petting screen's drawing space: a cat lying on its side, head toward the player. */
-const PETTING_ART = { width: 160, height: 100 } as const;
+export const PETTING_ART = { width: 160, height: 100 } as const;
 /** Where the 72×64 head of `CAT_ART` sits in that space. */
 const HEAD = { x: 0, y: 24, scale: 1.12 } as const;
 
-/** Where each spot is stroked, in percent of the drawing: head and chin in front. */
-export const PET_SPOT_POINTS: Record<PetSpot, { x: number; y: number }> = {
-  HEAD: { x: 25, y: 38 },
-  CHIN: { x: 25, y: 90 },
-  BACK: { x: 66, y: 38 },
-  BELLY: { x: 68, y: 82 },
+/**
+ * Where each spot is stroked (ui-design 5.5): an ellipse `[cx, cy, rx, ry]` on the cat, in
+ * the drawing's units. Nothing marks them; they glow when touched. Head: between the ears
+ * down to the brow. Chin: round the mouth down to the chest. Back: along the spine to the tail.
+ * Belly: the body's lower edge. The eyes and nose between head and chin are no spot.
+ */
+export const PET_SPOT_REGIONS: Record<
+  PetSpot,
+  readonly [number, number, number, number]
+> = {
+  HEAD: [40, 52, 22, 11],
+  CHIN: [46, 84, 20, 11],
+  BACK: [106, 50, 34, 13],
+  BELLY: [108, 79, 30, 12],
 };
+
+/** The spot under a point of the drawing, if any. */
+export function spotAt(point: { x: number; y: number }): PetSpot | null {
+  for (const [spot, [cx, cy, rx, ry]] of Object.entries(PET_SPOT_REGIONS))
+    if (((point.x - cx) / rx) ** 2 + ((point.y - cy) / ry) ** 2 <= 1)
+      return spot as PetSpot;
+  return null;
+}
+
+/** The regions as shapes laid over the drawing, one to glow for each spot. */
+export function pettingRegions(): string {
+  return (
+    `<svg viewBox="0 0 ${PETTING_ART.width} ${PETTING_ART.height}" aria-hidden="true" focusable="false">` +
+    Object.entries(PET_SPOT_REGIONS)
+      .map(
+        ([spot, [cx, cy, rx, ry]]) =>
+          `<ellipse data-region="${spot}" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/>`,
+      )
+      .join('') +
+    '</svg>'
+  );
+}
 
 /** The body behind the head, in the same warm line and fur as the portrait. */
 const BODY: readonly CatShape[] = [

@@ -3,12 +3,22 @@ import type { GameSession } from '../../application';
 import { PETTING, PET_SPOTS, type PetSpot } from '../../content/petting';
 import { pettingTastes, type GameCommand } from '../../core';
 import { catPose } from '../art/cat-look';
-import { PET_SPOT_POINTS, pettingCat } from '../art/cat-petting';
+import {
+  PETTING_ART,
+  pettingCat,
+  pettingRegions,
+  spotAt,
+} from '../art/cat-petting';
 import { outcomeNote } from '../shell/bond';
 import { ERROR_MESSAGES } from '../shell/errors';
 import type { PlaceState, Tools } from '../shell/place';
 import { reduceStroke, type StrokeGesture } from './gesture';
-import { PETTING_COPY, pettingEntry, pettingScreen } from './screen';
+import {
+  PETTING_COPY,
+  pettingBondLeft,
+  pettingEntry,
+  pettingScreen,
+} from './screen';
 import { createPettingView, pettingPhase } from './view-state';
 
 /** A dry run of the least round: would Core let this cat be petted now? */
@@ -50,18 +60,24 @@ export function mountPetting(deps: {
   screen.setAttribute('role', 'dialog');
   screen.setAttribute('aria-modal', 'true');
   screen.setAttribute('aria-labelledby', 'petting-title');
+  // ui-design 5.5: nothing sits on the cat. The hint is above it and the reaction below,
+  // each in its own place; the bar of spots is at the bottom, for keys and screen readers.
   screen.innerHTML =
     `<div class="petting-heading"><h2 id="petting-title"></h2><span id="petting-time" class="petting-time"></span><button id="petting-close" type="button" aria-label="${PETTING_COPY.close}">✕</button></div>` +
-    `<div class="petting-meter-row"><span aria-hidden="true">${PETTING_COPY.meter}</span><div id="petting-meter" class="petting-meter" role="meter" aria-valuemin="0" aria-valuemax="${PETTING.meter.max}"><span id="petting-meter-fill"></span></div></div>` +
-    `<div id="petting-cat" class="petting-cat"><span class="petting-halo" aria-hidden="true"></span><span id="petting-purr" class="petting-purr" aria-hidden="true">${PETTING_COPY.purr}</span><div id="petting-art" class="petting-art"></div>` +
+    '<div class="petting-stage">' +
+    `<div id="petting-meter-row" class="petting-meter-row"><span aria-hidden="true">${PETTING_COPY.meter}</span><div id="petting-meter" class="petting-meter" role="meter" aria-valuemin="0" aria-valuemax="${PETTING.meter.max}"><span id="petting-meter-fill"></span></div></div>` +
+    '<p id="petting-hint" class="petting-hint" aria-live="polite"></p>' +
+    `<div id="petting-cat" class="petting-cat"><span class="petting-halo" aria-hidden="true"></span><div class="petting-body"><div id="petting-art" class="petting-art"></div><div id="petting-regions" class="petting-regions">${pettingRegions()}</div></div></div>` +
+    '<p id="petting-bubble" class="petting-bubble" aria-live="polite"></p>' +
+    `<div id="petting-bar" class="petting-bar" role="group" aria-label="${PETTING_COPY.bar}">` +
     PET_SPOTS.map(
       (spot) =>
-        `<button type="button" class="petting-spot" data-spot="${spot}" style="left:${PET_SPOT_POINTS[spot].x}%;top:${PET_SPOT_POINTS[spot].y}%"><span class="petting-spot-name"></span><span class="petting-spot-mark" aria-hidden="true"></span></button>`,
+        `<button type="button" class="petting-spot" data-spot="${spot}"><span class="petting-spot-name"></span><span class="petting-spot-mark" aria-hidden="true"></span></button>`,
     ).join('') +
-    '<span id="petting-bubble" class="petting-bubble" hidden></span></div>' +
-    '<p id="petting-hint" class="petting-hint" aria-live="polite"></p>' +
+    '</div>' +
     `<p class="petting-keys">${PETTING_COPY.keys}</p>` +
-    `<div id="petting-result" class="petting-result" hidden><p id="petting-line" class="petting-line"></p><strong id="petting-change"></strong><small id="petting-notes"></small><div class="petting-actions"><button id="petting-again" type="button" class="primary">${PETTING_COPY.again}</button><button id="petting-done" type="button">${PETTING_COPY.done}</button></div></div>`;
+    `<div id="petting-result" class="petting-result" hidden><p id="petting-line" class="petting-line"></p><p class="petting-change-row"><strong id="petting-change"></strong><span id="petting-mood"></span></p><strong id="petting-bond"></strong><small id="petting-today"></small><small id="petting-notes"></small><div class="petting-actions"><button id="petting-again" type="button" class="primary">${PETTING_COPY.again}</button><button id="petting-done" type="button">${PETTING_COPY.done}</button></div></div>` +
+    '</div>';
   deps.layer.append(screen);
   const $ = <T extends HTMLElement = HTMLElement>(
     id: string,
@@ -69,6 +85,13 @@ export function mountPetting(deps: {
   ) => root.querySelector<T>(`#${id}`)!;
   const enter = $<HTMLButtonElement>('pet-cat', entry);
   const catBox = $('petting-cat');
+  const regionBox = $('petting-regions');
+  const regions = new Map(
+    PET_SPOTS.map((spot) => [
+      spot,
+      regionBox.querySelector<SVGElement>(`[data-region="${spot}"]`)!,
+    ]),
+  );
   const spots = new Map(
     PET_SPOTS.map((spot) => [
       spot,
@@ -112,6 +135,11 @@ export function mountPetting(deps: {
     );
     screen.hidden = !model.open;
     if (!model.open || !cat) return;
+    screen.dataset.phase = model.phase;
+    screen.dataset.away = String(model.away);
+    const result = model.phase === 'result';
+    $('petting-meter-row').hidden = result;
+    $('petting-bar').hidden = result;
     $('petting-title').textContent = model.title;
     $('petting-time').textContent =
       model.phase === 'playing' ? `${model.secondsLeft} 秒` : '';
@@ -131,17 +159,16 @@ export function mountPetting(deps: {
       button.disabled = spot.disabled;
       button.setAttribute('aria-label', spot.label);
       button.dataset.touched = String(spot.touched);
-      button.dataset.known = String(!!spot.mark);
+      button.dataset.glow = spot.glow ?? '';
+      button.dataset.known = String(spot.mark !== PETTING_COPY.unknownMark);
       button.querySelector('.petting-spot-name')!.textContent = spot.name;
       button.querySelector('.petting-spot-mark')!.textContent = spot.mark;
+      regions.get(spot.spot)!.dataset.glow = spot.glow ?? '';
     }
+    // The bubble keeps its place below the cat when empty, so nothing moves.
     const bubble = $('petting-bubble');
-    bubble.hidden = !model.bubble;
-    if (model.bubble) {
-      bubble.textContent = model.bubble.text;
-      bubble.style.left = `${PET_SPOT_POINTS[model.bubble.spot].x}%`;
-      bubble.style.top = `${PET_SPOT_POINTS[model.bubble.spot].y}%`;
-    }
+    bubble.hidden = result;
+    bubble.textContent = model.bubble ?? '';
     $('petting-hint').textContent = model.hint;
     $('petting-hint').hidden = !model.hint;
     screen.querySelector<HTMLElement>('.petting-keys')!.hidden =
@@ -151,6 +178,11 @@ export function mountPetting(deps: {
       $('petting-line').textContent = model.result.line;
       $('petting-change').textContent = model.result.change;
       $('petting-change').hidden = !model.result.change;
+      $('petting-mood').textContent = model.result.mood;
+      $('petting-bond').textContent = model.result.bond;
+      $('petting-bond').hidden = !model.result.bond;
+      $('petting-today').textContent = model.result.today;
+      $('petting-today').hidden = !model.result.today;
       $('petting-notes').textContent = model.result.notes.join(' · ');
       $('petting-notes').hidden = !model.result.notes.length;
     }
@@ -165,23 +197,29 @@ export function mountPetting(deps: {
       return;
     }
     const before = session.getSnapshot();
+    const bondBefore = petted()?.playerBond ?? 0;
     const result = session.execute({ type: 'PET_CAT', catId, strokes });
-    const petted = result.ok
+    const event = result.ok
       ? result.events.find((event) => event.type === 'CatPetted')
       : undefined;
-    if (!result.ok || !petted) {
+    const cat = petted();
+    if (!result.ok || !event || !cat) {
       view.dispatch({ type: 'close' });
       deps.notify(ERROR_MESSAGES[result.ok ? 'INVALID_COMMAND' : result.error]);
       return;
     }
+    const after = session.getSnapshot();
     view.dispatch({
       type: 'settled',
       result: {
-        spot: petted.spot,
-        meter: petted.meter,
-        mood: petted.mood,
-        full: petted.full,
-        note: outcomeNote(before, session.getSnapshot(), catId),
+        spot: event.spot,
+        meter: event.meter,
+        mood: event.mood,
+        full: event.full,
+        note: outcomeNote(before, after, catId),
+        moodAfter: cat.mood,
+        bond: cat.playerBond - bondBefore,
+        bondLeft: pettingBondLeft(cat, after.minute),
       },
     });
   };
@@ -209,28 +247,21 @@ export function mountPetting(deps: {
   const stroke = (spot: PetSpot | null) => {
     if (spot) view.dispatch({ type: 'stroke', spot });
   };
-  const spotOf = (target: EventTarget | null) =>
-    ((target instanceof Element &&
-      target.closest<HTMLElement>('[data-spot]')?.dataset.spot) ||
-      null) as PetSpot | null;
-  /** The spot under a point of the screen; a dragging finger keeps its first target. */
-  const spotAt = (x: number, y: number) => {
-    for (const [spot, button] of spots) {
-      const box = button.getBoundingClientRect();
-      if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom)
-        return spot;
-    }
-    return null;
+  /** The spot under a point of the screen, found in the drawing the regions share. */
+  const spotUnder = (x: number, y: number) => {
+    const box = regionBox.getBoundingClientRect();
+    if (!box.width || !box.height) return null;
+    return spotAt({
+      x: ((x - box.left) / box.width) * PETTING_ART.width,
+      y: ((y - box.top) / box.height) * PETTING_ART.height,
+    });
   };
   let gesture: StrokeGesture = null;
   const touch = (type: 'down' | 'move', event: PointerEvent) => {
     const next = reduceStroke(gesture, {
       type,
       point: { x: event.clientX, y: event.clientY },
-      spot:
-        type === 'down'
-          ? spotOf(event.target)
-          : spotAt(event.clientX, event.clientY),
+      spot: spotUnder(event.clientX, event.clientY),
     });
     gesture = next.gesture;
     stroke(next.stroke);
@@ -247,10 +278,8 @@ export function mountPetting(deps: {
   // The long press of a stroking finger must not open a menu or select text.
   catBox.addEventListener('contextmenu', (event) => event.preventDefault());
   for (const [spot, button] of spots) {
-    // Keyboard and assistive activation; a pointer's stroke was taken when it went down.
-    button.addEventListener('click', (event) => {
-      if (event.detail === 0) stroke(spot);
-    });
+    // A cell of the bar is a stroke on its spot, by tap, key or screen reader.
+    button.addEventListener('click', () => stroke(spot));
     button.addEventListener('focus', () =>
       view.dispatch({ type: 'focus', spot }),
     );

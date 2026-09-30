@@ -17,6 +17,12 @@ interface PettingResult {
   full: boolean;
   /** What the round changed for the cat beyond the number: a mood band, a bond level. */
   note: string;
+  /** The cat's mood after the round. */
+  moodAfter: number;
+  /** Bond points the round earned. */
+  bond: number;
+  /** Good rounds that still earn bond points today. */
+  bondLeft: number;
 }
 
 /**
@@ -64,20 +70,14 @@ export function pettingPhase(view: PettingView): PettingPhase {
   return pettingDone(view.round) ? 'settling' : 'playing';
 }
 
-/** The spots lie in a grid of two columns: head and chin in front, back and belly behind. */
-const GRID: readonly (readonly PetSpot[])[] = [
-  ['HEAD', 'BACK'],
-  ['CHIN', 'BELLY'],
-];
+/** The spots lie in one bar (ui-design 5.5): left or up goes back, right or down on, round. */
 function neighbour(
   spot: PetSpot,
   key: Extract<PettingViewEvent, { type: 'arrow' }>['key'],
 ): PetSpot {
-  const row = GRID.findIndex((spots) => spots.includes(spot));
-  const column = GRID[row]!.indexOf(spot);
-  const sideways = key === 'ArrowLeft' || key === 'ArrowRight';
-  // Two rows and two columns: either arrow of a pair moves to the other one.
-  return GRID[sideways ? row : 1 - row]![sideways ? 1 - column : column]!;
+  const back = key === 'ArrowLeft' || key === 'ArrowUp';
+  const count = PET_SPOTS.length;
+  return PET_SPOTS[(PET_SPOTS.indexOf(spot) + (back ? count - 1 : 1)) % count]!;
 }
 
 export function reducePettingView(

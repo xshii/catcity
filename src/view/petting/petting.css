@@ -25,7 +25,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: calc(max(8px, env(safe-area-inset-top)) + 8px) 16px
     calc(max(8px, env(safe-area-inset-bottom)) + 12px);
   overflow: hidden;
@@ -39,7 +39,8 @@
     ),
     var(--paper);
 }
-.petting > * {
+.petting > *,
+.petting-stage > * {
   width: 100%;
   max-width: 440px;
 }
@@ -67,6 +68,20 @@
   background: var(--btn-secondary-bg);
 }
 
+/* Top to bottom: meter, hint, cat, reaction, bar. The cat keeps the middle. */
+.petting-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.petting[data-phase='result'] .petting-stage {
+  justify-content: center;
+  gap: 12px;
+}
+
 .petting-meter-row {
   display: flex;
   align-items: center;
@@ -90,32 +105,52 @@
   transition: width 0.3s ease-out;
 }
 
+.petting-hint,
+.petting-bubble,
+.petting-keys {
+  margin: 0;
+  text-align: center;
+}
+/* The hint's place above the cat; the space above it balances the space above the bar. */
+.petting-hint {
+  min-height: 1.5em;
+  margin-top: auto;
+  font-size: 14px;
+}
+
 .petting-cat {
   position: relative;
+  flex: none;
   aspect-ratio: 160 / 100;
-  margin-top: auto;
   /* Stroking must not scroll, zoom, select or open the long-press menu. */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+.petting[data-phase='result'] .petting-cat {
+  max-width: 300px;
+}
+.petting-body,
 .petting-art,
-.petting-art svg {
+.petting-regions,
+.petting-art svg,
+.petting-regions svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-.petting-art {
-  transform-origin: 50% 90%;
+/* The purr lifts the body a little; pulled away, the cat shrinks back, inside its box. */
+.petting-body {
+  transform-origin: 100% 92%;
   transition: transform 0.35s ease-out;
 }
-.petting-cat[data-purr='true'] .petting-art {
+.petting-cat[data-purr='true'] .petting-body {
   transform: scale(1.025);
 }
-.petting-cat[data-away='true'] .petting-art {
-  transform: translateX(5%) rotate(4deg);
+.petting-cat[data-away='true'] .petting-body {
+  transform: scale(0.9);
 }
 .petting-halo {
   position: absolute;
@@ -136,99 +171,101 @@
   opacity: 1;
   transform: scale(1.06);
 }
-.petting-purr {
-  position: absolute;
-  top: 4%;
-  right: 6%;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 13px;
-  color: var(--text-mood);
-  background: var(--mood-bg);
-  opacity: 0;
-  transition: opacity 0.3s ease-out;
+/* The spots are unmarked; a touched one glows in the colour of how the cat takes it. */
+.petting-regions ellipse {
+  fill: transparent;
+  transition: fill 0.12s ease-out;
 }
-.petting-cat[data-purr='true'] .petting-purr {
-  opacity: 1;
+.petting-regions [data-glow='favourite'] {
+  fill: rgb(242 184 181 / 0.55);
+}
+.petting-regions [data-glow='neutral'] {
+  fill: rgb(246 201 160 / 0.5);
+}
+.petting-regions [data-glow='disliked'] {
+  fill: rgb(138 111 90 / 0.28);
 }
 
-.petting-spot {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  margin: -32px 0 0 -32px;
-  padding: 0;
-  border: 2px dashed var(--brown);
-  border-radius: 50%;
-  font-size: 12px;
-  line-height: 1.1;
-  color: var(--text);
-  background: rgb(255 253 248 / 0.55);
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    background 0.2s,
-    box-shadow 0.2s;
-}
-.petting-spot[data-known='true'] {
-  border-style: solid;
-  border-color: var(--line-strong);
-}
-.petting-spot[data-touched='true'] {
-  background: rgb(255 253 248 / 0.9);
-  box-shadow: var(--glow-accent);
-}
-.petting-spot:disabled {
-  opacity: 0.6;
-}
-.petting-spot-mark {
-  font-size: 13px;
-  color: var(--text-mood);
-}
-.petting-spot-mark:empty {
-  display: none;
-}
+/* The reaction's place below the cat, kept while empty so nothing moves. */
 .petting-bubble {
-  position: absolute;
-  z-index: 1;
-  margin: -62px 0 0 -10px;
-  padding: 4px 10px;
+  width: auto;
+  min-height: 1.5em;
+  padding: 4px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  font-size: 13px;
-  white-space: nowrap;
+  font-size: 14px;
   color: var(--text);
   background: var(--surface);
   box-shadow: var(--shadow-tab);
   pointer-events: none;
 }
+.petting-bubble:empty {
+  visibility: hidden;
+}
 
-.petting-hint,
-.petting-keys {
+.petting-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: auto;
+  transition: opacity 0.2s;
+}
+.petting[data-away='true'] .petting-bar {
+  opacity: 0.5;
+}
+.petting-spot {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  min-height: 56px;
   margin: 0;
-  text-align: center;
+  padding: 6px 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.1;
+  color: var(--text);
+  background: var(--surface);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.12s ease-out,
+    box-shadow 0.12s ease-out;
+}
+.petting-spot:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.petting-spot[data-glow='favourite'] {
+  background: var(--sakura);
+}
+.petting-spot[data-glow='neutral'] {
+  background: var(--apricot);
+}
+.petting-spot[data-glow='disliked'] {
+  background: var(--line-strong);
+}
+.petting-spot-mark {
   font-size: 14px;
+  color: var(--text-mood);
 }
-.petting-hint {
-  min-height: 1.5em;
+.petting-spot[data-known='false'] .petting-spot-mark {
+  color: var(--text-muted);
 }
+
 .petting-keys {
-  margin-bottom: auto;
   font-size: 11px;
   color: var(--text-muted);
 }
 /* Keys are for fine pointers; a phone has none. */
 @media (pointer: coarse) {
   .petting-keys {
-    visibility: hidden;
+    display: none;
   }
 }
 
 .petting-result {
   display: grid;
-  gap: 8px;
-  margin-bottom: auto;
+  gap: 6px;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -237,13 +274,24 @@
   box-shadow: var(--shadow-card);
 }
 .petting-line {
-  margin: 0;
+  margin: 0 0 4px;
   font-size: 15px;
 }
-#petting-change {
+.petting-change-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+}
+#petting-change,
+#petting-bond {
   font-size: 16px;
   color: var(--text-mood);
 }
+#petting-mood {
+  font-size: 14px;
+}
+#petting-today,
 #petting-notes {
   font-size: 12px;
   color: var(--text-muted);
@@ -252,6 +300,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 6px;
 }
 .petting .petting-actions button {
   min-height: 44px;
@@ -264,4 +313,12 @@
   border: 1px solid var(--btn-secondary-border);
   color: var(--text);
   background: var(--btn-secondary-bg);
+}
+
+/* Transitions are off globally (base.css); the purr's swell goes too, its light stays. */
+@media (prefers-reduced-motion: reduce) {
+  .petting-cat[data-purr='true'] .petting-body,
+  .petting-cat[data-purr='true'] .petting-halo {
+    transform: none;
+  }
 }
