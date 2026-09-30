@@ -119,6 +119,9 @@ const share = (
  * One-tap flick calibration (spec 030): the player flicks the tip down twice. The axis
  * with the fastest spin is the rod's; the two strongest flicks must agree (slower moves
  * such as settling back are ignored), and the thresholds follow the weaker of the two.
+ * An unclear flick (one that springs back nearly as fast) still counts when both agree
+ * with the way a flick down reads on the default axis: a wind-up that outran the flick
+ * would point the other way (recorded 2026-09-30: snaps back at 87–93%).
  * Null when that did not happen: ask again.
  */
 export function calibrateSwing(
@@ -135,10 +138,11 @@ export function calibrateSwing(
   const strongest = flicksOn(samples, axis)
     .sort((a, b) => b.peak - a.peak)
     .slice(0, C.flicks);
+  const down = axis === G.axis && strongest[0]?.sign === G.pitchSign;
   if (
     strongest.length < C.flicks ||
     strongest.some(
-      (flick) => flick.unclear || flick.sign !== strongest[0]!.sign,
+      (flick) => (flick.unclear && !down) || flick.sign !== strongest[0]!.sign,
     )
   )
     return null;

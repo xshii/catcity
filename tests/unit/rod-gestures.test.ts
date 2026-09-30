@@ -205,6 +205,33 @@ describe('one-tap flick calibration', () => {
     ).toBeNull();
   });
 
+  it('takes flicks that snap back almost as fast when both point the way a flick down reads', () => {
+    // As recorded on an iPhone (2026-09-30): down at 525 and 423, each springing back at
+    // 93% and 87% of that. Two flicks agreeing with the axis's own down are not a wind-up.
+    const snap = (peak: number, back: number) => [
+      0,
+      -peak / 2,
+      -peak,
+      0,
+      back,
+      0,
+    ];
+    const result = calibrateSwing(
+      on('pitch', [...snap(525, 486), ...quiet, ...snap(423, 368), ...quiet]),
+    )!;
+    expect(result.tuning).toMatchObject({
+      axis: 'pitch',
+      pitchSign: G.pitchSign,
+    });
+    expect(result.peak).toBe(423);
+    // On an axis with no down of its own, such flicks still ask again.
+    expect(
+      calibrateSwing(
+        on('roll', [...snap(525, 486), ...quiet, ...snap(423, 368), ...quiet]),
+      ),
+    ).toBeNull();
+  });
+
   it('asks again when the two strongest flicks disagree, or there are too few', () => {
     const disagree = [...flick(500), ...quiet, ...flick(-500), ...quiet];
     expect(calibrateSwing(on('pitch', disagree))).toBeNull();

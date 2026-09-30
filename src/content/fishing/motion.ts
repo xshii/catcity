@@ -142,7 +142,8 @@ export const MOTION = {
       lift: { percent: 60, min: 150, max: 450 },
       /**
        * A flick whose opposite spin reaches this share of it is unclear and asks again
-       * (recorded iPhone flicks: wind-up or return at most 69% of the flick).
+       * (recorded iPhone flicks: wind-up or return at most 69% of the flick), unless both
+       * flicks point the default axis's own down (recorded 2026-09-30: returns at 87–93%).
        */
       oppositeMaxPercent: 85,
       /**
