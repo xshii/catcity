@@ -27,8 +27,8 @@
   text-align: center;
 }
 /*
- * The first-cast guide's way out, under the settings gear (44px at 4px from this plane's
- * corner, spec 034) and clear of the hold bar.
+ * The first-cast guide's way out, clear of the hold bar. It kept the place it had under
+ * the settings gear when the gear left the water for the shell (2026-09-30).
  */
 .motion-guide-skip {
   position: absolute;
@@ -128,7 +128,7 @@
 }
 .motion-hold {
   position: absolute;
-  /* Centred, clear of the settings gear at the plane's top-left corner. */
+  /* Centred; its inset once cleared the settings gear, now off the water (2026-09-30). */
   left: 56px;
   top: 4%;
   width: calc(100% - 112px);
