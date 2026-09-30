@@ -13,10 +13,17 @@ import './styles/base.css';
 const TEST_FPS =
   import.meta.env.MODE === 'test' ? { target: 15, limit: 15 } : {};
 
-/** Browser composition; the application owns the session, this layer owns rendering. */
-export function mountGameView(session: GameSession, trace: Trace) {
+/**
+ * Browser composition; the application owns the session, this layer owns rendering.
+ * `strayStart`: a new game begins with the stray and the cat maker (spec 041 T-14).
+ */
+export function mountGameView(
+  session: GameSession,
+  trace: Trace,
+  { strayStart }: { strayStart: boolean } = { strayStart: false },
+) {
   const place = createPlace();
-  const panel = mountPanel(session, place, trace);
+  const panel = mountPanel(session, place, trace, { strayStart });
   const scene = new CityScene(
     session,
     place,
@@ -47,5 +54,7 @@ export function mountGameView(session: GameSession, trace: Trace) {
     pettingClock: panel.pettingClock,
     /** Game minutes per real second chosen at the city clock. */
     clockSpeed: panel.clockSpeed,
+    /** The city clock waits while a new game's stray is on screen. */
+    starting: panel.starting,
   };
 }
