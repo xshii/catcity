@@ -9,17 +9,11 @@ import { rewardBond, spendDaily } from './bond';
 import { requireCat } from './cats';
 import { liftMood } from './mood';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
-import { RandomService, streamSeed } from './random';
+import { idNumber, RandomService, streamSeed } from './random';
 import type { CatEntity, WorldState } from './schema';
+import { grantWish } from './wishes';
 
 const { rounds: LIFTS, windowMinutes: WINDOW } = CARE.pettingLifts;
-
-/** FNV-1a over the id's characters: a cat's own number within its world. */
-const idNumber = (id: string) =>
-  Array.from(id).reduce(
-    (hash, letter) => Math.imul(hash ^ letter.charCodeAt(0), 16777619) >>> 0,
-    2166136261,
-  );
 
 /**
  * The spots this cat loves and dislikes (spec 039): fixed by the world seed and the
@@ -82,7 +76,7 @@ export function petCat(
         ? [...cat.petting.lifted, world.minute].slice(-LIFTS)
         : cat.petting.lifted,
   };
-  return [
+  const events: GameEvent[] = [
     {
       type: 'CatPetted',
       minute: world.minute,
@@ -94,4 +88,6 @@ export function petCat(
       full,
     },
   ];
+  if (outcome.good) grantWish(world, cat, 'PETTING', null, events);
+  return events;
 }

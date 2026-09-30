@@ -2,8 +2,9 @@ import { mkdir } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { ready } from '../../harness/adapters/catcity/browser';
 import { clickTile } from '../../harness/adapters/catcity/city-input';
+import { buildingPrice } from '../../src/content/city';
 import { ARRIVAL_MINUTES } from '../../src/content/residents';
-import { createWorld, residentIdentity } from '../../src/core';
+import { createWorld, residentIdentity, World } from '../../src/core';
 
 // Spec 041 T-30 (ui-design 5.7 and 8): tapping a lodge on a phone shows who lives there.
 
@@ -15,9 +16,15 @@ const PHONES = [
 ] as const;
 const LODGE = { x: 4, y: 4 };
 
-/** A new game on seed 42 whose lodge three residents have moved into, through Core. */
+/**
+ * A new game on seed 42 whose lodge three residents have moved into, through Core; a
+ * lodge costs more than the starting coins (spec 041 T-31), so it starts with its price.
+ */
 function lodgeOfThree() {
-  const world = createWorld(42);
+  const world = new World({
+    ...createWorld(42).getSnapshot(),
+    coins: buildingPrice('CAT_LODGE', 0),
+  });
   world.dispatch({
     type: 'BUILD_BUILDING',
     buildingType: 'CAT_LODGE',

@@ -28,6 +28,7 @@ import { failureTrash } from './rewards';
 import { shadowUnderCast } from './shadows';
 import { runSeed } from '../random';
 import { MAX_STAT, WORLD_LIMIT } from '../limits';
+import { grantWish } from '../wishes';
 
 const { supplies: SUPPLIES } = FISHING;
 
@@ -201,6 +202,7 @@ export function applyAngling(
         // One meaning of happy for the whole catch: the run's, as for its XP.
         rewardBond(cat, BOND.catch, next.happy);
         liftCalmMood(cat, MOOD.catch);
+        grantWish(world, cat, 'OUTING', next.spotId, events);
       } else if (next.phase === 'escaped') {
         const cat = world.cats.find((cat) => cat.id === next.catId)!;
         cat.mood = Math.max(0, cat.mood - MOOD.escape);
@@ -236,6 +238,8 @@ export function applyAngling(
         counted ? (favorite ? 'favorite-gift' : 'gift') : 'gift-kept',
         cat.id,
       );
+      // A wished-for fish is granted even past the day's allowance of gifts.
+      grantWish(world, cat, 'FISH', fish.speciesId, events);
     }
     fishing.inventory.splice(index, 1);
   }

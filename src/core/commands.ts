@@ -5,6 +5,7 @@ import { baitIdSchema, spotIdSchema } from './fishing/schema';
 import { appearanceSchema, positionSchema } from './schema';
 import { FISHING, type SpotId } from '../content/fishing';
 import { PETTING, PET_SPOTS, type PetSpot } from '../content/petting';
+import type { WishKind } from '../content/wishes';
 import { MAX_TEXT } from './limits';
 import { catNameSchema } from './names';
 
@@ -216,6 +217,13 @@ export type GameEvent =
       full: boolean;
     }
   | { type: 'ResidentArrived'; minute: number; entityId: string }
+  | {
+      type: 'WishFulfilled';
+      minute: number;
+      entityId: string;
+      kind: WishKind;
+      target: string | null;
+    }
   | { type: 'DebugChanged'; minute: number };
 
 export type ErrorCode =

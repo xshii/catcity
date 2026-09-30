@@ -5,6 +5,10 @@ import { FISHING } from './fishing';
 /** A cat born in the city is a kitten for its first two game days. */
 export const KITTEN_MINUTES = 2 * 1440;
 
+/** The minute a cat is grown from; a first-generation cat (never born here) arrives grown. */
+export const grownFrom = (bornMinute: number | null): number =>
+  bornMinute === null ? 0 : bornMinute + KITTEN_MINUTES;
+
 /**
  * A cat's three talents (R-35, design 5.4), each 0–4: 钓感 (`feel`), 耐力 (`stamina`) and
  * 亲人 (`affection`). First-generation cats have none; a kitten takes each from a parent.

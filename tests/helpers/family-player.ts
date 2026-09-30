@@ -147,12 +147,14 @@ const MOON_BEST: Record<CatBreed, Aim> = {
   },
   DOMESTIC: { spotId: 'MOON', baitId: 'WORM', direction: 30 },
 };
-/** Grass south of the city, away from the plan's plots: where the idle cats wait. */
+/** Grass south of the city, off the plan's plots and roads: where the idle cats wait. */
 const MEADOW: Position[] = [7, 8, 9]
   .flatMap((y) => [2, 3, 4, 5, 6, 7].map((x) => ({ x, y })))
   .filter(
     (tile) =>
-      !CITY_PLAN.plots.some((plot) => plot.x === tile.x && plot.y === tile.y),
+      ![...CITY_PLAN.plots, ...CITY_PLAN.roads].some(
+        (plot) => plot.x === tile.x && plot.y === tile.y,
+      ),
   );
 /** Bread brings these wherever they live. */
 const BREAD_FISH: readonly FishId[] = ['SILVER', 'CRUCIAN'];
@@ -347,18 +349,22 @@ export function playFamily(play: FamilyPlay): FamilyPace {
         buildingType: 'CAT_APARTMENT',
         position: plot,
       };
-      const road = CITY_PLAN.road;
+      // The planned road beside it, when it needs one to reach the network.
+      const road = CITY_PLAN.roads.find(
+        (item) => Math.abs(item.x - plot.x) + Math.abs(item.y - plot.y) === 1,
+      );
       if (
         attempt([...land(plot), build], open) ||
-        attempt(
-          [
-            ...land(plot),
-            ...land(road),
-            { type: 'PLACE_ROAD', position: road },
-            build,
-          ],
-          open,
-        )
+        (road &&
+          attempt(
+            [
+              ...land(plot),
+              ...land(road),
+              { type: 'PLACE_ROAD', position: road },
+              build,
+            ],
+            open,
+          ))
       ) {
         pass(CITY_SECONDS, play.speed);
         return true;

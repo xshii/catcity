@@ -9,7 +9,7 @@ import {
   type CatDefinitionId,
 } from '../content/cats';
 import { BUILDINGS, RESTYLE_PRICE } from '../content/city';
-import { KITTEN_MINUTES, NO_TALENT } from '../content/family';
+import { grownFrom, NO_TALENT } from '../content/family';
 import { gridDistance } from './city/map';
 import { isWalkable } from './city/path';
 import { CommandError, type GameEvent } from './commands';
@@ -68,6 +68,8 @@ export function newToTheCity(position: Position) {
     pettingBond: null,
     lastChatMoodMinute: null,
     petting: { discovered: [], lifted: [] },
+    wish: null,
+    lastWishDay: null,
   } satisfies Partial<CatEntity>;
 }
 
@@ -106,10 +108,7 @@ export function catStage(
   world: WorldState,
   cat: CatEntity,
 ): 'kitten' | 'adult' {
-  return cat.bornMinute !== null &&
-    world.minute - cat.bornMinute < KITTEN_MINUTES
-    ? 'kitten'
-    : 'adult';
+  return world.minute < grownFrom(cat.bornMinute) ? 'kitten' : 'adult';
 }
 
 /** Beds nobody sleeps in: each building once per free bed, in the order they were built. */

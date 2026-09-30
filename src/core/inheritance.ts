@@ -1,8 +1,8 @@
 import { bondLevel } from '../content/care';
 import { APPEARANCE_OPTIONS, type CatAppearance } from '../content/cats';
 import {
+  grownFrom,
   HERITAGE_BOND_LEVELS,
-  KITTEN_MINUTES,
   MAX_TALENT,
   TALENT_NAMES,
   type Talent,
@@ -133,10 +133,7 @@ export function assertBorn(world: WorldState, cat: CatEntity): void {
     father.sex !== 'M' ||
     born === null ||
     born > world.minute ||
-    [mother, father].some(
-      (grown) =>
-        grown.bornMinute !== null && born - grown.bornMinute < KITTEN_MINUTES,
-    ) ||
+    [mother, father].some((grown) => born < grownFrom(grown.bornMinute)) ||
     cat.generation !== Math.max(mother.generation, father.generation) + 1
   )
     throw new Error('Born cat without its parents');

@@ -1,11 +1,11 @@
 {
-  "saveVersion": 25,
-  "contentVersion": 20,
+  "saveVersion": 26,
+  "contentVersion": 22,
   "world": {
     "seed": 42,
-    "minute": 3000,
-    "coins": 272,
-    "nextId": 4,
+    "minute": 450,
+    "coins": 500,
+    "nextId": 3,
     "map": {
       "width": 10,
       "height": 10,
@@ -919,25 +919,7 @@
         "type": "CAT_APARTMENT",
         "position": {
           "x": 4,
-          "y": 4
-        },
-        "builtAtMinute": 420
-      },
-      {
-        "id": "building-2",
-        "type": "CAT_CAFE",
-        "position": {
-          "x": 4,
           "y": 3
-        },
-        "builtAtMinute": 420
-      },
-      {
-        "id": "building-3",
-        "type": "CAT_LODGE",
-        "position": {
-          "x": 6,
-          "y": 4
         },
         "builtAtMinute": 420
       }
@@ -967,13 +949,13 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 60,
+        "mood": 80,
         "needs": {
           "energy": 100
         },
         "memories": [],
-        "playerBond": 0,
-        "home": "building-1",
+        "playerBond": 150,
+        "home": null,
         "position": {
           "x": 7,
           "y": 3
@@ -991,21 +973,64 @@
         "petting": {
           "discovered": [],
           "lifted": []
-        }
-      }
-    ],
-    "residents": [
-      {
-        "id": "resident-1",
-        "home": "building-3",
-        "arrivedMinute": 1440
+        },
+        "wish": null,
+        "lastWishDay": null
       },
       {
-        "id": "resident-2",
-        "home": "building-3",
-        "arrivedMinute": 2880
+        "id": "cat-2",
+        "definitionId": "PEPPER",
+        "name": "Pepper",
+        "appearance": {
+          "colour": "gray",
+          "pattern": "solid",
+          "white": "none",
+          "eyes": "copper",
+          "face": "round"
+        },
+        "sex": "M",
+        "bornMinute": null,
+        "generation": 1,
+        "parents": null,
+        "neutered": false,
+        "talent": 0,
+        "lastBredMinute": null,
+        "personality": ["curious", "playful"],
+        "traits": ["adventurous"],
+        "preferences": {
+          "likes": ["fish", "exploring"],
+          "dislikes": ["waiting"]
+        },
+        "mood": 80,
+        "needs": {
+          "energy": 100
+        },
+        "memories": [],
+        "playerBond": 150,
+        "home": "building-1",
+        "position": {
+          "x": 4,
+          "y": 2
+        },
+        "chatBond": null,
+        "giftBond": null,
+        "pettingBond": null,
+        "lastChatMoodMinute": null,
+        "fishingSpotId": null,
+        "walk": null,
+        "breedId": "BRITISH_SHORTHAIR",
+        "favoriteFish": ["PERCH", "CATFISH"],
+        "fishingMemory": null,
+        "fishGift": null,
+        "petting": {
+          "discovered": [],
+          "lifted": []
+        },
+        "wish": null,
+        "lastWishDay": null
       }
     ],
+    "residents": [],
     "fishing": {
       "supplies": {
         "trash": 0,

@@ -20,6 +20,7 @@ import { simulate } from './simulation';
 import { isWalkable } from './city/path';
 import { travelToFishingSpot } from './fishing/travel';
 import { petCat } from './petting';
+import { grantCityWishes } from './wishes';
 
 export function applyCommand(
   world: WorldState,
@@ -35,8 +36,11 @@ export function applyCommand(
     case 'PLACE_ROAD':
     case 'UPGRADE_ROAD':
     case 'REMOVE_ROAD':
-    case 'ASSIGN_HOME':
-      return applyCity(world, command);
+    case 'ASSIGN_HOME': {
+      const city = applyCity(world, command);
+      grantCityWishes(world, city);
+      return city;
+    }
     case 'TRAVEL_TO_FISHING_SPOT':
       return travelToFishingSpot(world, command);
     case 'USE_CAN':

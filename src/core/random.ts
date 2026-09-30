@@ -9,6 +9,7 @@ const STREAM_SALT = {
   names: 0x7f4a7c15,
   resident: 0x68e31da4,
   inherit: 0x3c6ef372,
+  wish: 0x2c1b3c6d,
 } as const;
 const RUN_SEED_MULTIPLIER = 2246822519;
 export const streamSeed = (seed: number, stream: keyof typeof STREAM_SALT) =>
@@ -16,6 +17,13 @@ export const streamSeed = (seed: number, stream: keyof typeof STREAM_SALT) =>
 /** Each fishing run gets its own seed from the world seed and its ID serial. */
 export const runSeed = (worldSeed: number, serial: number) =>
   (worldSeed ^ Math.imul(serial, RUN_SEED_MULTIPLIER)) >>> 0;
+
+/** FNV-1a over the id's characters: a cat's own number within its world. */
+export const idNumber = (id: string) =>
+  Array.from(id).reduce(
+    (hash, letter) => Math.imul(hash ^ letter.charCodeAt(0), 16777619) >>> 0,
+    2166136261,
+  );
 
 /** Stable uint32 LCG for simulation streams; not cryptographic or generative randomness. */
 export class RandomService {

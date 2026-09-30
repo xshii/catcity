@@ -4,15 +4,19 @@ export const BUILDING_IDS = [
   'CAT_LODGE',
   'CAT_SALON',
 ] as const;
-/** `growth` is the price ratio from one building of a type to the next, as a fraction. */
+/**
+ * `growth` is the price ratio from one building of a type to the next, as a fraction.
+ * Prices and the cafes' pay are set by the economy simulation for a full city of
+ * companions and residents (spec 041 T-31, tests/simulation/economy.test.ts).
+ */
 export const BUILDINGS = {
   CAT_CAFE: {
     type: 'CAT_CAFE',
     name: '猫咖',
-    basePrice: 200,
+    basePrice: 125,
     growth: [2, 1],
     /** Every cafe is paid when the game clock reaches a multiple of this many minutes. */
-    intervalMinutes: 120,
+    intervalMinutes: 180,
     homeCapacity: 0,
   },
   CAT_APARTMENT: {
@@ -22,11 +26,11 @@ export const BUILDINGS = {
     growth: [9, 5],
     homeCapacity: 2,
   },
-  /** Residents live here, never companions (spec 041 R-40); T-31 sets the price by simulation. */
+  /** Residents live here, never companions (spec 041 R-40): four customers to a lodge. */
   CAT_LODGE: {
     type: 'CAT_LODGE',
     name: '居民楼',
-    basePrice: 250,
+    basePrice: 3000,
     growth: [8, 5],
     homeCapacity: 0,
     residentCapacity: 4,

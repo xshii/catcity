@@ -5,16 +5,24 @@ import { CAT_DEFINITIONS } from '../../src/content/cats';
 import {
   BAITS,
   FISHING,
+  fishById,
   skillLevel,
   SPOT_IDS,
   SPOTS,
   spotOpen,
   type BaitId,
+  type FishId,
   type SpotId,
 } from '../../src/content/fishing';
 import { MOOD } from '../../src/content/mood';
+import { WISH, WISH_KINDS, type WishKind } from '../../src/content/wishes';
 import { PETTING, type PetSpot } from '../../src/content/petting';
-import { commandSchema, type GameCommand } from '../../src/core/commands';
+import {
+  commandSchema,
+  type GameCommand,
+  type GameEvent,
+} from '../../src/core/commands';
+import { nextBuildingPrice } from '../../src/core/city/customers';
 import { spendDaily } from '../../src/core/bond';
 import { MAX_STAT } from '../../src/core/limits';
 import { pettingLiftsLeft, pettingTastes } from '../../src/core/petting';
@@ -57,6 +65,13 @@ import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
  * - The petting player (spec 041 R-23) has the skilled hands. Between casts, while the cat
  *   is not happy and the allowance still has a round that lifts mood, it pets one round,
  *   perfectly (`PERFECT`); the round's own time is inside the rhythm.
+ * - The wishing player (spec 041 R-50 – R-53) grants each of Mochi's wishes as soon as it
+ *   can: it builds the home and the cafe beside it, pets one perfect round, fishes the
+ *   wished water, or fishes for the wished fish (`WISHED_AIMS`) and gives it. The novice
+ *   leaves a fish of more than 2★ until Mochi changes its mind. Otherwise it fishes as
+ *   they do. Other players grant a wish only when what they do anyway meets it.
+ * - The city clock: the river runs at 1×, but the time between casts may be spent in the
+ *   city at 4×. There the same real rhythm passes four times the game minutes.
  */
 /** Game minutes from one cast to the next. */
 const RHYTHMS = [20, 30, 45, 60] as const;
@@ -114,6 +129,10 @@ const PERFECT = (favourite: PetSpot) =>
 
 interface Pace {
   casts: number;
+  /** Wishes granted, of which kinds, and by the time Mochi became family with the bond then. */
+  wishes: number;
+  kinds: Set<WishKind>;
+  family: { wishes: number; bond: number } | null;
   happyCasts: number;
   /** Gifts that counted. */
   gifts: number;
@@ -126,7 +145,22 @@ interface Pace {
   bond: number[];
 }
 
-type Style = 'fishing' | 'always happy' | 'gifting' | 'petting';
+type Style = 'fishing' | 'always happy' | 'gifting' | 'petting' | 'wishing';
+
+/** Where a player aims for each fish Mochi may wish for: its water, bait and side. */
+const WISHED_AIMS: Record<FishId, Aim> = {
+  SILVER: { spotId: 'POND', baitId: 'BREAD', direction: -30 },
+  CRUCIAN: { spotId: 'POND', baitId: 'BREAD', direction: 30 },
+  PERCH: { spotId: 'REEDS', baitId: 'WORM', direction: 30 },
+  CATFISH: { spotId: 'REEDS', baitId: 'SHRIMP', direction: 30 },
+  KOI: { spotId: 'MOON', baitId: 'WORM', direction: -30 },
+  MOON_CARP: MOON_BEST.BRITISH_SHORTHAIR,
+  MACKEREL: { spotId: 'COAST', baitId: 'BREAD', direction: 30 },
+  SEA_BREAM: { spotId: 'COAST', baitId: 'SHRIMP', direction: 30 },
+};
+/** Seed 42's plots for the home and the cafe a wishing player builds: one tile apart. */
+const HOME_PLOT = { x: 4, y: 3 };
+const CAFE_PLOT = { x: 4, y: 4 };
 
 /** A new game whose stray is Mochi of `breed`, in its template's look. */
 const newGame = (breed: CatBreed) =>
@@ -137,6 +171,7 @@ function play(
   minutes: number,
   style: Style,
   breed: CatBreed,
+  clock: number,
 ): Pace {
   const state = newGame(breed).getSnapshot();
   const aims = AIMS[player].map((aim) =>
@@ -147,12 +182,11 @@ function play(
   const hand = new RandomService(104729);
   const { delay, jitter } = PLAYERS[player];
   const wobble = () => hand.nextInt(2 * jitter + 1) - jitter;
-  const run = (command: GameCommand) =>
-    applyCommand(state, commandSchema.parse(command));
-  /** A rod input like the one before it, already checked. */
-  const tick = (command: GameCommand) => applyCommand(state, command);
   const pace: Pace = {
     casts: 0,
+    wishes: 0,
+    kinds: new Set(),
+    family: null,
     happyCasts: 0,
     gifts: 0,
     pets: 0,
@@ -160,23 +194,75 @@ function play(
     fullSkill: 0,
     bond: [0],
   };
+  const counted = (events: GameEvent[]) => {
+    for (const event of events)
+      if (event.type === 'WishFulfilled') {
+        pace.wishes++;
+        pace.kinds.add(event.kind);
+      }
+  };
+  const run = (command: GameCommand) =>
+    counted(applyCommand(state, commandSchema.parse(command)));
+  /** A rod input like the one before it, already checked. */
+  const tick = (command: GameCommand) => counted(applyCommand(state, command));
+  const wishing = style === 'wishing';
   let fish = 0;
   const done = () =>
     pace.fullSkill > 0 && pace.bond.length === BOND_LEVELS.length;
   while (!done() && pace.casts < CAST_LIMIT) {
+    // A home, or a cafe beside it, is granted as soon as it is built.
+    const building = !wishing
+      ? null
+      : mochi.wish?.kind === 'HOME'
+        ? 'CAT_APARTMENT'
+        : mochi.wish?.kind === 'CAFE'
+          ? 'CAT_CAFE'
+          : null;
+    if (building && state.coins >= nextBuildingPrice(state, building)) {
+      run({
+        type: 'BUILD_BUILDING',
+        buildingType: building,
+        position: building === 'CAT_CAFE' ? CAFE_PLOT : HOME_PLOT,
+      });
+      if (building === 'CAT_APARTMENT')
+        run({
+          type: 'ASSIGN_HOME',
+          catId: mochi.id,
+          buildingId: state.buildings.at(-1)!.id,
+        });
+    }
     const water = aims.find((aim) => spotOpen(aim.spotId, state.fishing))!;
     const giftCounts =
       style === 'gifting' &&
       spendDaily(mochi.giftBond, state.minute, BOND.giftsPerDay) !== null;
+    // The novice leaves a wish for a fish of more than 2★ for another day.
+    const wish =
+      wishing &&
+      !(
+        player === 'novice' &&
+        mochi.wish?.kind === 'FISH' &&
+        fishById(mochi.wish.target as FishId).stars > 2
+      )
+        ? mochi.wish
+        : null;
+    const wished =
+      wish?.kind === 'FISH'
+        ? WISHED_AIMS[wish.target as FishId]
+        : wish?.kind === 'OUTING'
+          ? aims.find((aim) => aim.spotId === wish.target)!
+          : null;
     // Bread brings the pond fish, Mochi's favourites, wherever they live.
     const aim =
-      giftCounts &&
+      wished ??
+      (giftCounts &&
       SPOTS[water.spotId].fish.some((id) => mochi.favoriteFish.includes(id))
         ? { ...POND, spotId: water.spotId }
-        : water;
+        : water);
     // The pond fish keep to their sides: one to the left, one to the right.
     const direction =
-      aim.baitId === 'BREAD' && fish % 2 === 0 ? -aim.direction : aim.direction;
+      aim.baitId === 'BREAD' && fish % 2 === 0 && wish?.kind !== 'FISH'
+        ? -aim.direction
+        : aim.direction;
     if (mochi.fishingSpotId !== aim.spotId || mochi.walk) {
       if (!mochi.walk)
         run({
@@ -202,9 +288,10 @@ function play(
     // Beyond any player: no command keeps a cat this happy.
     if (style === 'always happy') mochi.mood = MAX_STAT;
     if (
-      style === 'petting' &&
-      mochi.mood < MOOD.happy &&
-      pettingLiftsLeft(mochi, state.minute) > 0
+      (style === 'petting' &&
+        mochi.mood < MOOD.happy &&
+        pettingLiftsLeft(mochi, state.minute) > 0) ||
+      (wishing && mochi.wish?.kind === 'PETTING')
     ) {
       run({ type: 'PET_CAT', catId: mochi.id, strokes: PERFECT(favourite) });
       pace.pets++;
@@ -257,14 +344,18 @@ function play(
       if (skillLevel(state.fishing.xp) === FISHING.skill.maxLevel)
         pace.fullSkill ||= fish;
       const caught = state.fishing.inventory.at(-1)!;
-      if (giftCounts && mochi.favoriteFish.includes(caught.speciesId)) {
+      if (wish?.kind === 'FISH' && wish.target === caught.speciesId)
+        run({ type: 'GIFT_FISH', fishId: caught.id, catId: mochi.id });
+      else if (giftCounts && mochi.favoriteFish.includes(caught.speciesId)) {
         run({ type: 'GIFT_FISH', fishId: caught.id, catId: mochi.id });
         pace.gifts++;
       }
       while (pace.bond.length <= bondLevel(mochi.playerBond))
         pace.bond.push(fish);
+      if (pace.bond.length === BOND_LEVELS.length)
+        pace.family ??= { wishes: pace.wishes, bond: mochi.playerBond };
     }
-    run({ type: 'ADVANCE_TIME', minutes });
+    run({ type: 'ADVANCE_TIME', minutes: minutes * clock });
   }
   // Every shortcut above still left a world that Core accepts and saves.
   const world = new World(state);
@@ -278,9 +369,11 @@ function paceOf(
   player: 'novice' | 'skilled',
   minutes: number,
   style: Style = 'fishing',
+  clock = 1,
 ): Pace {
-  const key = `${breed} ${player} ${minutes} ${style}`;
-  if (!paces.has(key)) paces.set(key, play(player, minutes, style, breed));
+  const key = `${breed} ${player} ${minutes} ${style} ${clock}`;
+  if (!paces.has(key))
+    paces.set(key, play(player, minutes, style, breed, clock));
   return paces.get(key)!;
 }
 const levelNamed = (name: string) =>
@@ -364,7 +457,9 @@ it.each(
  * cat: the gifting player is faster than the fishing one.
  * Measured 2026-09-30 at 20 / 30 / 45 / 60: 家人 643 / 626 / 601 / 583 fish, happy casts
  * 16% / 15% / 13% / 12%, moon lake 43 / 44 / 45 / 45, full skill 291 / 297 / 306 / 313.
- * With a domestic stray (T-14) full skill takes 412 / 417 / 424 / 429 fish.
+ * With a domestic stray (T-14) full skill takes 412 / 417 / 424 / 429 fish. A domestic
+ * stray's wishes (T-40) now and then meet a gift or a catch: 家人 619 / 599 / 577 at 30 /
+ * 45 / 60.
  */
 const GIFTING = {
   family: 500,
@@ -475,3 +570,40 @@ it.each(
     );
   },
 );
+
+/**
+ * Wishes (spec 041 R-53): a player who grants every wish still takes 500–800 fish to 家人,
+ * at every rhythm, on either city clock, and the wishes' share of the bond stays within
+ * 30%. Wishes are a small bonus: the user dropped the share's floor of 15% (user
+ * 2026-09-30). A wish comes at most once a game day and a catch every cast, so the share
+ * grows with the game minutes between casts.
+ * Measured 2026-09-30 (a wish on half of the days, +10, a change of mind after 5 days),
+ * skilled, at 20 / 30 / 45 / 60: 1×: 家人 677–711 fish, the share 3.3 / 4.7 / 6.0 / 7.3%;
+ * 4×: 家人 514–647 fish, the share 10.7 / 16.0 / 22.7–23.2 / 27.3%. The novice, whose
+ * wishes for fish above 2★ give way to others: 1× 701–726 fish, 4× 567–685, 2.0–21.9%.
+ */
+const WISH_SHARE_MAX = 30;
+const CLOCKS = [1, 4] as const;
+
+it.each(
+  CASES.flatMap(([breed, player, minutes]) =>
+    CLOCKS.map((clock) => [breed, player, minutes, clock] as const),
+  ),
+)(
+  'with a %s stray, a %s player who grants every wish, casting every %i minutes at %i×, still takes 500–800 fish to 家人',
+  (breed, player, minutes, clock) => {
+    const pace = paceOf(breed, player, minutes, 'wishing', clock);
+    const family = pace.bond[levelNamed('家人')]!;
+    const at = `${breed} ${player} at ${minutes} ${clock}×`;
+    expect(family, `家人 ${at}`).toBeGreaterThanOrEqual(500);
+    expect(family, `家人 ${at}`).toBeLessThanOrEqual(800);
+    const share = (pace.family!.wishes * WISH.bond * 100) / pace.family!.bond;
+    expect(share, `wishes' share ${at}`).toBeLessThanOrEqual(WISH_SHARE_MAX);
+  },
+);
+
+it('a skilled player who grants every wish grants every kind of wish in a play', () => {
+  const pace = paceOf('RAGDOLL', 'skilled', 60, 'wishing', 4);
+  expect(pace.wishes).toBeGreaterThan(WISH_KINDS.length);
+  expect([...pace.kinds].sort()).toEqual([...WISH_KINDS].sort());
+});
