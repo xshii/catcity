@@ -196,6 +196,7 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
 
   // The player who counts on the residents to come buys the most customers per coin
   // there is: the quickest to a full city, and so the one the lower bound is for.
+  // 12 to 20 real hours is the 4× player's target only (用户 2026-09-30).
   describe('a player who fishes, keeps the clock at 4× and reinvests', () => {
     it('B: fills the city in 12 to 20 real hours', () => {
       const run = playCity({
@@ -257,7 +258,9 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
   });
 
   // B is the 4× player's; at 1× the cafes pay a quarter as much per real hour, so the
-  // city fills later, and its cafes never out-earn the fishing that pays for it.
+  // city fills later, and its cafes never out-earn the fishing that pays for it. At 1×
+  // the target is no sooner than 12 real hours, with less from cafes than from fishing,
+  // and no upper bound (用户 2026-09-30).
   describe('the same player at 1×', () => {
     it('fills the city no sooner than 12 real hours, fishing paying the most of it', () => {
       const run = playCity({
