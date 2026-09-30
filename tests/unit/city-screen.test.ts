@@ -352,6 +352,40 @@ describe('city screen', () => {
     );
   });
 
+  it('names the companions at a cafe and counts its residents (spec 041 ui-design 5.7)', () => {
+    const world = new World({
+      ...createWorld(42).getSnapshot(),
+      coins: 10_000,
+    });
+    buildCafe(world, { x: 6, y: 3 });
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_LODGE',
+      position: { x: 6, y: 4 },
+    });
+    const detail = () => screenOf(world, view(tile(6, 3))).card!.detail;
+    advance(world, 4 * ARRIVAL_MINUTES - world.getSnapshot().minute);
+    expect(world.getSnapshot().residents).toHaveLength(4);
+    expect(detail()).toBe(
+      `客人 4/${CAFE.seats} · 每 ${HOURS} 小时 ${4 * CAFE.coinsPerCustomer} 金币 · 4 位居民`,
+    );
+    // Companions sit first: the last resident loses its seat to them.
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_APARTMENT',
+      position: { x: 4, y: 4 },
+    });
+    const home = world.getSnapshot().buildings.at(-1)!.id;
+    world.dispatch({ type: 'ASSIGN_HOME', catId: 'mochi', buildingId: home });
+    expect(detail()).toBe(
+      `客人 5/${CAFE.seats} · 每 ${HOURS} 小时 ${5 * CAFE.coinsPerCustomer} 金币 · Mochi 和 4 位居民`,
+    );
+    expect(invite(world).home).toBe(home);
+    expect(detail()).toBe(
+      `客人 5/${CAFE.seats} · 每 ${HOURS} 小时 ${5 * CAFE.coinsPerCustomer} 金币 · Mochi、Pepper 和 3 位居民`,
+    );
+  });
+
   describe('a lodge (spec 041 ui-design 5.7)', () => {
     const LODGES = [
       { x: 4, y: 4 },

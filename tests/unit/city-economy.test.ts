@@ -10,6 +10,7 @@ import {
 } from '../../src/content/city';
 import type { Position } from '../../src/core';
 import { cafeAssignment } from '../../src/core/city';
+import { ARRIVAL_MINUTES } from '../../src/content/residents';
 import { WORLD_LIMIT } from '../../src/core/limits';
 import { createWorld, loadWorld, type World } from '../../src/core/world';
 import { advance, buildCafe, untilPayout } from '../helpers/world';
@@ -398,5 +399,133 @@ describe('cafe customers (spec 040)', () => {
         buildingPrice('CAT_CAFE', 0) +
         5 * CAFE.coinsPerCustomer,
     );
+  });
+});
+
+// Residents are customers too (spec 041 R-43, design 6.4): the same seating, companions
+// first by id, then residents by id.
+describe('residents as cafe customers (spec 041 R-43)', () => {
+  const buildLodge = (world: World, position: Position) => {
+    expect(
+      world.dispatch({
+        type: 'BUILD_BUILDING',
+        buildingType: 'CAT_LODGE',
+        position,
+      }).ok,
+    ).toBe(true);
+    return world.getSnapshot().buildings.at(-1)!.id;
+  };
+  /** Game minutes until `count` more residents have come, one at each day's start. */
+  const settle = (world: World, count: number) =>
+    advance(
+      world,
+      ARRIVAL_MINUTES -
+        (world.getSnapshot().minute % ARRIVAL_MINUTES) +
+        (count - 1) * ARRIVAL_MINUTES,
+    );
+  const residents = (...serials: number[]) =>
+    serials.map((serial) => `resident-${serial}`);
+
+  it('counts a resident whose lodge is within range, and its cafe is paid for it', () => {
+    const world = rich(10_000);
+    buildCafe(world, { x: 4, y: 3 });
+    const cafe = world.getSnapshot().buildings[0]!.id;
+    // Three tiles from the cafe.
+    buildLodge(world, { x: 6, y: 4 });
+    expect(customers(world, cafe)).toEqual([]);
+    settle(world, 1);
+    expect(customers(world, cafe)).toEqual(residents(1));
+    expect(income(world, INTERVAL)).toEqual([[cafe, CAFE.coinsPerCustomer]]);
+  });
+
+  it('counts no resident whose lodge is out of range', () => {
+    const world = rich(10_000);
+    buildCafe(world, { x: 4, y: 3 });
+    const cafe = world.getSnapshot().buildings[0]!.id;
+    // Four tiles from the cafe.
+    buildLodge(world, { x: 6, y: 6 });
+    settle(world, 2);
+    expect(world.getSnapshot().residents).toHaveLength(2);
+    expect(customers(world, cafe)).toEqual([]);
+    expect(income(world, INTERVAL)).toEqual([]);
+  });
+
+  /** A cafe beside a lodge of four residents and two companions who moved in later. */
+  const sharedCafe = () => {
+    const world = rich(10_000);
+    buildCafe(world, { x: 6, y: 3 });
+    const cafe = world.getSnapshot().buildings[0]!.id;
+    buildLodge(world, { x: 6, y: 4 });
+    settle(world, 4);
+    // Three tiles from the cafe; four from where the second cafe will stand.
+    const home = buildHome(world, { x: 4, y: 4 });
+    moveIn(world, 'mochi', home);
+    resident(world, { x: 5, y: 5 }, home);
+    const companions = world.getSnapshot().cats.map((cat) => cat.id);
+    return { world, cafe, companions };
+  };
+
+  it('seats the companions first, then the residents in the order they came', () => {
+    const { world, cafe, companions } = sharedCafe();
+    // The residents came first and live nearer, yet the companions take seats first.
+    expect(customers(world, cafe)).toEqual([
+      ...companions,
+      ...residents(1, 2, 3),
+    ]);
+    expect(income(world, INTERVAL)).toEqual([
+      [cafe, CAFE.seats * CAFE.coinsPerCustomer],
+    ]);
+  });
+
+  it('sends a resident without a seat to the next cafe in range, and nowhere without one', () => {
+    const { world, cafe, companions } = sharedCafe();
+    const seated = () =>
+      [...cafeAssignment(world.getSnapshot()).values()]
+        .flat()
+        .map(({ id }) => id);
+    expect(seated()).not.toContain('resident-4');
+    // Two tiles from the lodge, out of the apartment's range.
+    buildCafe(world, { x: 6, y: 6 });
+    const second = world.getSnapshot().buildings.at(-1)!.id;
+    expect(customers(world, cafe)).toEqual([
+      ...companions,
+      ...residents(1, 2, 3),
+    ]);
+    expect(customers(world, second)).toEqual(residents(4));
+    expect(income(world, INTERVAL)).toEqual([
+      [cafe, CAFE.seats * CAFE.coinsPerCustomer],
+      [second, CAFE.coinsPerCustomer],
+    ]);
+    // Nobody sits in two cafes.
+    expect(new Set(seated()).size).toBe(seated().length);
+  });
+
+  it('gives a companion without a home no seat, and takes none from a resident', () => {
+    const world = rich(10_000);
+    buildCafe(world, { x: 6, y: 3 });
+    const cafe = world.getSnapshot().buildings[0]!.id;
+    buildLodge(world, { x: 6, y: 4 });
+    settle(world, 4);
+    // Mochi and a newcomer stand beside the cafe, homeless.
+    expect(
+      world.dispatch({ type: 'DEBUG_SPAWN_CAT', position: { x: 5, y: 5 } }).ok,
+    ).toBe(true);
+    expect(world.getSnapshot().cats.every((cat) => !cat.home)).toBe(true);
+    expect(customers(world, cafe)).toEqual(residents(1, 2, 3, 4));
+  });
+
+  it('takes residents in the order they came: the tenth after the ninth', () => {
+    const world = rich(10_000);
+    buildCafe(world, { x: 4, y: 4 });
+    const cafe = world.getSnapshot().buildings[0]!.id;
+    for (const position of [
+      { x: 4, y: 3 },
+      { x: 3, y: 4 },
+      { x: 6, y: 4 },
+    ])
+      buildLodge(world, position);
+    settle(world, 12);
+    expect(world.getSnapshot().residents).toHaveLength(12);
+    expect(customers(world, cafe)).toEqual(residents(1, 2, 3, 4, 5));
   });
 });
