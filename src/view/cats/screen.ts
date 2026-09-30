@@ -9,10 +9,10 @@ import {
 } from '../../core';
 import { catPortrait } from '../art/illustrations';
 import { catPose, lookOf } from '../art/cat-look';
-import { PETTING_COPY, knownTastes } from '../petting/screen';
-import { bondBadge } from '../shell/bond';
-import { moodBadge } from '../shell/mood';
-import { toViewModel } from '../shell/model';
+import { bondBadge } from '../common/bond';
+import { moodBadge } from '../common/mood';
+import { toViewModel } from '../common/model';
+import { knownTastes, TASTE_COPY } from '../common/tastes';
 import { INVITE_COPY } from './invite-screen';
 import { CATS_SECTIONS, type CatsSection, type CatsView } from './view-state';
 
@@ -133,7 +133,7 @@ export function detailScreen(
         '喜欢的鱼',
         cat.favoriteFish.map((id) => fishById(id).name).join('、'),
       ),
-      line('摸摸', known || PETTING_COPY.unknown),
+      line('摸摸', known || TASTE_COPY.unknown),
       line('本领', CAT_BREEDS[cat.breedId].fishingHint),
     ],
     family: [

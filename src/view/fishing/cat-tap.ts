@@ -4,7 +4,7 @@ import { moodBand } from '../../content/mood';
 import type { CatEntity } from '../../core';
 import type { CatMotion } from '../art/cat-look';
 import { companionBox } from '../art/water-view';
-import type { CatMoves } from '../shell/place';
+import type { CatMoves } from '../common/place';
 import { CAT_LINES, CAT_TAP_MS, catReaction, shownCatch } from './screen';
 import type { FishingViewStore } from './view-state';
 import { followCanvas } from './water-plane';

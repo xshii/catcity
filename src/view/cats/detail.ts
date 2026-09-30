@@ -1,7 +1,7 @@
 import './cats.css';
 import type { GameSession } from '../../application';
 import { STARTER_CAT_ID } from '../../content/cats';
-import type { PlaceState } from '../shell/place';
+import type { PlaceState } from '../common/place';
 import { CATS_COPY, detailScreen, talkCard } from './screen';
 import {
   CATS_SECTIONS,

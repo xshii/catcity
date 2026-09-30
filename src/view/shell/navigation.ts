@@ -1,4 +1,4 @@
-import type { Place, PlaceState } from './place';
+import type { Place, PlaceState } from '../common/place';
 // Both scenes share the cats panel: roster, chat and memories (spec 031).
 const cityPanels = [
   ['guide', '指引', '⌂'],

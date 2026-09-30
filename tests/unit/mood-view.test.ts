@@ -6,8 +6,8 @@ import {
   moodBadge,
   moodNote,
   withMoodNote,
-} from '../../src/view/shell/mood';
-import { toViewModel } from '../../src/view/shell/model';
+} from '../../src/view/common/mood';
+import { toViewModel } from '../../src/view/common/model';
 
 const withMood = (mood: number): WorldState => {
   const world = createWorld(42).getSnapshot();

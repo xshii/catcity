@@ -1,4 +1,4 @@
-import type { AimControl, CatMoves, PlaceState } from '../shell/place';
+import type { AimControl, CatMoves, PlaceState } from '../common/place';
 import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';
@@ -19,13 +19,8 @@ import {
   type MapGesture,
   type MapPointerEvent,
 } from './cat-drag';
-import {
-  boardSize,
-  frameMap,
-  MAP_VIEW,
-  revealShift,
-  tileCenter,
-} from './geometry';
+import { boardSize, MAP_VIEW, tileCenter } from '../art/city-geometry';
+import { frameMap, revealShift } from './geometry';
 import { selectedNotice } from './screen';
 import { catchUp, leadMinutes, walkerAt } from './walk-glide';
 

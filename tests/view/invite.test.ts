@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { INVITABLE_CATS } from '../../src/content/cats';
 import { createWorld, World } from '../../src/core/world';
-import { ERROR_MESSAGES } from '../../src/view/shell/errors';
+import { ERROR_MESSAGES } from '../../src/view/common/errors';
 import {
   $,
   click,

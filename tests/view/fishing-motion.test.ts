@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FISHING } from '../../src/content/fishing';
 import { fishShadows, shadowUnderCast } from '../../src/core';
 import { SCREEN_COPY } from '../../src/view/fishing/screen';
-import { DEFAULT_TUNING } from '../../src/view/motion/rod';
+import { DEFAULT_TUNING } from '../../src/view/fishing/motion/rod';
 import {
   $,
   click,

@@ -10,7 +10,7 @@ import {
   type CatEntity,
   type WorldState,
 } from '../../core';
-import { MOOD_COPY } from '../shell/mood';
+import { MOOD_COPY } from '../common/mood';
 
 /** What the words of one condition need to know: the cat it is about and the other one. */
 interface Facts {

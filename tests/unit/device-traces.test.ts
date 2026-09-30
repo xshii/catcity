@@ -11,7 +11,7 @@ import {
   initialFishingView,
   type FishingView,
 } from '../../src/view/fishing/view-state';
-import { DEFAULT_TUNING } from '../../src/view/motion/rod';
+import { DEFAULT_TUNING } from '../../src/view/fishing/motion/rod';
 import { replayDeviceTrace } from '../helpers/device-replay';
 
 const G = FISHING.motion.gesture;

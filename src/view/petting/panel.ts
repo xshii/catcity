@@ -9,10 +9,10 @@ import {
   pettingRegions,
   spotAt,
 } from '../art/cat-petting';
-import { outcomeNote } from '../shell/bond';
-import { ERROR_MESSAGES } from '../shell/errors';
-import type { PlaceState, Tools } from '../shell/place';
-import type { SettingsSheet } from '../shell/settings';
+import { outcomeNote } from '../common/bond';
+import { ERROR_MESSAGES } from '../common/errors';
+import type { PlaceState, Tools } from '../common/place';
+import type { SettingsSheet } from '../common/settings';
 import { reduceStroke, type StrokeGesture } from './gesture';
 import {
   PETTING_COPY,

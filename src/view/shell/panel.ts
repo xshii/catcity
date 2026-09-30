@@ -1,5 +1,6 @@
-import type { PlaceState } from './place';
+import type { PlaceState } from '../common/place';
 import type { GameSession } from '../../application';
+import { mountFishingLayout } from './layout';
 import { mountAngling } from '../fishing/panel';
 import { mountCity } from '../city/panel';
 import { mountClockSpeed } from './clock-speed';
@@ -10,11 +11,11 @@ import { createCatsView } from '../cats/view-state';
 import { mountDetail } from '../cats/detail';
 import { mountInvite } from '../cats/invite';
 import { mountRoster } from '../cats/roster';
-import { toViewModel } from './model';
-import { bondNote } from './bond';
-import { withMoodNote } from './mood';
-import { ERROR_MESSAGES } from './errors';
-import { mountSettings } from './settings';
+import { toViewModel } from '../common/model';
+import { bondNote } from '../common/bond';
+import { withMoodNote } from '../common/mood';
+import { ERROR_MESSAGES } from '../common/errors';
+import { mountSettings } from '../common/settings';
 import type { Trace } from '../../platform/device-log';
 
 const TALK_RETRY = '暂时没能完成对话，请再试一次。';
@@ -132,6 +133,7 @@ export function mountPanel(
       visitRiver: get('visit-river'),
       notice: get('notice'),
       settings,
+      layout: (toggled) => mountFishingLayout(session, place, toggled),
     },
   );
   said = angling.said;

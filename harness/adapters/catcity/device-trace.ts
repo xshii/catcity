@@ -8,8 +8,8 @@ import {
   parseTuning,
   rateAxesFor,
   type RateAxes,
-} from '../../../src/view/motion/calibrate';
-import type { RodEvent, RodTuning } from '../../../src/view/motion/rod';
+} from '../../../src/view/fishing/motion/calibrate';
+import type { RodEvent, RodTuning } from '../../../src/view/fishing/motion/rod';
 
 /** What the player was doing in the window: aiming a cast, striking a bite, calibrating. */
 export const TRACE_WANTS = ['cast', 'lift', 'calibrate'] as const;

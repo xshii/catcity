@@ -1,5 +1,5 @@
 import type { AnglingRun } from '../../minigames/angling';
-import type { Place } from '../shell/place';
+import type { Place } from '../common/place';
 
 export type Capability = 'unknown' | 'ready' | 'denied' | 'unsupported';
 export type Preference = 'motion' | 'buttons';

@@ -1,7 +1,7 @@
 import './cats.css';
 import type { GameSession } from '../../application';
 import { MAX_STAT } from '../../core';
-import type { PlaceState } from '../shell/place';
+import type { PlaceState } from '../common/place';
 import { CATS_COPY, rosterScreen, type RosterCard } from './screen';
 import type { CatsViewStore } from './view-state';
 

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { ERROR_MESSAGES } from '../../src/view/shell/errors';
+import { ERROR_MESSAGES } from '../../src/view/common/errors';
 
 it('gives every Core error a Chinese player message, never the raw code', () => {
   const entries = Object.entries(ERROR_MESSAGES);

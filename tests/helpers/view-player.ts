@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
 import { FISHING, type FishId, type SpotId } from '../../src/content/fishing';
-import { DEFAULT_TUNING } from '../../src/view/motion/rod';
+import { DEFAULT_TUNING } from '../../src/view/fishing/motion/rod';
 import {
   $,
   choose,

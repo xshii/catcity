@@ -1,4 +1,4 @@
-import type { PlaceState } from '../shell/place';
+import type { PlaceState } from '../common/place';
 import {
   FISHING,
   fishById,
@@ -7,7 +7,7 @@ import {
   type SpotId,
 } from '../../content/fishing';
 import type { WorldState } from '../../core';
-import { toViewModel } from '../shell/model';
+import { toViewModel } from '../common/model';
 import { fishIllustration } from '../art/illustrations';
 import { riverBackdrop } from '../art/river-palette';
 import {
@@ -16,10 +16,22 @@ import {
   SCREEN_COPY,
   type catchCountdown,
 } from './screen';
-import type { SettingsSheet } from '../shell/settings';
+import type { SettingsSheet } from '../common/settings';
 
 /** The river caption before a run. */
 const READY_TIP = '点击水面选择落点，再准备抛竿';
+
+/** The tool sheet the shell lays out around the river's panels (shell/layout.ts). */
+interface FishingLayout {
+  refresh: () => void;
+  close: () => void;
+  isOpen: () => boolean;
+  /** Opens the cats panel on its conversation page. */
+  openTalk: () => void;
+  /** The travel line it puts in the gear panel. */
+  travelDuration: HTMLElement;
+  travelButton: HTMLButtonElement;
+}
 
 /** Page elements the fishing scene is handed by the shell: the map frame and the scene switch. */
 export interface FishingShell {
@@ -30,6 +42,11 @@ export interface FishingShell {
   notice: HTMLElement;
   /** The settings sheet of every page: its sound and haptics, and the river's section. */
   settings: SettingsSheet;
+  /**
+   * Lays out the tool sheet once the river's panels exist; `toggled` runs when a panel
+   * opens or closes.
+   */
+  layout: (toggled: () => void) => FishingLayout;
 }
 
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */

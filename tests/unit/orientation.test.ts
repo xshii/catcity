@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OrientationTracker } from '../../src/view/motion/orientation';
+import { OrientationTracker } from '../../src/view/fishing/motion/orientation';
 
 function expectPoint(
   actual: { x: number; y: number } | null,

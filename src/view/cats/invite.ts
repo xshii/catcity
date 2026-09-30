@@ -3,7 +3,7 @@ import type { GameSession } from '../../application';
 import { INVITABLE_CATS, type CatDefinitionId } from '../../content/cats';
 import { catPortrait } from '../art/illustrations';
 import type { CatPose } from '../art/cat-look';
-import { ERROR_MESSAGES } from '../shell/errors';
+import { ERROR_MESSAGES } from '../common/errors';
 import {
   arrivedNotice,
   INVITE_COPY,

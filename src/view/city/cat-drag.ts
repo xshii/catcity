@@ -1,6 +1,6 @@
 import type { ErrorCode, GameCommand, Position, WorldState } from '../../core';
 import { spotAt } from '../../core/city';
-import { MAP_VIEW } from './geometry';
+import { MAP_VIEW } from '../art/city-geometry';
 import { cityScreen, type CardIntent } from './screen';
 import { initialCityView } from './view-state';
 

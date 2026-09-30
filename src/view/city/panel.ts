@@ -1,4 +1,4 @@
-import type { PlaceState, Tools } from '../shell/place';
+import type { PlaceState, Tools } from '../common/place';
 import type { GameSession } from '../../application';
 import type { SpotId } from '../../content/fishing';
 import type { GameCommand, Position } from '../../core';

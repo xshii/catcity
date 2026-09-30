@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createPlace } from '../../src/view/shell/place';
+import { createPlace } from '../../src/view/common/place';
 
 it('a minigame is on at the river or while the petting screen is open, over either place (041 R-22)', () => {
   const place = createPlace();

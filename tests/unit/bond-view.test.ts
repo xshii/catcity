@@ -7,8 +7,8 @@ import {
   bondBadge,
   bondNote,
   outcomeNote,
-} from '../../src/view/shell/bond';
-import { toViewModel } from '../../src/view/shell/model';
+} from '../../src/view/common/bond';
+import { toViewModel } from '../../src/view/common/model';
 
 const withCat = (playerBond: number, mood = 70): WorldState => {
   const world = createWorld(42).getSnapshot();

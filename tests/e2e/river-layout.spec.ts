@@ -14,7 +14,7 @@ import {
 import { fishById } from '../../src/content/fishing';
 import { createWorld } from '../../src/core';
 import { greenZone } from '../../src/minigames/angling';
-import { moodBadge } from '../../src/view/shell/mood';
+import { moodBadge } from '../../src/view/common/mood';
 import {
   askForSensors,
   phoneContext,

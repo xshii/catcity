@@ -8,7 +8,7 @@ import {
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { BUILDINGS, CITY_START } from '../../src/content/city';
 import type { Position } from '../../src/core';
-import { MAP_VIEW } from '../../src/view/city/geometry';
+import { MAP_VIEW } from '../../src/view/art/city-geometry';
 
 // Spec 014: the city page on a phone — messages, entry points, selecting a
 // cat, first-screen guidance, map framing and the clock speed.
