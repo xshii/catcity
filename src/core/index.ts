@@ -3,6 +3,12 @@ export { createWorld, loadWorld, World } from './world';
 export { commandSchema } from './commands';
 export { MAX_BOND, MAX_STAT, MAX_TEXT } from './limits';
 export { catIdle } from './cats';
+export {
+  catBreedBlocks,
+  cityBreedBlocks,
+  pairBreedBlocks,
+  type BreedBlock,
+} from './family';
 export { gameDay } from './bond';
 export { pettingTastes } from './petting';
 export { travelMinutes } from './fishing/travel';

@@ -31,3 +31,19 @@ export function readyPair(): World {
   }
   return new World(state);
 }
+
+/**
+ * `readyPair` with Pepper just short of happy, and a second Mochi (debug spawns copy her)
+ * who is still a stranger: the list of partners has something under each cat.
+ */
+export function pairAndStranger(): World {
+  const world = readyPair();
+  const spawned = world.dispatch({
+    type: 'DEBUG_SPAWN_CAT',
+    position: { x: 3, y: 7 },
+  });
+  if (!spawned.ok) throw new Error(spawned.error);
+  const state = world.getSnapshot();
+  state.cats[1]!.mood = MOOD.happy - 1;
+  return new World(state);
+}

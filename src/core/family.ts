@@ -42,7 +42,7 @@ export function related(a: CatEntity, b: CatEntity): boolean {
 }
 
 /** What keeps the two from being a pair, whatever state each is in. */
-function pairBreedBlocks(a: CatEntity, b: CatEntity): BreedBlock[] {
+export function pairBreedBlocks(a: CatEntity, b: CatEntity): BreedBlock[] {
   if (a.id === b.id) return ['SAME_CAT'];
   return failing([
     ['NEED_PAIR', a.sex === b.sex],
@@ -51,7 +51,10 @@ function pairBreedBlocks(a: CatEntity, b: CatEntity): BreedBlock[] {
 }
 
 /** What keeps this cat itself from having a kitten now, whoever the other one is. */
-function catBreedBlocks(world: WorldState, cat: CatEntity): BreedBlock[] {
+export function catBreedBlocks(
+  world: WorldState,
+  cat: CatEntity,
+): BreedBlock[] {
   return failing([
     ['KITTEN', catStage(world, cat) === 'kitten'],
     ['NEUTERED', cat.neutered],
@@ -66,7 +69,7 @@ function catBreedBlocks(world: WorldState, cat: CatEntity): BreedBlock[] {
 }
 
 /** What keeps the city from taking one more cat: a free bed, room among the companions. */
-function cityBreedBlocks(world: WorldState): BreedBlock[] {
+export function cityBreedBlocks(world: WorldState): BreedBlock[] {
   const beds = world.buildings.reduce(
     (sum, building) => sum + BUILDINGS[building.type].homeCapacity,
     0,
