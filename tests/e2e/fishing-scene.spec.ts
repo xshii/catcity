@@ -1,5 +1,5 @@
 import { CARE } from '../../src/content/care';
-import { enterRiver } from '../../harness/adapters/catcity/city-input';
+import { enterRiver, settle } from '../../harness/adapters/catcity/city-input';
 import { expect, test } from '@playwright/test';
 import { FISHING } from '../../src/content/fishing';
 import { WATER_VIEW, waterPoint } from '../../src/view/art/water-view';
@@ -43,11 +43,18 @@ test('scene input aims at water, cat cards switch independent stamina, and idle 
   expect((await readWorld(page)).cats[0]!.needs.energy).toBe(
     arrival.cats[0]!.needs.energy - 8,
   );
-  // Nothing to press: an idle, tired cat shows that it is recovering.
+  // Aiming again after a cast: the cat fishing with the player sits up, awake (R-01).
+  await settle(page);
+  await page.screenshot({ path: testInfo.outputPath('awake-after-cast.png') });
   await openCats(page);
-  await expect(page.locator('[data-cat-id="mochi"]')).toHaveAccessibleName(
-    /在休息/,
-  );
+  const mochi = page.locator('[data-cat-id="mochi"]');
+  await expect(mochi).toHaveAccessibleName(/Mochi/);
+  await expect(mochi).not.toHaveAccessibleName(/在休息/);
+  // Nothing to press: in the city, an idle, tired cat shows that it is recovering.
+  await closeRiverPanel(page);
+  await page.locator('#visit-city').click();
+  await openCats(page);
+  await expect(mochi).toHaveAccessibleName(/在休息/);
   await page.locator('#invite-pepper').click();
   const pepper = (await readWorld(page)).cats[1]!;
   await page.locator(`[data-cat-id="${pepper.id}"]`).click();
