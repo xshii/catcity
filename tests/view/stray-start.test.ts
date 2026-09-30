@@ -164,13 +164,19 @@ describe('a new game starts with a stray (cat-looks.md 2)', () => {
       storage: { [SAVE_KEY]: 'broken' },
     });
     expect(visible('#stray-start')).toBe(false);
+    expect(visible('#save-recovery')).toBe(true);
     click('#reset-demo');
     expect(visible('#stray-start')).toBe(true);
+    // The reset was asked for: its card goes, though the old save stays until the start.
+    expect(visible('#save-recovery')).toBe(false);
     expect(localStorage.getItem(SAVE_KEY)).toBe('broken');
     click('#stray-look');
+    expect(visible('#save-recovery')).toBe(false);
     click(radio('breed', 'RAGDOLL'));
     click('#cat-maker-confirm');
+    expect(visible('#save-recovery')).toBe(false);
     click('#name-confirm');
+    expect(visible('#save-recovery')).toBe(false);
     expect(game.world().cats[0]!.breedId).toBe('RAGDOLL');
     expect(loadWorld(localStorage.getItem(SAVE_KEY)!).getSnapshot()).toEqual(
       game.world(),
