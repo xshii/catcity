@@ -79,6 +79,7 @@ describe('city panels', () => {
       expect(buttons().map((button) => button.id)).toEqual([
         'build-cat_cafe',
         'build-cat_apartment',
+        'build-cat_salon',
         'place-road',
       ]);
     };

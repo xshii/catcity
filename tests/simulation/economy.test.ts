@@ -16,6 +16,7 @@ import {
   crowdedStart,
   customersServed,
   playCity,
+  SALON_PLAN,
 } from '../helpers/city-player';
 import { advance } from '../helpers/world';
 
@@ -48,6 +49,7 @@ const strayOf = (breed: CatBreed) => ({
 function filledCity(
   breed: CatBreed,
   cafes: readonly Position[] = CITY_PLAN.cafes,
+  plots: readonly Position[] = CITY_PLAN.plots,
 ) {
   const state = crowdedStart(strayOf(breed)).getSnapshot();
   const world = loadWorld(
@@ -58,7 +60,7 @@ function filledCity(
   );
   // Cafes first, so the apartments fill in the plan's order either way.
   for (const plot of cafes) buildOn(world, plot, cafes);
-  for (const plot of CITY_PLAN.plots)
+  for (const plot of plots)
     if (!cafes.some((cafe) => cafe.x === plot.x && cafe.y === plot.y))
       buildOn(world, plot, cafes);
   return { world, spent: FUNDS - world.getSnapshot().coins };
@@ -179,6 +181,51 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
       const second = play();
       expect(second.purchases).toEqual(first.purchases);
       expect(second.world.save()).toBe(first.world.save());
+    });
+  });
+
+  // The salon earns nothing (spec 041 T-15): its price may only slow the city down so
+  // far that every target above still holds with it.
+  describe('the cat salon', () => {
+    it('fits in the filled city for 45,860 coins in all, still within the range', () => {
+      const { world, spent } = filledCity(
+        breed,
+        CITY_PLAN.cafes,
+        SALON_PLAN.plots,
+      );
+      buildOn(world, SALON_PLAN.salon);
+      const state = world.getSnapshot();
+      expect(state.buildings).toHaveLength(13);
+      expect(customersServed(state)).toBe(16);
+      const total = FUNDS - state.coins;
+      // Besides the salon, its plan lays one more road and buys two more plots: 130 coins.
+      expect(total - spent).toBe(buildingPrice('CAT_SALON', 0) + 50);
+      expect(spent).toBe(44_230 + 30 + 50);
+      expect(total).toBe(45_860);
+      expect(total).toBeGreaterThanOrEqual(40_000);
+      expect(total).toBeLessThanOrEqual(48_000);
+    });
+
+    it('B: still fills the city in 12 to 20 real hours when the salon comes first', () => {
+      const run = playCity({
+        fishing: FISHING_COINS_PER_REAL_MINUTE,
+        speed: FASTEST,
+        realMinutes: 21 * 60,
+        stray: strayOf(breed),
+        salonFirst: true,
+      });
+      const state = run.world.getSnapshot();
+      expect(state.buildings).toHaveLength(13);
+      expect(customersServed(state)).toBe(16);
+      // The first hour of fishing buys it: the price is one real hour's fishing.
+      expect(buildingPrice('CAT_SALON', 0)).toBe(FISHING_PER_REAL_HOUR);
+      expect(run.purchases[0]).toMatchObject({
+        realMinute: 26,
+        building: 'CAT_SALON',
+      });
+      expect(run.filledAt).toBe(964);
+      expect(run.filledAt! / 60).toBeGreaterThanOrEqual(12);
+      expect(run.filledAt! / 60).toBeLessThanOrEqual(20);
     });
   });
 

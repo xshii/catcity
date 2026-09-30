@@ -4,6 +4,7 @@ import {
   buildingPrice,
   CITY_COSTS,
   landPrice,
+  RESTYLE_PRICE,
   ROAD_PRICE,
 } from '../../src/content/city';
 import { BOND } from '../../src/content/care';
@@ -165,6 +166,8 @@ function coinChange(
       );
     case 'RECYCLE_TRASH':
       return FISHING.supplies.trashCoins;
+    case 'RESTYLE_CAT':
+      return -RESTYLE_PRICE;
     case 'SELL_FISH': {
       const fish = before.fishing.inventory.find(
         (item) => item.id === command.fishId,
@@ -231,6 +234,7 @@ function moodMayChange(command: GameCommand): boolean {
     case 'SELL_FISH':
     case 'BUY_BAIT':
     case 'INVITE_CAT':
+    case 'RESTYLE_CAT':
     case 'DEBUG_SPAWN_CAT':
       return false;
   }

@@ -35,6 +35,15 @@ const WINDOWS = {
     [-13, 5, 8, 9],
     [6, 5, 8, 9],
   ],
+  // The salon's wide shop window.
+  CAT_SALON: [[-17, -4, 15, 13]],
+} as const;
+
+/** Each building's walls and roof: the roof tells the types apart (ui-design 6.2). */
+const WALLS = {
+  CAT_CAFE: [C.cafe, C.cafeRoof],
+  CAT_APARTMENT: [C.apartment, C.apartmentRoof],
+  CAT_SALON: [C.salon, C.salonRoof],
 } as const;
 
 /** Dashes along from→to, `dash` long and `gap` apart; the last is cut at `to`. */
@@ -167,17 +176,17 @@ export function drawCityMap(
   }
   for (const building of world.buildings) {
     const { x, y } = tileCenter(building.position.x, building.position.y);
-    const apartment = building.type === 'CAT_APARTMENT';
+    const [wall, roof] = WALLS[building.type];
     g.fillStyle(c(C.line), 0.16).fillEllipse(x + 2, y + 21, 48, 13);
     g.lineStyle(1.5, c(C.line));
-    g.fillStyle(c(apartment ? C.apartment : C.cafe))
+    g.fillStyle(c(wall))
       .fillRoundedRect(x - 22, y - 15, 44, 37, 5)
       .strokeRoundedRect(x - 22, y - 15, 44, 37, 5);
-    g.fillStyle(c(apartment ? C.apartmentRoof : C.cafeRoof))
+    g.fillStyle(c(roof))
       .fillTriangle(x - 27, y - 15, x, y - 31, x + 27, y - 15)
       .strokeTriangle(x - 27, y - 15, x, y - 31, x + 27, y - 15);
-    if (!apartment) {
-      // The café's awning and door.
+    if (building.type === 'CAT_CAFE') {
+      // The café's awning.
       for (let i = 0; i < 6; i++)
         g.fillStyle(c(i % 2 ? C.board : C.cafeRoof)).fillRect(
           x - 24 + i * 8,
@@ -186,10 +195,20 @@ export function drawCityMap(
           9,
         );
       g.strokeRect(x - 24, y - 9, 48, 9);
+    }
+    if (building.type === 'CAT_SALON') {
+      // The salon's sign under the roof: a comb on a round board.
+      g.fillStyle(c(C.board))
+        .fillCircle(x, y - 21, 6)
+        .strokeCircle(x, y - 21, 6)
+        .lineBetween(x - 4, y - 23, x + 4, y - 23);
+      for (const dx of [-3, -1, 1, 3])
+        g.lineBetween(x + dx, y - 23, x + dx, y - 18.5);
+    }
+    if (building.type !== 'CAT_APARTMENT')
       g.fillStyle(c(C.door))
         .fillRoundedRect(x + 4, y - 1, 11, 23, 2)
         .strokeRoundedRect(x + 4, y - 1, 11, 23, 2);
-    }
     for (const [dx, dy, width, height] of WINDOWS[building.type]) {
       if (light.windowsLit)
         g.fillStyle(C.glow, 0.45).fillCircle(

@@ -79,6 +79,7 @@ describe('city screen', () => {
     expect(grass.buttons.map(({ id, buildType }) => [id, buildType])).toEqual([
       ['build-cat_cafe', 'CAT_CAFE'],
       ['build-cat_apartment', 'CAT_APARTMENT'],
+      ['build-cat_salon', 'CAT_SALON'],
       ['place-road', undefined],
     ]);
     expect(ids(world, view(tile(5, 4)))).toEqual([
@@ -314,6 +315,7 @@ describe('city screen', () => {
     expect(grass.buttons.map(({ reason }) => reason)).toEqual([
       `金币不足：需要 ${buildingPrice('CAT_CAFE', 0)}，现有 100。`,
       `金币不足：需要 ${buildingPrice('CAT_APARTMENT', 0)}，现有 100。`,
+      `金币不足：需要 ${buildingPrice('CAT_SALON', 0)}，现有 100。`,
       null,
     ]);
     expect(screenOf(world, view(tile(7, 9))).card!.reasons).toEqual([

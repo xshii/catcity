@@ -1,4 +1,4 @@
-export const BUILDING_IDS = ['CAT_CAFE', 'CAT_APARTMENT'] as const;
+export const BUILDING_IDS = ['CAT_CAFE', 'CAT_APARTMENT', 'CAT_SALON'] as const;
 /** `growth` is the price ratio from one building of a type to the next, as a fraction. */
 export const BUILDINGS = {
   CAT_CAFE: {
@@ -17,7 +17,19 @@ export const BUILDINGS = {
     growth: [9, 5],
     homeCapacity: 2,
   },
+  /** Restyles a companion's look (spec 041 T-15); one per city, so it never grows. */
+  CAT_SALON: {
+    type: 'CAT_SALON',
+    name: '猫咪美容院',
+    basePrice: 1500,
+    growth: [1, 1],
+    homeCapacity: 0,
+  },
 } as const;
+/** A city has at most this many salons. */
+export const MAX_SALONS = 1;
+/** What one restyle at the salon costs (spec 041 cat-looks.md 3): a little, every time. */
+export const RESTYLE_PRICE = 50;
 /**
  * A cafe earns from its customers (spec 040): cats whose home is within `range` tiles,
  * each cat at one cafe only, at most `seats` per cafe.

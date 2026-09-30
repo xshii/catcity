@@ -1,12 +1,14 @@
 import {
+  APPEARANCE_OPTIONS,
   CAT_DEFINITIONS,
   CAT_START,
   INVITABLE_CATS,
   MAX_COMPANIONS,
   invitePrice,
+  type CatAppearance,
   type CatDefinitionId,
 } from '../content/cats';
-import { BUILDINGS } from '../content/city';
+import { BUILDINGS, RESTYLE_PRICE } from '../content/city';
 import { KITTEN_MINUTES } from '../content/family';
 import { gridDistance } from './city/map';
 import { isWalkable } from './city/path';
@@ -133,4 +135,34 @@ export function inviteCat(
   cat.home = home.id;
   world.cats.push(cat);
   return [{ type: 'CatInvited', minute: world.minute, entityId: cat.id, cost }];
+}
+
+const LOOK_ITEMS = Object.keys(APPEARANCE_OPTIONS) as (keyof CatAppearance)[];
+
+/**
+ * The salon restyles a companion (spec 041 T-15): a new look for a fee, the breed kept.
+ * The coins are judged before the look, so a card can ask with the cat's own look
+ * whether a restyle could go through at all.
+ */
+export function restyleCat(
+  world: WorldState,
+  catId: string,
+  appearance: CatAppearance,
+): GameEvent[] {
+  if (!world.buildings.some((building) => building.type === 'CAT_SALON'))
+    throw new CommandError('NO_SALON');
+  const cat = requireCat(world, catId);
+  if (world.coins < RESTYLE_PRICE) throw new CommandError('INSUFFICIENT_COINS');
+  if (LOOK_ITEMS.every((item) => cat.appearance[item] === appearance[item]))
+    throw new CommandError('APPEARANCE_UNCHANGED');
+  world.coins -= RESTYLE_PRICE;
+  cat.appearance = { ...appearance };
+  return [
+    {
+      type: 'CatRestyled',
+      minute: world.minute,
+      entityId: cat.id,
+      cost: RESTYLE_PRICE,
+    },
+  ];
 }

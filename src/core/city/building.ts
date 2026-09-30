@@ -4,6 +4,7 @@ import {
   CITY_COSTS,
   CITY_START,
   landPrice,
+  MAX_SALONS,
   ROAD_PRICE,
 } from '../../content/city';
 import { samePosition, tileAt } from './map';
@@ -27,6 +28,9 @@ type CityCommand = Extract<
       | 'ASSIGN_HOME';
   }
 >;
+
+const salons = (world: WorldState) =>
+  world.buildings.filter((building) => building.type === 'CAT_SALON').length;
 
 export function applyCity(
   world: WorldState,
@@ -114,6 +118,12 @@ export function applyCity(
       if (command.type === 'MOVE_BUILDING' && !moved)
         throw new CommandError('BUILDING_NOT_FOUND');
       if (!moved && world.buildings.length >= MAX_BUILDINGS)
+        throw new CommandError('BUILDING_LIMIT');
+      if (
+        command.type === 'BUILD_BUILDING' &&
+        command.buildingType === 'CAT_SALON' &&
+        salons(world) >= MAX_SALONS
+      )
         throw new CommandError('BUILDING_LIMIT');
       // Removing the old footprint is safe on the dispatch copy and permits routes through it.
       const previous = moved?.position;

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
 import { CAT_DEFINITION_IDS } from '../content/cats';
 import { baitIdSchema, spotIdSchema } from './fishing/schema';
-import { positionSchema } from './schema';
+import { appearanceSchema, positionSchema } from './schema';
 import { FISHING, type SpotId } from '../content/fishing';
 import { PETTING, PET_SPOTS, type PetSpot } from '../content/petting';
 import { MAX_TEXT } from './limits';
@@ -99,6 +99,12 @@ export const commandSchema = z.discriminatedUnion('type', [
     definitionId: z.enum(CAT_DEFINITION_IDS),
   }),
   z.strictObject({
+    type: z.literal('RESTYLE_CAT'),
+    catId: id,
+    /** Only the five choices: a cat's breed never changes after the stray (T-15). */
+    appearance: appearanceSchema,
+  }),
+  z.strictObject({
     type: z.literal('ADVANCE_TIME'),
     minutes: z.number().int().min(0).max(MAX_ADVANCE_MINUTES),
   }),
@@ -173,6 +179,7 @@ export type GameEvent =
     }
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
   | { type: 'CatInvited'; minute: number; entityId: string; cost: number }
+  | { type: 'CatRestyled'; minute: number; entityId: string; cost: number }
   | {
       type: 'CatPetted';
       minute: number;
@@ -228,7 +235,9 @@ export type ErrorCode =
   | 'NO_SUPPLIES'
   | 'ALREADY_INVITED'
   | 'COMPANION_LIMIT'
-  | 'NO_BED';
+  | 'NO_BED'
+  | 'NO_SALON'
+  | 'APPEARANCE_UNCHANGED';
 export type CommandResult =
   { ok: true; events: GameEvent[] } | { ok: false; error: ErrorCode };
 /** A dry run: whether Core would accept the command now. */

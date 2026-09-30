@@ -1,4 +1,9 @@
-import { BUILDINGS, CITY_START, WALK_MINUTES } from '../../content/city';
+import {
+  BUILDINGS,
+  CITY_START,
+  MAX_SALONS,
+  WALK_MINUTES,
+} from '../../content/city';
 
 const SLOWEST_STEP = Math.max(...Object.values(WALK_MINUTES));
 import { SPOT_IDS, spotOpen } from '../../content/fishing';
@@ -32,6 +37,11 @@ export function assertCity(world: WorldState): void {
     pending.push(...neighbors(position));
   }
   if (reached.size !== grass.length) throw new Error('Disconnected city land');
+  if (
+    world.buildings.filter((building) => building.type === 'CAT_SALON').length >
+    MAX_SALONS
+  )
+    throw new Error('Too many salons');
   const connected = connectedRoads(world);
   if (!connected.length) throw new Error('Missing starting road');
   for (const building of world.buildings) {

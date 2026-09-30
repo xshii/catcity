@@ -6,7 +6,7 @@ import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
 import { rewardBond, spendDaily } from './bond';
 import { liftMood } from './mood';
-import { instantiateCat, inviteCat, requireCat } from './cats';
+import { instantiateCat, inviteCat, requireCat, restyleCat } from './cats';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { simulate } from './simulation';
@@ -46,6 +46,8 @@ export function applyCommand(
       return applyAngling(world, command);
     case 'INVITE_CAT':
       return inviteCat(world, command.definitionId);
+    case 'RESTYLE_CAT':
+      return restyleCat(world, command.catId, command.appearance);
     case 'PET_CAT':
       return petCat(world, command);
     case 'ADVANCE_TIME':
