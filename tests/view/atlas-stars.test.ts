@@ -7,7 +7,11 @@ import {
   openGear,
   showFish,
 } from '../helpers/view-player';
-import { progressSaves } from '../helpers/fishing-progress';
+import {
+  pondDirection,
+  progressSaves,
+  withNextCatch,
+} from '../helpers/fishing-progress';
 import {
   FISH,
   fishById,
@@ -118,5 +122,41 @@ describe('a catch that adds to the atlas says so where the catch shows', () => {
     expect(visible('#catch-reveal')).toBe(true);
     expect(text('#catch-reveal')).toContain(note);
     expect(text('#fish-result')).toContain(note);
+  });
+});
+
+function catchAtPond(save: string) {
+  const game = openAt(save);
+  enterRiver(game);
+  openGear(game);
+  choose('#fish-direction', String(pondDirection(4)));
+  closeRiverPanel();
+  click('#cast-start');
+  catchFish(game);
+  const result = game.world().fishing.lastResult!;
+  expect(result.caught && result.speciesId).toBeTruthy();
+  expect(visible('#catch-reveal')).toBe(true);
+  return lengthStar(result.speciesId!, result.lengthMm);
+}
+
+describe('a catch long enough for its gold shines on the catch card, every time (ui-design 5.9)', () => {
+  it('a gold catch has the gold mark on its card, and the countdown stays', () => {
+    expect(catchAtPond(withNextCatch(saves.oneCatchShort, true))).toBe(3);
+    expect($('#catch-reveal').dataset.gold).toBe('true');
+    expect(visible('#catch-reveal .catch-gold')).toBe(true);
+    expect($('#catch-reveal .catch-gold').getAttribute('aria-label')).toBe(
+      SCREEN_COPY.atlas.goldCatch,
+    );
+    expect(
+      document.querySelector('#catch-reveal .catch-countdown'),
+    ).not.toBeNull();
+  });
+
+  it('a catch short of gold has no mark', () => {
+    expect(catchAtPond(withNextCatch(saves.oneCatchShort, false))).toBeLessThan(
+      3,
+    );
+    expect($('#catch-reveal').dataset.gold).toBe('false');
+    expect(document.querySelector('#catch-reveal .catch-gold')).toBeNull();
   });
 });
