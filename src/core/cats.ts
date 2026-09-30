@@ -3,6 +3,7 @@ import {
   CAT_START,
   type CatDefinitionId,
 } from '../content/cats';
+import { KITTEN_MINUTES } from '../content/family';
 import { CommandError } from './commands';
 import type { CatEntity, Position, WorldState } from './schema';
 
@@ -70,4 +71,15 @@ export function catIdle(world: WorldState, cat: CatEntity): boolean {
     world.fishing.active?.catId !== cat.id &&
     (!cat.walk || cat.walk.nextStepMinute === null)
   );
+}
+
+/** A cat born in the city is a kitten for a while; first-generation cats arrive grown. */
+export function catStage(
+  world: WorldState,
+  cat: CatEntity,
+): 'kitten' | 'adult' {
+  return cat.bornMinute !== null &&
+    world.minute - cat.bornMinute < KITTEN_MINUTES
+    ? 'kitten'
+    : 'adult';
 }
