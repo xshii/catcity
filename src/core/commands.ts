@@ -99,6 +99,7 @@ export const commandSchema = z.discriminatedUnion('type', [
     type: z.literal('INVITE_CAT'),
     definitionId: z.enum(CAT_DEFINITION_IDS),
   }),
+  z.strictObject({ type: z.literal('NEUTER_CAT'), catId: id }),
   z.strictObject({
     type: z.literal('RENAME_CAT'),
     catId: id,
@@ -180,6 +181,7 @@ export type GameEvent =
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
   | { type: 'CatInvited'; minute: number; entityId: string; cost: number }
   | { type: 'CatRenamed'; minute: number; entityId: string }
+  | { type: 'CatNeutered'; minute: number; entityId: string; cost: number }
   | {
       type: 'CatPetted';
       minute: number;
@@ -236,7 +238,9 @@ export type ErrorCode =
   | 'ALREADY_INVITED'
   | 'COMPANION_LIMIT'
   | 'NO_BED'
-  | 'NAME_UNCHANGED';
+  | 'NAME_UNCHANGED'
+  | 'ALREADY_NEUTERED'
+  | 'CAT_TOO_YOUNG';
 export type CommandResult =
   { ok: true; events: GameEvent[] } | { ok: false; error: ErrorCode };
 /** A dry run: whether Core would accept the command now. */

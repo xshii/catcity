@@ -217,6 +217,10 @@ describe('the mood allowance (user 2026-09-30)', () => {
       return result.ok && result.events[0];
     });
 
+  it('is 4 rounds in any 10 game hours (user 2026-09-30)', () => {
+    expect(CARE.pettingLifts).toEqual({ rounds: 4, windowMinutes: 10 * 60 });
+  });
+
   it('lifts mood with at most its rounds in any window of game minutes; later ones lift nothing', () => {
     const world = calm(20);
     const minute = world.getSnapshot().minute;

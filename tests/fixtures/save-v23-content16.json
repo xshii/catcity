@@ -1,11 +1,11 @@
 {
   "saveVersion": 23,
-  "contentVersion": 15,
+  "contentVersion": 16,
   "world": {
     "seed": 42,
-    "minute": 564,
-    "coins": 1000,
-    "nextId": 1,
+    "minute": 420,
+    "coins": 500,
+    "nextId": 3,
     "map": {
       "width": 10,
       "height": 10,
@@ -913,7 +913,17 @@
         }
       ]
     },
-    "buildings": [],
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_APARTMENT",
+        "position": {
+          "x": 4,
+          "y": 3
+        },
+        "builtAtMinute": 420
+      }
+    ],
     "cats": [
       {
         "id": "mochi",
@@ -939,12 +949,12 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 84,
+        "mood": 70,
         "needs": {
           "energy": 100
         },
         "memories": [],
-        "playerBond": 6,
+        "playerBond": 0,
         "home": null,
         "position": {
           "x": 7,
@@ -952,10 +962,7 @@
         },
         "chatBond": null,
         "giftBond": null,
-        "pettingBond": {
-          "day": 0,
-          "count": 3
-        },
+        "pettingBond": null,
         "lastChatMoodMinute": null,
         "fishingSpotId": "POND",
         "walk": null,
@@ -964,8 +971,58 @@
         "fishingMemory": null,
         "fishGift": null,
         "petting": {
-          "discovered": ["BACK"],
-          "lifted": [540, 552, 564]
+          "discovered": [],
+          "lifted": []
+        }
+      },
+      {
+        "id": "cat-2",
+        "definitionId": "PEPPER",
+        "name": "Pepper",
+        "appearance": {
+          "colour": "gray",
+          "pattern": "solid",
+          "white": "none",
+          "eyes": "copper",
+          "face": "round"
+        },
+        "sex": "M",
+        "bornMinute": null,
+        "generation": 1,
+        "parents": null,
+        "neutered": false,
+        "talent": 0,
+        "lastBredMinute": null,
+        "personality": ["curious", "playful"],
+        "traits": ["adventurous"],
+        "preferences": {
+          "likes": ["fish", "exploring"],
+          "dislikes": ["waiting"]
+        },
+        "mood": 70,
+        "needs": {
+          "energy": 100
+        },
+        "memories": [],
+        "playerBond": 0,
+        "home": "building-1",
+        "position": {
+          "x": 4,
+          "y": 2
+        },
+        "chatBond": null,
+        "giftBond": null,
+        "pettingBond": null,
+        "lastChatMoodMinute": null,
+        "fishingSpotId": null,
+        "walk": null,
+        "breedId": "BRITISH_SHORTHAIR",
+        "favoriteFish": ["PERCH", "CATFISH"],
+        "fishingMemory": null,
+        "fishGift": null,
+        "petting": {
+          "discovered": [],
+          "lifted": []
         }
       }
     ],

@@ -1,9 +1,36 @@
 import { bondLevel } from '../content/care';
 import { MAX_COMPANIONS } from '../content/cats';
-import { BREED_BOND_LEVEL, BREED_COOLDOWN_MINUTES } from '../content/family';
+import {
+  BREED_BOND_LEVEL,
+  BREED_COOLDOWN_MINUTES,
+  NEUTER_PRICE,
+} from '../content/family';
 import { MOOD } from '../content/mood';
 import { catStage, freeBeds, requireCat } from './cats';
+import { CommandError, type GameEvent } from './commands';
 import type { CatEntity, WorldState } from './schema';
+
+/**
+ * A grown cat is neutered once and for good, for a few coins (spec 041 R-30, design 5.2).
+ * It has no kittens after (`NEUTERED` among the breed blocks); nothing else changes.
+ */
+export function neuterCat(world: WorldState, catId: string): GameEvent[] {
+  const cat = requireCat(world, catId);
+  if (catStage(world, cat) === 'kitten')
+    throw new CommandError('CAT_TOO_YOUNG');
+  if (cat.neutered) throw new CommandError('ALREADY_NEUTERED');
+  if (world.coins < NEUTER_PRICE) throw new CommandError('INSUFFICIENT_COINS');
+  world.coins -= NEUTER_PRICE;
+  cat.neutered = true;
+  return [
+    {
+      type: 'CatNeutered',
+      minute: world.minute,
+      entityId: cat.id,
+      cost: NEUTER_PRICE,
+    },
+  ];
+}
 
 /**
  * Why two cats cannot have a kitten now (spec 041 R-31, design 5.1), in the order a

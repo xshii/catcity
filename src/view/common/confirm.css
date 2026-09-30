@@ -1,0 +1,74 @@
+/*
+ * The confirmation before something that cannot be undone (spec 041 ui-design 4.2): over
+ * every other layer (3.1), in the middle of the screen, over a scrim that cancels.
+ */
+.confirm-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--scrim);
+}
+/* Scoped by id: the dialog floats over the scene, whose own button styles load later. */
+#confirm {
+  position: fixed;
+  z-index: 51;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-sheet);
+  color: var(--text);
+  animation: confirm-in 200ms ease-out;
+}
+/* Only a fade, so reduced motion needs nothing else (ui-design 2.5). */
+@keyframes confirm-in {
+  from {
+    opacity: 0;
+  }
+}
+#confirm h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+#confirm-body {
+  display: grid;
+  gap: 4px;
+}
+#confirm p {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+#confirm #confirm-cost {
+  color: var(--text-muted);
+}
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+#confirm button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  color: var(--text);
+  font-size: 14px;
+}
+/* Irreversible: not the green primary, so it is not tapped by habit (ui-design 4.2). */
+#confirm #confirm-ok {
+  color: var(--text-accent);
+  font-weight: 600;
+}

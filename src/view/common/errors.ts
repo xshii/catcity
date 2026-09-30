@@ -48,4 +48,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   COMPANION_LIMIT: `伙伴猫已经有 ${MAX_COMPANIONS} 只了，小城住不下更多伙伴。`,
   NO_BED: '没有空床位：先建一座公寓。',
   NAME_UNCHANGED: '还是原来的名字。',
+  ALREADY_NEUTERED: '它已经绝育了。',
+  CAT_TOO_YOUNG: '它还小，长大后才可以。',
 };

@@ -7,6 +7,7 @@ import { applyAngling } from './fishing/commands';
 import { rewardBond, spendDaily } from './bond';
 import { liftMood } from './mood';
 import { instantiateCat, inviteCat, renameCat, requireCat } from './cats';
+import { neuterCat } from './family';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { simulate } from './simulation';
@@ -48,6 +49,8 @@ export function applyCommand(
       return inviteCat(world, command.definitionId);
     case 'RENAME_CAT':
       return renameCat(world, command.catId, command.name);
+    case 'NEUTER_CAT':
+      return neuterCat(world, command.catId);
     case 'PET_CAT':
       return petCat(world, command);
     case 'ADVANCE_TIME':
