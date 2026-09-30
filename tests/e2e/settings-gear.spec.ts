@@ -102,6 +102,17 @@ async function openSheet(page: Page) {
   await page.locator('#settings-gear').click();
   await expect(page.locator('#settings-sheet')).toBeVisible();
   await expect(page.locator('#settings-common')).toBeVisible();
+  // The sheet opens in the middle of the screen (user, 2026-09-30).
+  const sheet = (await page.locator('#settings-sheet').boundingBox())!;
+  const screen = page.viewportSize()!;
+  expect(
+    Math.abs(sheet.x + sheet.width / 2 - screen.width / 2),
+    'centred across',
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(sheet.y + sheet.height / 2 - screen.height / 2),
+    'centred down',
+  ).toBeLessThanOrEqual(1);
 }
 async function closeSheet(page: Page) {
   await page.locator('#settings-close').click();
@@ -161,6 +172,9 @@ for (const viewport of [
     );
     await openSheet(page);
     await expect(page.locator('#settings-mode-buttons')).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath(`settings-sheet-river-${size}.png`),
+    });
     await closeSheet(page);
     // A tap on the cat: its line shows beside it for a moment, checked while it does
     // (fishing-scene.spec keeps the line off the gear through a whole run).

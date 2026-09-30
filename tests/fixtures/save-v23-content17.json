@@ -1,11 +1,11 @@
 {
   "saveVersion": 23,
-  "contentVersion": 15,
+  "contentVersion": 17,
   "world": {
     "seed": 42,
-    "minute": 564,
-    "coins": 1000,
-    "nextId": 1,
+    "minute": 1860,
+    "coins": 512,
+    "nextId": 3,
     "map": {
       "width": 10,
       "height": 10,
@@ -913,7 +913,26 @@
         }
       ]
     },
-    "buildings": [],
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_APARTMENT",
+        "position": {
+          "x": 4,
+          "y": 4
+        },
+        "builtAtMinute": 420
+      },
+      {
+        "id": "building-2",
+        "type": "CAT_CAFE",
+        "position": {
+          "x": 4,
+          "y": 3
+        },
+        "builtAtMinute": 420
+      }
+    ],
     "cats": [
       {
         "id": "mochi",
@@ -939,23 +958,20 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 84,
+        "mood": 60,
         "needs": {
           "energy": 100
         },
         "memories": [],
-        "playerBond": 6,
-        "home": null,
+        "playerBond": 0,
+        "home": "building-1",
         "position": {
           "x": 7,
           "y": 3
         },
         "chatBond": null,
         "giftBond": null,
-        "pettingBond": {
-          "day": 0,
-          "count": 3
-        },
+        "pettingBond": null,
         "lastChatMoodMinute": null,
         "fishingSpotId": "POND",
         "walk": null,
@@ -964,8 +980,8 @@
         "fishingMemory": null,
         "fishGift": null,
         "petting": {
-          "discovered": ["BACK"],
-          "lifted": [540, 552, 564]
+          "discovered": [],
+          "lifted": []
         }
       }
     ],

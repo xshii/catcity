@@ -45,14 +45,33 @@ export const cityLoopTask: HarnessTask = {
     'save-reload',
     'replay',
   ],
-  commands: [
-    {
-      name: 'check',
-      executable: 'npm',
-      args: ['run', 'check'],
-      timeoutMs: 900_000,
-    },
-  ],
+  commands: ['typecheck', 'lint', 'test:coverage', 'build'].map((script) => ({
+    name: script,
+    executable: 'npm',
+    args: ['run', script],
+  })),
+  // Playwright's web servers build what the acceptance serves; with no E2E it is built here.
+  browserTests: (files) =>
+    files === 'all' || files.length
+      ? [
+          {
+            name: 'test:e2e',
+            executable: 'npm',
+            args: [
+              'run',
+              'test:e2e',
+              ...(files === 'all' ? [] : ['--', ...files]),
+            ],
+            timeoutMs: 900_000,
+          },
+        ]
+      : [
+          {
+            name: 'build:test',
+            executable: 'npm',
+            args: ['run', 'build:test'],
+          },
+        ],
   expectedState: {
     initialCoins: CITY_START.coins,
     builtCoins: cityLoopCoins.built,

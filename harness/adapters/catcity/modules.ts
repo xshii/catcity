@@ -29,6 +29,15 @@ const VIEW_FEATURE = [
   'styles',
 ] as const;
 
+/** The view feature modules: each is one kind of screen, and none imports another. */
+export const FEATURES = [
+  'city',
+  'fishing',
+  'cats',
+  'petting',
+  'companion',
+] as const;
+
 export const MODULES = table({
   // Rules: pure TypeScript (eslint keeps the DOM, Phaser and the real clock out).
   core: { paths: ['src/core/'], imports: ['content', 'minigames'] },
@@ -63,15 +72,7 @@ export const MODULES = table({
   // Assembly: the view entry and the page mount put every screen together.
   shell: {
     paths: ['src/view/shell/', 'src/view/index.ts'],
-    imports: [
-      ...VIEW_FEATURE,
-      'platform',
-      'city',
-      'fishing',
-      'cats',
-      'petting',
-      'companion',
-    ],
+    imports: [...VIEW_FEATURE, 'platform', ...FEATURES],
   },
   main: {
     paths: ['src/main.ts', 'src/env.d.ts'],
