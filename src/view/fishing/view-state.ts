@@ -32,6 +32,11 @@ export interface FishingView {
    * followed from the shell; like the tools, it covers play.
    */
   settingsOpen: boolean;
+  /**
+   * The petting screen covers the place: a page of its own, so it covers play like the
+   * tools, and the settings sheet opened over it has no river section.
+   */
+  petting: boolean;
   pageHidden: boolean;
   /** Fishing input waits for the player; opening anything pauses it. */
   paused: boolean;
@@ -72,6 +77,7 @@ export type FishingViewEvent =
   | { type: 'place'; place: Place }
   | { type: 'tools'; open: boolean }
   | { type: 'settings'; open: boolean }
+  | { type: 'petting'; open: boolean }
   | { type: 'page'; hidden: boolean }
   | { type: 'run'; runId: string | null }
   | { type: 'hold'; pressed: boolean; buttonRun: boolean }
@@ -112,6 +118,7 @@ export function initialFishingView(
     place: 'city',
     toolsOpen: false,
     settingsOpen: false,
+    petting: false,
     pageHidden: false,
     paused: true,
     pressed: false,
@@ -133,11 +140,15 @@ export function initialFishingView(
   };
 }
 
-/** The river is on screen, no tools or settings cover it and the page is in front. */
+/**
+ * The river is on screen, no tools, settings or petting screen cover it and the page is
+ * in front.
+ */
 export const canPlay = (view: FishingView) =>
   view.place === 'river' &&
   !view.toolsOpen &&
   !view.settingsOpen &&
+  !view.petting &&
   !view.pageHidden;
 export const motionActive = (view: FishingView) =>
   view.motion.preference === 'motion' && view.motion.capability === 'ready';
@@ -189,6 +200,8 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
       return { ...view, toolsOpen: event.open };
     case 'settings':
       return { ...view, settingsOpen: event.open };
+    case 'petting':
+      return { ...view, petting: event.open };
     case 'page':
       return { ...view, pageHidden: event.hidden };
     case 'run':

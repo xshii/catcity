@@ -205,9 +205,9 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
     /** The in-run console (pause, leave; and the button flow's meters). */
     console: river && !!run,
     consoleMode: river && run ? run.mode : null,
-    /** The river's section of the settings sheet every page opens (spec 034). */
+    /** The river's section of the settings sheet: not over the petting screen (spec 034). */
     settings: {
-      page: river,
+      page: river && !view.petting,
       mode: modeChoices(view, run, active),
       /** Calibration is offered while motion aims: before a run, not over one. */
       calibrate: river && active && !run && !view.motion.calibrating,

@@ -57,3 +57,8 @@
   - 钓鱼画面状态的 `settingsOpen` 跟随外壳的设置卡：暂停钓鱼输入、收获卡倒计时暂停、打开设置的那一下点按不请求传感器，都不变；校准键先关设置卡再开始校准。取代上文的“离开河畔或打开钓具面板时自动关闭”：现在换页面时关闭，可以在面板之上打开，Esc 先关设置卡。
   - 小城“下一步”那一行的右端、河畔的提示消息（左右对称让出齿轮那一栏，仍居中、上下位置不变）与面板标题行右侧给齿轮让位。
   - 测试：`tests/view/settings.test.ts`；`tests/unit/fishing-view.test.ts`、`fishing-screen.test.ts` 的设置用例；E2E `tests/e2e/settings-gear.spec.ts` 与改写的 `river-layout` 齿轮用例（写好未运行）。撸猫画面上的齿轮（撸猫时打开设置、这一局暂停）在下一个 PR。
+- [ ] 2026-09-30 撸猫画面也有齿轮（用户决定：撸猫时打开设置，这一局暂停），分支 `feat/settings-petting`：
+  - 齿轮层级升到撸猫画面之上；撸猫画面是模态对话框，打开时齿轮归它（`aria-owns`），Tab 在“不摸了”之后到齿轮，在齿轮上按 Esc 同样离开；标题行与满足条的右端让出齿轮。
+  - 撸猫画面状态的 `settingsOpen` 跟随外壳的设置卡：打开时这一局不走时间、不收抚摸，倒计时与呼噜节奏都停，关掉后从停下的地方接着走。
+  - `shell/place.ts` 新增 `onPetting`：钓鱼画面状态记下撸猫画面开着（`petting`），这时设置卡没有河畔一节（撸猫盖在河畔上也是）；撸猫画面也像面板一样盖住钓鱼（`canPlay` 为假：体感甩竿、提竿与按钮输入都不生效，进行中的一竿暂停），关掉后需明确继续。之前撸猫盖在河畔上时体感甩竿仍能抛出一竿。
+  - 测试：`tests/unit/place.test.ts`、`petting-view.test.ts`、`fishing-screen.test.ts`；`tests/view/settings.test.ts` 的撸猫一组；E2E `tests/e2e/settings-gear.spec.ts` 的撸猫用例（写好未运行）。

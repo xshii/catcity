@@ -20,6 +20,7 @@ import {
   closeSettings,
   enterRiver,
   FLICK,
+  openCats,
   followFish,
   inMotionRiver,
   lift,
@@ -127,6 +128,22 @@ describe('motion fishing', () => {
     expect(game.world().fishing.active!.direction).toBe(
       -FISHING.input.maxDirection,
     );
+  });
+
+  it('the petting screen over the river covers the rod: a swing casts nothing until it closes', () => {
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    openCats('roster');
+    click('#pet-cat');
+    expect(visible('#petting')).toBe(true);
+    swing();
+    expect(game.world().fishing.active).toBeNull();
+    expect(game.session.lastCommand()?.command.type ?? 'none').not.toMatch(
+      /^FISH_/,
+    );
+    click('#petting-close');
+    swing();
+    expect(game.world().fishing.active?.phase).toBe('waiting');
   });
 
   it('a paused motion run ignores gestures and says how to resume', () => {
