@@ -108,8 +108,12 @@ type BreedBlock =
   | 'BOND_TOO_LOW' | 'RELATED' | 'COOLING_DOWN' | 'NO_BED' | 'COMPANION_LIMIT';
 
 catStage(world, cat): 'kitten' | 'adult'
-related(world, a, b): boolean            // 父母—子女，或同父 / 同母
+related(a, b): boolean                   // 父母—子女，或同父 / 同母；表亲不算
 breedBlocks(world, aId, bId): BreedBlock[] // 空数组表示可以生育；界面逐条显示
+// breedBlocks 的三部分，界面按对方、自己、全城分组显示（ui-design 5.4）：
+pairBreedBlocks(a, b)          // SAME_CAT（同一只时只报这一条）、NEED_PAIR、RELATED
+catBreedBlocks(world, cat)     // KITTEN、NEUTERED、NOT_HAPPY、BOND_TOO_LOW、COOLING_DOWN
+cityBreedBlocks(world)         // NO_BED（公寓床位 ≤ 有住所的猫）、COMPANION_LIMIT（MAX_COMPANIONS）
 inherit(seed, kittenId, mother, father): { breedId, coat, personality, favoriteFish, sex, talent }
 ```
 
