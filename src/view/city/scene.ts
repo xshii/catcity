@@ -555,6 +555,13 @@ export class CityScene extends Phaser.Scene {
     for (const cat of world.cats) {
       const { x, y } = tileCenter(cat.position.x, cat.position.y);
       let sprite = this.cats.get(cat.id);
+      if (sprite && sprite.look !== lookOf(cat)) {
+        // Restyled at the salon (spec 041 T-15): drawn again where it stands.
+        const at = { x: sprite.x, y: sprite.y };
+        sprite.destroy();
+        sprite = new CatArt(this, at.x, at.y, 1, lookOf(cat)).setDepth(5);
+        this.cats.set(cat.id, sprite);
+      }
       if (!sprite) {
         // `glide` moves the sprite, its name and the ring from here on.
         sprite = new CatArt(this, x, y, 1, lookOf(cat)).setDepth(5);
