@@ -12,6 +12,7 @@ import {
   INVITABLE_CATS,
   invitePrice,
 } from '../../src/content/cats';
+import { NEUTER_PRICE } from '../../src/content/family';
 import { MOOD } from '../../src/content/mood';
 import { BAITS, FISHING, fishById, SPOT_IDS } from '../../src/content/fishing';
 import { PETTING, PET_SPOTS } from '../../src/content/petting';
@@ -163,6 +164,8 @@ function coinChange(
         before.cats.filter((cat) => INVITABLE_CATS.includes(cat.definitionId))
           .length,
       );
+    case 'NEUTER_CAT':
+      return -NEUTER_PRICE;
     case 'RECYCLE_TRASH':
       return FISHING.supplies.trashCoins;
     case 'SELL_FISH': {
@@ -231,6 +234,7 @@ function moodMayChange(command: GameCommand): boolean {
     case 'SELL_FISH':
     case 'BUY_BAIT':
     case 'INVITE_CAT':
+    case 'NEUTER_CAT':
     case 'DEBUG_SPAWN_CAT':
       return false;
   }
