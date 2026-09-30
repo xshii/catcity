@@ -1,0 +1,75 @@
+/**
+ * Names the name box suggests (spec 041 R-16, design 5.2.1): short pet names of food,
+ * plants and weather, for a cat of either sex.
+ */
+export const CAT_NAMES = [
+  // Food.
+  '团子',
+  '汤圆',
+  '栗子',
+  '麻薯',
+  '奶茶',
+  '可可',
+  '饭团',
+  '米糕',
+  '豆花',
+  '红豆',
+  '芋圆',
+  '花卷',
+  '馒头',
+  '饺子',
+  '蛋挞',
+  '奶糖',
+  '曲奇',
+  '桂圆',
+  '橘子',
+  '柚子',
+  '山楂',
+  '荔枝',
+  '芒果',
+  '樱桃',
+  // Plants.
+  '松果',
+  '蒲公英',
+  '小葵',
+  '茉莉',
+  '桂花',
+  '薄荷',
+  '豆苗',
+  '木棉',
+  '艾草',
+  '雏菊',
+  '海棠',
+  '丁香',
+  '青苔',
+  '橡果',
+  '竹笋',
+  '蘑菇',
+  '向日葵',
+  '银杏',
+  // Weather and the seasons.
+  '小满',
+  '云朵',
+  '雪球',
+  '春雨',
+  '晴天',
+  '小雪',
+  '彩虹',
+  '露珠',
+  '星星',
+  '微风',
+  '初夏',
+  '白露',
+  '谷雨',
+  '霜降',
+  '秋分',
+  '月牙',
+  '朝霞',
+  '冬至',
+] as const;
+
+/** A name is 1–12 characters (R-16). */
+export const NAME_MAX_LENGTH = 12;
+
+/** Names suggested at a time; "换一批" shows the next as many. */
+export const SUGGESTED_NAMES = 6;
