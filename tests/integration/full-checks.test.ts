@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { changedSince } from '../../harness/runner/changes';
+import { changedSince, headCommit } from '../../harness/runner/changes';
 import {
   fullCheckLog,
   localDate,
@@ -70,6 +70,18 @@ it('fails for a ref the repository does not have', async () => {
   await withRepository((repo) => {
     expect(() => changedSince('origin/main', repo)).toThrow();
   });
+});
+
+it('names the commit checked out, and none outside a repository', async () => {
+  await withRepository((repo) => {
+    expect(headCommit(repo)).toBe(git(repo, 'rev-parse', 'HEAD'));
+  });
+  const outside = await mkdtemp(join(tmpdir(), 'catcity-no-git-'));
+  try {
+    expect(headCommit(outside)).toBeNull();
+  } finally {
+    await rm(outside, { recursive: true, force: true });
+  }
 });
 
 it('keeps the full-check log in the main checkout, shared by its worktrees', async () => {
