@@ -5,53 +5,18 @@ import {
   ART_BREEDS,
   catLook,
   portraitShapes,
-  type ArtBreed,
   type CatLook,
   type CatPose,
 } from '../../src/view/art/cat-look';
 import { pettingCat } from '../../src/view/art/cat-petting';
 import { catPortrait, shapeSvg } from '../../src/view/art/illustrations';
+import { CAT_MAKER_COPY } from '../../src/view/cats/cat-maker-screen';
 
 // Spec 041 T-14 PR 1 (cat-looks.md 1 and 5, ui-design 6.1): every option of the five
 // choices on each breed, and typical cats made of them, as every renderer draws them.
 
 /** ui-design 8: the task's screenshots. */
 const SHOTS = 'artifacts/T-14';
-/** Labels of the sheet only. */
-const ITEM_NAMES = {
-  colour: '毛色',
-  pattern: '花纹',
-  white: '白斑',
-  eyes: '眼色',
-  face: '脸型',
-} as const;
-const OPTION_NAMES: {
-  [Item in keyof CatAppearance]: Record<CatAppearance[Item], string>;
-} = {
-  colour: {
-    black: '黑',
-    gray: '灰',
-    orange: '橘',
-    cream: '奶油',
-    white: '白',
-    brown: '棕',
-  },
-  pattern: { solid: '纯色', tabby: '虎斑', point: '重点色' },
-  white: {
-    none: '无',
-    mittens: '手套',
-    bib: '围兜',
-    cow: '奶牛',
-    bicolour: '双色',
-  },
-  eyes: { blue: '蓝', copper: '铜', green: '黄绿' },
-  face: { round: '圆', pointed: '尖', long: '长' },
-};
-const BREED_NAMES: Record<ArtBreed, string> = {
-  DOMESTIC: '田园猫',
-  RAGDOLL: '布偶猫',
-  BRITISH_SHORTHAIR: '英短猫',
-};
 const PLAIN: CatAppearance = {
   colour: 'cream',
   pattern: 'solid',
@@ -104,7 +69,7 @@ function sheet(tokens: string) {
   const rows: [string, CatAppearance][] = [
     ...items.flatMap((item) =>
       APPEARANCE_OPTIONS[item].map((option): [string, CatAppearance] => [
-        `${ITEM_NAMES[item]}：${(OPTION_NAMES[item] as Record<string, string>)[option]}`,
+        `${CAT_MAKER_COPY.items[item]}：${(CAT_MAKER_COPY.options[item] as Record<string, string>)[option]}`,
         { ...PLAIN, [item]: option },
       ]),
     ),
@@ -112,7 +77,10 @@ function sheet(tokens: string) {
   ];
   const cells = rows.flatMap(([name, appearance]) =>
     ART_BREEDS.map((breed) =>
-      cell(catLook(breed, appearance), `${name} · ${BREED_NAMES[breed]}`),
+      cell(
+        catLook(breed, appearance),
+        `${name} · ${CAT_MAKER_COPY.breeds[breed].name}`,
+      ),
     ),
   );
   return `<!doctype html><meta charset="utf-8"><style>${tokens}
