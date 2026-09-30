@@ -36,6 +36,7 @@ export const E2E_SPECS: Readonly<Record<string, SpecEntry>> = {
   'invite.spec.ts': { modules: ['cats'] },
   'main-page.spec.ts': { modules: ['city'], layout: true },
   'motion-fishing.spec.ts': { modules: ['fishing'] },
+  'neuter.spec.ts': { modules: ['cats'] },
   'notice-layer.spec.ts': {
     modules: ['city', 'fishing', 'cats'],
     layout: true,
@@ -43,6 +44,7 @@ export const E2E_SPECS: Readonly<Record<string, SpecEntry>> = {
   // The production build under a Pages subpath: a stylesheet can break an asset path.
   'pages.spec.ts': { modules: ['city'], layout: true },
   'petting.spec.ts': { modules: ['petting', 'cats'] },
+  'residents.spec.ts': { modules: ['city'] },
   'river-layout.spec.ts': {
     modules: ['fishing', 'city', 'cats', 'companion'],
     layout: true,

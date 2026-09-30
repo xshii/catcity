@@ -18,6 +18,7 @@ import { bondNote } from '../common/bond';
 import { withMoodNote } from '../common/mood';
 import { ERROR_MESSAGES } from '../common/errors';
 import { mountSettings } from '../common/settings';
+import { mountConfirm } from '../common/confirm';
 import type { Trace } from '../../platform/device-log';
 
 const TALK_RETRY = '暂时没能完成对话，请再试一次。';
@@ -179,6 +180,9 @@ export function mountPanel(
     session,
     place,
     view: cats,
+    // Over every layer (ui-design 3.1): one confirmation for the page.
+    confirm: mountConfirm(document.querySelector<HTMLElement>('.shell')!),
+    notify,
     card: document.querySelector<HTMLElement>('.cat-card')!,
     page: get('cats-page-roster'),
   });

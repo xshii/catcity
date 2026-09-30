@@ -1,4 +1,9 @@
-export const BUILDING_IDS = ['CAT_CAFE', 'CAT_APARTMENT', 'CAT_SALON'] as const;
+export const BUILDING_IDS = [
+  'CAT_CAFE',
+  'CAT_APARTMENT',
+  'CAT_LODGE',
+  'CAT_SALON',
+] as const;
 /** `growth` is the price ratio from one building of a type to the next, as a fraction. */
 export const BUILDINGS = {
   CAT_CAFE: {
@@ -16,6 +21,15 @@ export const BUILDINGS = {
     basePrice: 300,
     growth: [9, 5],
     homeCapacity: 2,
+  },
+  /** Residents live here, never companions (spec 041 R-40); T-31 sets the price by simulation. */
+  CAT_LODGE: {
+    type: 'CAT_LODGE',
+    name: '居民楼',
+    basePrice: 250,
+    growth: [8, 5],
+    homeCapacity: 0,
+    residentCapacity: 4,
   },
   /** Restyles a companion's look (spec 041 T-15); one per city, so it never grows. */
   CAT_SALON: {

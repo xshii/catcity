@@ -55,6 +55,11 @@ import v22Content14 from '../fixtures/save-v22-content14.json';
 // Mochi petted three times in a row, the allowance of content 15 (3 rounds in 8 game hours);
 // content 16 allows 4 in 10 (user 2026-09-30).
 import v23Content15 from '../fixtures/save-v23-content15.json';
+// Mochi and Pepper with coins to spare, from before neutering cost 100 coins (save 23,
+// content 16).
+import v23Content16 from '../fixtures/save-v23-content16.json';
+// A city past its first midnight, from before lodges and residents (save 23, content 17).
+import v23Content17 from '../fixtures/save-v23-content17.json';
 // A stray picked at the start, its home and a cafe, from before a city could have a cat
 // salon (save 24, content 18).
 import v24Content18 from '../fixtures/save-v24-content18.json';
@@ -94,6 +99,8 @@ const incompatible = {
   v21Content13,
   v22Content14,
   v23Content15,
+  v23Content16,
+  v23Content17,
   v24Content18,
   future,
 };

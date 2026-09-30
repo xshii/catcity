@@ -131,7 +131,7 @@
 .profile-part h4 {
   margin: 0;
 }
-#cat-profile .profile-part button {
+#cat-profile .profile-part h4 button {
   width: 100%;
   border: 0;
   background: transparent;
@@ -140,11 +140,11 @@
   font-size: 16px;
   font-weight: 700;
 }
-#cat-profile .profile-part button::before {
+#cat-profile .profile-part h4 button::before {
   content: '▶ ';
   color: var(--text-muted);
 }
-#cat-profile .profile-part button[aria-expanded='true']::before {
+#cat-profile .profile-part h4 button[aria-expanded='true']::before {
   content: '▼ ';
 }
 .profile-part dl {
@@ -173,5 +173,29 @@
 }
 .profile-line small {
   font-size: 12px;
+  color: var(--text-muted);
+}
+/* Neutering ends the family section (T-20): a button, or "已绝育" in its place. */
+.profile-actions {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+#cat-profile #profile-neuter {
+  min-height: 44px;
+  padding: 8px 16px;
+}
+#cat-profile #profile-neuter:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.profile-actions .profile-reason {
+  font-size: 12px;
+  color: var(--text-accent);
+}
+.profile-actions .profile-status {
+  margin: 0;
   color: var(--text-muted);
 }

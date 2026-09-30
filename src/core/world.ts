@@ -114,6 +114,7 @@ export function createWorld(seed: number, stray?: Stray): World {
     map,
     buildings: [],
     cats: [mochi],
+    residents: [],
     fishing: initialFishing(),
   });
 }

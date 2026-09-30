@@ -236,12 +236,13 @@
 
 顺序：T-20、T-21 可并行 → T-22 → T-23、T-24 可并行。
 
-### [ ] T-20 绝育（R-30）
+### [x] T-20 绝育（R-30）
 
-- **分支**：`feat/neuter`。依赖 T-12。内容 12。
+- **分支**：`feat/neuter`。依赖 T-12。内容 17（开工时 main 是存档 23、内容 15，合并前 main 已用掉内容 16；存档格式不变，`neutered` 是 T-10 加的），补 `save-v23-content16.json` 拒绝样本。确认框是可复用的 `view/common/confirm.ts`，T-22 的生小猫可以直接用。
 - **做什么**：命令 `NEUTER_CAT { catId }`；content `NEUTER_PRICE = 100`；错误码 `ALREADY_NEUTERED`、`CAT_TOO_YOUNG`；猫详情"家人"分区里的按钮，点了先出确认框，写明"不可撤销"。
 - **测试**：成功扣费并置位；重复、幼猫、金币不足被拒且世界不变；确认框取消不发命令。
 - **验收**：三条命令；完整检查；截图确认框。
+- **完成**：PR #83（`bf480a9`），内容 17，测试版 `test-20260930-1847-bf480a98-02b6d4`。证据：`tests/unit/neuter.test.ts`（扣费置位、重复/幼猫/99 金币被拒且世界不变、存档往返）、`tests/unit/neuter-screen.test.ts`、`tests/view/neuter.test.ts`（取消不发命令、只用键盘、时钟推进后按钮和确认框不变）；随机命令测试把 `NEUTER_CAT` 放回命令池，断言不改，种子换为 `play(3)` 与 5–16；推送前完整检查通过（单元与画面 1207 条、E2E 80 条、验收），产物 `artifacts/2026-09-30T10-38-24-223Z-56712/`（`catcity-wt20`）；截图 `artifacts/T-20/neuter-confirm-{390x844,360x640}.png`（等淡入结束再拍）。钓鱼、散步中也能绝育。
 
 ### [x] T-21 生育条件（R-31）
 
@@ -301,12 +302,13 @@
 
 顺序：T-30 → T-31 → T-32。
 
-### [ ] T-30 居民楼与居民到来（R-40 – R-42、R-46）
+### [x] T-30 居民楼与居民到来（R-40 – R-42、R-46）
 
 - **分支**：`feat/residents`。存档 22，内容 13。
 - **先读这些文件**：design.md 第 6 节；`src/core/simulation.ts`；`src/core/city/building.ts`；`src/content/city.ts`。
 - **做什么**：建筑 `CAT_LODGE`（容量 4，价格 `250 × 1.6^(n−1)`，起始值由 T-31 的模拟定标）；`world.residents`；每个游戏日开始时到来一只；`residentIdentity(seed, id)` 推导名字、品种、花色、性别；校验（`home` 存在且是居民楼、每座不超过 4、`arrivedMinute ≤ minute`、总数 ≤ 16）。
 - **测试**：到来的节奏、分块推进等价、住满后不再来、搬移居民楼后居民跟着；存档往返；篡改被拒绝。
+- **完成**：PR #84（`e55b114`），存档 24、内容 18，测试版 `test-20260930-1855-e55b114b-082783`。居民按到来顺序编号 `resident-n`（不取 `world.nextId`），每座城把名字表洗一次，名字不重复（design.md 6.1/6.2 已同步）。证据：`tests/unit/residents.test.ts`（到来节奏、一次与分段推进同一份存档、住满、先住最早的楼、16 只上限、搬楼、不是伙伴猫、200 个种子 × 16 位的身份只用合法选项）、`tests/integration/residents-save.test.ts`（往返与 11 种篡改）、`tests/view/residents.test.ts`；推送前完整检查通过（单元与画面 1226 条、E2E 82 条、验收），产物 `artifacts/2026-09-30T10-48-25-074Z-65928/`（`catcity-wt30`）；截图 `artifacts/T-30/lodge-card-{390x844,360x640}.png`。居民还不是猫咖客人（T-31），地图上不画居民（T-32）。
 
 ### [ ] T-31 居民是客人，经济重新定标（R-43）
 

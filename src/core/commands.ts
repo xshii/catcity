@@ -98,6 +98,7 @@ export const commandSchema = z.discriminatedUnion('type', [
     type: z.literal('INVITE_CAT'),
     definitionId: z.enum(CAT_DEFINITION_IDS),
   }),
+  z.strictObject({ type: z.literal('NEUTER_CAT'), catId: id }),
   z.strictObject({
     type: z.literal('RESTYLE_CAT'),
     catId: id,
@@ -179,6 +180,7 @@ export type GameEvent =
     }
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
   | { type: 'CatInvited'; minute: number; entityId: string; cost: number }
+  | { type: 'CatNeutered'; minute: number; entityId: string; cost: number }
   | { type: 'CatRestyled'; minute: number; entityId: string; cost: number }
   | {
       type: 'CatPetted';
@@ -192,6 +194,7 @@ export type GameEvent =
       /** The round counted in full: an unkind one always, a kind one while the allowance had a lift. */
       full: boolean;
     }
+  | { type: 'ResidentArrived'; minute: number; entityId: string }
   | { type: 'DebugChanged'; minute: number };
 
 export type ErrorCode =
@@ -236,6 +239,8 @@ export type ErrorCode =
   | 'ALREADY_INVITED'
   | 'COMPANION_LIMIT'
   | 'NO_BED'
+  | 'ALREADY_NEUTERED'
+  | 'CAT_TOO_YOUNG'
   | 'NO_SALON'
   | 'APPEARANCE_UNCHANGED';
 export type CommandResult =

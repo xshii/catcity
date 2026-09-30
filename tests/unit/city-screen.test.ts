@@ -8,10 +8,11 @@ import {
   RESTYLE_PRICE,
   WALK_MINUTES,
 } from '../../src/content/city';
-import { travelMinutes } from '../../src/core';
+import { residentIdentity, travelMinutes } from '../../src/core';
 import type { GameCommand, WorldState } from '../../src/core';
 import { walkMinutes } from '../../src/core/city';
 import { createWorld, loadWorld, World } from '../../src/core/world';
+import { ARRIVAL_MINUTES, MAX_RESIDENTS } from '../../src/content/residents';
 import {
   cityScreen,
   guideProgress,
@@ -80,6 +81,7 @@ describe('city screen', () => {
     expect(grass.buttons.map(({ id, buildType }) => [id, buildType])).toEqual([
       ['build-cat_cafe', 'CAT_CAFE'],
       ['build-cat_apartment', 'CAT_APARTMENT'],
+      ['build-cat_lodge', 'CAT_LODGE'],
       ['build-cat_salon', 'CAT_SALON'],
       ['place-road', undefined],
     ]);
@@ -316,6 +318,7 @@ describe('city screen', () => {
     expect(grass.buttons.map(({ reason }) => reason)).toEqual([
       `金币不足：需要 ${buildingPrice('CAT_CAFE', 0)}，现有 100。`,
       `金币不足：需要 ${buildingPrice('CAT_APARTMENT', 0)}，现有 100。`,
+      `金币不足：需要 ${buildingPrice('CAT_LODGE', 0)}，现有 100。`,
       `金币不足：需要 ${buildingPrice('CAT_SALON', 0)}，现有 100。`,
       null,
     ]);
@@ -346,6 +349,75 @@ describe('city screen', () => {
     expect(detail()).toBe(
       `客人 2/${CAFE.seats} · 每 ${HOURS} 小时 ${2 * CAFE.coinsPerCustomer} 金币 · Mochi、Pepper`,
     );
+  });
+
+  describe('a lodge (spec 041 ui-design 5.7)', () => {
+    const LODGES = [
+      { x: 4, y: 4 },
+      { x: 6, y: 4 },
+      { x: 4, y: 3 },
+      { x: 6, y: 3 },
+      { x: 4, y: 6 },
+    ];
+    function lodges(count: number) {
+      const world = new World({
+        ...createWorld(42).getSnapshot(),
+        coins: 100_000,
+      });
+      for (const position of LODGES.slice(0, count))
+        world.dispatch({
+          type: 'BUILD_BUILDING',
+          buildingType: 'CAT_LODGE',
+          position,
+        });
+      return world;
+    }
+    /** Until `count` residents have come: the first at the start of day 2. */
+    const residentsCome = (world: World, count: number) =>
+      advance(
+        world,
+        count * ARRIVAL_MINUTES -
+          (world.getSnapshot().minute % ARRIVAL_MINUTES),
+      );
+    const names = (world: World) =>
+      world
+        .getSnapshot()
+        .residents.map(({ id }) => residentIdentity(42, id).name);
+    const card = (world: World, x: number, y: number) =>
+      screenOf(world, view(tile(x, y))).card!;
+
+    it('counts and names its residents, and says whether the next comes to it', () => {
+      const world = lodges(2);
+      expect(card(world, 4, 4)).toMatchObject({
+        title: BUILDINGS.CAT_LODGE.name,
+        detail: '居民 0/4 · 下一位居民明天搬来',
+        buttons: [{ id: 'move-building' }],
+      });
+      expect(card(world, 6, 4).detail).toBe(
+        '居民 0/4 · 前面的居民楼住满后，居民才搬来这里',
+      );
+      residentsCome(world, 2);
+      expect(card(world, 4, 4).detail).toBe(
+        `居民 2/4 · ${names(world).join('、')} · 下一位居民明天搬来`,
+      );
+      residentsCome(world, 2);
+      expect(card(world, 4, 4).detail).toBe(
+        `居民 4/4 · ${names(world).join('、')}`,
+      );
+      expect(card(world, 6, 4).detail).toBe('居民 0/4 · 下一位居民明天搬来');
+      // No companion moves in, not even a picked one.
+      expect(
+        ids(world, view({ type: 'cat', catId: 'mochi' }, tile(4, 4))),
+      ).toEqual(['move-building']);
+    });
+
+    it('says nobody more is coming once the city has sixteen residents', () => {
+      const world = lodges(5);
+      residentsCome(world, MAX_RESIDENTS);
+      expect(card(world, 4, 6).detail).toBe(
+        `居民 0/4 · 小城最多住 ${MAX_RESIDENTS} 位居民`,
+      );
+    });
   });
 
   it('walks the guide from a home to a cafe with customers and the first memory', () => {
@@ -539,6 +611,7 @@ describe('the cat salon on the map', () => {
     expect(ids(world, view(tile(6, 4)))).toEqual([
       'build-cat_cafe',
       'build-cat_apartment',
+      'build-cat_lodge',
       'place-road',
     ]);
   });
