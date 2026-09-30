@@ -24,6 +24,7 @@ export function mountGameView(session: GameSession, trace: Trace) {
     panel.city,
     panel.aim,
     panel.clockSpeed,
+    panel.catMoves,
   );
   new Phaser.Game({
     type: Phaser.AUTO,

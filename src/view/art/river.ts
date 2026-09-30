@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { CatArt } from './cat';
-import { catPose } from './cat-look';
+import { catPose, type CatMotion } from './cat-look';
 import { rodPose, rodShape, rodStance, type RodStance } from './rod-pose';
 import {
   castPreview,
@@ -622,6 +622,11 @@ export class RiverView {
         }
       : null;
     this.drawRod(now);
+  }
+
+  /** The cat beside the player answers a tap with a small move (R-03). */
+  react(motion: CatMotion) {
+    if (this.root.visible) this.companion.react(motion);
   }
 
   private rodPose(time: number) {
