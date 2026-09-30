@@ -25,7 +25,7 @@ import { mountFishingStage, type FishingShell } from './stage';
 import { mountFishBag, renderFishingCatalog } from './catalog';
 import { mountCatTap } from './cat-tap';
 import { mountFishingCollections } from './collections';
-import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
+import { motionStartup, mountMotionFishing } from './motion/motion-fishing';
 import { onShore } from '../../core/city';
 import { mountFishingControls } from './controls';
 import { mountFishingSettings } from './settings';

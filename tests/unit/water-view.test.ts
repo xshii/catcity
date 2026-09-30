@@ -17,7 +17,7 @@ import {
   WATER_VIEW,
   waterPoint,
 } from '../../src/view/art/water-view';
-import { createRodTip } from '../../src/view/motion/tip';
+import { createRodTip } from '../../src/view/fishing/motion/tip';
 
 const V = WATER_VIEW;
 

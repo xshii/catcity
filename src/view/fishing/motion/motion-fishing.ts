@@ -1,12 +1,12 @@
 import './motion-fishing.css';
-import type { AnglingRun } from '../../minigames/angling';
+import type { AnglingRun } from '../../../minigames/angling';
 import {
   fishPath,
   motionBounds,
   ringRadius,
-} from '../../minigames/angling-motion';
-import { FISHING } from '../../content/fishing';
-import { fishShadow } from '../art/illustrations';
+} from '../../../minigames/angling-motion';
+import { FISHING } from '../../../content/fishing';
+import { fishShadow } from '../../art/illustrations';
 import {
   aimedSteps,
   askSensors,
@@ -16,16 +16,20 @@ import {
   tapStrikes,
   wantsMotion,
   type FishingScreen,
-} from '../fishing/screen';
-import { followWaterPlane } from '../fishing/water-plane';
-import { logTime, type Trace } from '../../platform/device-log';
-import { readJsonPref, readPref, savePref } from '../../platform/local-prefs';
+} from '../screen';
+import { followWaterPlane } from '../water-plane';
+import { logTime, type Trace } from '../../../platform/device-log';
+import {
+  readJsonPref,
+  readPref,
+  savePref,
+} from '../../../platform/local-prefs';
 import {
   GUIDE_STEPS,
   type FishingViewStore,
   type GuideStep,
   type Preference,
-} from '../fishing/view-state';
+} from '../view-state';
 import { OrientationTracker } from './orientation';
 import {
   calibrateSwing,

@@ -1,12 +1,15 @@
 import type { DeviceTrace } from '../../harness/adapters/catcity/device-trace';
-import { calibrateSwing, screenRates } from '../../src/view/motion/calibrate';
-import { OrientationTracker } from '../../src/view/motion/orientation';
+import {
+  calibrateSwing,
+  screenRates,
+} from '../../src/view/fishing/motion/calibrate';
+import { OrientationTracker } from '../../src/view/fishing/motion/orientation';
 import {
   createRodGestures,
   DEFAULT_TUNING,
   type RodEvent,
-} from '../../src/view/motion/rod';
-import { createRodTip } from '../../src/view/motion/tip';
+} from '../../src/view/fishing/motion/rod';
+import { createRodTip } from '../../src/view/fishing/motion/tip';
 
 type Reading = DeviceTrace['readings'][number];
 type Sensor = Exclude<Reading, { kind: 'tuning' }>;

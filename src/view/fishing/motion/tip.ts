@@ -1,5 +1,5 @@
-import { FISHING } from '../../content/fishing';
-import type { AnglingRun } from '../../minigames/angling';
+import { FISHING } from '../../../content/fishing';
+import type { AnglingRun } from '../../../minigames/angling';
 
 const G = FISHING.motion.gesture;
 const CENTRE = FISHING.motion.planeCentre;
