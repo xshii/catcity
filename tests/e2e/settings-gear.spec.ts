@@ -194,3 +194,94 @@ for (const viewport of [
     await gearClear(page, testInfo, `gear-river-card-${size}`, ['card']);
     expect(errors).toEqual([]);
   });
+
+/** What the petting screen shows by the gear, by name: the gear covers none of it. */
+const PETTING_PARTS = {
+  title: '#petting-title',
+  time: '#petting-time',
+  close: '#petting-close',
+  meter: '#petting-meter-row',
+  hint: '#petting-hint',
+  cat: '#petting-cat',
+  bar: '#petting-bar',
+};
+
+for (const viewport of [
+  { width: 390, height: 844 },
+  { width: 360, height: 640 },
+] satisfies Viewport[])
+  test(`phone ${viewport.width}×${viewport.height}: the settings gear shows over the petting screen in the same place, and a round holds under the sheet`, async ({
+    page,
+  }, testInfo) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await ready(page);
+    const city = (await page.locator('#settings-gear').boundingBox())!;
+    await page.evaluate(() =>
+      window.CAT_CITY_DEBUG!.useManualPettingClock(true),
+    );
+    const step = (ticks: number) =>
+      page.evaluate(
+        (count) => window.CAT_CITY_DEBUG!.stepPetting(count),
+        ticks,
+      );
+    await openCats(page);
+    await page.locator('#pet-cat').click();
+    await expect(page.locator('#petting')).toBeVisible();
+    expect(await step(10)).toBe(10);
+    const read = await page.evaluate((parts) => {
+      const boxOf = (element: Element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height };
+      };
+      const gear = document.querySelector('#settings-gear')!;
+      const box = boxOf(gear);
+      // Drawn on top: what a finger at its centre touches is the gear.
+      const top = document.elementFromPoint(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      );
+      return {
+        gear: box,
+        onTop: !!top && gear.contains(top),
+        parts: Object.entries(parts).flatMap(([part, selector]) => {
+          const element = document.querySelector(selector);
+          if (!element?.checkVisibility({ visibilityProperty: true }))
+            return [];
+          const shown = boxOf(element);
+          return shown.width && shown.height ? [{ part, box: shown }] : [];
+        }),
+      };
+    }, PETTING_PARTS);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `gear-petting-${viewport.width}x${viewport.height}.png`,
+      ),
+    });
+    await expect(page.locator('#settings-gear')).toBeInViewport({ ratio: 1 });
+    expect(read.onTop, 'the gear is over the petting screen').toBe(true);
+    samePlace(read.gear, city);
+    expect(read.parts.map(({ part }) => part)).toEqual(
+      expect.arrayContaining(['title', 'time', 'close', 'meter', 'cat', 'bar']),
+    );
+    for (const { part, box } of read.parts)
+      expect
+        .soft(overlap(read.gear, box), `the gear must not cover the ${part}`)
+        .toBe(false);
+
+    // The sheet over the round: common settings only, and the round holds.
+    const time = await page.locator('#petting-time').textContent();
+    await openSheet(page);
+    await expect(page.locator('#settings-page')).toBeHidden();
+    expect(await step(40)).toBe(0);
+    await expect(page.locator('#petting-time')).toHaveText(time!);
+    await closeSheet(page);
+    await expect(page.locator('#petting')).toBeVisible();
+    expect(await step(1)).toBe(1);
+    expect(errors).toEqual([]);
+  });
