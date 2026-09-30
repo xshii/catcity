@@ -18,7 +18,7 @@
 | `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                     |
 | `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                            |
 | `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                               |
-| `src/view/cats/`                         | 猫咪面板里邀请新伙伴的名单（spec 041 T-11）                                            |
+| `src/view/cats/`                         | 猫咪面板里邀请新伙伴的名单（spec 041 T-11）；捏猫画面（T-14）                          |
 | `src/view/styles/`                       | 视觉 token（`tokens.css`）与共用基础样式；玩法布局样式留在对应 View 模块               |
 | `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                                |
 | `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                          |
@@ -58,6 +58,6 @@ Core 派生资源消耗、奖励和关系变化，不接受客户端自报鱼种
 
 ## 可观察与扩展
 
-Dev/test 的 `window.CAT_CITY_DEBUG` 提供世界/实体/种子/诊断/回放、只读格子屏幕坐标及验证后的测试操作；生产包无此入口。GameSession 保存初始 checkpoint 和有序命令结果，每 1000 条滚动到精确的新 checkpoint，确保保留窗口可回放。
+Dev/test 的 `window.CAT_CITY_DEBUG` 提供世界/实体/种子/诊断/回放、只读格子屏幕坐标及验证后的测试操作，以及在游戏接入之前打开捏猫画面（`showCatMaker`，不发命令）；生产包无此入口。GameSession 保存初始 checkpoint 和有序命令结果，每 1000 条滚动到精确的新 checkpoint，确保保留窗口可回放。
 
 Provider 边界见[AI 架构](ai-architecture.md)。新小游戏继续采用独立输入/结果，经 Core 验证结算；第二种真正需要时才抽通用框架。发布器只管理命令、进程、固定构建与证据，猫咪语义留在适配器。验收、失败证据和回退规则分别见[测试](testing.md)与[本地发布](local-publication.md)。
