@@ -4,8 +4,8 @@ import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { ready } from '../../harness/adapters/catcity/browser';
 import { fullCity } from '../helpers/world';
 
-// Spec 041 T-12 (ui-design 5.1, 8): ten cats in the cats panel on a phone. What the
-// roster shows is unit-tested in cats/screen.ts; this checks the layout.
+// Spec 041 T-12 (ui-design 5.1, 5.2, 8): ten cats in the cats panel on a phone. What the
+// roster and the detail show is unit-tested in cats/screen.ts; this checks the layout.
 
 /** ui-design 8: the task's screenshots, at both phone sizes. */
 const SHOTS = 'artifacts/T-12';
@@ -94,6 +94,23 @@ for (const size of PHONES) {
       );
       await page.screenshot({ path: `${SHOTS}/roster-end-${name}.png` });
 
+      // The last cat's detail takes the roster's place; its way back stays in view.
+      const lastCard = rows.last().locator('[data-cat-id]');
+      await lastCard.tap();
+      await expect(lastCard).toHaveAttribute('aria-pressed', 'true');
+      await rows.last().locator('[data-cat-details]').tap();
+      await expect(page.locator('#cat-profile')).toBeVisible();
+      await expect(page.locator('#river-roster')).toBeHidden();
+      await expect(page.locator('#profile-back')).toBeInViewport();
+      await expect(page.locator('#profile-now')).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await page.screenshot({ path: `${SHOTS}/detail-${name}.png` });
+      await page.locator('#profile-back').tap();
+      await expect(page.locator('#river-roster')).toBeVisible();
       expect(errors).toEqual([]);
     } finally {
       await context.close();

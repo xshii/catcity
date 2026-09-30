@@ -13,6 +13,12 @@
   padding: 0;
   list-style: none;
 }
+/* The picked row offers its detail at its side: no taller, so a short roster fits the page. */
+#river-roster .roster-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
 #river-roster .energy-cat {
   position: relative;
   display: flex;
@@ -75,5 +81,97 @@
   height: 6px;
 }
 .energy-line {
+  color: var(--text-muted);
+}
+#river-roster .roster-details {
+  margin-left: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+/* A cat's detail (ui-design 5.2) takes the roster's place: its page shows only it. */
+.tool-page[data-profile] > :not(.cat-profile) {
+  display: none;
+}
+.cat-profile {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0;
+}
+#cat-profile #profile-back {
+  justify-self: start;
+}
+.profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.profile-portrait svg {
+  display: block;
+  width: 72px;
+}
+#profile-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+#profile-about {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.profile-part {
+  border-top: 1px solid var(--line);
+}
+.profile-part h4 {
+  margin: 0;
+}
+#cat-profile .profile-part button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 6px 2px;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 700;
+}
+#cat-profile .profile-part button::before {
+  content: '▶ ';
+  color: var(--text-muted);
+}
+#cat-profile .profile-part button[aria-expanded='true']::before {
+  content: '▼ ';
+}
+.profile-part dl {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.profile-line {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  gap: 8px;
+  font-size: 14px;
+}
+.profile-line dt {
+  color: var(--text-muted);
+}
+.profile-line dd {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.profile-line progress {
+  width: 100%;
+  height: 6px;
+}
+.profile-line small {
+  font-size: 12px;
   color: var(--text-muted);
 }

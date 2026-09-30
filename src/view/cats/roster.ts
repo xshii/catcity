@@ -2,7 +2,8 @@ import './cats.css';
 import type { GameSession } from '../../application';
 import { MAX_STAT } from '../../core';
 import type { PlaceState } from '../shell/place';
-import { rosterScreen, type RosterCard } from './screen';
+import { CATS_COPY, rosterScreen, type RosterCard } from './screen';
+import type { CatsViewStore } from './view-state';
 
 const part = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -15,8 +16,12 @@ const part = <K extends keyof HTMLElementTagNameMap>(
   return element;
 };
 
-/** One row: the card that picks the cat. */
-function createRow(catId: string, select: (id: string) => void) {
+/** One row: the card that picks the cat, and the way into its detail when it is picked. */
+function createRow(
+  catId: string,
+  select: (id: string) => void,
+  open: (id: string) => void,
+) {
   const row = document.createElement('li');
   row.className = 'roster-row';
   row.dataset.row = catId;
@@ -44,10 +49,16 @@ function createRow(catId: string, select: (id: string) => void) {
   const text = part('span', 'roster-text');
   text.append(title, status, hint, meter, rest);
   button.append(text);
-  row.append(button);
+  const details = part('button', 'roster-details');
+  details.type = 'button';
+  details.dataset.catDetails = catId;
+  details.textContent = CATS_COPY.details;
+  row.append(button, details);
   button.addEventListener('click', () => select(catId));
+  details.addEventListener('click', () => open(catId));
   return {
     row,
+    details,
     update(card: RosterCard) {
       if (portrait !== card.portrait) {
         portrait = card.portrait;
@@ -70,22 +81,25 @@ function createRow(catId: string, select: (id: string) => void) {
       hint.hidden = !card.mood.hint;
       bond.textContent = card.bond.text;
       bond.setAttribute('aria-label', card.bond.label);
+      details.hidden = !card.pressed;
+      details.setAttribute('aria-label', card.details);
     },
   };
 }
 
 /**
  * The cats panel's roster (spec 041 T-12, ui-design 5.1): a row per cat in one column that
- * scrolls with its page. A tap picks the cat. Rows are made once per cat and kept
- * (design 10.2); `rosterScreen` decides what they show.
+ * scrolls with its page. A tap picks the cat; the picked row opens its detail. Rows are
+ * made once per cat and kept (design 10.2); `rosterScreen` decides what they show.
  */
 export function mountRoster(deps: {
   session: GameSession;
   place: PlaceState;
+  view: CatsViewStore;
   /** The cats panel's roster page: the roster heads it. */
   page: HTMLElement;
 }) {
-  const { session, place } = deps;
+  const { session, place, view } = deps;
   const roster = document.createElement('section');
   roster.id = 'river-roster';
   roster.setAttribute('aria-label', '猫咪名册');
@@ -104,7 +118,11 @@ export function mountRoster(deps: {
     for (const card of shown) {
       let row = rows.get(card.id);
       if (!row) {
-        row = createRow(card.id, (id) => session.select(id));
+        row = createRow(
+          card.id,
+          (id) => session.select(id),
+          (id) => view.dispatch({ type: 'detail', catId: id }),
+        );
         rows.set(card.id, row);
       }
       row.update(card);
@@ -117,6 +135,13 @@ export function mountRoster(deps: {
       rows.delete(id);
     }
   };
+  // Back from a detail, the focus returns to the way in. The detail, mounted first, has
+  // put the roster back on screen by then.
+  let detail = view.get().detail;
+  view.subscribe((state) => {
+    if (detail && !state.detail) rows.get(detail)?.details.focus();
+    detail = state.detail;
+  });
   session.subscribe(render);
   place.subscribe(render);
   render();

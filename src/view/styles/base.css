@@ -883,6 +883,7 @@ input::placeholder {
 }
 /* Meters: a leaf fill on a warm track, rounded; sizes stay with each meter's rule. */
 .energy-cat progress,
+.profile-line progress,
 .bond-level progress,
 .fight-meters progress {
   appearance: none;
@@ -892,11 +893,13 @@ input::placeholder {
   overflow: hidden;
 }
 .energy-cat progress::-webkit-progress-bar,
+.profile-line progress::-webkit-progress-bar,
 .bond-level progress::-webkit-progress-bar,
 .fight-meters progress::-webkit-progress-bar {
   background: var(--surface-sunk);
 }
-.energy-cat progress::-webkit-progress-value {
+.energy-cat progress::-webkit-progress-value,
+.profile-line progress::-webkit-progress-value {
   background: var(--leaf);
   border-radius: var(--radius-pill);
 }
@@ -904,7 +907,8 @@ input::placeholder {
   background: var(--btn-primary-bg);
   border-radius: var(--radius-pill);
 }
-.energy-cat progress::-moz-progress-bar {
+.energy-cat progress::-moz-progress-bar,
+.profile-line progress::-moz-progress-bar {
   background: var(--leaf);
   border-radius: var(--radius-pill);
 }
