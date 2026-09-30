@@ -5,12 +5,13 @@ import { pettingTastes } from '../../src/core';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import { SAVE_VERSION, type CatEntity } from '../../src/core/schema';
 import { gameDay } from '../../src/core/bond';
-import { BOND } from '../../src/content/care';
+import { BOND, CARE } from '../../src/content/care';
 import { MOOD as CAT_MOOD } from '../../src/content/mood';
 import { PETTING, PET_SPOTS, type PetSpot } from '../../src/content/petting';
 import type { PetStroke } from '../../src/minigames/petting';
 
-const { purr: PURR, mood: MOOD, limit: LIMIT } = PETTING;
+const { purr: PURR, mood: MOOD } = PETTING;
+const { rounds: LIFTS, windowMinutes: WINDOW } = CARE.pettingLifts;
 const SEED = 42;
 const tastes = pettingTastes(SEED, 'mochi');
 const neutral = PET_SPOTS.find(
@@ -73,8 +74,7 @@ describe('a cat’s tastes', () => {
   it('are not saved: a cat holds only what the player has found out', () => {
     expect(Object.keys(cat(createWorld(SEED)).petting).sort()).toEqual([
       'discovered',
-      'hour',
-      'rounds',
+      'lifted',
     ]);
   });
 });
@@ -104,8 +104,7 @@ describe('PET_CAT', () => {
       discovered: PET_SPOTS.filter(
         (spot) => spot === tastes.favourite || spot === neutral,
       ),
-      hour: Math.floor(before.minute / LIMIT.hourMinutes),
-      rounds: 1,
+      lifted: [before.minute],
     });
   });
 
@@ -203,18 +202,6 @@ describe('mood from a round (spec 041 R-21)', () => {
     expect(lifted(90)).toBe(half(LOVELY_MOOD));
   });
 
-  it('halves a later round of the hour again for a happy cat, never below 1', () => {
-    const world = calm(90);
-    for (let round = 0; round < LIMIT.fullRounds; round++) pet(world, poor);
-    const before = cat(world).mood;
-    const later = pet(world, lovely);
-    expect(later.ok && later.events[0]).toMatchObject({
-      full: false,
-      mood: half(half(LOVELY_MOOD)),
-    });
-    expect(cat(world).mood).toBe(before + half(half(LOVELY_MOOD)));
-  });
-
   it('takes a round mostly on the disliked spot whole from a happy cat', () => {
     const world = calm(90);
     pet(world, unkind);
@@ -222,67 +209,86 @@ describe('mood from a round (spec 041 R-21)', () => {
   });
 });
 
-describe('the hourly limit', () => {
-  it('counts the first rounds of a game hour in full and later ones half', () => {
-    const world = calm(20);
-    const moods: unknown[] = [];
-    for (let round = 0; round < LIMIT.fullRounds + 2; round++) {
-      const result = pet(world, lovely);
-      moods.push(result.ok && result.events[0]);
-    }
-    expect(moods).toMatchObject([
-      { mood: LOVELY_MOOD, full: true },
-      { mood: LOVELY_MOOD, full: true },
-      { mood: LOVELY_MOOD / 2, full: false },
-      { mood: LOVELY_MOOD / 2, full: false },
-    ]);
-    expect(cat(world).mood).toBe(20 + LOVELY_MOOD * 3);
-    // The count stops at the limit: it only tells full rounds from later ones.
-    expect(cat(world).petting.rounds).toBe(LIMIT.fullRounds);
-  });
-
-  it('rounds a halved round down, but never below 1', () => {
-    const world = calm(20);
-    for (let round = 0; round < LIMIT.fullRounds; round++) pet(world, poor);
-    const seven = pet(
-      world,
-      [...lovely, ...perPurr(tastes.favourite, 1)].sort(
-        (a, b) => a.tick - b.tick,
-      ),
-    );
-    expect(seven.ok && seven.events[0]).toMatchObject({ meter: 90, mood: 3 });
-    const least = pet(world, poor);
-    expect(least.ok && least.events[0]).toMatchObject({ mood: 1, full: false });
-  });
-
-  it('does not halve the cost of an unkind round', () => {
-    const world = calm();
-    for (let round = 0; round < LIMIT.fullRounds; round++) pet(world, poor);
-    const result = pet(world, unkind);
-    expect(result.ok && result.events[0]).toMatchObject({
-      mood: -MOOD.disliked,
-      full: false,
+describe('the mood allowance (user 2026-09-30)', () => {
+  /** The events of `rounds` lovely rounds, one after another. */
+  const rounds = (world: World, count: number, strokes = lovely) =>
+    Array.from({ length: count }, () => {
+      const result = pet(world, strokes);
+      return result.ok && result.events[0];
     });
+
+  it('lifts mood with at most its rounds in any window of game minutes; later ones lift nothing', () => {
+    const world = calm(20);
+    const minute = world.getSnapshot().minute;
+    expect(rounds(world, LIFTS + 2)).toMatchObject([
+      ...Array.from({ length: LIFTS }, () => ({
+        mood: LOVELY_MOOD,
+        full: true,
+      })),
+      { mood: 0, full: false },
+      { mood: 0, full: false },
+    ]);
+    expect(cat(world).mood).toBe(20 + LIFTS * LOVELY_MOOD);
+    // Only the rounds that lifted mood are kept, as many as the allowance holds.
+    expect(cat(world).petting.lifted).toEqual(
+      Array.from({ length: LIFTS }, () => minute),
+    );
   });
 
-  it('starts over with the next game hour, for each cat by itself', () => {
+  it('frees a round as the oldest lift leaves the window: it slides, it is no clock hour', () => {
+    const HOUR = 60;
+    expect((LIFTS - 1) * HOUR).toBeLessThan(WINDOW);
+    const world = calm(20);
+    const start = world.getSnapshot().minute;
+    const at = (minute: number) =>
+      advance(world, minute - world.getSnapshot().minute);
+    for (let round = 0; round < LIFTS; round++) {
+      at(start + round * HOUR);
+      expect(rounds(world, 1, poor)).toMatchObject([{ full: true }]);
+    }
+    at(start + WINDOW - 1);
+    expect(rounds(world, 1, poor)).toMatchObject([{ mood: 0, full: false }]);
+    at(start + WINDOW);
+    // The first lift has left; the second is still in the window.
+    expect(rounds(world, 2, poor)).toMatchObject([
+      { full: true },
+      { mood: 0, full: false },
+    ]);
+    at(start + WINDOW + HOUR);
+    expect(rounds(world, 1, poor)).toMatchObject([{ full: true }]);
+    expect(cat(world).petting.lifted).toEqual([
+      ...Array.from(
+        { length: LIFTS - 2 },
+        (_, round) => start + (round + 2) * HOUR,
+      ),
+      start + WINDOW,
+      start + WINDOW + HOUR,
+    ]);
+  });
+
+  it('an unkind round takes its 1 in full and uses none of the allowance', () => {
+    const world = calm();
+    expect(rounds(world, 1, unkind)).toMatchObject([
+      { mood: -MOOD.disliked, full: true },
+    ]);
+    expect(cat(world).petting.lifted).toEqual([]);
+    expect(rounds(world, LIFTS, poor)).toMatchObject(
+      Array.from({ length: LIFTS }, () => ({ full: true })),
+    );
+    // Past the allowance an unkind round still takes its 1.
+    expect(rounds(world, 1, unkind)).toMatchObject([
+      { mood: -MOOD.disliked, full: true },
+    ]);
+  });
+
+  it('is each cat’s own', () => {
     const world = createWorld(SEED);
     world.dispatch({ type: 'INVITE_PEPPER' });
     const pepper = cat(world, 1).id;
-    for (let round = 0; round < LIMIT.fullRounds; round++) pet(world, poor);
+    rounds(world, LIFTS, poor);
+    expect(rounds(world, 1, poor)).toMatchObject([{ full: false }]);
     const other = pet(world, poor, pepper);
     expect(other.ok && other.events[0]).toMatchObject({ full: true });
-    const minute = world.getSnapshot().minute;
-    advance(world, LIMIT.hourMinutes - (minute % LIMIT.hourMinutes) - 1);
-    const late = pet(world, poor);
-    expect(late.ok && late.events[0]).toMatchObject({ full: false });
-    advance(world, 1);
-    const fresh = pet(world, poor);
-    expect(fresh.ok && fresh.events[0]).toMatchObject({ full: true });
-    expect(cat(world).petting).toMatchObject({
-      hour: world.getSnapshot().minute / LIMIT.hourMinutes,
-      rounds: 1,
-    });
   });
 });
 
@@ -426,17 +432,17 @@ describe('saves', () => {
     return world;
   };
 
-  it('are version 19 and carry what was found out and the hour’s count', () => {
+  it('are version 19 and carry what was found out and the lifts in the window', () => {
     expect(SAVE_VERSION).toBe(19);
     const world = played();
     const save = world.save();
     const loaded = loadWorld(save);
     expect(loaded.save()).toBe(save);
     expect(cat(loaded).petting).toEqual(cat(world).petting);
-    // The limit goes on after a load.
-    pet(loaded, poor);
-    const third = pet(loaded, poor);
-    expect(third.ok && third.events[0]).toMatchObject({ full: false });
+    // The allowance goes on after a load.
+    for (let round = 1; round < LIFTS; round++) pet(loaded, poor);
+    const past = pet(loaded, poor);
+    expect(past.ok && past.events[0]).toMatchObject({ full: false });
   });
 
   it.each([
@@ -446,10 +452,13 @@ describe('saves', () => {
       { discovered: [PET_SPOTS[1], PET_SPOTS[0]] },
     ],
     ['an unknown spot', { discovered: ['TAIL'] }],
-    ['an hour yet to come', { hour: 1_000_000 }],
-    ['rounds in no hour', { hour: null, rounds: 1 }],
-    ['an hour without rounds', { rounds: 0 }],
-    ['more rounds than the limit counts', { rounds: LIMIT.fullRounds + 1 }],
+    ['a lift yet to come', { lifted: [1_000_000] }],
+    ['lifts out of order', { lifted: [2, 1] }],
+    [
+      'more lifts than the allowance',
+      { lifted: Array.from({ length: LIFTS + 1 }, () => 0) },
+    ],
+    ['the old hourly count', { hour: 7, rounds: 1 }],
     ['saved tastes', { favourite: 'HEAD' }],
   ])('reject %s', (_, change) => {
     const save = JSON.parse(played().save());

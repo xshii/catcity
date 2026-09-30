@@ -258,7 +258,7 @@ test('a round of petting by touching the cat settles in Core and shows its resul
     const after = (await readWorld(page)).cats[0]!;
     expect(after.mood).toBe(mochi.mood + petted.mood);
     expect(after.petting.discovered).toEqual([...PET_SPOTS]);
-    expect(after.petting.rounds).toBe(1);
+    expect(after.petting.lifted).toHaveLength(1);
     expect(after.needs.energy).toBe(mochi.needs.energy);
 
     // What was found out stays after a reload, in the cats panel; the clock is free again.

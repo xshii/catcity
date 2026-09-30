@@ -1,18 +1,18 @@
-import { PETTING, PET_SPOTS } from '../content/petting';
+import { PET_SPOTS } from '../content/petting';
 import {
   pettingOutcome,
   playPetting,
   type PetTastes,
 } from '../minigames/petting';
-import { BOND } from '../content/care';
+import { BOND, CARE } from '../content/care';
 import { rewardBond, spendDaily } from './bond';
 import { requireCat } from './cats';
 import { liftMood } from './mood';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import { RandomService, streamSeed } from './random';
-import type { WorldState } from './schema';
+import type { CatEntity, WorldState } from './schema';
 
-const { limit: LIMIT } = PETTING;
+const { rounds: LIFTS, windowMinutes: WINDOW } = CARE.pettingLifts;
 
 /** FNV-1a over the id's characters: a cat's own number within its world. */
 const idNumber = (id: string) =>
@@ -36,6 +36,14 @@ export function pettingTastes(seed: number, catId: string): PetTastes {
   return { favourite, disliked: others[random.nextInt(others.length)]! };
 }
 
+/** Rounds that may still lift this cat's mood now: the allowance less the lifts in the window. */
+export function pettingLiftsLeft(
+  cat: Pick<CatEntity, 'petting'>,
+  minute: number,
+): number {
+  return LIFTS - cat.petting.lifted.filter((at) => at > minute - WINDOW).length;
+}
+
 /** Settles one round from its strokes; nothing of a round exists before this. */
 export function petCat(
   world: WorldState,
@@ -56,25 +64,23 @@ export function petCat(
     cat.pettingBond = counted;
     rewardBond(cat, BOND.petting);
   }
-  const hour = Math.floor(world.minute / LIMIT.hourMinutes);
-  const played = cat.petting.hour === hour ? cat.petting.rounds : 0;
-  const full = played < LIMIT.fullRounds;
-  // Later rounds give half, never less than 1, and a happy cat half of that again, as
-  // every gain; what an unkind round takes stays whole.
+  // A kind round lifts mood while the allowance has a lift, a happy cat half as every
+  // gain; past it the round lifts nothing. What an unkind round takes stays whole and
+  // uses no lift.
+  const unkind = outcome.mood < 0;
+  const full = unkind || pettingLiftsLeft(cat, world.minute) > 0;
   const before = cat.mood;
-  if (outcome.mood < 0) cat.mood = Math.max(0, cat.mood + outcome.mood);
-  else
-    liftMood(
-      cat,
-      full ? outcome.mood : Math.max(1, Math.floor(outcome.mood / 2)),
-    );
+  if (unkind) cat.mood = Math.max(0, cat.mood + outcome.mood);
+  else if (full) liftMood(cat, outcome.mood);
   cat.petting = {
     discovered: PET_SPOTS.filter(
       (spot) =>
         cat.petting.discovered.includes(spot) || outcome.touched.includes(spot),
     ),
-    hour,
-    rounds: Math.min(LIMIT.fullRounds, played + 1),
+    lifted:
+      full && !unkind
+        ? [...cat.petting.lifted, world.minute].slice(-LIFTS)
+        : cat.petting.lifted,
   };
   return [
     {

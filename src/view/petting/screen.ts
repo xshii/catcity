@@ -6,7 +6,7 @@ import {
   type PetSpot,
   type PetTaste,
 } from '../../content/petting';
-import { BOND } from '../../content/care';
+import { BOND, CARE } from '../../content/care';
 import { gameDay, type CatEntity, type CheckResult } from '../../core';
 import {
   pettingAway,
@@ -51,7 +51,9 @@ export const PETTING_COPY = {
     purr: '呼噜声起来了，现在摸',
     away: (name: string) => `${name} 躲开了，等它回来`,
   },
-  halved: '这个小时摸了好几回了，这一回效果减半',
+  /** A kind round past the allowance of lifts (user 2026-09-30). */
+  spent: (rounds: number, hours: number) =>
+    `最近 ${hours} 小时里已经摸过 ${rounds} 回，这一回心情没有再涨`,
   bond: (points: number) => `亲密 +${points}`,
   bondLeft: (rounds: number) => `今天还有 ${rounds} 次摸摸会让关系更近`,
   bondDone: '今天的亲密已经到了，摸摸还是会让它开心',
@@ -247,7 +249,14 @@ export function pettingScreen(
                 ? PETTING_COPY.bondLeft(result.bondLeft)
                 : PETTING_COPY.bondDone,
             notes: [
-              ...(result.full ? [] : [PETTING_COPY.halved]),
+              ...(result.full
+                ? []
+                : [
+                    PETTING_COPY.spent(
+                      CARE.pettingLifts.rounds,
+                      CARE.pettingLifts.windowMinutes / 60,
+                    ),
+                  ]),
               ...(result.note ? [result.note] : []),
             ],
           },

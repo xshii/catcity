@@ -13,7 +13,7 @@ import {
   WORLD_LIMIT,
 } from './limits';
 import { BOND, CARE } from '../content/care';
-import { PETTING, PET_SPOTS } from '../content/petting';
+import { PET_SPOTS } from '../content/petting';
 import { gameDay } from './bond';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
@@ -81,9 +81,8 @@ const catSchema = z.strictObject({
   /** Petting (spec 039): tastes derive from the seed; only what was found out is saved. */
   petting: z.strictObject({
     discovered: z.array(z.enum(PET_SPOTS)).max(PET_SPOTS.length),
-    /** The game hour of the latest round and the rounds counted in it, up to the limit. */
-    hour: integer.nullable(),
-    rounds: z.number().int().min(0).max(PETTING.limit.fullRounds),
+    /** Minutes of the latest rounds that lifted mood, oldest first, as many as the allowance holds. */
+    lifted: z.array(integer).max(CARE.pettingLifts.rounds),
   }),
 });
 const buildingSchema = z.strictObject({
@@ -170,16 +169,17 @@ export function assertWorld(value: unknown): WorldState {
       !world.buildings.some((building) => building.id === cat.home)
     )
       throw new Error('Unknown home');
-    const { discovered, hour, rounds } = cat.petting;
+    const { discovered, lifted } = cat.petting;
     if (
       discovered.some(
         (spot, index) =>
           index > 0 &&
           PET_SPOTS.indexOf(spot) <= PET_SPOTS.indexOf(discovered[index - 1]!),
       ) ||
-      (hour === null) !== (rounds === 0) ||
-      (hour !== null &&
-        hour > Math.floor(world.minute / PETTING.limit.hourMinutes))
+      lifted.some(
+        (minute, index) =>
+          minute > world.minute || (index > 0 && minute < lifted[index - 1]!),
+      )
     )
       throw new Error('Invalid petting record');
     let previousMinute = -1;

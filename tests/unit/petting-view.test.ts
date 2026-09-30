@@ -11,7 +11,7 @@ import {
   pettingScreen,
   reactionLine,
 } from '../../src/view/petting/screen';
-import { BOND } from '../../src/content/care';
+import { BOND, CARE } from '../../src/content/care';
 import {
   closedPetting,
   pettingPhase,
@@ -24,7 +24,7 @@ const TASTES = { favourite: 'CHIN', disliked: 'BELLY' } as const;
 const MOCHI = {
   name: 'Mochi',
   definitionId: 'MOCHI',
-  petting: { discovered: [] as PetSpot[], hour: null, rounds: 0 },
+  petting: { discovered: [] as PetSpot[], lifted: [] as number[] },
 } as const;
 const REST: CatPose = { face: 'calm', ears: 'up', curled: false };
 
@@ -320,29 +320,36 @@ describe('petting screen', () => {
     expect(screen.spots.every((spot) => spot.disabled)).toBe(true);
   });
 
-  it('says when the hour’s limit halved a round, and what else changed', () => {
+  it('says what else changed, and when a round lifted no mood because of the allowance', () => {
     const ended = after([open, stroke('BELLY'), ...ticks(PETTING.roundTicks)]);
-    const result = {
+    const unkind = {
       spot: 'BELLY',
       meter: 0,
       mood: -1,
-      full: false,
+      full: true,
       note: 'Mochi 心情落了一点（有点闷）',
       moodAfter: 49,
       bond: 0,
       bondLeft: 0,
     } as const;
     expect(
-      screenOf(after([{ type: 'settled', result }], ended)).result,
+      screenOf(after([{ type: 'settled', result: unkind }], ended)).result,
     ).toEqual({
       line: '肚子……不要。我先躲一下。',
       change: '心情 −1',
       mood: '😾 有点闷',
       bond: '',
       today: '今天的亲密已经到了，摸摸还是会让它开心',
+      notes: ['Mochi 心情落了一点（有点闷）'],
+    });
+    const { rounds, windowMinutes } = CARE.pettingLifts;
+    const spent = { ...RESULT, mood: 0, full: false } as const;
+    expect(
+      screenOf(after([{ type: 'settled', result: spent }], ended)).result,
+    ).toMatchObject({
+      change: '心情 +0',
       notes: [
-        '这个小时摸了好几回了，这一回效果减半',
-        'Mochi 心情落了一点（有点闷）',
+        `最近 ${windowMinutes / 60} 小时里已经摸过 ${rounds} 回，这一回心情没有再涨`,
       ],
     });
   });

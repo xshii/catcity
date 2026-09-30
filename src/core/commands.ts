@@ -175,9 +175,9 @@ export type GameEvent =
       /** The spot stroked most. */
       spot: PetSpot;
       meter: number;
-      /** The mood the round gave or took: after the hourly limit, a happy cat's half and the 0–100 range. */
+      /** The mood the round gave or took: after the allowance, a happy cat's half and the 0–100 range. */
       mood: number;
-      /** One of the hour's first rounds, which count in full. */
+      /** The round counted in full: an unkind one always, a kind one while the allowance had a lift. */
       full: boolean;
     }
   | { type: 'DebugChanged'; minute: number };

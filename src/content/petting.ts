@@ -36,6 +36,4 @@ export const PETTING = {
   good: 50,
   /** Mood for an empty and a full meter; a round mostly on the disliked spot costs 1. */
   mood: { min: 2, max: 8, disliked: 1 },
-  /** Per cat: the first rounds of a game hour count in full, later ones half. */
-  limit: { hourMinutes: 60, fullRounds: 2 },
 } as const;

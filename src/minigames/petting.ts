@@ -124,7 +124,7 @@ export interface PettingOutcome {
   meter: number;
   /** The meter reached at least half. */
   good: boolean;
-  /** The mood the round is worth before the hourly limit. */
+  /** The mood the round is worth before the cat's allowance of lifts. */
   mood: number;
   /** The spot stroked most; the earlier listed on a tie. Null for a round without strokes. */
   spot: PetSpot | null;
