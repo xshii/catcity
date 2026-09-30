@@ -5,7 +5,7 @@ import { CAT_COATS } from '../../src/content/cats';
 import type { WorldState } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
 import { invite } from '../helpers/world';
-import { MOOD_COPY } from '../../src/view/shell/mood';
+import { MOOD_COPY } from '../../src/view/common/mood';
 import {
   CAT_TOKENS,
   COAT_APPEARANCE,

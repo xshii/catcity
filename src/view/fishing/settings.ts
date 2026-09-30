@@ -1,7 +1,7 @@
 import './settings.css';
 import { SCREEN_COPY, type FishingScreen } from './screen';
 import type { FishingViewStore, Preference } from './view-state';
-import type { SettingsSheet } from '../shell/settings';
+import type { SettingsSheet } from '../common/settings';
 
 const WORDS = SCREEN_COPY.settings;
 

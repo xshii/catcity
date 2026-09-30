@@ -1,4 +1,4 @@
-import type { AimControl, CatMoves, PlaceState } from '../shell/place';
+import type { AimControl, CatMoves, PlaceState } from '../common/place';
 import { STARTER_CAT_ID } from '../../content/cats';
 import Phaser from 'phaser';
 import type { GameSession } from '../../application';

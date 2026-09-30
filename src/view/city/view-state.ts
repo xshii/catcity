@@ -1,7 +1,7 @@
 import type { SpotId } from '../../content/fishing';
 import type { Position, WorldState } from '../../core';
 import { tileAt } from '../../core/city';
-import type { Place } from '../shell/place';
+import type { Place } from '../common/place';
 
 export type CitySelection =
   | { kind: 'tile'; position: Position }

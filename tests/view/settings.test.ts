@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { $, click, key, openGame, text, visible } from '../helpers/view-rig';
-import { SETTINGS_COPY } from '../../src/view/shell/settings';
+import { SETTINGS_COPY } from '../../src/view/common/settings';
 import { PETTING } from '../../src/content/petting';
 import {
   backToCity,

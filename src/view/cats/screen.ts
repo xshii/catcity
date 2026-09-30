@@ -3,9 +3,9 @@ import { fishById, SPOTS } from '../../content/fishing';
 import { MAX_STAT, type WorldState } from '../../core';
 import { catPortrait } from '../art/illustrations';
 import { catPose, lookOf } from '../art/cat-look';
-import { bondBadge } from '../shell/bond';
-import { moodBadge } from '../shell/mood';
-import { toViewModel } from '../shell/model';
+import { bondBadge } from '../common/bond';
+import { moodBadge } from '../common/mood';
+import { toViewModel } from '../common/model';
 import type { CatsView } from './view-state';
 
 /**

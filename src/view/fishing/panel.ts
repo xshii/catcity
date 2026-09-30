@@ -1,4 +1,4 @@
-import type { Aim, AimControl, PlaceState, Tools } from '../shell/place';
+import type { Aim, AimControl, PlaceState, Tools } from '../common/place';
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
 import type { GameCommand, WorldState } from '../../core';
@@ -51,9 +51,9 @@ import {
   BUTTON_PHASE_INSTRUCTIONS,
   BUTTON_PHASE_NAMES,
 } from './template';
-import { ERROR_MESSAGES } from '../shell/errors';
-import { withMoodNote } from '../shell/mood';
-import { giftNotice, outcomeNote } from '../shell/bond';
+import { ERROR_MESSAGES } from '../common/errors';
+import { withMoodNote } from '../common/mood';
+import { giftNotice, outcomeNote } from '../common/bond';
 import type { Trace } from '../../platform/device-log';
 
 const CAST_COST = FISHING.cast.staminaCost;

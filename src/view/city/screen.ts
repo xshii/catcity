@@ -30,7 +30,7 @@ import {
   type Position,
   type WorldState,
 } from '../../core';
-import { ERROR_MESSAGES } from '../shell/errors';
+import { ERROR_MESSAGES } from '../common/errors';
 import type { CityView, CityViewEvent } from './view-state';
 
 const ROAD_NAMES = { DIRT: '土路', STONE: '石路' } as const;

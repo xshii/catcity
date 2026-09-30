@@ -1,4 +1,4 @@
-import type { PlaceState } from './place';
+import type { PlaceState } from '../common/place';
 import type { GameSession } from '../../application';
 import './layout.css';
 import { mountSceneNavigation } from './navigation';

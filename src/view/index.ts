@@ -5,7 +5,7 @@ import type { Position } from '../core';
 import { CityScene } from './city/scene';
 import { MAP_VIEW } from './city/geometry';
 import { mountPanel } from './shell/panel';
-import { createPlace } from './shell/place';
+import { createPlace } from './common/place';
 import './styles/tokens.css';
 import './styles/base.css';
 

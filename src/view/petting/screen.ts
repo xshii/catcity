@@ -16,8 +16,8 @@ import {
   type PetTastes,
 } from '../../minigames/petting';
 import type { CatPose } from '../art/cat-look';
-import { ERROR_MESSAGES } from '../shell/errors';
-import { moodBadge } from '../shell/mood';
+import { ERROR_MESSAGES } from '../common/errors';
+import { moodBadge } from '../common/mood';
 import { pettingPhase, type PettingView } from './view-state';
 
 /** How long a reaction stays on the cat's face and in its bubble. */

@@ -1,9 +1,9 @@
-import type { PlaceState, Tools } from '../shell/place';
+import type { PlaceState, Tools } from '../common/place';
 import type { GameSession } from '../../application';
 import type { SpotId } from '../../content/fishing';
 import { spotAt, tileAt } from '../../core/city';
 import type { GameCommand, Position } from '../../core';
-import { ERROR_MESSAGES } from '../shell/errors';
+import { ERROR_MESSAGES } from '../common/errors';
 import type { CardIntent, CityCard } from './screen';
 import type { CityViewStore } from './view-state';
 import './actions.css';

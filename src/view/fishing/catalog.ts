@@ -11,7 +11,7 @@ import {
 import type { GameCommand } from '../../core';
 import { MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { fishIllustration } from '../art/illustrations';
-import { withMoodNote } from '../shell/mood';
+import { withMoodNote } from '../common/mood';
 import { atlasStars, SCREEN_COPY } from './screen';
 
 type FishAction = Extract<GameCommand, { type: 'SELL_FISH' | 'GIFT_FISH' }>;

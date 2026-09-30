@@ -8,7 +8,7 @@ import {
   inviteScreen,
 } from '../../src/view/cats/invite-screen';
 import { catLook, COAT_APPEARANCE } from '../../src/view/art/cat-look';
-import { ERROR_MESSAGES } from '../../src/view/shell/errors';
+import { ERROR_MESSAGES } from '../../src/view/common/errors';
 
 // ui-design 5.3: the list of cats to invite, as the page shows it.
 

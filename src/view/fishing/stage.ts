@@ -1,4 +1,4 @@
-import type { PlaceState } from '../shell/place';
+import type { PlaceState } from '../common/place';
 import {
   FISHING,
   fishById,
@@ -7,7 +7,7 @@ import {
   type SpotId,
 } from '../../content/fishing';
 import type { WorldState } from '../../core';
-import { toViewModel } from '../shell/model';
+import { toViewModel } from '../common/model';
 import { fishIllustration } from '../art/illustrations';
 import { riverBackdrop } from '../art/river-palette';
 import {
@@ -16,7 +16,7 @@ import {
   SCREEN_COPY,
   type catchCountdown,
 } from './screen';
-import type { SettingsSheet } from '../shell/settings';
+import type { SettingsSheet } from '../common/settings';
 
 /** The river caption before a run. */
 const READY_TIP = '点击水面选择落点，再准备抛竿';

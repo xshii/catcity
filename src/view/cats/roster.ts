@@ -1,6 +1,6 @@
 import type { GameSession } from '../../application';
 import { MAX_STAT } from '../../core';
-import type { PlaceState } from '../shell/place';
+import type { PlaceState } from '../common/place';
 import { rosterScreen, type RosterCard } from './screen';
 
 function createEnergyCard(catId: string, select: (id: string) => void) {
