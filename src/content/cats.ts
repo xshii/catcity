@@ -19,8 +19,12 @@ export const CAT_COATS = ['cream', 'gray', 'orange', 'tuxedo'] as const;
 /** The first-generation cats a player can invite, in the order the list shows them; Mochi starts in the city. */
 export const INVITABLE_CATS: readonly CatDefinitionId[] =
   CAT_DEFINITION_IDS.filter((id) => id !== 'MOCHI');
-/** Companion cats the city holds at most (R-13); the engine bound MAX_CATS is higher. */
-export const MAX_COMPANIONS = 8;
+/**
+ * Companion cats the city holds at most, invited or born (R-13); the engine bound MAX_CATS
+ * is higher. Ten, not eight (user 2026-09-30): with grandparents counted as the direct line,
+ * a fifth generation needs nine cats.
+ */
+export const MAX_COMPANIONS = 10;
 /** An invitation costs 200 coins, twice as much as the one before (spec 041 design 4). */
 const INVITE = { basePrice: 200, growth: [2, 1] } as const;
 /** The price of the next invitation when `invited` cats have come by invitation. */

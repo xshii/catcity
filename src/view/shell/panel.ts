@@ -6,6 +6,7 @@ import { mountCity } from '../city/panel';
 import { mountClockSpeed } from './clock-speed';
 import { mountCompanionship } from '../companion/journal';
 import { mountPetting } from '../petting/panel';
+import { mountBreeding } from '../cats/breed';
 import { mountInvite } from '../cats/invite';
 import { toViewModel } from './model';
 import { bondNote } from './bond';
@@ -186,7 +187,8 @@ export function mountPanel(
     layer: document.querySelector<HTMLElement>('.shell')!,
     settings,
   });
-  // The way to invite a new companion ends the roster, after petting.
+  mountBreeding({ session, roster: get('cats-page-roster') });
+  // The way to invite a new companion ends the roster, after petting and the kitten list.
   mountInvite({ session, notify, roster: get('cats-page-roster') });
   // The scene switch and the map card follow the place.
   const showPlace = () => {
