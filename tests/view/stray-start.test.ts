@@ -1,10 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CAT_DEFINITIONS } from '../../src/content/cats';
+import { suggestNames } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
-import { $, click, key, openGame, text, visible } from '../helpers/view-rig';
+import {
+  $,
+  choose,
+  click,
+  key,
+  openGame,
+  pressEnter,
+  text,
+  visible,
+} from '../helpers/view-rig';
 
 // Spec 041 T-14 PR 2 (cat-looks.md 2): a new game starts with a stray by the road and the
-// cat maker, the one time a breed is picked.
+// cat maker, the one time a breed is picked; then the player names it (T-25).
 
 const SAVE_KEY = 'cat-city.save.v1';
 const radio = (item: string, option: string) =>
@@ -19,6 +29,12 @@ const checked = () =>
       (button) => [button.dataset.item, button.dataset.option],
     ),
   );
+/** The name the box starts from: seed 42's first suggestion, with no cat in the city yet. */
+const FIRST = suggestNames(
+  { ...createWorld(42).getSnapshot(), cats: [] },
+  0,
+  0,
+)[0]!;
 
 describe('a new game starts with a stray (cat-looks.md 2)', () => {
   it('opens on the stray by the road, holding the city clock and saving nothing', () => {
@@ -41,6 +57,10 @@ describe('a new game starts with a stray (cat-looks.md 2)', () => {
     click(radio('colour', 'black'));
     click(radio('white', 'mittens'));
     click('#cat-maker-confirm');
+    // T-25: the name box comes before the game; it takes the first suggestion here.
+    expect(document.querySelector('#cat-maker')).toBeNull();
+    expect(visible('#name-dialog')).toBe(true);
+    click('#name-confirm');
     const stray = {
       breed: 'BRITISH_SHORTHAIR',
       appearance: {
@@ -48,8 +68,8 @@ describe('a new game starts with a stray (cat-looks.md 2)', () => {
         colour: 'black',
         white: 'mittens',
       },
+      name: FIRST,
     } as const;
-    expect(document.querySelector('#cat-maker')).toBeNull();
     expect(visible('#stray-start')).toBe(false);
     expect(game.starting()).toBe(false);
     const mochi = game.world().cats[0]!;
@@ -62,7 +82,7 @@ describe('a new game starts with a stray (cat-looks.md 2)', () => {
     expect(loadWorld(localStorage.getItem(SAVE_KEY)!).getSnapshot()).toEqual(
       game.world(),
     );
-    expect(text('#notice')).toBe('你把它抱回了小城。它叫 Mochi。');
+    expect(text('#notice')).toBe(`你把它抱回了小城。它叫 ${FIRST}。`);
   });
 
   it('draws 🎲 from the view’s own randomness: fixed, it makes the same cat', () => {
@@ -84,6 +104,7 @@ describe('a new game starts with a stray (cat-looks.md 2)', () => {
     };
     expect(checked()).toEqual(made);
     click('#cat-maker-confirm');
+    click('#name-confirm');
     const { breed, ...appearance } = made;
     expect(game.world().cats[0]).toMatchObject({ breedId: breed, appearance });
   });
@@ -149,10 +170,102 @@ describe('a new game starts with a stray (cat-looks.md 2)', () => {
     click('#stray-look');
     click(radio('breed', 'RAGDOLL'));
     click('#cat-maker-confirm');
+    click('#name-confirm');
     expect(game.world().cats[0]!.breedId).toBe('RAGDOLL');
     expect(loadWorld(localStorage.getItem(SAVE_KEY)!).getSnapshot()).toEqual(
       game.world(),
     );
+  });
+
+  it('names the stray after its look, on the first suggestion, before the game starts (T-25)', () => {
+    const game = openGame({ strayStart: true });
+    click('#stray-look');
+    click('#cat-maker-confirm');
+    expect(text('#name-title')).toBe('给它起个名字');
+    expect(text('#name-confirm')).toBe('带它回家');
+    expect($<HTMLInputElement>('#name-input').value).toBe(FIRST);
+    expect($('#name-dialog [role="radio"]').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+    // No keyboard yet, the clock held and nothing saved while the player names it; the
+    // stray waits behind the box, not the city.
+    expect(document.activeElement).toBe($('#name-dialog'));
+    expect(game.starting()).toBe(true);
+    expect(localStorage.getItem(SAVE_KEY)).toBeNull();
+    expect(visible('#stray-start')).toBe(true);
+    // A typed name, trimmed; a namesake of the waiting template is none.
+    choose('#name-input', ' Mochi二世 ');
+    expect(text('#name-note')).toBe('');
+    click('#name-confirm');
+    expect(document.querySelector('#name-dialog')).toBeNull();
+    expect(visible('#stray-start')).toBe(false);
+    expect(game.starting()).toBe(false);
+    expect(game.world()).toEqual(
+      createWorld(42, {
+        breed: 'DOMESTIC',
+        appearance: CAT_DEFINITIONS.MOCHI.appearance,
+        name: 'Mochi二世',
+      }).getSnapshot(),
+    );
+    expect(game.session.lastCommand()).toBeNull();
+    expect(text('#notice')).toBe('你把它抱回了小城。它叫 Mochi二世。');
+    expect(text('[data-cat-id="mochi"] strong')).toBe('Mochi二世');
+  });
+
+  it('left blank, the stray takes the suggested name', () => {
+    const game = openGame({ strayStart: true });
+    click('#stray-look');
+    click('#cat-maker-confirm');
+    click('#name-more');
+    click('#name-clear');
+    expect(text('#name-note')).toBe(`不填的话就叫 ${FIRST}`);
+    click('#name-confirm');
+    expect(game.world().cats[0]!.name).toBe(FIRST);
+    expect(loadWorld(localStorage.getItem(SAVE_KEY)!).getSnapshot()).toEqual(
+      game.world(),
+    );
+  });
+
+  it('cancelling the name goes back to the maker with the cat as made', () => {
+    const game = openGame({ strayStart: true });
+    click('#stray-look');
+    click(radio('colour', 'orange'));
+    click('#cat-maker-confirm');
+    click('#name-cancel');
+    expect(document.querySelector('#name-dialog')).toBeNull();
+    expect(visible('#cat-maker')).toBe(true);
+    expect(checked()).toMatchObject({ breed: 'DOMESTIC', colour: 'orange' });
+    expect(game.starting()).toBe(true);
+    expect(localStorage.getItem(SAVE_KEY)).toBeNull();
+    // Escape in the box does the same; the next confirm names it.
+    click('#cat-maker-confirm');
+    key('keydown', 'Escape');
+    expect(visible('#cat-maker')).toBe(true);
+    click('#cat-maker-confirm');
+    click('#name-confirm');
+    expect(game.world().cats[0]).toMatchObject({
+      name: FIRST,
+      appearance: { colour: 'orange' },
+    });
+  });
+
+  it('goes from the stray to a named cat with the keyboard alone', () => {
+    const game = openGame({ strayStart: true });
+    pressEnter('#stray-look');
+    // In the maker: back past the first row to the confirm button.
+    key('keydown', 'Tab', true);
+    key('keydown', 'Tab', true);
+    expect(document.activeElement).toBe($('#cat-maker-confirm'));
+    key('keydown', 'Enter');
+    // In the box: the field is the first stop, confirm the last.
+    key('keydown', 'Tab');
+    expect(document.activeElement).toBe($('#name-input'));
+    choose('#name-input', '小黑');
+    key('keydown', 'Tab', true);
+    expect(document.activeElement).toBe($('#name-confirm'));
+    key('keydown', 'Enter');
+    expect(game.starting()).toBe(false);
+    expect(game.world().cats[0]!.name).toBe('小黑');
   });
 
   it('leaves the stray out of a test build’s new game: Mochi is its template', () => {

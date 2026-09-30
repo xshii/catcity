@@ -3,15 +3,18 @@ import type { GameSession } from '../../application';
 import { catLook, type CatPose } from '../art/cat-look';
 import { catPortrait } from '../art/illustrations';
 import { mountCatMaker } from './cat-maker';
-import { STRAY_COPY, STRAY_MAKER } from './stray-screen';
+import type { CatChoice } from './cat-maker-screen';
+import { mountNameDialog } from './name-dialog';
+import { STRAY_COPY, STRAY_MAKER, strayNaming } from './stray-screen';
 
 /** Curled up by the road, before the player looks closer. */
 const DOZING: CatPose = { face: 'calm', ears: 'up', curled: true };
 
 /**
  * A new game's start (spec 041 cat-looks.md 2): a stray by the road, then the cat maker,
- * the one time a breed may be picked. Confirming starts the game with that cat; cancelling
- * comes back here, so the step cannot be skipped. `shown` holds the city clock meanwhile.
+ * the one time a breed may be picked, then the name box (T-25). Naming it starts the game
+ * with that cat; cancelling the box goes back to the maker, cancelling the maker back here,
+ * so no step can be skipped. `shown` holds the city clock meanwhile.
  */
 export function mountStrayStart(deps: {
   session: GameSession;
@@ -49,20 +52,31 @@ export function mountStrayStart(deps: {
     event.preventDefault();
     look.focus();
   });
-  look.addEventListener('click', () => {
+  const make = (start: CatChoice) => {
     screen.hidden = true;
     mountCatMaker({
       layer: deps.layer,
-      input: STRAY_MAKER,
+      input: { ...STRAY_MAKER, ...start },
       random: deps.random,
       gear: deps.gear,
-      done: (choice) => {
-        if (!choice) return show();
+      done: (choice) => (choice ? name(choice) : show()),
+    });
+  };
+  // The stray waits behind the box, not the city: that is not this cat's yet.
+  const name = (choice: CatChoice) => {
+    screen.hidden = false;
+    mountNameDialog({
+      layer: deps.layer,
+      ...strayNaming(deps.session.getSnapshot()),
+      done: (named) => {
+        if (named === null) return make(choice);
+        screen.hidden = true;
         shown = false;
-        deps.session.resetDemo(choice);
-        deps.notify(STRAY_COPY.home(deps.session.getSnapshot().cats[0]!.name));
+        deps.session.resetDemo({ ...choice, name: named });
+        deps.notify(STRAY_COPY.home(named));
       },
     });
-  });
+  };
+  look.addEventListener('click', () => make(STRAY_MAKER));
   return { open: show, shown: () => shown };
 }

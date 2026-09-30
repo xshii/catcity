@@ -3,11 +3,20 @@ import { expect, test, type Page } from '@playwright/test';
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
 import { CAT_DEFINITIONS } from '../../src/content/cats';
+import { createWorld, suggestNames } from '../../src/core';
 
 // Spec 041 T-14 PR 2 (cat-looks.md 2, ui-design 8): a new game starts with a stray by the
-// road and the cat maker. Test builds leave it out unless the page asks for it.
+// road and the cat maker, then the name box (T-25). Test builds leave it out unless the
+// page asks for it.
 
 const SHOTS = 'artifacts/T-14';
+const NAME_SHOTS = 'artifacts/T-25';
+/** Seed 42's suggestions for the stray, in a city with no cat yet. */
+const OFFERED = suggestNames(
+  { ...createWorld(42).getSnapshot(), cats: [] },
+  0,
+  0,
+);
 const PHONES = [
   { width: 390, height: 844 },
   { width: 360, height: 640 },
@@ -45,7 +54,7 @@ async function fits(page: Page, controls: string) {
 
 for (const size of PHONES) {
   const name = `${size.width}x${size.height}`;
-  test(`a new game at ${name}: the stray by the road, then the cat maker`, async ({
+  test(`a new game at ${name}: the stray by the road, the cat maker, then its name`, async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -56,6 +65,7 @@ for (const size of PHONES) {
     const page = await context.newPage();
     const errors = await watched(page);
     await mkdir(SHOTS, { recursive: true });
+    await mkdir(NAME_SHOTS, { recursive: true });
     try {
       await page.goto(`${localOrigin(testPorts().test)}/?stray-start`);
       await ready(page);
@@ -90,8 +100,28 @@ for (const size of PHONES) {
           .tap();
       await page.locator('#cat-maker-confirm').tap();
       await expect(page.locator('#cat-maker')).toHaveCount(0);
+
+      // T-25: the name box, on the first suggestion, with the stray behind it.
+      const box = page.locator('#name-dialog');
+      await expect(box).toBeVisible();
+      await expect(page.locator('#name-title')).toHaveText('给它起个名字');
+      await expect(page.locator('#name-input')).toHaveValue(OFFERED[0]!);
+      await expect(page.locator('#name-input')).not.toBeFocused();
+      for (const id of ['#name-input', '#name-suggestions', '#name-confirm'])
+        await expect(page.locator(id)).toBeInViewport({ ratio: 1 });
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await page.screenshot({ path: `${NAME_SHOTS}/stray-name-${name}.png` });
+      await page.locator('#name-suggestions [role="radio"]').nth(1).tap();
+      await expect(page.locator('#name-input')).toHaveValue(OFFERED[1]!);
+      await page.locator('#name-confirm').tap();
+      await expect(box).toHaveCount(0);
       await expect(page.locator('#stray-start')).toBeHidden();
       const [mochi] = (await readWorld(page)).cats;
+      expect(mochi!.name).toBe(OFFERED[1]);
       expect(mochi!.breedId).toBe('BRITISH_SHORTHAIR');
       expect(mochi!.appearance).toEqual({
         ...CAT_DEFINITIONS.MOCHI.appearance,
@@ -103,9 +133,10 @@ for (const size of PHONES) {
       await ready(page);
       await expect(page.locator('#stray-start')).toBeHidden();
       await expect(page.locator('#notice')).toContainText('欢迎回来');
-      expect((await readWorld(page)).cats[0]!.breedId).toBe(
-        'BRITISH_SHORTHAIR',
-      );
+      expect((await readWorld(page)).cats[0]).toMatchObject({
+        breedId: 'BRITISH_SHORTHAIR',
+        name: OFFERED[1],
+      });
       expect(errors).toEqual([]);
     } finally {
       await context.close();
