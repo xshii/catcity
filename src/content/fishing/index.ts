@@ -17,6 +17,7 @@ export {
   discoveredSpecies,
   fishById,
   fishHabitats,
+  lengthStar,
   skillLevel,
   skillXp,
   spotOpen,

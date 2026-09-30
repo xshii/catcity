@@ -1,5 +1,12 @@
 import type { CatBreed } from '../breeds';
-import { FISH, SPOT_IDS, SPOTS, type FishId, type SpotId } from './catalog';
+import {
+  FISH,
+  LENGTH_STARS,
+  SPOT_IDS,
+  SPOTS,
+  type FishId,
+  type SpotId,
+} from './catalog';
 import { FISHING } from './spec';
 
 export const fishById = (id: FishId) => FISH.find((fish) => fish.id === id)!;
@@ -36,6 +43,9 @@ export function spotUnlocked(
 
 export const discoveredSpecies = (atlas: Record<FishId, { count: number }>) =>
   Object.values(atlas).filter((entry) => entry.count > 0).length;
+/** Stars (0–3: bronze, silver, gold) a species' record length earns; derived, not saved. */
+export const lengthStar = (id: FishId, bestLengthMm: number) =>
+  LENGTH_STARS[id].filter((length) => bestLengthMm >= length).length;
 /** Unlocks derive from XP and atlas progress; no separate unlock flags are saved. */
 export const spotOpen = (
   spot: SpotId,

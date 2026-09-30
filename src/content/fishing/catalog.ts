@@ -135,6 +135,21 @@ export const FISH = [
     clue: `潮汐海岸${RIGHT}，虾饵，力度至少 ${encounter.strongPower}%`,
   },
 ] as const;
+/**
+ * The record length (mm) each species needs for its bronze, silver and gold star (R-54).
+ * Set per species so that a catch earns gold more easily the fewer stars its species has
+ * (tests/simulation/atlas-stars). The player sees only the stars, never these lengths.
+ */
+export const LENGTH_STARS = {
+  SILVER: [120, 150, 165],
+  CRUCIAN: [265, 330, 370],
+  PERCH: [425, 510, 565],
+  CATFISH: [710, 855, 950],
+  KOI: [600, 700, 770],
+  MOON_CARP: [920, 1075, 1165],
+  MACKEREL: [400, 500, 560],
+  SEA_BREAM: [610, 755, 850],
+} as const satisfies Record<FishId, readonly [number, number, number]>;
 export const BAITS: Record<
   BaitId,
   { name: string; price: number; hint: string }

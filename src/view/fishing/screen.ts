@@ -1,4 +1,5 @@
-import { FISHING } from '../../content/fishing';
+import { FISH, FISHING, lengthStar, type FishId } from '../../content/fishing';
+import type { WorldState } from '../../core';
 import type { AnglingRun } from '../../minigames/angling';
 import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
 import {
@@ -73,7 +74,51 @@ export const SCREEN_COPY = {
   permission: {
     denied: '体感未获授权，已改用按钮；可在设置里重试',
   },
+  /** A caught species' record stars (R-54): only which are reached, never the lengths. */
+  atlas: {
+    stars: ['铜星', '银星', '金星'],
+    none: '还没有星',
+    glyph: { lit: '★', unlit: '☆' },
+    newSpecies: (name: string, star: string | null) =>
+      `图鉴新添：${name}${star ? `，评上${star}` : ''}`,
+    reached: (name: string, star: string) => `${name}的纪录评上${star}`,
+  },
 } as const;
+
+type Atlas = WorldState['fishing']['atlas'];
+type AtlasRecord = Atlas[FishId];
+
+/** An atlas entry's three stars, lit as the record earns them; none for a fish never caught. */
+export function atlasStars(id: FishId, record: AtlasRecord) {
+  if (!record.count) return null;
+  const lit = lengthStar(id, record.bestLengthMm);
+  const words = SCREEN_COPY.atlas;
+  return {
+    lit,
+    marks: [0, 1, 2].map((index) => index < lit),
+    text: lit ? words.stars[lit - 1]! : words.none,
+  };
+}
+
+/**
+ * What one catch added to the atlas, told from the snapshots before and after it: a
+ * species caught for the first time, or the highest star a record newly reached; '' if
+ * neither.
+ */
+export function atlasNote(before: Atlas, after: Atlas): string {
+  const words = SCREEN_COPY.atlas;
+  return FISH.flatMap((fish) => {
+    const was = before[fish.id];
+    const now = after[fish.id];
+    const stars = lengthStar(fish.id, now.bestLengthMm);
+    const star =
+      stars > lengthStar(fish.id, was.bestLengthMm)
+        ? words.stars[stars - 1]!
+        : null;
+    if (!was.count && now.count) return [words.newSpecies(fish.name, star)];
+    return star ? [words.reached(fish.name, star)] : [];
+  }).join('。');
+}
 
 type Run = Pick<AnglingRun, 'mode' | 'phase' | 'phaseTick'>;
 
