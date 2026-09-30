@@ -4,25 +4,25 @@
 
 ## 目录与责任
 
-| 位置                                     | 责任与边界                                                                             |
-| ---------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/core/`                              | World、命令/状态 schema、统一时钟、RNG、模拟与关系规则；纯 TypeScript                  |
-| `src/core/city/`                         | 地图、建设、寻路、行走、城市状态校验                                                   |
-| `src/core/fishing/`                      | 钓鱼命令、旅行资格、结果结算、持久状态与校验                                           |
-| `src/content/`                           | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`、`cats`、`mood`；与实例分离 |
-| `src/minigames/angling.ts`               | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界                        |
-| `src/minigames/petting.ts`               | 独立纯撸猫模拟（spec 039）：一局不入档，Core 重放整局的抚摸来结算                      |
-| `src/application/`                       | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验                |
-| `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                           |
-| `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼交互、面板与只读状态呈现                                                     |
-| `src/view/cats/`                         | 猫咪面板（spec 041）：名册与详情、邀请新伙伴的名单、"和谁生小猫"的条件列表             |
-| `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                     |
-| `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                            |
-| `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                               |
-| `src/view/styles/`                       | 视觉 token（`tokens.css`）与共用基础样式；玩法布局样式留在对应 View 模块               |
-| `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                                |
-| `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                          |
-| `tests/`                                 | 按 unit / simulation / integration / view / e2e 分层，旧存档仅作拒绝 fixture           |
+| 位置                                     | 责任与边界                                                                                   |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `src/core/`                              | World、命令/状态 schema、统一时钟、RNG、模拟与关系规则；纯 TypeScript                        |
+| `src/core/city/`                         | 地图、建设、寻路、行走、城市状态校验                                                         |
+| `src/core/fishing/`                      | 钓鱼命令、旅行资格、结果结算、持久状态与校验                                                 |
+| `src/content/`                           | 定义与调参：`fishing/{spec,catalog,rules}`、`city`、`care`、`cats`、`mood`；与实例分离       |
+| `src/minigames/angling.ts`               | 独立纯钓鱼模拟：输入状态和整数 tick，输出下一状态，不访问主世界                              |
+| `src/minigames/petting.ts`               | 独立纯撸猫模拟（spec 039）：一局不入档，Core 重放整局的抚摸来结算                            |
+| `src/application/`                       | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验                      |
+| `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                                 |
+| `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼交互、面板与只读状态呈现                                                           |
+| `src/view/cats/`                         | 猫咪面板（spec 041）：名册与详情、邀请新伙伴的名单、"和谁生小猫"的条件列表；捏猫画面（T-14） |
+| `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                           |
+| `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                                  |
+| `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                                     |
+| `src/view/styles/`                       | 视觉 token（`tokens.css`）与共用基础样式；玩法布局样式留在对应 View 模块                     |
+| `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                                      |
+| `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                                |
+| `tests/`                                 | 按 unit / simulation / integration / view / e2e 分层，旧存档仅作拒绝 fixture                 |
 
 `src/main.ts` 注入具体依赖并连接 View、Debug 与平台时间。`src/view/index.ts` 的 `mountGameView(session)` 封装 Phaser/面板装配。Core/content 不依赖 DOM、Phaser、网络、真实时钟、模型 SDK、全局单例或 `Math.random()`。View 不拥有可变世界引用；快照不能写回世界：`GameSession.getSnapshot()` 每次世界变化只拷贝一次并深度冻结，之后的读取共用同一对象，写入即抛错。
 
@@ -58,6 +58,6 @@ Core 派生资源消耗、奖励和关系变化，不接受客户端自报鱼种
 
 ## 可观察与扩展
 
-Dev/test 的 `window.CAT_CITY_DEBUG` 提供世界/实体/种子/诊断/回放、只读格子屏幕坐标及验证后的测试操作；生产包无此入口。GameSession 保存初始 checkpoint 和有序命令结果，每 1000 条滚动到精确的新 checkpoint，确保保留窗口可回放。
+Dev/test 的 `window.CAT_CITY_DEBUG` 提供世界/实体/种子/诊断/回放、只读格子屏幕坐标及验证后的测试操作，以及在游戏接入之前打开捏猫画面（`showCatMaker`，不发命令）；生产包无此入口。GameSession 保存初始 checkpoint 和有序命令结果，每 1000 条滚动到精确的新 checkpoint，确保保留窗口可回放。
 
 Provider 边界见[AI 架构](ai-architecture.md)。新小游戏继续采用独立输入/结果，经 Core 验证结算；第二种真正需要时才抽通用框架。发布器只管理命令、进程、固定构建与证据，猫咪语义留在适配器。验收、失败证据和回退规则分别见[测试](testing.md)与[本地发布](local-publication.md)。
