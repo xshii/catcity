@@ -31,6 +31,7 @@ import { mountFishingControls } from './controls';
 import { mountFishingSettings } from './settings';
 import { motionAim } from '../art/water-view';
 import {
+  atlasNote,
   castNotice,
   CATCH_CARD_MS,
   catchCountdown,
@@ -133,7 +134,8 @@ export function mountAngling(
   let detailsKey = '';
   let aimKey = '';
   let aimPower = REST_POWER;
-  // How the run that just ended changed its cat's mood band; read from the change itself.
+  // How the run that just ended changed its cat's mood band and the atlas; read from the
+  // change itself.
   let previousWorld = session.getSnapshot();
   let resultMood = { runId: '', note: '' };
   const aimListeners = new Set<() => void>();
@@ -578,7 +580,12 @@ export function mountAngling(
     )
       resultMood = {
         runId: ended.runId,
-        note: outcomeNote(previousWorld, world, ended.catId),
+        note: [
+          outcomeNote(previousWorld, world, ended.catId),
+          atlasNote(previousWorld.fishing.atlas, world.fishing.atlas),
+        ]
+          .filter(Boolean)
+          .join('。'),
       };
     const held = ringHeld(previousWorld.fishing.active, world.fishing.active);
     const cast = castNotice(previousWorld.fishing.active, world.fishing.active);

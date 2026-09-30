@@ -1,4 +1,5 @@
-import { FISHING } from '../../content/fishing';
+import { FISH, FISHING, lengthStar, type FishId } from '../../content/fishing';
+import type { WorldState } from '../../core';
 import type { AnglingRun } from '../../minigames/angling';
 import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
 import {
@@ -73,7 +74,56 @@ export const SCREEN_COPY = {
   permission: {
     denied: '体感未获授权，已改用按钮；可在设置里重试',
   },
+  /** A caught species' record stars (R-54): which are collected, never the lengths. */
+  atlas: {
+    stars: ['铜星', '银星', '金星'],
+    names: ['铜', '银', '金'],
+    glyph: { lit: '★', unlit: '☆' },
+    label: (collected: readonly string[]) =>
+      `体长评星：${collected.length ? `已收集${collected.join('、')}` : '还没有星'}`,
+    newSpecies: (name: string, star: string | null) =>
+      `图鉴新添：${name}${star ? `，评上${star}` : ''}`,
+    reached: (name: string, star: string) => `${name}的纪录评上${star}`,
+  },
 } as const;
+
+type Atlas = WorldState['fishing']['atlas'];
+type AtlasRecord = Atlas[FishId];
+
+/**
+ * An atlas entry's bronze, silver and gold, each lit once the record earns it, and the
+ * words read for them; none for a fish never caught.
+ */
+export function atlasStars(id: FishId, record: AtlasRecord) {
+  if (!record.count) return null;
+  const lit = lengthStar(id, record.bestLengthMm);
+  const words = SCREEN_COPY.atlas;
+  return {
+    lit,
+    marks: words.names.map((name, index) => ({ name, lit: index < lit })),
+    label: words.label(words.stars.slice(0, lit)),
+  };
+}
+
+/**
+ * What one catch added to the atlas, told from the snapshots before and after it: a
+ * species caught for the first time, or the highest star a record newly reached; '' if
+ * neither.
+ */
+export function atlasNote(before: Atlas, after: Atlas): string {
+  const words = SCREEN_COPY.atlas;
+  return FISH.flatMap((fish) => {
+    const was = before[fish.id];
+    const now = after[fish.id];
+    const stars = lengthStar(fish.id, now.bestLengthMm);
+    const star =
+      stars > lengthStar(fish.id, was.bestLengthMm)
+        ? words.stars[stars - 1]!
+        : null;
+    if (!was.count && now.count) return [words.newSpecies(fish.name, star)];
+    return star ? [words.reached(fish.name, star)] : [];
+  }).join('。');
+}
 
 /**
  * How long the catch card stays before it closes by itself (R-02): it floats over the

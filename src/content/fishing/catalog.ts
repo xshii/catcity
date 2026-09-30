@@ -135,6 +135,26 @@ export const FISH = [
     clue: `潮汐海岸${RIGHT}，虾饵，力度至少 ${encounter.strongPower}%`,
   },
 ] as const;
+/**
+ * Typical odds (percent) that one catch is long enough for a bronze, silver and gold
+ * record star (R-54): gold comes rarer the more stars a species has, and bronze is never
+ * a given. The lengths that give these odds follow from each species' sizes (rules.ts).
+ */
+export const STAR_ODDS = {
+  easy: [60, 30, 15],
+  common: [50, 25, 10],
+  hard: [45, 20, 7],
+  rare: [40, 15, 5],
+} as const;
+/** The odds a species of 0–5 stars takes. */
+export const STAR_ODDS_BY_FISH_STARS = [
+  'easy',
+  'easy',
+  'common',
+  'hard',
+  'rare',
+  'rare',
+] as const satisfies readonly (keyof typeof STAR_ODDS)[];
 export const BAITS: Record<
   BaitId,
   { name: string; price: number; hint: string }
