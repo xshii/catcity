@@ -115,6 +115,7 @@ export function assertFishing(
       run.strike !== 'none' ||
       run.spooked ||
       run.hold !== 0 ||
+      run.outside !== 0 ||
       (run.phase === 'hook' && run.phaseTick >= FISHING.hook.deadlineTicks)
     )
       throw new Error('Invalid button fishing state');
@@ -217,7 +218,9 @@ function assertMotionRun(run: AnglingRun): void {
   const fight = run.phase === 'fight';
   if (
     run.pressed ||
-    (fight ? run.strike === 'none' : run.strike !== 'none' || run.hold !== 0) ||
+    (fight
+      ? run.strike === 'none'
+      : run.strike !== 'none' || run.hold !== 0 || run.outside !== 0) ||
     (run.phase === 'waiting' && run.phaseTick >= bounds.bite) ||
     (run.phase === 'hook' && run.phaseTick >= bounds.strikeWindow) ||
     (fight &&
@@ -225,6 +228,7 @@ function assertMotionRun(run: AnglingRun): void {
         run.hold > bounds.maxHold ||
         run.tension > bounds.maxTension ||
         run.tension >= 100 ||
+        run.outside > bounds.maxOutside ||
         (run.phaseTick <= FISHING.motion.fight.graceTicks &&
           run.hold !== bounds.startHold) ||
         run.phaseTick >= bounds.fightLimit))
