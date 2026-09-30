@@ -59,6 +59,8 @@ export const CITY_COLOURS = {
   door: mix(T.wood, T.brown, 0.5),
   apartment: T.sakura,
   apartmentRoof: mix(T.sakura, T.brown, 0.2),
+  lodge: mix(T.paper, T.wood, 0.4),
+  lodgeRoof: mix(T.sage, T.brown, 0.15),
   window: 0xfff4da,
   /** Windows in the evening and at night, with a warm glow around them. */
   lit: 0xffe39a,
