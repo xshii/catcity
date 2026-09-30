@@ -68,7 +68,8 @@ import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
  * - The wishing player (spec 041 R-50 – R-53) grants each of Mochi's wishes as soon as it
  *   can: it builds the home and the cafe beside it, pets one perfect round, fishes the
  *   wished water, or fishes for the wished fish (`WISHED_AIMS`) and gives it. The novice
- *   leaves a fish of more than 2★ for another day. Otherwise it fishes as they do.
+ *   leaves a fish of more than 2★ until Mochi changes its mind. Otherwise it fishes as
+ *   they do. Other players grant a wish only when what they do anyway meets it.
  * - The city clock: the river runs at 1×, but the time between casts may be spent in the
  *   city at 4×. There the same real rhythm passes four times the game minutes.
  */
@@ -456,7 +457,9 @@ it.each(
  * cat: the gifting player is faster than the fishing one.
  * Measured 2026-09-30 at 20 / 30 / 45 / 60: 家人 643 / 626 / 601 / 583 fish, happy casts
  * 16% / 15% / 13% / 12%, moon lake 43 / 44 / 45 / 45, full skill 291 / 297 / 306 / 313.
- * With a domestic stray (T-14) full skill takes 412 / 417 / 424 / 429 fish.
+ * With a domestic stray (T-14) full skill takes 412 / 417 / 424 / 429 fish. A domestic
+ * stray's wishes (T-40) now and then meet a gift or a catch: 家人 619 / 599 / 577 at 30 /
+ * 45 / 60.
  */
 const GIFTING = {
   family: 500,
@@ -570,14 +573,14 @@ it.each(
 
 /**
  * Wishes (spec 041 R-53): a player who grants every wish still takes 500–800 fish to 家人,
- * at every rhythm, on either city clock. A wish comes at most once a game day and a catch
- * every cast, so the wishes' share of the bond grows with the game minutes between casts.
- * Measured 2026-09-30 (a wish on half of the days, +10), skilled, at 20 / 30 / 45 / 60:
- * 1×: 家人 677–711 fish, the wishes' share 3.3 / 4.7 / 6.0 / 7.3%;
- * 4×: 家人 514–647 fish, the share 10.7 / 16.0 / 22.7–23.2 / 27.3%.
- * The novice: 750 at 1×, where its first wish, a fish of 3★, stays; 717–750 at 4×.
- * The share stays under R-53's 30%. Its floor of 15% holds at no rhythm of 1×: there a
- * game day passes in 24 real minutes of fishing, which bring ten times a wish's points.
+ * at every rhythm, on either city clock, and the wishes' share of the bond stays within
+ * 30%. Wishes are a small bonus: the user dropped the share's floor of 15% (user
+ * 2026-09-30). A wish comes at most once a game day and a catch every cast, so the share
+ * grows with the game minutes between casts.
+ * Measured 2026-09-30 (a wish on half of the days, +10, a change of mind after 5 days),
+ * skilled, at 20 / 30 / 45 / 60: 1×: 家人 677–711 fish, the share 3.3 / 4.7 / 6.0 / 7.3%;
+ * 4×: 家人 514–647 fish, the share 10.7 / 16.0 / 22.7–23.2 / 27.3%. The novice, whose
+ * wishes for fish above 2★ give way to others: 1× 701–726 fish, 4× 567–685, 2.0–21.9%.
  */
 const WISH_SHARE_MAX = 30;
 const CLOCKS = [1, 4] as const;

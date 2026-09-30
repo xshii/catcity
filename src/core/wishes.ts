@@ -55,17 +55,24 @@ export function wishTargets(
   };
 }
 
+/** Whether the cat has left its wish alone so long that it changes its mind today. */
+const changesMind = (cat: CatEntity, day: number) =>
+  !!cat.wish && day - cat.wish.sinceDay >= WISH.changeMindDays;
+
 /**
  * As a game day starts, each grown companion without a wish, and none granted that day,
- * may think of one (R-50). The seed, the cat and the day decide whether, then the kind
- * among those it could wish for now, then the target.
+ * may think of one (R-50); one that has left its wish alone for `changeMindDays` thinks
+ * of another in its place, at no cost (R-52, user 2026-09-30). The seed, the cat and the
+ * day decide whether, then the kind among those it could wish for now (another kind
+ * than before, while there is one), then the target.
  */
 export function wishesArise(world: WorldState): void {
   if (world.minute % BOND.dayMinutes) return;
   const day = gameDay(world.minute);
   for (const cat of world.cats) {
+    const changing = changesMind(cat, day);
     if (
-      cat.wish ||
+      (cat.wish && !changing) ||
       (cat.lastWishDay !== null && cat.lastWishDay >= day) ||
       world.minute < grownFrom(cat.bornMinute)
     )
@@ -73,10 +80,12 @@ export function wishesArise(world: WorldState): void {
     const random = new RandomService(
       runSeed((streamSeed(world.seed, 'wish') ^ idNumber(cat.id)) >>> 0, day),
     );
-    if (random.nextInt(100) >= WISH.chancePercent) continue;
+    if (!changing && random.nextInt(100) >= WISH.chancePercent) continue;
     const targets = wishTargets(world, cat);
     const kinds = WISH_KINDS.filter((kind) => targets[kind].length);
-    const kind = kinds[random.nextInt(kinds.length)]!;
+    const others = kinds.filter((kind) => kind !== cat.wish?.kind);
+    const pool = others.length ? others : kinds;
+    const kind = pool[random.nextInt(pool.length)]!;
     const target = targets[kind][random.nextInt(targets[kind].length)] ?? null;
     cat.wish = { kind, target, sinceDay: day };
   }
@@ -118,8 +127,9 @@ export function grantCityWishes(world: WorldState, events: GameEvent[]): void {
 
 /**
  * Only wishes that could have come: thought of on a day that has started, by a grown cat,
- * after the last one granted, and still one the cat could think of now. What it wishes
- * for only opens up (waters) or is granted at once when met (a home, a cafe near it).
+ * after the last one granted, not so long ago that the cat would have changed its mind,
+ * and still one the cat could think of now. What it wishes for only opens up (waters) or
+ * is granted at once when met (a home, a cafe near it).
  */
 export function assertWishes(world: WorldState): void {
   const today = gameDay(world.minute);
@@ -129,6 +139,7 @@ export function assertWishes(world: WorldState): void {
       (lastWishDay !== null && lastWishDay > today) ||
       (wish &&
         (wish.sinceDay > today ||
+          changesMind(cat, today) ||
           (lastWishDay !== null && wish.sinceDay <= lastWishDay) ||
           wish.sinceDay * BOND.dayMinutes < grownFrom(cat.bornMinute) ||
           !wishTargets(world, cat)[wish.kind].includes(wish.target)))

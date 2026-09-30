@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { BOND } from '../../src/content/care';
 import { FISH, skillXp } from '../../src/content/fishing';
+import { WISH } from '../../src/content/wishes';
 import { createWorld, loadWorld, World } from '../../src/core';
 import type { CatEntity, WorldState } from '../../src/core';
 import { advance, invite } from '../helpers/world';
@@ -10,11 +11,14 @@ import { advance, invite } from '../helpers/world';
 // could not have come.
 
 const DAY = BOND.dayMinutes;
+const TODAY = 8;
+/** The oldest a wish can be: the next day the cat changes its mind. */
+const OLDEST = TODAY - (WISH.changeMindDays - 1);
 
 /**
- * Day 3 of seed 42 with every water open: Mochi at home, with a cafe five tiles off,
+ * Day 8 of seed 42 with every water open: Mochi at home, with a cafe five tiles off,
  * wishing for a cafe near home since today, its last wish granted yesterday; Pepper
- * wishing for a moon carp since day 1.
+ * wishing for a moon carp for as long as it can before it changes its mind.
  */
 function wishingCity(): World {
   const world = new World({
@@ -35,7 +39,7 @@ function wishingCity(): World {
     position: { x: 6, y: 6 },
   });
   invite(world);
-  advance(world, 3 * DAY - world.getSnapshot().minute + 60);
+  advance(world, TODAY * DAY - world.getSnapshot().minute + 60);
   const state = world.getSnapshot();
   state.fishing.xp = skillXp(5);
   for (const id of ['SILVER', 'CRUCIAN', 'PERCH', 'MACKEREL'] as const) {
@@ -47,9 +51,9 @@ function wishingCity(): World {
     };
   }
   const [mochi, pepper] = state.cats;
-  mochi!.wish = { kind: 'CAFE', target: null, sinceDay: 3 };
-  mochi!.lastWishDay = 2;
-  pepper!.wish = { kind: 'FISH', target: 'MOON_CARP', sinceDay: 1 };
+  mochi!.wish = { kind: 'CAFE', target: null, sinceDay: TODAY };
+  mochi!.lastWishDay = TODAY - 1;
+  pepper!.wish = { kind: 'FISH', target: 'MOON_CARP', sinceDay: OLDEST };
   pepper!.lastWishDay = null;
   return new World(state);
 }
@@ -60,12 +64,13 @@ it('saves each wish and the day of the last one granted, and restores them exact
   expect(
     save.world.cats.map((cat: CatEntity) => [cat.wish, cat.lastWishDay]),
   ).toEqual([
-    [{ kind: 'CAFE', target: null, sinceDay: 3 }, 2],
-    [{ kind: 'FISH', target: 'MOON_CARP', sinceDay: 1 }, null],
+    [{ kind: 'CAFE', target: null, sinceDay: TODAY }, TODAY - 1],
+    [{ kind: 'FISH', target: 'MOON_CARP', sinceDay: OLDEST }, null],
   ]);
   const loaded = loadWorld(world.save());
   expect(loaded.save()).toBe(world.save());
-  // A reload carries on as if nothing happened: the cafe comes near, days go by.
+  // A reload carries on as if nothing happened: the cafe comes near, the next day Pepper
+  // changes its mind, days go by.
   for (const game of [world, loaded]) {
     expect(
       game.dispatch({
@@ -74,10 +79,15 @@ it('saves each wish and the day of the last one granted, and restores them exact
         position: { x: 4, y: 4 },
       }).ok,
     ).toBe(true);
+    expect(game.getSnapshot().cats[0]!.lastWishDay).toBe(TODAY);
+    const changes = (OLDEST + WISH.changeMindDays) * DAY;
+    expect(advance(game, changes - game.getSnapshot().minute).ok).toBe(true);
+    const wish = game.getSnapshot().cats[1]!.wish!;
+    expect(wish.sinceDay).toBe(TODAY + 1);
+    expect(wish.kind).not.toBe('FISH');
     expect(advance(game, 10 * DAY).ok).toBe(true);
   }
   expect(loaded.save()).toBe(world.save());
-  expect(world.getSnapshot().cats[0]!.lastWishDay).toBe(3);
 });
 
 it('rejects every wish a save makes up', () => {
@@ -127,9 +137,11 @@ it('rejects every wish a save makes up', () => {
     (state: WorldState) => wish(mochi(state), 'HOME', null),
     (state: WorldState) => (state.buildings[1]!.position = { x: 4, y: 4 }),
     // A day that has not come, or not after the last wish granted.
-    (state: WorldState) => (mochi(state).wish!.sinceDay = 4),
-    (state: WorldState) => (mochi(state).lastWishDay = 4),
-    (state: WorldState) => (mochi(state).lastWishDay = 3),
+    (state: WorldState) => (mochi(state).wish!.sinceDay = TODAY + 1),
+    (state: WorldState) => (mochi(state).lastWishDay = TODAY + 1),
+    (state: WorldState) => (mochi(state).lastWishDay = TODAY),
+    // A wish so old that the cat would have changed its mind already.
+    (state: WorldState) => (pepper(state).wish!.sinceDay = OLDEST - 1),
     (state: WorldState) => (pepper(state).wish!.sinceDay = -1),
     (state: WorldState) => (pepper(state).wish!.sinceDay = 1.5),
   ])

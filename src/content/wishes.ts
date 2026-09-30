@@ -24,4 +24,13 @@ export const WISH = {
   /** A granted wish: bond points (one more from a happy cat) and mood. */
   bond: 10,
   mood: 10,
+  /**
+   * A wish left alone this many game days gives way to another as the next day starts
+   * (user 2026-09-30): no loss, no countdown. An attentive player grants a wish the day
+   * it comes (tests/simulation/pacing.test.ts), so this only frees a wish the player
+   * leaves be. Game time passes only in play: 5 days are 2 hours at 1× and 30 minutes at
+   * 4×, so a wish seen as a half-hour sitting begins is still there as it ends, and it
+   * never reads as a timer; a wish the player cannot grant does not stay for good.
+   */
+  changeMindDays: 5,
 } as const;

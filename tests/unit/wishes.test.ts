@@ -24,6 +24,7 @@ import {
   type WorldState,
 } from '../../src/core';
 import { gameDay } from '../../src/core/bond';
+import { applyCommand } from '../../src/core/reducer';
 import type { CatBreed } from '../../src/content/breeds';
 import { assertWishes, wishesArise, wishTargets } from '../../src/core/wishes';
 import { advance, invite } from '../helpers/world';
@@ -108,7 +109,7 @@ const fishIn = (spots: readonly SpotId[]) =>
   ).map((fish) => fish.id);
 
 describe('a wish arises (R-50)', () => {
-  it('only as a game day starts, for a companion without one, and then it stays', () => {
+  it('only as a game day starts: to a companion without one, or in place of one it has left for days', () => {
     const world = rich();
     invite(world);
     let before = world.getSnapshot().cats.map((cat) => cat.wish);
@@ -119,7 +120,9 @@ describe('a wish arises (R-50)', () => {
       expect(advance(world, 1).ok).toBe(true);
       const now = world.getSnapshot().cats.map((cat) => cat.wish);
       now.forEach((wish, index) => {
-        if (before[index]) expect(wish).toEqual(before[index]);
+        const old = before[index];
+        if (old && day - old.sinceDay < WISH.changeMindDays)
+          expect(wish).toEqual(old);
         else if (wish) expect(wish.sinceDay).toBe(day);
       });
       before = now;
@@ -546,13 +549,14 @@ describe('granted by doing what it wished for (R-53)', () => {
 });
 
 describe('no deadline and nothing lost (R-52, C1)', () => {
-  it('a wish nobody grants stays as it was, for as long as it takes', () => {
+  it('a wish nobody grants stays until the cat changes its mind, and until then is granted in full', () => {
     const world = wishing(rich(), 'HOME');
-    const wish = cat(world).wish;
-    expect(advance(world, 30 * DAY).ok).toBe(true);
-    expect(advance(world, 30 * DAY).ok).toBe(true);
+    const wish = cat(world).wish!;
+    const changes = (wish.sinceDay + WISH.changeMindDays) * DAY;
+    expect(advance(world, changes - 1 - world.getSnapshot().minute).ok).toBe(
+      true,
+    );
     expect(cat(world).wish).toEqual(wish);
-    // Granted two months on, in full.
     const bond = cat(world).playerBond;
     expect(granted(assign(world, build(world, PLOT.a)))).toHaveLength(1);
     expect(cat(world).playerBond).toBe(bond + WISH.bond);
@@ -593,5 +597,80 @@ describe('no deadline and nothing lost (R-52, C1)', () => {
       error: 'HOME_NOT_FOUND',
     });
     expect(world.save()).toBe(before);
+  });
+});
+
+describe('changes its mind (R-52, user 2026-09-30)', () => {
+  it('a wish left alone gives way to another as its day comes, not a minute before, and again after as long', () => {
+    const world = wishing(rich(), 'HOME');
+    const first = cat(world).wish!;
+    let wish = first;
+    for (const round of [1, 2]) {
+      const changes = (wish.sinceDay + WISH.changeMindDays) * DAY;
+      const minute = world.getSnapshot().minute;
+      expect(advance(world, changes - 1 - minute).ok).toBe(true);
+      expect(cat(world).wish).toEqual(wish);
+      const result = advance(world, 1);
+      expect(granted(result)).toEqual([]);
+      const next = cat(world).wish!;
+      expect(next.sinceDay).toBe(wish.sinceDay + WISH.changeMindDays);
+      expect(next.kind, `round ${round}`).not.toBe(wish.kind);
+      expect(wishTargets(world.getSnapshot(), cat(world))[next.kind]).toContain(
+        next.target,
+      );
+      expect(cat(world).lastWishDay).toBeNull();
+      wish = next;
+    }
+    expect(WISH.changeMindDays).toBeGreaterThan(1);
+    expect(first.kind).toBe('HOME');
+  });
+
+  it('at no cost: the cat and the city are as they would be without the wish', () => {
+    const minded = wishing(rich(), 'HOME').getSnapshot();
+    const unminded = structuredClone(minded);
+    // No wish ever: its last one granted on a day yet to come, which no command can do.
+    unminded.cats[0]!.wish = null;
+    unminded.cats[0]!.lastWishDay = Number.MAX_SAFE_INTEGER;
+    for (const state of [minded, unminded])
+      applyCommand(state, {
+        type: 'ADVANCE_TIME',
+        minutes: (WISH.changeMindDays + 1) * DAY,
+      });
+    expect(minded.cats[0]!.wish!.kind).not.toBe('HOME');
+    const plain = (state: WorldState) => ({
+      ...state,
+      cats: state.cats.map((cat) => ({ ...cat, wish: null, lastWishDay: 0 })),
+    });
+    expect(plain(minded)).toEqual(plain(unminded));
+  });
+
+  it('always to something else it can wish for now, from the seed, the cat and the day', () => {
+    let changes = 0;
+    for (let seed = 0; seed < 30; seed++) {
+      const state = createWorld(seed).getSnapshot();
+      if (seed % 2) opened(state, 5, MOON_OPEN);
+      const mochi = state.cats[0]!;
+      for (let day = WISH.changeMindDays; day < WISH.changeMindDays + 10; day++)
+        for (const [kind, targets] of Object.entries(wishTargets(state, mochi)))
+          for (const target of targets) {
+            state.minute = day * DAY;
+            const old = {
+              kind: kind as WishKind,
+              target,
+              sinceDay: day - WISH.changeMindDays,
+            };
+            mochi.wish = { ...old };
+            wishesArise(state);
+            const next = mochi.wish;
+            mochi.wish = { ...old };
+            wishesArise(state);
+            expect(mochi.wish).toEqual(next);
+            expect(next.kind).not.toBe(old.kind);
+            expect(next.sinceDay).toBe(day);
+            expect(wishTargets(state, mochi)[next.kind]).toContain(next.target);
+            changes++;
+          }
+    }
+    expect(changes).toBeGreaterThan(300);
   });
 });
