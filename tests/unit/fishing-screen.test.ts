@@ -291,6 +291,13 @@ describe('fishing screen', () => {
       fishingScreen(view({}, { type: 'settings', open: true }), null).settings
         .page,
     ).toBe(false);
+    // Nor the sheet opened over the petting screen: that page has no settings of its own.
+    const petting = replay(closed, { type: 'petting', open: true });
+    expect(fishingScreen(petting, null).settings.page).toBe(false);
+    expect(
+      fishingScreen(replay(petting, { type: 'petting', open: false }), null)
+        .settings.page,
+    ).toBe(true);
   });
 
   it('gives the river to motion play while motion is on, with aim tools before a run', () => {

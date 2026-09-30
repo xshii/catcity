@@ -49,6 +49,18 @@
   align-items: center;
   gap: 10px;
 }
+/*
+ * The settings gear floats at the right under the scene bar's place on every page, over
+ * this screen too (2026-09-30): the heading's close and the meter under it end left of the
+ * gear's column. A column that is centred on a wide screen is clear of it already.
+ */
+.game-screen .petting-heading,
+.game-screen .petting-meter-row {
+  padding-right: max(
+    0px,
+    calc(var(--gear-room) - max(16px, (100vw - 440px) / 2))
+  );
+}
 .petting-heading h2 {
   flex: 1;
   margin: 0;

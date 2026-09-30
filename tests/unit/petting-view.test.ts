@@ -144,6 +144,27 @@ describe('petting view state', () => {
     expect(focus('ArrowRight', 'ArrowLeft')).toBe(PET_SPOTS[0]);
   });
 
+  it('holds the round under the settings sheet: no time passes, no stroke lands, then it goes on', () => {
+    const settings = (open: boolean): PettingViewEvent => ({
+      type: 'settings',
+      open,
+    });
+    const going = after([open, ...ticks(10)]);
+    const held = after([settings(true), ...ticks(40), stroke('CHIN')], going);
+    expect(held.settingsOpen).toBe(true);
+    expect(held.round).toBe(going.round);
+    expect(held.strokes).toEqual([]);
+    // Closed, it goes on from the tick where it stopped: the countdown and the purr.
+    const resumed = after([settings(false), ...ticks(2), stroke('CHIN')], held);
+    expect(resumed.round!.tick).toBe(12);
+    expect(resumed.strokes).toEqual([{ tick: 12, spot: 'CHIN' }]);
+    // The sheet follows the shell whatever the screen does: opened before a round too.
+    expect(after([settings(true), open]).settingsOpen).toBe(true);
+    expect(after([settings(true), open, { type: 'close' }]).settingsOpen).toBe(
+      true,
+    );
+  });
+
   it('keeps its invariants under random events: Core will replay the very round shown', () => {
     for (let seed = 1; seed <= 30; seed++) {
       const rng = new RandomService(seed);
@@ -163,8 +184,17 @@ describe('petting view state', () => {
                     ? { type: 'settled', result: RESULT }
                     : roll < 98
                       ? { type: 'page', hidden: rng.nextInt(2) === 0 }
-                      : { type: 'arrow', key: 'ArrowDown' };
+                      : roll < 99
+                        ? { type: 'settings', open: rng.nextInt(2) === 0 }
+                        : { type: 'arrow', key: 'ArrowDown' };
+        const before = view;
         view = reducePettingView(view, event);
+        // Under the settings sheet the round stands still.
+        if (
+          before.settingsOpen &&
+          (event.type === 'tick' || event.type === 'stroke')
+        )
+          expect(view).toBe(before);
         const phase = pettingPhase(view);
         const where = `seed ${seed} step ${step}`;
         if (phase === 'closed') {

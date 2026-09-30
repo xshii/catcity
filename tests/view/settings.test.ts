@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { $, click, key, openGame, text, visible } from '../helpers/view-rig';
 import { SETTINGS_COPY } from '../../src/view/shell/settings';
+import { PETTING } from '../../src/content/petting';
 import {
   backToCity,
   closeSettings,
@@ -115,5 +116,81 @@ describe('one settings gear on every page (2026-09-30)', () => {
     expect(visible(SHEET)).toBe(false);
     expect($(GEAR).getAttribute('aria-expanded')).toBe('false');
     expect(visible(GEAR)).toBe(true);
+  });
+});
+
+const PETTING_TICK_MS = 1000 / PETTING.ticksPerSecond;
+/** The selected cat's petting screen, from the cats panel of the page on screen. */
+function startPetting() {
+  openCats('roster');
+  click('#pet-cat');
+  expect(visible('#petting')).toBe(true);
+}
+
+describe('the settings gear over the petting screen', () => {
+  it('is the same gear, reached by Tab after the screen’s ✕; Escape there still closes the screen', () => {
+    openGame();
+    const gear = $(GEAR);
+    startPetting();
+    expect($(GEAR)).toBe(gear);
+    expect(visible(GEAR)).toBe(true);
+    // The screen is a modal dialog: it owns the gear while it is open.
+    expect($('#petting').getAttribute('aria-owns')).toBe('settings-gear');
+    $('#petting-close').focus();
+    key('keydown', 'Tab');
+    expect(document.activeElement).toBe(gear);
+    key('keydown', 'Tab');
+    expect(document.activeElement).toBe($('[data-spot="HEAD"]'));
+    key('keydown', 'Tab', true);
+    expect(document.activeElement).toBe(gear);
+    key('keydown', 'Tab', true);
+    expect(document.activeElement).toBe($('#petting-close'));
+    // From the gear, Escape leaves the screen as from anywhere on it.
+    gear.focus();
+    key('keydown', 'Escape');
+    expect(visible('#petting')).toBe(false);
+    expect($('#petting').hasAttribute('aria-owns')).toBe(false);
+  });
+
+  it('opened in a round, it holds the round: the countdown and the purr wait, strokes land nowhere', () => {
+    const game = openGame();
+    startPetting();
+    game.wait(10 * PETTING_TICK_MS);
+    const time = text('#petting-time');
+    const purr = $('#petting-cat').dataset.purr;
+    const meter = $('#petting-meter').getAttribute('aria-valuenow');
+    openSettings();
+    // Longer than the whole round: nothing moves under the sheet.
+    game.wait(PETTING.roundTicks * PETTING_TICK_MS);
+    expect(visible('#petting-result')).toBe(false);
+    expect(text('#petting-time')).toBe(time);
+    for (let tick = 0; tick < PETTING.purr.periodTicks; tick++) {
+      game.wait(PETTING_TICK_MS);
+      expect($('#petting-cat').dataset.purr).toBe(purr);
+    }
+    click('[data-spot="CHIN"]');
+    expect($('#petting-meter').getAttribute('aria-valuenow')).toBe(meter);
+    // Escape closes the sheet only; the round goes on from where it stopped.
+    key('keydown', 'Escape');
+    expect(visible(SHEET)).toBe(false);
+    expect(visible('#petting')).toBe(true);
+    game.wait(PETTING.roundTicks * PETTING_TICK_MS - 10 * PETTING_TICK_MS - 1);
+    expect(visible('#petting-result')).toBe(false);
+    game.wait(PETTING_TICK_MS + 1);
+    expect(visible('#petting-result')).toBe(true);
+  });
+
+  it('over the river it holds the common settings only; back on the river, the river’s own too', () => {
+    const game = openGame({ audio: true });
+    enterRiver(game);
+    startPetting();
+    openSettings();
+    for (const control of COMMON) expect(visible(control), control).toBe(true);
+    expect(visible('#settings-page')).toBe(false);
+    closeSettings();
+    click('#petting-close');
+    openSettings();
+    expect(visible('#settings-page')).toBe(true);
+    for (const control of RIVER) expect(visible(control), control).toBe(true);
   });
 });

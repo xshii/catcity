@@ -117,6 +117,8 @@ export function mountSettings(deps: {
     },
     /** Closes the sheet, with the focus back on the gear. */
     close: dismiss,
+    /** The gear itself: a modal screen over the page keeps it among its controls. */
+    gear,
     /** The common switches; their modules label them and run them. */
     sound: $('sound-toggle'),
     haptics: $('haptics-toggle'),

@@ -9,6 +9,7 @@ export function createPlace(initial: Place = 'city') {
   let petting = false;
   const listeners = new Set<(place: Place) => void>();
   const minigameListeners = new Set<(on: boolean) => void>();
+  const pettingListeners = new Set<(open: boolean) => void>();
   const minigame = () => current === 'river' || petting;
   /** Makes a change, then tells minigame listeners if it turned the flag. */
   const change = (apply: () => void) => {
@@ -44,7 +45,14 @@ export function createPlace(initial: Place = 'city') {
      * bar and the scene stay as they are.
      */
     setPetting(open: boolean) {
-      if (open !== petting) change(() => (petting = open));
+      if (open === petting) return;
+      change(() => (petting = open));
+      for (const listener of pettingListeners) listener(open);
+    },
+    /** Hears the petting screen open and close: a page of its own over the place. */
+    onPetting(listener: (open: boolean) => void) {
+      pettingListeners.add(listener);
+      return () => pettingListeners.delete(listener);
     },
   };
 }

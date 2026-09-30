@@ -12,6 +12,7 @@ import {
 import { outcomeNote } from '../shell/bond';
 import { ERROR_MESSAGES } from '../shell/errors';
 import type { PlaceState, Tools } from '../shell/place';
+import type { SettingsSheet } from '../shell/settings';
 import { reduceStroke, type StrokeGesture } from './gesture';
 import {
   PETTING_COPY,
@@ -43,9 +44,15 @@ export function mountPetting(deps: {
   roster: HTMLElement;
   /** Where the screen floats, over the scene and its bars. */
   layer: HTMLElement;
+  /**
+   * The settings sheet of every page: its gear floats over this screen, among its
+   * controls, and a round holds while the sheet is open.
+   */
+  settings: Pick<SettingsSheet, 'subscribe' | 'gear'>;
 }) {
   const { session } = deps;
   const view = createPettingView();
+  const gear = deps.settings.gear;
 
   const entry = document.createElement('div');
   entry.className = 'petting-entry';
@@ -134,6 +141,9 @@ export function mountPetting(deps: {
       cat ? catPose(world, cat) : { face: 'calm', ears: 'up', curled: false },
     );
     screen.hidden = !model.open;
+    // A modal dialog: the gear floating over it is one of its own while it is open.
+    if (model.open) screen.setAttribute('aria-owns', gear.id);
+    else screen.removeAttribute('aria-owns');
     if (!model.open || !cat) return;
     screen.dataset.phase = model.phase;
     screen.dataset.away = String(model.away);
@@ -284,7 +294,7 @@ export function mountPetting(deps: {
       view.dispatch({ type: 'focus', spot }),
     );
   }
-  screen.addEventListener('keydown', (event) => {
+  const onKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       close();
@@ -292,9 +302,11 @@ export function mountPetting(deps: {
     }
     if (event.key === 'Tab') {
       // The screen is modal: Tab stays on its controls, round from the last to the first.
+      // The settings gear floats over its heading, so it comes after the close button.
       const stops = Array.from(screen.querySelectorAll('button')).filter(
         (button) => !button.disabled && !button.closest('[hidden]'),
       );
+      stops.splice(stops.indexOf($('petting-close')) + 1, 0, gear);
       const at = stops.indexOf(document.activeElement as HTMLButtonElement);
       event.preventDefault();
       stops[
@@ -314,7 +326,17 @@ export function mountPetting(deps: {
     event.preventDefault();
     view.dispatch({ type: 'arrow', key: event.key });
     spots.get(view.get().focus)!.focus({ preventScroll: true });
+  };
+  screen.addEventListener('keydown', onKey);
+  // The gear is outside the screen's markup: its Escape and Tab are the screen's too.
+  gear.addEventListener('keydown', (event) => {
+    if (
+      pettingPhase(view.get()) !== 'closed' &&
+      (event.key === 'Escape' || event.key === 'Tab')
+    )
+      onKey(event);
   });
+  deps.settings.subscribe((open) => view.dispatch({ type: 'settings', open }));
   document.addEventListener('visibilitychange', () =>
     view.dispatch({ type: 'page', hidden: document.hidden }),
   );

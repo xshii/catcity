@@ -183,6 +183,7 @@ export function mountPanel(
     tools: angling.tools,
     roster: get('cats-page-roster'),
     layer: document.querySelector<HTMLElement>('.shell')!,
+    settings,
   });
   // The scene switch and the map card follow the place.
   const showPlace = () => {

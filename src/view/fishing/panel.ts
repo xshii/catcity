@@ -518,6 +518,7 @@ export function mountAngling(
     }
     view.dispatch({ type: 'place', place: next });
   });
+  place.onPetting((open) => view.dispatch({ type: 'petting', open }));
   root.querySelectorAll<HTMLButtonElement>('[data-bait]').forEach((button) =>
     button.addEventListener('click', () => {
       bait.value = button.dataset.bait!;
