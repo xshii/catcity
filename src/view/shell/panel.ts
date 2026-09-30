@@ -67,14 +67,20 @@ export function mountPanel(
     const model = toViewModel(session.getSnapshot(), session.selectedEntity);
     get('coins').textContent = model.coins;
     get('clock').textContent = `第 ${model.day} 天 · ${model.time}`;
-    get('save-recovery').hidden = !session.storageError;
+    // Once the reset is asked for, the stray start covers the game; the old save stays
+    // until the new cat is named, but its card goes.
+    get('save-recovery').hidden =
+      !session.storageError || (strayStart && stray.shown());
     get('reset-demo').hidden = !session.saveRejected;
     get('storage-error').hidden = !session.storageError;
     get('storage-error').textContent = session.storageError ?? '';
   };
   session.subscribe(render);
   get('reset-demo').addEventListener('click', () => {
-    if (strayStart) return stray.open();
+    if (strayStart) {
+      stray.open();
+      return render();
+    }
     session.resetDemo();
     notify('已开始新版试玩。');
   });
