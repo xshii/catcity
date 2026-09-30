@@ -3,9 +3,9 @@
   "contentVersion": 15,
   "world": {
     "seed": 42,
-    "minute": 450,
-    "coins": 500,
-    "nextId": 3,
+    "minute": 564,
+    "coins": 1000,
+    "nextId": 1,
     "map": {
       "width": 10,
       "height": 10,
@@ -913,37 +913,18 @@
         }
       ]
     },
-    "buildings": [
-      {
-        "id": "building-1",
-        "type": "CAT_APARTMENT",
-        "position": {
-          "x": 4,
-          "y": 4
-        },
-        "builtAtMinute": 420
-      },
-      {
-        "id": "building-2",
-        "type": "CAT_CAFE",
-        "position": {
-          "x": 4,
-          "y": 3
-        },
-        "builtAtMinute": 420
-      }
-    ],
+    "buildings": [],
     "cats": [
       {
         "id": "mochi",
         "definitionId": "MOCHI",
         "name": "Mochi",
         "appearance": {
-          "colour": "black",
+          "colour": "cream",
           "pattern": "solid",
-          "white": "mittens",
-          "eyes": "green",
-          "face": "pointed"
+          "white": "none",
+          "eyes": "blue",
+          "face": "round"
         },
         "sex": "F",
         "bornMinute": null,
@@ -958,30 +939,33 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 70,
+        "mood": 84,
         "needs": {
           "energy": 100
         },
         "memories": [],
-        "playerBond": 0,
-        "home": "building-1",
+        "playerBond": 6,
+        "home": null,
         "position": {
           "x": 7,
           "y": 3
         },
         "chatBond": null,
         "giftBond": null,
-        "pettingBond": null,
+        "pettingBond": {
+          "day": 0,
+          "count": 3
+        },
         "lastChatMoodMinute": null,
         "fishingSpotId": "POND",
         "walk": null,
-        "breedId": "DOMESTIC",
+        "breedId": "RAGDOLL",
         "favoriteFish": ["SILVER", "CRUCIAN"],
         "fishingMemory": null,
         "fishGift": null,
         "petting": {
-          "discovered": [],
-          "lifted": []
+          "discovered": ["BACK"],
+          "lifted": [540, 552, 564]
         }
       }
     ],

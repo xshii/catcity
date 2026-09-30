@@ -132,7 +132,7 @@
 
 ### [x] T-05 撸猫上线（R-05、R-20 – R-24）
 
-- **完成**：PR #61（`fa3ba45`），存档 19，测试版 `test-20260930-1001-fa3ba454-3f0563`。用户 2026-09-30 决定：心情效果改为任意 8 游戏小时内最多 3 局（`CARE.pettingLifts`），R-23 两个目标都用完美玩家量（开心的竿 75% / 75%，60→80 需 3 局），实测表见 039 的"节奏"。证据：`tests/unit/petting.test.ts`、`tests/simulation/pacing.test.ts` 的撸猫玩家两条断言；推送前完整检查通过（单元与画面 851 条、E2E 57 条、验收 15 步），产物 `artifacts/2026-09-30T01-52-22-898Z-58714/`（`catcity-wt49`）；截图 `artifacts/T-05/{round,pull-away,result}-{390x844,360x640}.png`，按钮不挡脸。
+- **完成**：PR #61（`fa3ba45`），存档 19，测试版 `test-20260930-1001-fa3ba454-3f0563`。用户 2026-09-30 决定：心情效果改为任意 8 游戏小时内最多 3 局（`CARE.pettingLifts`），R-23 两个目标都用完美玩家量（开心的竿 75% / 75%，60→80 需 3 局），实测表见 039 的"节奏"。之后用户 2026-09-30 又放宽为任意 10 游戏小时内最多 4 局（内容 16，开心的竿 80% / 80%，60→80 仍需 3 局）。证据：`tests/unit/petting.test.ts`、`tests/simulation/pacing.test.ts` 的撸猫玩家两条断言；推送前完整检查通过（单元与画面 851 条、E2E 57 条、验收 15 步），产物 `artifacts/2026-09-30T01-52-22-898Z-58714/`（`catcity-wt49`）；截图 `artifacts/T-05/{round,pull-away,result}-{390x844,360x640}.png`，按钮不挡脸。
 - **分支**：已有 `feat/petting`，worktree `/Users/gakki/dev/catcity-wt49`，最后提交 `eca1273`。
 - **依赖**：无（成长数值已在 main）。存档版本 19。
 - **先读这些文件**：该分支的 `specs/039-petting/requirements.md`（全文）、design.md 第 8 节、`src/core/bond.ts`、`src/core/mood.ts`、`src/content/care.ts`、`src/view/shell/clock-speed.ts`、`tests/simulation/pacing.test.ts`。
@@ -211,8 +211,9 @@
 
 ---
 
-### [ ] T-14 捏猫：外观五项与流浪猫开局（R-17）
+### [x] T-14 捏猫：外观五项与流浪猫开局（R-17）
 
+- **完成**：PR #75（`c0486ef`，画法与对照图）、#76（`27d2c7a`，捏猫画面）、#79（`99c11df`，田园猫、外观五项入档、开局捡流浪猫），存档 23、内容 15，测试版 `test-20260930-1737-99c11dfa-a796f3`。证据：`tests/unit/cat-appearance.test.ts`（每项只随自己变化、810 种组合对比度 ≥ 3:1、T-13 回归）、`tests/view/cat-maker.test.ts`、开局流程的画面测试台（关掉流程时 6 条失败）；三种开局品种下节奏、平衡、经济模拟都达标；推送前完整检查通过（PR #79：单元与画面 1160 条、E2E 78 条、验收 15 步），产物 `artifacts/2026-09-30T09-28-42-733Z-80508/`（`catcity-wt39`）；截图 `artifacts/T-14/{looks,maker*,stray*}.png`。
 - **分支**：`feat/cat-looks`（两个 PR）
 - **依赖**：T-13。存档 +1，内容 +1。
 - **先读这些文件**：[cat-looks.md](cat-looks.md)（全文）、ui-design.md 2.2 与 6.1、`src/view/art/cat-look.ts`、`src/view/art/cat.ts`、`src/view/art/illustrations.ts`、`src/content/cats.ts`、`src/content/breeds.ts`、`src/core/schema.ts`（`appearance`、`assertTemplate`）、`src/core/world.ts`（新世界怎么建）。
