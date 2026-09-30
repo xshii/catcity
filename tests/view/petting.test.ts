@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { $, click, key, openGame, text, visible } from '../helpers/view-rig';
 import { openCats } from '../helpers/view-player';
+import { BOND } from '../../src/content/care';
 import { PETTING, type PetSpot } from '../../src/content/petting';
 import { pettingTastes } from '../../src/core';
 import { createWorld } from '../../src/core/world';
@@ -81,7 +82,7 @@ describe('petting from the cats panel (spec 039)', () => {
     expect(text('#petting-line')).toContain('再摸一会儿也可以');
     const after = game.world().cats[0]!;
     expect(after.mood).toBe(before.mood + 6);
-    expect(after.playerBond).toBe(before.playerBond + 1);
+    expect(after.playerBond).toBe(before.playerBond + BOND.petting);
     expect(after.petting.discovered).toEqual([favourite]);
     // The keyboard goes on from the result.
     expect((document.activeElement as HTMLElement).id).toBe('petting-again');
