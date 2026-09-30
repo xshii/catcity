@@ -48,8 +48,16 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
   button.addEventListener('click', () => select(cat.id));
   return {
     button,
-    update(cat: CatEntity, world: WorldState, selected: string) {
-      const pose = catPose(world, cat);
+    update(
+      cat: CatEntity,
+      world: WorldState,
+      selected: string,
+      river: boolean,
+    ) {
+      // At the river the selected cat is the one fishing with the player: awake (R-01).
+      const pose = catPose(world, cat, {
+        atRiver: river && cat.id === selected,
+      });
       const next = catPortrait(cat.appearance.coat, pose);
       if (portrait !== next) {
         portrait = next;
@@ -201,7 +209,7 @@ export function mountFishingStage(
           card = createEnergyCard(cat, (id) => session.select(id));
           cards.set(cat.id, card);
         }
-        card.update(cat, world, selected);
+        card.update(cat, world, selected, place.get() === 'river');
         if (card.button !== next) cardContainer.insertBefore(card.button, next);
         next = card.button.nextElementSibling;
       }

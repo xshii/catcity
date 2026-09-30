@@ -75,8 +75,9 @@
 
 目标：把做了一半的东西做完，让"开心"这个状态拿得到。M0 的任务之间基本独立，T-01 到 T-04 可以并行开发、依次合并。
 
-### [ ] T-01 鱼篓按钮不重建（R-04）
+### [x] T-01 鱼篓按钮不重建（R-04）
 
+- **完成**：PR #57（`5ee9c44`），测试版 `test-20260930-0917-5ee9c44c-31d489`。证据：`tests/view/fishing-bag.test.ts` 三条在旧代码上失败、新代码上通过；`npm run test:coverage` 74 个文件 705 条通过；推送前完整检查通过（E2E 51 条，验收 15 步），产物 `artifacts/2026-09-30T01-10-16-000Z-7137/`（`catcity-wt01`）。实现是 `catalog.ts` 的 `mountFishBag`；图鉴列表没有可点击元素，未改。
 - **分支**：`fix/bag-buttons-stay`
 - **依赖**：无。存档和内容版本不变。
 - **先读这些文件**：`src/view/city/actions.ts`（参考实现）、`tests/view/city-panels.test.ts`（参考测试）、`src/view/fishing/catalog.ts`、`src/view/fishing/panel.ts` 里调用 `renderFishingCatalog` 的地方。

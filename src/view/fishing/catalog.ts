@@ -14,14 +14,82 @@ import { fishIllustration } from '../art/illustrations';
 import { withMoodNote } from '../shell/mood';
 
 type FishAction = Extract<GameCommand, { type: 'SELL_FISH' | 'GIFT_FISH' }>;
+type BagFish = WorldState['fishing']['inventory'][number];
+type FishBag = ReturnType<typeof mountFishBag>;
 
-/** Read-only catalogue rendering; clicks return commands to the application adapter. */
+/**
+ * The bag's fish, each a row with sell and gift buttons. The clock changes the world every
+ * second: rows are kept by fish id, so a tap that spans a tick and keyboard focus stay on
+ * their button (spec 041, design 10.2). Clicks return commands to the application adapter.
+ */
+export function mountFishBag(
+  inventory: HTMLElement,
+  onAction: (command: FishAction, message: string) => void,
+) {
+  const rows = new Map<string, { row: HTMLElement; gift: HTMLButtonElement }>();
+  /** A gift goes to the cat chosen when the bag last rendered, not when its row was made. */
+  let chosen: CatEntity;
+  const bagRow = (fish: BagFish) => {
+    const def = fishById(fish.speciesId);
+    const row = document.createElement('div');
+    row.className = 'fish-item';
+    const label = document.createElement('span');
+    label.textContent = `${fishStars(def.stars)} ${def.name} · ${fish.weight}g · ${(fish.lengthMm / 10).toFixed(1)} cm`;
+    row.append(label);
+    const sell = document.createElement('button');
+    sell.textContent = `卖出 +${def.price}`;
+    sell.dataset.sellFish = fish.id;
+    sell.addEventListener('click', () =>
+      onAction(
+        { type: 'SELL_FISH', fishId: fish.id },
+        `${def.name}卖出了 ${def.price} 金币。`,
+      ),
+    );
+    const gift = document.createElement('button');
+    gift.dataset.giftFish = fish.id;
+    gift.addEventListener('click', () =>
+      onAction(
+        {
+          type: 'GIFT_FISH',
+          fishId: fish.id,
+          catId: chosen.id,
+        },
+        `${chosen.name} 收到了${def.name}，这件小事已经记下了。`,
+      ),
+    );
+    row.append(sell, gift);
+    const made = { row, gift };
+    rows.set(fish.id, made);
+    return made;
+  };
+  const render = (fishes: readonly BagFish[], cat: CatEntity) => {
+    chosen = cat;
+    const shown = fishes.map((fish) => {
+      const { row, gift } = rows.get(fish.id) ?? bagRow(fish);
+      const giftText = `送给 ${cat.name}${cat.favoriteFish.includes(fish.speciesId) ? ' ♡' : ''}`;
+      if (gift.textContent !== giftText) gift.textContent = giftText;
+      return row;
+    });
+    for (const [id, { row }] of rows) if (!shown.includes(row)) rows.delete(id);
+    // Only another set or order of fish touches the list.
+    if (
+      shown.length !== inventory.children.length ||
+      shown.some((row, index) => row !== inventory.children[index])
+    )
+      inventory.replaceChildren(...shown);
+    if (!fishes.length)
+      inventory.textContent = '鱼篓空空的。下一竿会遇见谁呢？';
+  };
+  return { render };
+}
+
+/** Read-only catalogue rendering; the bag renders its own rows. */
 export function renderFishingCatalog(
   /** The fishing markup's elements by id. */
   get: <T extends HTMLElement = HTMLElement>(id: string) => T,
   world: WorldState,
   cat: CatEntity,
-  onAction: (command: FishAction, message: string) => void,
+  bag: FishBag,
   /** How the last result changed its cat's mood band, if it did (spec 032). */
   resultNote: string,
 ) {
@@ -35,42 +103,7 @@ export function renderFishingCatalog(
   get('fish-tastes').textContent =
     `${cat.name} 喜欢：${cat.favoriteFish.map((id) => fishById(id).name).join('、')}。${cat.fishGift ? `上次收到${fishById(cat.fishGift.speciesId).name}，${cat.fishGift.favorite ? '特别开心。' : '轻轻说了谢谢。'}` : '鱼可以卖出，也可以留给喜欢它的猫。'}`;
   get('bag-count').textContent = `${f.inventory.length}/30`;
-  get('fish-inventory').replaceChildren(
-    ...f.inventory.map((fish) => {
-      const def = fishById(fish.speciesId);
-      const row = document.createElement('div');
-      row.className = 'fish-item';
-      const label = document.createElement('span');
-      label.textContent = `${fishStars(def.stars)} ${def.name} · ${fish.weight}g · ${(fish.lengthMm / 10).toFixed(1)} cm`;
-      row.append(label);
-      const sell = document.createElement('button');
-      sell.textContent = `卖出 +${def.price}`;
-      sell.dataset.sellFish = fish.id;
-      sell.addEventListener('click', () =>
-        onAction(
-          { type: 'SELL_FISH', fishId: fish.id },
-          `${def.name}卖出了 ${def.price} 金币。`,
-        ),
-      );
-      const gift = document.createElement('button');
-      gift.textContent = `送给 ${cat.name}${cat.favoriteFish.includes(fish.speciesId) ? ' ♡' : ''}`;
-      gift.dataset.giftFish = fish.id;
-      gift.addEventListener('click', () =>
-        onAction(
-          {
-            type: 'GIFT_FISH',
-            fishId: fish.id,
-            catId: cat.id,
-          },
-          `${cat.name} 收到了${def.name}，这件小事已经记下了。`,
-        ),
-      );
-      row.append(sell, gift);
-      return row;
-    }),
-  );
-  if (!f.inventory.length)
-    get('fish-inventory').textContent = '鱼篓空空的。下一竿会遇见谁呢？';
+  bag.render(f.inventory, cat);
   get('atlas-count').textContent = `${discovered}/${FISH.length}`;
   get('atlas-list').replaceChildren(
     ...FISH.map((fish) => {
