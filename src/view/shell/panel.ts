@@ -174,6 +174,7 @@ export function mountPanel(
   });
   const petting = mountPetting({
     session,
+    place,
     notify,
     tools: angling.tools,
     roster: get('cats-page-roster'),

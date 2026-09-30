@@ -6,7 +6,7 @@ import { catPose } from '../art/cat-look';
 import { PET_SPOT_POINTS, pettingCat } from '../art/cat-petting';
 import { outcomeNote } from '../shell/bond';
 import { ERROR_MESSAGES } from '../shell/errors';
-import type { Tools } from '../shell/place';
+import type { PlaceState, Tools } from '../shell/place';
 import { reduceStroke, type StrokeGesture } from './gesture';
 import { PETTING_COPY, pettingEntry, pettingScreen } from './screen';
 import { createPettingView, pettingPhase } from './view-state';
@@ -25,6 +25,8 @@ const probe = (catId: string): GameCommand => ({
  */
 export function mountPetting(deps: {
   session: GameSession;
+  /** The screen is a minigame over the place: it holds the city clock at 1×. */
+  place: PlaceState;
   notify: (text: string) => void;
   tools: Tools;
   /** The cats panel's roster page: the way in sits under the roster. */
@@ -307,6 +309,7 @@ export function mountPetting(deps: {
   view.subscribe((state) => {
     const before = phase;
     phase = pettingPhase(state);
+    deps.place.setPetting(phase !== 'closed');
     if (phase === 'settling') {
       settle();
       return;

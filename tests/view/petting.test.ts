@@ -145,6 +145,30 @@ describe('petting from the cats panel (spec 039)', () => {
     expect(text('#petting-time')).toBe('12 秒');
   });
 
+  it('holds the city clock at 1× and locks its button while the screen is open (041 R-22)', () => {
+    const game = openGame();
+    const speed = () => $<HTMLButtonElement>('#clock-speed');
+    click('#clock-speed');
+    click('#clock-speed');
+    expect(game.clockSpeed()).toBe(4);
+    openCats('roster');
+    click('#pet-cat');
+    expect(speed().disabled).toBe(true);
+    expect(text('#clock-speed')).toContain('1×');
+    expect(game.clockSpeed()).toBe(1);
+    // The screen covers the place without changing it.
+    expect($('#visit-city').getAttribute('aria-pressed')).toBe('true');
+    game.wait(PETTING.roundTicks * TICK_MS);
+    expect(visible('#petting-result')).toBe(true);
+    expect(speed().disabled).toBe(true);
+    click('#petting-done');
+    // Leaving keeps 1× until the player taps again, as leaving the river does.
+    expect(speed().disabled).toBe(false);
+    expect(game.clockSpeed()).toBe(1);
+    click('#clock-speed');
+    expect(game.clockSpeed()).toBe(2);
+  });
+
   it('is closed for a cat in a fishing run, with the reason', () => {
     const world = createWorld(42);
     world.dispatch({

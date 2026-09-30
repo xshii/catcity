@@ -323,8 +323,7 @@ describe('the bond (spec 041 R-20)', () => {
     const result = pet(world, perPurr(tastes.favourite, 4));
     expect(result.ok && result.events[0]).toMatchObject({ meter: 40 });
     expect(cat(world)).toMatchObject({ playerBond: 0, pettingBond: null });
-    for (let round = 0; round < BOND.pettingPerDay; round++)
-      pet(world, lovely);
+    for (let round = 0; round < BOND.pettingPerDay; round++) pet(world, lovely);
     expect(cat(world).playerBond).toBe(BOND.pettingPerDay * BOND.petting);
   });
 
@@ -333,8 +332,7 @@ describe('the bond (spec 041 R-20)', () => {
     world.dispatch({ type: 'INVITE_PEPPER' });
     const pepper = cat(world, 1).id;
     const bonds = () => world.getSnapshot().cats.map((cat) => cat.playerBond);
-    for (let round = 0; round < BOND.pettingPerDay; round++)
-      pet(world, lovely);
+    for (let round = 0; round < BOND.pettingPerDay; round++) pet(world, lovely);
     pet(world, perPurr(pettingTastes(SEED, pepper).favourite, 8), pepper);
     const full = BOND.pettingPerDay * BOND.petting;
     expect(bonds()).toEqual([full, BOND.petting]);
@@ -461,10 +459,7 @@ describe('saves', () => {
   });
 
   it.each([
-    [
-      'a counted round on a day yet to come',
-      { day: 1_000_000, count: 1 },
-    ],
+    ['a counted round on a day yet to come', { day: 1_000_000, count: 1 }],
     ['a day without a counted round', { day: 0, count: 0 }],
     [
       'more counted rounds than a day allows',
