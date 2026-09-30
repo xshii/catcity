@@ -19,13 +19,8 @@ import {
   type MapGesture,
   type MapPointerEvent,
 } from './cat-drag';
-import {
-  boardSize,
-  frameMap,
-  MAP_VIEW,
-  revealShift,
-  tileCenter,
-} from './geometry';
+import { boardSize, MAP_VIEW, tileCenter } from '../art/city-geometry';
+import { frameMap, revealShift } from './geometry';
 import { selectedNotice } from './screen';
 import { catchUp, leadMinutes, walkerAt } from './walk-glide';
 

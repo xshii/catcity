@@ -2,11 +2,17 @@ import type Phaser from 'phaser';
 import { BUILDINGS } from '../../content/city';
 import { SPOTS, type SpotId } from '../../content/fishing';
 import { shoreTiles, spotAt, tileAt } from '../../core/city';
-import type { WorldState } from '../../core';
-import type { CitySelection } from '../city/view-state';
-import { boardSize, MAP_VIEW, tileCenter } from '../city/geometry';
+import type { Position, WorldState } from '../../core';
+import { boardSize, MAP_VIEW, tileCenter } from './city-geometry';
 import { shade, type CityLight } from './city-light';
 import { CITY_COLOURS as C } from './city-palette';
+
+/** What the board highlights: the city screen's selection (city/view-state.ts). */
+export type CitySelection =
+  | { kind: 'tile'; position: Position }
+  | { kind: 'cat'; catId: string }
+  | { kind: 'water'; position: Position; spotId: SpotId }
+  | null;
 
 type Label = (x: number, y: number, text: string, size?: number) => void;
 interface Point {

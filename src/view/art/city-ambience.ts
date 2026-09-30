@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import type { WorldState } from '../../core';
-import { boardSize, MAP_VIEW } from '../city/geometry';
+import { boardSize, MAP_VIEW } from './city-geometry';
 import { shade, type CityLight } from './city-light';
 import { CITY_COLOURS } from './city-palette';
 

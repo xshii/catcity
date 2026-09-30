@@ -1,11 +1,13 @@
 import { expect, it } from 'vitest';
 import {
   boardSize,
-  frameMap,
   MAP_VIEW,
+  tileCenter,
+} from '../../src/view/art/city-geometry';
+import {
+  frameMap,
   revealOffset,
   revealShift,
-  tileCenter,
 } from '../../src/view/city/geometry';
 
 const ten = { width: 10, height: 10 };

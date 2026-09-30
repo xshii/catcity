@@ -10,7 +10,7 @@ import {
   sway,
   tuftRoots,
 } from '../../src/view/art/city-ambience';
-import { boardSize, MAP_VIEW } from '../../src/view/city/geometry';
+import { boardSize, MAP_VIEW } from '../../src/view/art/city-geometry';
 import { buildCafe } from '../helpers/world';
 
 const at = (hour: number, minute = 0, day = 0) =>

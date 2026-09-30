@@ -9,7 +9,7 @@ import {
   type MapGesture,
   type MapPointerEvent,
 } from '../../src/view/city/cat-drag';
-import { MAP_VIEW } from '../../src/view/city/geometry';
+import { MAP_VIEW } from '../../src/view/art/city-geometry';
 import { cityScreen } from '../../src/view/city/screen';
 import {
   initialCityView,

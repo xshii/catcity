@@ -4,10 +4,10 @@ import { shoreTiles, samePosition, spotAt } from '../../../src/core/city';
 import type { WorldState } from '../../../src/core';
 import {
   boardSize,
-  frameMap,
   MAP_VIEW,
   tileCenter,
-} from '../../../src/view/city/geometry';
+} from '../../../src/view/art/city-geometry';
+import { frameMap } from '../../../src/view/city/geometry';
 import { BAR_SELECTORS, barInsets } from '../../../src/view/city/bars';
 
 /** Read-only observation works in test and in a production build without its bridge. */
