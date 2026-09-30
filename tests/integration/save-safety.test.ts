@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createWorld, loadWorld } from '../../src/core';
+import { CAT_BREED_IDS } from '../../src/content/breeds';
+import { CAT_DEFINITIONS } from '../../src/content/cats';
 import { CITY_START } from '../../src/content/city';
 import { MAX_TALENT } from '../../src/content/family';
 import { fishById } from '../../src/content/fishing';
@@ -78,11 +80,10 @@ it('rejects cats that no longer match their template or duplicate a unique resid
   const base = world.save();
   expect(() => loadWorld(base)).not.toThrow();
   for (const forge of [
-    (cats: { breedId: string }[]) => (cats[0]!.breedId = 'BRITISH_SHORTHAIR'),
+    (cats: { breedId: string }[]) => (cats[1]!.breedId = 'RAGDOLL'),
     (cats: { favoriteFish: string[] }[]) =>
       (cats[0]!.favoriteFish = ['KOI', 'MOON_CARP']),
-    (cats: { appearance: { coat: string } }[]) =>
-      (cats[1]!.appearance.coat = 'cream'),
+    (cats: { sex: string }[]) => (cats[1]!.sex = 'F'),
   ]) {
     const save = JSON.parse(base);
     forge(save.world.cats);
@@ -197,43 +198,91 @@ describe('a cat carries its own identity (spec 041 R-10, R-11)', () => {
   });
 });
 
-describe('a cat wears one of four coats (spec 041 R-15)', () => {
+type SavedCat = { breedId: string; appearance: Record<string, string> };
+describe('a cat wears five choices; Mochi is the stray the player picked (spec 041 T-14)', () => {
   const twoCats = () => {
     const world = createWorld(42);
     invite(world);
     return world.save();
   };
-  const withCoat = (index: number, coat: string) => {
+  const edited = (edit: (cats: SavedCat[]) => void) => {
     const save = JSON.parse(twoCats());
-    save.world.cats[index].appearance.coat = coat;
+    edit(save.world.cats);
     return JSON.stringify(save);
   };
+  const BROWN_TABBY = {
+    colour: 'brown',
+    pattern: 'tabby',
+    white: 'mittens',
+    eyes: 'green',
+    face: 'long',
+  };
 
-  it('saves each cat’s coat and restores it exactly', () => {
+  it('saves each cat’s five choices and restores them exactly', () => {
     const saved = twoCats();
-    const coats = (save: string) =>
-      JSON.parse(save).world.cats.map(
-        (cat: { appearance: { coat: string } }) => cat.appearance.coat,
-      );
-    expect(coats(saved)).toEqual(['cream', 'gray']);
+    expect(
+      JSON.parse(saved).world.cats.map((cat: SavedCat) => cat.appearance),
+    ).toEqual([
+      CAT_DEFINITIONS.MOCHI.appearance,
+      CAT_DEFINITIONS.PEPPER.appearance,
+    ]);
     expect(loadWorld(saved).save()).toBe(saved);
   });
 
-  it.each([
-    ['Mochi', 'orange', 0],
-    ['Mochi', 'tuxedo', 0],
-    ['Pepper', 'orange', 1],
-  ])(
-    'rejects %s in %s, one of the four coats but not its template’s',
-    (_, coat, index) => {
-      expect(() => loadWorld(withCoat(index, coat))).toThrow(/template/);
-    },
-  );
+  it('takes any look of the five on any cat, its template’s or not', () => {
+    for (const index of [0, 1]) {
+      const save = edited((cats) => (cats[index]!.appearance = BROWN_TABBY));
+      expect(loadWorld(save).getSnapshot().cats[index]!.appearance).toEqual(
+        BROWN_TABBY,
+      );
+    }
+  });
 
-  it.each(['calico', 'black', ''])(
-    'rejects a coat outside the four: "%s"',
-    (coat) => {
-      expect(() => loadWorld(withCoat(0, coat))).toThrow(/coat/);
-    },
-  );
+  it.each([
+    ['colour', 'calico'],
+    ['pattern', 'spotted'],
+    ['white', 'socks'],
+    ['eyes', 'red'],
+    ['face', 'square'],
+    ['colour', ''],
+  ])('rejects %s "%s", not one of its options', (item, value) => {
+    const save = edited((cats) => (cats[1]!.appearance[item] = value));
+    expect(() => loadWorld(save)).toThrow(item);
+  });
+
+  it('rejects a look that lacks a choice or still wears a coat', () => {
+    expect(() =>
+      loadWorld(edited((cats) => delete cats[1]!.appearance.eyes)),
+    ).toThrow(/eyes/);
+    expect(() =>
+      loadWorld(edited((cats) => (cats[1]!.appearance.coat = 'gray'))),
+    ).toThrow(/coat/);
+    expect(() =>
+      loadWorld(edited((cats) => (cats[1]!.appearance = { coat: 'gray' }))),
+    ).toThrow();
+  });
+
+  it.each(CAT_BREED_IDS)('lets Mochi, the stray, be a %s', (breed) => {
+    const save = edited((cats) => (cats[0]!.breedId = breed));
+    expect(loadWorld(save).getSnapshot().cats[0]!.breedId).toBe(breed);
+    expect(() =>
+      loadWorld(edited((cats) => (cats[0]!.breedId = 'SPHYNX'))),
+    ).toThrow(/breedId/);
+  });
+
+  it('keeps every other first-generation cat to its template’s breed, a copy of Mochi too', () => {
+    expect(() =>
+      loadWorld(edited((cats) => (cats[1]!.breedId = 'DOMESTIC'))),
+    ).toThrow(/template/);
+    const world = createWorld(42);
+    const copy = world.dispatch({
+      type: 'DEBUG_SPAWN_CAT',
+      position: { x: 2, y: 7 },
+    });
+    expect(copy.ok).toBe(true);
+    const save = JSON.parse(world.save());
+    expect(save.world.cats[1].definitionId).toBe('MOCHI');
+    save.world.cats[1].breedId = 'DOMESTIC';
+    expect(() => loadWorld(JSON.stringify(save))).toThrow(/template/);
+  });
 });

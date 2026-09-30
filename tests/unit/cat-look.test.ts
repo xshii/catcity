@@ -1,14 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
-import { CAT_COATS } from '../../src/content/cats';
 import type { WorldState } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
 import { invite } from '../helpers/world';
 import { MOOD_COPY } from '../../src/view/shell/mood';
 import {
   CAT_TOKENS,
-  COAT_APPEARANCE,
   catLook,
   catPose,
   lookOf,
@@ -19,12 +17,19 @@ import {
   type CatShape,
 } from '../../src/view/art/cat-look';
 import { catPortrait, shapeSvg } from '../../src/view/art/illustrations';
-import { box, contrast, outline, type Point } from '../helpers/cat-shapes';
+import {
+  box,
+  contrast,
+  outline,
+  T13_BREEDS,
+  T13_COATS,
+  type Point,
+} from '../helpers/cat-shapes';
 import { finishFishing, fishingFixture } from './fishing-fixture';
 
 /** A cat's look as T-13 had it: a breed and a coat. */
-const coated = (breed: CatBreed, coat: (typeof CAT_COATS)[number]) =>
-  catLook(breed, COAT_APPEARANCE[coat]);
+const coated = (breed: CatBreed, coat: keyof typeof T13_COATS) =>
+  catLook(breed, T13_COATS[coat]);
 const MOCHI = coated('RAGDOLL', 'cream');
 
 type Cat = WorldState['cats'][number];
@@ -281,8 +286,9 @@ describe('four coats in the colours of tokens.css (ui-design 2.2, 6.1)', () => {
     tuxedo: T.coatBlack,
   };
   const awake: CatPose = { face: 'calm', ears: 'up', curled: false };
-  const looks = CAT_COATS.flatMap((coat) =>
-    CAT_BREED_IDS.map((breed) => ({ coat, look: coated(breed, coat) })),
+  const coats = Object.keys(T13_COATS) as (keyof typeof T13_COATS)[];
+  const looks = coats.flatMap((coat) =>
+    T13_BREEDS.map((breed) => ({ coat, look: coated(breed, coat) })),
   );
   /** The cat on the map: its tail behind the portrait's shapes. */
   const figure = (look: CatLook, pose: CatPose) =>
@@ -306,7 +312,7 @@ describe('four coats in the colours of tokens.css (ui-design 2.2, 6.1)', () => {
   });
 
   it('has a colour for every coat a cat can wear', () => {
-    expect(Object.keys(FUR)).toEqual([...CAT_COATS]);
+    expect(Object.keys(FUR)).toEqual(coats);
   });
 
   it('draws each of the 4 coats × 2 breeds apart, in the roster and on the map', () => {

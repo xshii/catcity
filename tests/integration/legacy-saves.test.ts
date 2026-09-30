@@ -49,6 +49,9 @@ import v21Content12 from '../fixtures/save-v21-content12.json';
 // A motion fight with the fish off the ring, from before runs counted the time it spent
 // outside in a row (save 21, content 13).
 import v21Content13 from '../fixtures/save-v21-content13.json';
+// Mochi, Pepper and 芝麻 each in one of four coats, from before a look was five choices
+// and Mochi the player's stray (save 22, content 14).
+import v22Content14 from '../fixtures/save-v22-content14.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -83,6 +86,7 @@ const incompatible = {
   v20Content11,
   v21Content12,
   v21Content13,
+  v22Content14,
   future,
 };
 
@@ -122,5 +126,15 @@ it('rejects the coats of content 11 even in the current envelope (content 12)', 
   const old = { ...v20Content11, saveVersion: SAVE_VERSION };
   expect(() => loadWorld(JSON.stringify(old))).toThrow(/contentVersion/);
   const coats = { ...old, contentVersion: CONTENT_VERSION };
-  expect(() => loadWorld(JSON.stringify(coats))).toThrow(/template/);
+  // Since T-14 a coat is no look at all: a look is five choices.
+  expect(() => loadWorld(JSON.stringify(coats))).toThrow(/colour/);
+});
+
+it('rejects the coats of save 22 even in the current envelope', () => {
+  const coats = {
+    ...v22Content14,
+    saveVersion: SAVE_VERSION,
+    contentVersion: CONTENT_VERSION,
+  };
+  expect(() => loadWorld(JSON.stringify(coats))).toThrow(/colour/);
 });

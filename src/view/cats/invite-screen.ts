@@ -6,7 +6,7 @@ import {
   type CatDefinitionId,
 } from '../../content/cats';
 import { fishById } from '../../content/fishing';
-import { catLook, COAT_APPEARANCE } from '../art/cat-look';
+import { catLook } from '../art/cat-look';
 import {
   freeBeds,
   nextInvitePrice,
@@ -43,7 +43,7 @@ export function inviteCard(id: CatDefinitionId) {
   const cat = CAT_DEFINITIONS[id];
   return {
     name: cat.name,
-    look: catLook(cat.breedId, COAT_APPEARANCE[cat.coat]),
+    look: catLook(cat.breedId, cat.appearance),
     sex: SEX[cat.sex],
     breed: CAT_BREEDS[cat.breedId].name,
     personality: cat.personalityLabel,

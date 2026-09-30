@@ -1,18 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
+import { APPEARANCE_OPTIONS, type CatAppearance } from '../../src/content/cats';
 import {
-  APPEARANCE_OPTIONS,
-  CAT_COATS,
-  type CatAppearance,
-} from '../../src/content/cats';
-import {
-  ART_BREEDS,
   CAT_TOKENS,
-  COAT_APPEARANCE,
   catLook,
   portraitShapes,
-  type ArtBreed,
   type CatLook,
   type CatPose,
   type CatShape,
@@ -20,7 +13,14 @@ import {
 } from '../../src/view/art/cat-look';
 import { pettingBody, pettingCat } from '../../src/view/art/cat-petting';
 import { catPortrait, shapeSvg } from '../../src/view/art/illustrations';
-import { box, contrast, outline, type Point } from '../helpers/cat-shapes';
+import {
+  box,
+  contrast,
+  outline,
+  T13_BREEDS,
+  T13_COATS,
+  type Point,
+} from '../helpers/cat-shapes';
 
 // Spec 041 T-14 PR 1 (cat-looks.md 1, ui-design 6.1): a cat's look is five choices, drawn
 // in layers on the breed's outline by every renderer.
@@ -43,7 +43,7 @@ const EVERY = ITEMS.reduce<CatAppearance[]>(
     ),
   [PLAIN],
 );
-const look = (edit: Partial<CatAppearance> = {}, breed: ArtBreed = 'RAGDOLL') =>
+const look = (edit: Partial<CatAppearance> = {}, breed: CatBreed = 'RAGDOLL') =>
   catLook(breed, { ...PLAIN, ...edit });
 const HAPPY: CatPose = { face: 'happy', ears: 'up', curled: false };
 const CALM: CatPose = { face: 'calm', ears: 'up', curled: false };
@@ -124,12 +124,12 @@ describe('five choices make a cat’s look (cat-looks.md 1)', () => {
   });
 
   it('draws three breeds: the domestic cat of PR 2, the ragdoll and the shorthair', () => {
-    expect(ART_BREEDS).toEqual(['DOMESTIC', ...CAT_BREED_IDS]);
+    expect(CAT_BREED_IDS).toEqual(['DOMESTIC', 'RAGDOLL', 'BRITISH_SHORTHAIR']);
   });
 
   it('takes the fur and its shade from the colour alone, the iris from the eyes alone', () => {
     for (const appearance of EVERY)
-      for (const breed of ART_BREEDS) {
+      for (const breed of CAT_BREED_IDS) {
         const { colours } = catLook(breed, appearance);
         const fur = look({ colour: appearance.colour }).colours;
         const iris = look({ eyes: appearance.eyes }).colours.iris;
@@ -156,7 +156,7 @@ describe('five choices make a cat’s look (cat-looks.md 1)', () => {
   });
 
   it('changes no shape for another colour or other eyes', () => {
-    for (const breed of ART_BREEDS)
+    for (const breed of CAT_BREED_IDS)
       for (const appearance of EVERY) {
         const shapes = drawings(catLook(breed, appearance));
         expect(
@@ -169,7 +169,7 @@ describe('five choices make a cat’s look (cat-looks.md 1)', () => {
   });
 
   it('adds only markings in the shade for a pattern', () => {
-    const problems = ART_BREEDS.flatMap((breed) =>
+    const problems = CAT_BREED_IDS.flatMap((breed) =>
       EVERY.filter(
         (appearance) =>
           appearance.pattern === 'solid' && appearance.eyes === 'blue',
@@ -187,7 +187,7 @@ describe('five choices make a cat’s look (cat-looks.md 1)', () => {
   });
 
   it('adds only white patches for white', () => {
-    const problems = ART_BREEDS.flatMap((breed) =>
+    const problems = CAT_BREED_IDS.flatMap((breed) =>
       EVERY.filter(
         (appearance) =>
           appearance.white === 'none' && appearance.eyes === 'blue',
@@ -205,7 +205,7 @@ describe('five choices make a cat’s look (cat-looks.md 1)', () => {
   });
 
   it('changes only the head and the ears for another face', () => {
-    for (const breed of ART_BREEDS)
+    for (const breed of CAT_BREED_IDS)
       for (const appearance of EVERY.filter(({ eyes }) => eyes === 'blue')) {
         const [round, ...others] = APPEARANCE_OPTIONS.face.map((face) =>
           drawings(catLook(breed, { ...appearance, face })),
@@ -226,11 +226,11 @@ describe('five choices make a cat’s look (cat-looks.md 1)', () => {
 });
 
 describe('three faces on each breed’s outline', () => {
-  const heads = (breed: ArtBreed) =>
+  const heads = (breed: CatBreed) =>
     APPEARANCE_OPTIONS.face.map((face) => look({ face }, breed));
 
   it('draws a round, a pointed and a long head apart on every breed', () => {
-    for (const breed of ART_BREEDS) {
+    for (const breed of CAT_BREED_IDS) {
       const [round, pointed, long] = heads(breed);
       expect(
         new Set([round, pointed, long].map((cat) => headLine(cat!).d)).size,
@@ -256,7 +256,7 @@ describe('three faces on each breed’s outline', () => {
           ? !inside
           : inside;
       }, false);
-    for (const breed of ART_BREEDS)
+    for (const breed of CAT_BREED_IDS)
       for (const cat of heads(breed)) {
         const head = outline(headLine(cat));
         for (const [position, ears] of Object.entries(cat.ears)) {
@@ -310,7 +310,7 @@ describe('three faces on each breed’s outline', () => {
 
 describe('each pattern and white is drawn where it belongs', () => {
   it('draws a tabby’s M on the forehead, stripes on its back and rings round its tail', () => {
-    for (const breed of ART_BREEDS) {
+    for (const breed of CAT_BREED_IDS) {
       const tabby = look({ pattern: 'tabby' }, breed);
       const [m] = painted(tabby.head, 'shade');
       const forehead = box([m!]);
@@ -327,7 +327,7 @@ describe('each pattern and white is drawn where it belongs', () => {
   });
 
   it('darkens a point’s mask over the eyes and mouth, its ears, tail and paws', () => {
-    for (const breed of ART_BREEDS) {
+    for (const breed of CAT_BREED_IDS) {
       const point = look({ pattern: 'point' }, breed);
       const mask = point.head.filter((shape) => shape.fill === 'shade');
       expect(mask).toHaveLength(1);
@@ -348,7 +348,7 @@ describe('each pattern and white is drawn where it belongs', () => {
   });
 
   it('whitens the paws for mittens, the chin and chest for a bib, patches for a cow', () => {
-    for (const breed of ART_BREEDS) {
+    for (const breed of CAT_BREED_IDS) {
       const none = look({}, breed);
       const mittens = look({ white: 'mittens' }, breed);
       expect({ ...mittens, appearance: none.appearance }).toEqual(none);
@@ -378,7 +378,7 @@ describe('each pattern and white is drawn where it belongs', () => {
   });
 
   it('whitens a bicolour’s lower face, ruff, belly and paws, outlined in warm brown', () => {
-    for (const breed of ART_BREEDS) {
+    for (const breed of CAT_BREED_IDS) {
       const bicolour = look({ colour: 'black', white: 'bicolour' }, breed);
       const lower = bicolour.head.filter((shape) => shape.fill === 'white');
       expect(lower.length).toBeGreaterThanOrEqual(1);
@@ -404,7 +404,7 @@ describe('each pattern and white is drawn where it belongs', () => {
     const eyeBottom = 38 + 3.4;
     const underEyes = ([x]: Point) =>
       (x >= 25 && x <= 33) || (x >= 39 && x <= 47);
-    for (const breed of ART_BREEDS)
+    for (const breed of CAT_BREED_IDS)
       for (const face of APPEARANCE_OPTIONS.face) {
         const cat = look({ white: 'bicolour', face }, breed);
         const under = cat.head.find((shape) => shape.fill === 'white');
@@ -475,9 +475,8 @@ describe('T-13’s four coats as five choices (the drawing stays)', () => {
     orange: '#ffc681',
   } as const;
 
-  it('maps each coat to its five choices', () => {
-    expect(Object.keys(COAT_APPEARANCE)).toEqual([...CAT_COATS]);
-    expect(COAT_APPEARANCE).toMatchObject({
+  it('dresses the templates in T-13’s coats as five choices', () => {
+    expect(T13_COATS).toMatchObject({
       cream: {
         colour: 'cream',
         pattern: 'solid',
@@ -504,8 +503,8 @@ describe('T-13’s four coats as five choices (the drawing stays)', () => {
     const glum: CatPose = { face: 'glum', ears: 'mid', curled: false };
     const low: CatPose = { face: 'low', ears: 'down', curled: false };
     for (const coat of ['cream', 'gray', 'orange'] as const)
-      for (const breed of CAT_BREED_IDS) {
-        const cat = catLook(breed, COAT_APPEARANCE[coat]);
+      for (const breed of T13_BREEDS) {
+        const cat = catLook(breed, T13_COATS[coat]);
         const expected = Object.fromEntries(
           Object.entries(T13[breed]).map(([name, markup]) => [
             name,
@@ -532,8 +531,8 @@ describe('T-13’s four coats as five choices (the drawing stays)', () => {
       BRITISH_SHORTHAIR:
         'M10 41C15 47 26 47 30 44C33 42 35 40 36 40C37 40 39 42 42 44C46 47 57 47 62 41C62 54 51 58 36 58C21 58 10 54 10 41Z',
     };
-    for (const breed of CAT_BREED_IDS) {
-      const tuxedo = catLook(breed, COAT_APPEARANCE.tuxedo);
+    for (const breed of T13_BREEDS) {
+      const tuxedo = catLook(breed, T13_COATS.tuxedo);
       expect(tuxedo.head).toContainEqual({ d: UNDER[breed], fill: 'white' });
       expect(tuxedo.colours).toMatchObject({
         coat: T.coatBlack,
