@@ -48,7 +48,7 @@ V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runne
 | 改动的文件                                                                                                                                              | 跑哪些 E2E                   |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | `docs/`、`specs/`、任何 `*.md`                                                                                                                          | 不跑                         |
-| `tests/unit/`、`tests/view/`                                                                                                                            | 不跑（vitest 照跑）          |
+| `tests/unit/`、`tests/view/`、`tests/integration/`、`tests/simulation/`                                                                                 | 不跑（vitest 照跑）          |
 | 登记过的 `tests/e2e/x.spec.ts`                                                                                                                          | 它自己与两个冒烟             |
 | 功能模块（city、fishing 含 `fishing/motion/`、cats、petting、companion）的代码                                                                          | 登记在该模块下的 spec 与冒烟 |
 | 功能模块的 `.css`                                                                                                                                       | 同上，再加全部布局类 spec    |

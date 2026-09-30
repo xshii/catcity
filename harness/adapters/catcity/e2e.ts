@@ -108,7 +108,7 @@ export function chooseE2E(
   } {
     if (/^(docs|specs)\//.test(path) || path.endsWith('.md'))
       return { specs: [], reason: 'documentation, no E2E' };
-    if (/^tests\/(unit|view)\//.test(path))
+    if (/^tests\/(unit|view|integration|simulation)\//.test(path))
       return { specs: [], reason: 'a vitest test, no E2E' };
     const spec = /^tests\/e2e\/([^/]+\.spec\.ts)$/.exec(path)?.[1];
     if (spec && names.includes(spec))

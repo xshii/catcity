@@ -52,7 +52,12 @@ describe('choosing E2E specs by what changed (user 2026-09-30)', () => {
 
   it('runs no E2E for headless and view-rig tests: vitest runs them anyway', () => {
     expect(
-      choose(['tests/unit/place.test.ts', 'tests/view/settings.test.ts']).files,
+      choose([
+        'tests/unit/place.test.ts',
+        'tests/view/settings.test.ts',
+        'tests/integration/replay.test.ts',
+        'tests/simulation/pacing.test.ts',
+      ]).files,
     ).toEqual([]);
   });
 
@@ -120,7 +125,6 @@ describe('choosing E2E specs by what changed (user 2026-09-30)', () => {
       'harness/adapters/catcity/city-input.ts',
       'tests/helpers/world.ts',
       'tests/fixtures/device/swing.json',
-      'tests/integration/replay.test.ts',
       'tests/e2e/unregistered.spec.ts',
       'src/view/new-module/thing.ts',
     ])
