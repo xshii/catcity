@@ -22,7 +22,7 @@ import type { SettingsSheet } from '../common/settings';
 const READY_TIP = '点击水面选择落点，再准备抛竿';
 
 /** The tool sheet the shell lays out around the river's panels (shell/layout.ts). */
-export interface FishingLayout {
+interface FishingLayout {
   refresh: () => void;
   close: () => void;
   isOpen: () => boolean;
