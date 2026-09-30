@@ -9,6 +9,7 @@ import {
   key,
   openGame,
   orient,
+  pressEnter,
   spin,
   text,
   touchEnd,
@@ -550,5 +551,43 @@ describe('motion fishing', () => {
     expect(localStorage.getItem('cat-city.fishing-guide')).toBe('done');
     // Skipping never casts.
     expect(game.world().fishing.active).toBeNull();
+  });
+
+  it('shows the aim hint once per device; a tap closes it for good (user, 2026-09-30)', () => {
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    expect(hint()).toBe(SCREEN_COPY.hint.aim);
+    expect($('#motion-hint-close').getAttribute('aria-label')).toBe(
+      SCREEN_COPY.hint.close,
+    );
+    click('#motion-hint-close');
+    expect(hint()).toBe('');
+    expect(visible('#motion-hint-close')).toBe(false);
+    // Closing never casts; the device remembers.
+    expect(game.world().fishing.active).toBeNull();
+    game.reload();
+    inMotionRiver(game);
+    expect(hint()).toBe('');
+  });
+
+  it('closes the aim hint from the keyboard', () => {
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    pressEnter('#motion-hint-close');
+    expect(hint()).toBe('');
+    expect(localStorage.getItem('cat-city.aim-hint')).toBe('seen');
+  });
+
+  it('a cast sees the aim hint: the next aim has none', () => {
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    expect(visible('#motion-hint-close')).toBe(true);
+    swing();
+    expect(hint()).toBe(SCREEN_COPY.hint.waiting);
+    click('#fish-cancel');
+    expect(game.world().fishing.active).toBeNull();
+    expect(visible('#motion-fishing')).toBe(true);
+    expect(hint()).toBe('');
+    expect(visible('#motion-hint-close')).toBe(false);
   });
 });

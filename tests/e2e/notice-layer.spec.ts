@@ -325,7 +325,8 @@ for (const viewport of PHONES) {
       window.CAT_CITY_DEBUG!.useManualFishingClock(true),
     );
     await sensorsOn(page);
-    // Aiming: the plane is up before any run.
+    // Aiming: the plane is up before any run. The first aim on this device, so the
+    // once-only aim hint shows (user, 2026-09-30).
     await expect(page.locator('#motion-fishing')).toBeVisible();
     const aiming = await noticeOnRiver(page, testInfo, 'motion-aim');
     expect(aiming.parts.map(({ part }) => part)).toEqual(

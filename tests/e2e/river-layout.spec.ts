@@ -408,8 +408,10 @@ for (const viewport of [
     await enterRiver(page);
     await sensorsOn(page);
     const gear = page.locator('#river-settings');
+    // The first aim on this device: the once-only aim hint and its close show.
     const hint = page.locator('#motion-fishing-hint');
-    for (const control of [gear, hint]) await onScreen(control);
+    const close = page.locator('#motion-hint-close');
+    for (const control of [gear, hint, close]) await onScreen(control);
     const box = (await gear.boundingBox())!;
     // A finger-sized target on the water, where calibration used to sit.
     expect(box.width).toBeGreaterThanOrEqual(44);
@@ -417,7 +419,8 @@ for (const viewport of [
     const water = (await page.locator('#motion-fishing').boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(water.x);
     expect(box.y).toBeGreaterThanOrEqual(water.y);
-    expect(apart(box, (await hint.boundingBox())!)).toBe(true);
+    for (const other of [hint, close])
+      expect(apart(box, (await other.boundingBox())!)).toBe(true);
     // In button mode it stays clear of the cast button.
     await gear.click();
     await page.locator('#settings-mode-buttons').click();

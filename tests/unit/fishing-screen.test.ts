@@ -39,12 +39,16 @@ import {
 import { replay } from '../helpers/fishing-view';
 import { fishingFixture } from './fishing-fixture';
 
-/** A device that finished the guide and calibrated before, unless told otherwise. */
+/**
+ * A device that finished the guide and calibrated before, and has not seen the aim hint,
+ * unless told otherwise.
+ */
 const view = (
   options: {
     phone?: boolean;
     preference?: 'motion' | 'buttons';
     guide?: GuideStep;
+    aimHintSeen?: boolean;
   } = {},
   ...events: FishingViewEvent[]
 ) =>
@@ -55,6 +59,7 @@ const view = (
       coarsePointer: options.phone ?? true,
       guide: options.guide ?? null,
       autoCalibrate: false,
+      aimHintSeen: options.aimHintSeen ?? false,
     }),
     ...events,
   );
@@ -388,6 +393,49 @@ describe('fishing screen', () => {
     ).toBe(SCREEN_COPY.hint.waiting);
   });
 
+  it('shows the aim hint once, with a close, and leaves the other hints alone (user, 2026-09-30)', () => {
+    const aiming = view({}, river, ready);
+    expect(fishingScreen(aiming, null)).toMatchObject({
+      hint: SCREEN_COPY.hint.aim,
+      aimHint: true,
+    });
+    // Seen on this device: the aim shows no hint at all.
+    const seen = view({ aimHintSeen: true }, river, ready);
+    expect(fishingScreen(seen, null)).toMatchObject({
+      hint: '',
+      aimHint: false,
+    });
+    // Calibration, its result and the guide's aim steps show instead, without a close.
+    for (const [state, hint] of [
+      [
+        replay(aiming, { type: 'calibrating', on: true }),
+        SCREEN_COPY.hint.calibrating,
+      ],
+      [replay(aiming, { type: 'notice', text: '校准完成' }), '校准完成'],
+      [view({ guide: 'aim' }, river, ready), SCREEN_COPY.guide.aim],
+    ] as const)
+      expect(fishingScreen(state, null)).toMatchObject({
+        hint,
+        aimHint: false,
+      });
+    // A run's hints stay once it is seen (each phase's words: the test above).
+    const playing = replay(
+      seen,
+      { type: 'run', runId: 'r' },
+      { type: 'resume' },
+    );
+    expect(fishingScreen(playing, runOf('motion', 'waiting'))).toMatchObject({
+      hint: SCREEN_COPY.hint.waiting,
+      aimHint: false,
+    });
+    // Never in button play.
+    expect(
+      fishingScreen(view({ preference: 'buttons' }, river, ready), null)
+        .aimHint,
+    ).toBe(false);
+    expect(SCREEN_COPY.hint.close).toBe('关闭提示');
+  });
+
   it('teaches the first cast in the hint, each step where it happens, with a skip', () => {
     const playing: FishingViewEvent[] = [
       river,
@@ -412,10 +460,11 @@ describe('fishing screen', () => {
         guide,
         hint: SCREEN_COPY.guide[guide],
       });
-    // A step waits for its moment: the usual hint shows until then.
+    // A step waits for its moment: the usual hint shows until then; while the guide is
+    // unfinished, the aim has none (the aim hint comes after the guide).
     expect(
       fishingScreen(view({ guide: 'strike' }, river, ready), null),
-    ).toMatchObject({ guide: null, hint: SCREEN_COPY.hint.aim });
+    ).toMatchObject({ guide: null, hint: '', aimHint: false });
     expect(
       fishingScreen(view({ guide: 'aim' }, ...playing), runOf('motion')),
     ).toMatchObject({ guide: null, hint: SCREEN_COPY.hint.waiting });

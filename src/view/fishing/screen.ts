@@ -2,6 +2,7 @@ import { FISHING } from '../../content/fishing';
 import type { AnglingRun } from '../../minigames/angling';
 import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
 import {
+  aimHintShown,
   canPlay,
   motionActive,
   type FishingView,
@@ -19,6 +20,8 @@ export const SCREEN_COPY = {
     settle: '稳住，用圈罩住鱼',
     fight: '倾斜手机，让圈罩住鱼',
     pull: '往回拉！',
+    /** The aim hint shows once, with this close (user, 2026-09-30). */
+    close: '关闭提示',
   },
   /** The first motion cast, one step at a time (spec 033 F3). */
   guide: {
@@ -144,6 +147,8 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
         : usual,
     /** The first-cast guide's step whose hint shows, with a way to skip the guide. */
     guide,
+    /** The one-time aim hint shows, with a way to close it. */
+    aimHint: aiming && aimHintShown(view),
     pauseLabel: view.paused
       ? SCREEN_COPY.pause.resume
       : SCREEN_COPY.pause.pause,
@@ -334,7 +339,7 @@ function hint(view: FishingView, motionRun: AnglingRun | null): string {
   const words = SCREEN_COPY.hint;
   if (view.motion.calibrating) return words.calibrating;
   if (view.motion.notice && !motionRun) return view.motion.notice;
-  if (!motionRun) return words.aim;
+  if (!motionRun) return aimHintShown(view) ? words.aim : '';
   if (view.paused) return words.paused;
   if (motionRun.phase === 'waiting') return words.waiting;
   if (motionRun.phase === 'hook') return words.hook;

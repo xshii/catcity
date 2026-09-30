@@ -345,6 +345,30 @@ export function key(
   );
 }
 
+/**
+ * Enter on a control reached by keyboard, as a browser does it: the key goes to the
+ * focused control, and a button clicks without a pointer (`detail` 0).
+ */
+export function pressEnter(selector: string) {
+  const element = $(selector);
+  if (!visible(selector)) throw new Error(`${selector} is not visible`);
+  element.focus();
+  if (document.activeElement !== element)
+    throw new Error(`${selector} takes no keyboard focus`);
+  const init = { bubbles: true, cancelable: true, code: 'Enter', key: 'Enter' };
+  activation = true;
+  try {
+    const typed = element.dispatchEvent(new KeyboardEvent('keydown', init));
+    if (typed && element.tagName === 'BUTTON')
+      element.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }),
+      );
+    element.dispatchEvent(new KeyboardEvent('keyup', init));
+  } finally {
+    activation = false;
+  }
+}
+
 /** A tilt reading: Chromium exposes the sensor events, tests fire them. */
 export function orient(gamma: number, beta: number) {
   const event = new Event('deviceorientation');
