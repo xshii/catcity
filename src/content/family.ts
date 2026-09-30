@@ -3,6 +3,10 @@
 /** A cat born in the city is a kitten for its first two game days. */
 export const KITTEN_MINUTES = 2 * 1440;
 
+/** The minute a cat is grown from; a first-generation cat (never born here) arrives grown. */
+export const grownFrom = (bornMinute: number | null): number =>
+  bornMinute === null ? 0 : bornMinute + KITTEN_MINUTES;
+
 /** Talent levels a cat can reach; first-generation cats have none (design 5.4). */
 export const MAX_TALENT = 4;
 

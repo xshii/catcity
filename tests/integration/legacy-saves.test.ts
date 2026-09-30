@@ -69,6 +69,9 @@ import v25Content19 from '../fixtures/save-v25-content19.json';
 // Two residents of a lodge three tiles from a cafe, from before residents were customers
 // (save 25, content 20).
 import v25Content20 from '../fixtures/save-v25-content20.json';
+// A picked stray at home and Pepper, two game days on, from before a cat carried a wish
+// (save 25, content 21).
+import v25Content21 from '../fixtures/save-v25-content21.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -110,6 +113,7 @@ const incompatible = {
   v24Content18,
   v25Content19,
   v25Content20,
+  v25Content21,
   future,
 };
 
