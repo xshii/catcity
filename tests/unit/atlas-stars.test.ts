@@ -10,6 +10,7 @@ import type { WorldState } from '../../src/core';
 import {
   atlasNote,
   atlasStars,
+  goldCatch,
   SCREEN_COPY,
 } from '../../src/view/fishing/screen';
 
@@ -141,5 +142,52 @@ describe('atlasNote: a catch that adds a species or a star, told from two snapsh
       SCREEN_COPY.atlas.reached('银鱼', '金星'),
     );
     expect(atlasNote(gold, gold)).toBe('');
+  });
+});
+
+describe("goldCatch: every catch long enough for its species' gold shines on the card", () => {
+  type Result = NonNullable<WorldState['fishing']['lastResult']>;
+  const result = (fields: Partial<Result>) =>
+    ({
+      caught: true,
+      speciesId: 'SILVER',
+      catchKind: 'fish',
+      lengthMm: 0,
+      trashAmount: 0,
+      reason: 'none',
+      ...fields,
+    }) as Result;
+
+  it('a fish at its gold length or longer shines; a millimetre shorter does not', () => {
+    for (const fish of FISH) {
+      const gold = shortestWith(fish.id, 3);
+      const caught = (lengthMm: number) =>
+        goldCatch(result({ speciesId: fish.id, lengthMm }));
+      expect(caught(gold)).toBe(true);
+      expect(caught(fish.maxLengthMm)).toBe(true);
+      expect(caught(gold - 1)).toBe(false);
+    }
+  });
+
+  it('no result, supplies, trash and a fish that got away never shine', () => {
+    const longest = fishById('SILVER').maxLengthMm;
+    expect(goldCatch(null)).toBe(false);
+    for (const catchKind of ['can', 'coins'] as const)
+      expect(goldCatch(result({ catchKind, speciesId: null }))).toBe(false);
+    expect(
+      goldCatch(
+        result({
+          caught: false,
+          trashAmount: 1,
+          reason: 'escaped',
+          lengthMm: longest,
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      goldCatch(
+        result({ caught: false, reason: 'line-break', lengthMm: longest }),
+      ),
+    ).toBe(false);
   });
 });

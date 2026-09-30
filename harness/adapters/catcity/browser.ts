@@ -250,9 +250,13 @@ export function createCatCityAdapter(): GameAdapter {
         await expect(page.locator('[data-species="MOON_CARP"]')).toContainText(
           '★★★★★',
         );
+        // Never caught: its stars and where it lives, nothing more (2026-09-30).
         await expect(page.locator('[data-species="MOON_CARP"]')).toContainText(
-          '仅限英短猫同行',
+          '未发现的鱼影',
         );
+        await expect(
+          page.locator('[data-species="MOON_CARP"]'),
+        ).not.toContainText('仅限英短猫同行');
         await openGear(page, 'info');
         await expect(page.locator('#companion-specialty')).toContainText(
           '布偶猫',

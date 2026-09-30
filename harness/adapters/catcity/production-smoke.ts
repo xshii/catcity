@@ -97,7 +97,7 @@ export async function productionSmoke(publication: LocalPublication) {
     await page.getByRole('button', { name: '河畔', exact: true }).tap();
     await showFish(page, 'MOON_CARP');
     await expect(page.locator('[data-species=MOON_CARP]')).toContainText(
-      '仅限英短猫同行',
+      '未发现的鱼影',
     );
     await page.screenshot({
       path: join(publication.evidence, 'atlas.png'),
