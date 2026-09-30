@@ -12,6 +12,7 @@ import { mountDetail } from '../cats/detail';
 import { mountInvite } from '../cats/invite';
 import { mountRoster } from '../cats/roster';
 import { mountStrayStart } from '../cats/stray';
+import { mountSalon } from '../cats/salon';
 import { toViewModel } from '../common/model';
 import { bondNote } from '../common/bond';
 import { withMoodNote } from '../common/mood';
@@ -133,6 +134,13 @@ export function mountPanel(
     random: Math.random,
     notify,
   });
+  const salon = mountSalon({
+    session,
+    layer: document.querySelector<HTMLElement>('.shell')!,
+    gear: settings.gear,
+    random: Math.random,
+    notify,
+  });
   const angling = mountAngling(
     session,
     place,
@@ -155,6 +163,7 @@ export function mountPanel(
     tools: angling.tools,
     notify,
     enterFishing: angling.enterAtSpot,
+    restyle: salon.open,
     talk: (message) => void talk(message),
     elements: {
       stage: angling.stage,

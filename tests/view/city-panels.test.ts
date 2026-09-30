@@ -80,6 +80,7 @@ describe('city panels', () => {
         'build-cat_cafe',
         'build-cat_apartment',
         'build-cat_lodge',
+        'build-cat_salon',
         'place-road',
       ]);
     };

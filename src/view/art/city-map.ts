@@ -41,12 +41,15 @@ const WINDOWS = {
     [-13, 5, 8, 9],
     [6, 5, 8, 9],
   ],
+  // The salon's wide shop window.
+  CAT_SALON: [[-17, -4, 15, 13]],
 } as const;
-/** Walls and roof per building: the lodge's roof is sage (spec 041 ui-design 6.2). */
+/** Walls and roof per building: the lodge's roof is sage, the salon's mint (spec 041 ui-design 6.2). */
 const COLOURS = {
   CAT_CAFE: [C.cafe, C.cafeRoof],
   CAT_APARTMENT: [C.apartment, C.apartmentRoof],
   CAT_LODGE: [C.lodge, C.lodgeRoof],
+  CAT_SALON: [C.salon, C.salonRoof],
 } as const;
 
 /** Dashes along from→to, `dash` long and `gap` apart; the last is cut at `to`. */
@@ -198,10 +201,20 @@ export function drawCityMap(
           9,
         );
       g.strokeRect(x - 24, y - 9, 48, 9);
+    }
+    if (building.type === 'CAT_SALON') {
+      // The salon's sign under the roof: a comb on a round board.
+      g.fillStyle(c(C.board))
+        .fillCircle(x, y - 21, 6)
+        .strokeCircle(x, y - 21, 6)
+        .lineBetween(x - 4, y - 23, x + 4, y - 23);
+      for (const dx of [-3, -1, 1, 3])
+        g.lineBetween(x + dx, y - 23, x + dx, y - 18.5);
+    }
+    if (building.type !== 'CAT_APARTMENT')
       g.fillStyle(c(C.door))
         .fillRoundedRect(x + 4, y - 1, 11, 23, 2)
         .strokeRoundedRect(x + 4, y - 1, 11, 23, 2);
-    }
     for (const [dx, dy, width, height] of WINDOWS[building.type]) {
       if (light.windowsLit)
         g.fillStyle(C.glow, 0.45).fillCircle(

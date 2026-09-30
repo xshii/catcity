@@ -27,6 +27,8 @@ export function mountCityActions(deps: {
   tools: Tools;
   notify: (text: string) => void;
   enterFishing: (spotId: SpotId, catId: string) => void;
+  /** Opens the salon's cat maker on the cat (spec 041 T-15). */
+  restyle: (catId: string) => void;
   /** The card goes right after this element. */
   anchor: HTMLElement;
 }) {
@@ -59,6 +61,8 @@ export function mountCityActions(deps: {
         return view.dispatch({ type: 'move', buildingId: intent.buildingId });
       case 'enter':
         return deps.enterFishing(intent.spotId, intent.catId);
+      case 'restyle':
+        return deps.restyle(intent.catId);
     }
   };
   /** The card's buttons by id, each with what it does now. */
