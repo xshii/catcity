@@ -114,6 +114,8 @@ export const SCREEN_COPY = {
     newSpecies: (name: string, star: string | null) =>
       `图鉴新添：${name}${star ? `，评上${star}` : ''}`,
     reached: (name: string, star: string) => `${name}的纪录评上${star}`,
+    /** Read for the gold mark on the card of a catch long enough for gold. */
+    goldCatch: '够金星的个头',
   },
 } as const;
 
@@ -154,6 +156,18 @@ export function atlasNote(before: Atlas, after: Atlas): string {
     return star ? [words.reached(fish.name, star)] : [];
   }).join('。');
 }
+
+type Result = NonNullable<WorldState['fishing']['lastResult']>;
+/**
+ * The catch is long enough for its species' gold (R-54), whether or not the record had
+ * it already: its card shines. Supplies, trash and a fish that got away never do.
+ */
+export const goldCatch = (
+  result: Pick<Result, 'caught' | 'speciesId' | 'lengthMm'> | null,
+) =>
+  !!result?.caught &&
+  !!result.speciesId &&
+  lengthStar(result.speciesId, result.lengthMm) === 3;
 
 /**
  * How long the catch card stays before it closes by itself (R-02): it floats over the
