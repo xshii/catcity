@@ -68,7 +68,7 @@ describe('bond levels (spec 036)', () => {
   });
 
   it('are derived: the save holds points, never a level', () => {
-    expect(SAVE_VERSION).toBe(23);
+    expect(SAVE_VERSION).toBe(24);
     const world = edited(
       createWorld(42),
       (cat) => (cat.playerBond = BOND_LEVELS[1].bond),
