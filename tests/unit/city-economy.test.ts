@@ -59,7 +59,7 @@ describe('prices (spec 040)', () => {
       Array.from({ length: count }, (_, existing) =>
         buildingPrice(type, existing),
       );
-    expect(prices('CAT_CAFE', 6)).toEqual([200, 400, 800, 1600, 3200, 6400]);
+    expect(prices('CAT_CAFE', 6)).toEqual([125, 250, 500, 1000, 2000, 4000]);
     // 300 × 1.8^n: 972 → 970, 1749.6 → 1750, 10203.1 → 10205, 18365.6 → 18365.
     expect(prices('CAT_APARTMENT', 8)).toEqual([
       300, 540, 970, 1750, 3150, 5670, 10205, 18365,
@@ -77,8 +77,8 @@ describe('prices (spec 040)', () => {
 
   it('never prices a building above the coins a world can hold', () => {
     expect(MAX_PRICE).toBe(WORLD_LIMIT);
-    // 200 × 2^59 is far past 2^53; the 23rd cafe is the last below the limit.
-    expect(buildingPrice('CAT_CAFE', 22)).toBe(838_860_800);
+    // 125 × 2^59 is far past 2^53; the 23rd cafe is the last below the limit.
+    expect(buildingPrice('CAT_CAFE', 22)).toBe(524_288_000);
     expect(buildingPrice('CAT_CAFE', 23)).toBe(MAX_PRICE);
     for (const type of ['CAT_CAFE', 'CAT_APARTMENT'] as const)
       for (const existing of [59, 99]) {
@@ -333,9 +333,11 @@ describe('cafe customers (spec 040)', () => {
     const home = buildHome(world, { x: 3, y: 4 });
     moveIn(world, 'mochi', home);
     resident(world, { x: 5, y: 5 }, home);
-    // Near the home: (4,4) and (4,3); out of its range: (6,6) and (6,3).
+    // Near the home: (4,4) and (4,3); out of its range: (6,6) and (6,3). The first cafe
+    // goes up half an interval before the city is paid, the second as it is paid.
+    advance(world, (untilPayout(world) + INTERVAL / 2) % INTERVAL);
     buildCafe(world, { x: 4, y: 4 });
-    advance(world, 60);
+    advance(world, INTERVAL / 2);
     buildCafe(world, { x: 6, y: 3 });
     const other = buildHome(world, { x: 6, y: 4 });
     const [, first, second] = world
@@ -515,7 +517,7 @@ describe('residents as cafe customers (spec 041 R-43)', () => {
   });
 
   it('takes residents in the order they came: the tenth after the ninth', () => {
-    const world = rich(10_000);
+    const world = rich(100_000);
     buildCafe(world, { x: 4, y: 4 });
     const cafe = world.getSnapshot().buildings[0]!.id;
     for (const position of [

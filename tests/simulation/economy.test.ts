@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
-import { CAT_DEFINITIONS } from '../../src/content/cats';
+import { CAT_DEFINITIONS, MAX_COMPANIONS } from '../../src/content/cats';
 import {
   BUILDINGS,
   buildingPrice,
   CAFE,
+  CITY_COSTS,
   CITY_START,
   CITY_TIME,
+  landPrice,
 } from '../../src/content/city';
+import { ARRIVAL_MINUTES, MAX_RESIDENTS } from '../../src/content/residents';
 import type { Position, World } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
 import {
@@ -17,27 +20,43 @@ import {
   customersServed,
   playCity,
   SALON_PLAN,
+  type Layout,
 } from '../helpers/city-player';
 import { advance } from '../helpers/world';
 
 /**
- * The economy's targets (spec 040), on the seed 42 map. The targets are the spec's:
- * a number in content that misses one is changed there, never the range here. Each holds
- * for a new game with a stray of every breed (spec 041 T-14).
+ * The economy's targets (spec 040) on the seed 42 map, for the full city of spec 041
+ * T-31: the companion limit of cats and every resident, all of them customers. The
+ * targets are the spec's: a number in content that misses one is changed there, never
+ * the range here. Each holds for a new game with a stray of every breed (spec 041 T-14).
  */
 const FISHING_COINS_PER_REAL_MINUTE = 25;
 const FISHING_PER_REAL_HOUR = 60 * FISHING_COINS_PER_REAL_MINUTE;
 const FASTEST = Math.max(...CITY_TIME.speeds);
+const SLOWEST = Math.min(...CITY_TIME.speeds);
 /** One real second passes `speed` game minutes: a real hour is 60 × speed game hours. */
 const gameMinutesPerRealHour = (speed: number) => 60 * 60 * speed;
-/** The same plots with the cafes side by side in the north. */
-const CROWDED: Position[] = [
-  { x: 4, y: 2 },
-  { x: 6, y: 2 },
-  { x: 4, y: 3 },
-  { x: 6, y: 3 },
-];
+/** Everyone a full city seats: the companion limit and the resident limit. */
+const CUSTOMERS = MAX_COMPANIONS + MAX_RESIDENTS;
+/** The same plots with the cafes crowded together in the north. */
+const CROWDED: Layout = {
+  cafes: [
+    { x: 4, y: 2 },
+    { x: 6, y: 2 },
+    { x: 4, y: 3 },
+    { x: 6, y: 3 },
+    { x: 4, y: 4 },
+    { x: 6, y: 4 },
+  ],
+  lodges: [
+    { x: 4, y: 7 },
+    { x: 6, y: 7 },
+    { x: 5, y: 8 },
+    { x: 2, y: 6 },
+  ],
+};
 const FUNDS = 1_000_000;
+const same = (a: Position, b: Position) => a.x === b.x && a.y === b.y;
 
 /** A new game's stray: Mochi of `breed`, in its template's look. */
 const strayOf = (breed: CatBreed) => ({
@@ -45,10 +64,10 @@ const strayOf = (breed: CatBreed) => ({
   appearance: CAT_DEFINITIONS.MOCHI.appearance,
 });
 
-/** 16 cats in 8 apartments and 4 cafes, and what it cost to build. */
-function filledCity(
+/** Every plot of the plan built, and what it cost; the residents are still to come. */
+function builtCity(
   breed: CatBreed,
-  cafes: readonly Position[] = CITY_PLAN.cafes,
+  layout: Layout = CITY_PLAN,
   plots: readonly Position[] = CITY_PLAN.plots,
 ) {
   const state = crowdedStart(strayOf(breed)).getSnapshot();
@@ -59,11 +78,23 @@ function filledCity(
     }),
   );
   // Cafes first, so the apartments fill in the plan's order either way.
-  for (const plot of cafes) buildOn(world, plot, cafes);
+  for (const plot of layout.cafes) buildOn(world, plot, layout);
   for (const plot of plots)
-    if (!cafes.some((cafe) => cafe.x === plot.x && cafe.y === plot.y))
-      buildOn(world, plot, cafes);
+    if (!layout.cafes.some((cafe) => same(cafe, plot)))
+      buildOn(world, plot, layout);
   return { world, spent: FUNDS - world.getSnapshot().coins };
+}
+
+/** Game minutes until the last resident has come, one at each day's start. */
+const untilResidents = (world: World) =>
+  MAX_RESIDENTS * ARRIVAL_MINUTES - world.getSnapshot().minute;
+
+/** The built city once every resident has come. */
+function filledCity(breed: CatBreed, layout: Layout = CITY_PLAN) {
+  const city = builtCity(breed, layout);
+  expect(advance(city.world, untilResidents(city.world)).ok).toBe(true);
+  expect(city.world.getSnapshot().residents).toHaveLength(MAX_RESIDENTS);
+  return city;
 }
 
 /** Coins the cafes pay while the game minutes pass, from the income events. */
@@ -86,24 +117,28 @@ function earned(world: World, minutes: number) {
 }
 
 describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
-  describe('a filled city: 16 cats, 8 apartments, 4 cafes', () => {
-    it('has every cat as a customer when the cafes are placed well', () => {
+  describe('a full city: 10 companions and 16 residents, 5 apartments, 4 lodges, 6 cafes', () => {
+    it('has every companion and every resident as a customer when the cafes are placed well', () => {
       const { world } = filledCity(breed);
       const state = world.getSnapshot();
-      expect(state.cats).toHaveLength(16);
+      expect(state.cats).toHaveLength(MAX_COMPANIONS);
       expect(state.cats.every((cat) => cat.home)).toBe(true);
       expect(state.buildings.map((building) => building.type).sort()).toEqual([
-        ...Array<string>(8).fill('CAT_APARTMENT'),
-        ...Array<string>(4).fill('CAT_CAFE'),
+        ...Array<string>(5).fill('CAT_APARTMENT'),
+        ...Array<string>(6).fill('CAT_CAFE'),
+        ...Array<string>(4).fill('CAT_LODGE'),
       ]);
-      expect(customersServed(state)).toBe(16);
+      expect(CUSTOMERS).toBe(26);
+      expect(customersServed(state)).toBe(CUSTOMERS);
       const interval = BUILDINGS.CAT_CAFE.intervalMinutes;
-      expect(earned(world, interval)).toBe(16 * CAFE.coinsPerCustomer);
+      expect(earned(world, interval)).toBe(CUSTOMERS * CAFE.coinsPerCustomer);
       expect(earned(world, 24 * 60)).toBe(
-        ((24 * 60) / interval) * 16 * CAFE.coinsPerCustomer,
+        ((24 * 60) / interval) * CUSTOMERS * CAFE.coinsPerCustomer,
       );
-      // 8 coins per game hour.
-      expect((16 * CAFE.coinsPerCustomer * 60) / interval).toBe(8);
+      // 208 coins per game day.
+      expect(((24 * 60) / interval) * CUSTOMERS * CAFE.coinsPerCustomer).toBe(
+        208,
+      );
       expect(loadWorld(world.save()).save()).toBe(world.save());
     });
 
@@ -111,13 +146,29 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
       const crowded = filledCity(breed, CROWDED);
       const served = customersServed(crowded.world.getSnapshot());
       expect(served).toBeGreaterThan(0);
-      expect(served).toBeLessThan(16);
-      expect(crowded.spent).toBe(filledCity(breed).spent);
+      expect(served).toBeLessThan(CUSTOMERS);
+      expect(crowded.spent).toBe(builtCity(breed).spent);
     });
 
-    it('costs 44,230 coins to build, land and roads included', () => {
-      const { spent } = filledCity(breed);
-      expect(spent).toBe(44_230);
+    it('costs 42,970 coins to build, land and roads included', () => {
+      const { spent } = builtCity(breed);
+      const prices = (type: keyof typeof BUILDINGS, count: number) =>
+        Array.from({ length: count }, (_, existing) =>
+          buildingPrice(type, existing),
+        ).reduce((sum, price) => sum + price, 0);
+      // Seven plots and three roads on bought land; one plot is a tile further out.
+      const land =
+        6 * landPrice({ x: 4, y: 2 }) +
+        landPrice({ x: 5, y: 8 }) +
+        3 * (landPrice({ x: 5, y: 2 }) + CITY_COSTS.placeRoad);
+      expect(land).toBe(615);
+      expect(spent).toBe(
+        prices('CAT_CAFE', 6) +
+          prices('CAT_APARTMENT', 5) +
+          prices('CAT_LODGE', 4) +
+          land,
+      );
+      expect(spent).toBe(42_970);
       expect(spent).toBeGreaterThanOrEqual(40_000);
       expect(spent).toBeLessThanOrEqual(48_000);
     });
@@ -128,17 +179,23 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
         filledCity(breed).world,
         gameMinutesPerRealHour(FASTEST),
       );
-      expect(idle).toBe(1920);
+      expect(idle).toBe(2080);
       expect(idle).toBeLessThanOrEqual(1.5 * FISHING_PER_REAL_HOUR);
     });
 
     it('D: never earns more than fishing per real hour at 1×', () => {
-      const idle = earned(filledCity(breed).world, gameMinutesPerRealHour(1));
-      expect(idle).toBe(480);
+      expect(SLOWEST).toBe(1);
+      const idle = earned(
+        filledCity(breed).world,
+        gameMinutesPerRealHour(SLOWEST),
+      );
+      expect(idle).toBe(520);
       expect(idle).toBeLessThanOrEqual(FISHING_PER_REAL_HOUR);
     });
   });
 
+  // The player who counts on the residents to come buys the most customers per coin
+  // there is: the quickest to a full city, and so the one the lower bound is for.
   describe('a player who fishes, keeps the clock at 4× and reinvests', () => {
     it('B: fills the city in 12 to 20 real hours', () => {
       const run = playCity({
@@ -148,10 +205,11 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
         stray: strayOf(breed),
       });
       const state = run.world.getSnapshot();
-      expect(state.buildings).toHaveLength(12);
+      expect(state.buildings).toHaveLength(15);
       expect(state.cats.every((cat) => cat.home)).toBe(true);
-      expect(customersServed(state)).toBe(16);
-      expect(run.filledAt).toBe(901);
+      expect(state.residents).toHaveLength(MAX_RESIDENTS);
+      expect(customersServed(state)).toBe(CUSTOMERS);
+      expect(run.filledAt).toBe(912);
       expect(run.filledAt! / 60).toBeGreaterThanOrEqual(12);
       expect(run.filledAt! / 60).toBeLessThanOrEqual(20);
       // Every coin is accounted for: the start, fishing and the cafes paid for the city.
@@ -166,6 +224,20 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
         { realMinute: 0, building: 'CAT_APARTMENT' },
         { realMinute: 0, building: 'CAT_CAFE', customers: 2 },
       ]);
+    });
+
+    it('B: fills it in 12 to 20 real hours too when lodges count only once residents come', () => {
+      const run = playCity({
+        fishing: FISHING_COINS_PER_REAL_MINUTE,
+        speed: FASTEST,
+        realMinutes: 21 * 60,
+        stray: strayOf(breed),
+        shortSighted: true,
+      });
+      expect(customersServed(run.world.getSnapshot())).toBe(CUSTOMERS);
+      expect(run.filledAt).toBe(948);
+      expect(run.filledAt! / 60).toBeGreaterThanOrEqual(12);
+      expect(run.filledAt! / 60).toBeLessThanOrEqual(20);
     });
 
     it('plays the same way every time', () => {
@@ -184,26 +256,46 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
     });
   });
 
+  // B is the 4× player's; at 1× the cafes pay a quarter as much per real hour, so the
+  // city fills later, and its cafes never out-earn the fishing that pays for it.
+  describe('the same player at 1×', () => {
+    it('fills the city no sooner than 12 real hours, fishing paying the most of it', () => {
+      const run = playCity({
+        fishing: FISHING_COINS_PER_REAL_MINUTE,
+        speed: SLOWEST,
+        realMinutes: 30 * 60,
+        stray: strayOf(breed),
+      });
+      expect(customersServed(run.world.getSnapshot())).toBe(CUSTOMERS);
+      expect(run.filledAt).toBe(1380);
+      expect(run.filledAt! / 60).toBeGreaterThanOrEqual(12);
+      expect(run.cafeIncome).toBeLessThan(
+        run.filledAt! * FISHING_COINS_PER_REAL_MINUTE,
+      );
+    });
+  });
+
   // The salon earns nothing (spec 041 T-15): its price may only slow the city down so
   // far that every target above still holds with it.
   describe('the cat salon', () => {
-    it('fits in the filled city for 45,860 coins in all, still within the range', () => {
-      const { world, spent } = filledCity(
-        breed,
-        CITY_PLAN.cafes,
-        SALON_PLAN.plots,
-      );
+    it('fits in the full city for 44,650 coins in all, still within the range', () => {
+      const { world, spent } = builtCity(breed, CITY_PLAN, SALON_PLAN.plots);
       buildOn(world, SALON_PLAN.salon);
-      const state = world.getSnapshot();
-      expect(state.buildings).toHaveLength(13);
-      expect(customersServed(state)).toBe(16);
-      const total = FUNDS - state.coins;
-      // Besides the salon, its plan lays one more road and buys two more plots: 130 coins.
-      expect(total - spent).toBe(buildingPrice('CAT_SALON', 0) + 50);
-      expect(spent).toBe(44_230 + 30 + 50);
-      expect(total).toBe(45_860);
+      const total = FUNDS - world.getSnapshot().coins;
+      // Its plan paves the south road on to (5,8) and builds on two plots beside it.
+      expect(spent).toBe(
+        42_970 + CITY_COSTS.placeRoad + landPrice(SALON_PLAN.road),
+      );
+      expect(total - spent).toBe(
+        buildingPrice('CAT_SALON', 0) + landPrice(SALON_PLAN.salon),
+      );
+      expect(total).toBe(44_650);
       expect(total).toBeGreaterThanOrEqual(40_000);
       expect(total).toBeLessThanOrEqual(48_000);
+      advance(world, untilResidents(world));
+      const state = world.getSnapshot();
+      expect(state.buildings).toHaveLength(16);
+      expect(customersServed(state)).toBe(CUSTOMERS);
     });
 
     it('B: still fills the city in 12 to 20 real hours when the salon comes first', () => {
@@ -215,15 +307,15 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
         salonFirst: true,
       });
       const state = run.world.getSnapshot();
-      expect(state.buildings).toHaveLength(13);
-      expect(customersServed(state)).toBe(16);
+      expect(state.buildings).toHaveLength(16);
+      expect(customersServed(state)).toBe(CUSTOMERS);
       // The first hour of fishing buys it: the price is one real hour's fishing.
       expect(buildingPrice('CAT_SALON', 0)).toBe(FISHING_PER_REAL_HOUR);
       expect(run.purchases[0]).toMatchObject({
-        realMinute: 26,
+        realMinute: 31,
         building: 'CAT_SALON',
       });
-      expect(run.filledAt).toBe(964);
+      expect(run.filledAt).toBe(974);
       expect(run.filledAt! / 60).toBeGreaterThanOrEqual(12);
       expect(run.filledAt! / 60).toBeLessThanOrEqual(20);
     });
@@ -259,7 +351,7 @@ describe.each(CAT_BREED_IDS)('a new game with a %s stray', (breed) => {
 
     it('C: pays for itself within 60 real minutes at 4×, with two cats next door', () => {
       const paid = earned(firstCafe(), gameMinutesPerRealHour(FASTEST));
-      expect(paid).toBe(240);
+      expect(paid).toBe(160);
       expect(paid).toBeGreaterThanOrEqual(buildingPrice('CAT_CAFE', 0));
     });
 

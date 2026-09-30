@@ -961,24 +961,11 @@
         "neutered": false,
         "talent": 0,
         "lastBredMinute": null,
-        "personality": [
-          "shy",
-          "food-loving",
-          "slow-to-warm"
-        ],
-        "traits": [
-          "gentle"
-        ],
+        "personality": ["shy", "food-loving", "slow-to-warm"],
+        "traits": ["gentle"],
         "preferences": {
-          "likes": [
-            "fish",
-            "quiet",
-            "windows"
-          ],
-          "dislikes": [
-            "noise",
-            "crowds"
-          ]
+          "likes": ["fish", "quiet", "windows"],
+          "dislikes": ["noise", "crowds"]
         },
         "mood": 60,
         "needs": {
@@ -998,10 +985,7 @@
         "fishingSpotId": "POND",
         "walk": null,
         "breedId": "RAGDOLL",
-        "favoriteFish": [
-          "SILVER",
-          "CRUCIAN"
-        ],
+        "favoriteFish": ["SILVER", "CRUCIAN"],
         "fishingMemory": null,
         "fishGift": null,
         "petting": {
