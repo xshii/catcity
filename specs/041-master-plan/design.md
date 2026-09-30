@@ -71,7 +71,7 @@ src/view/
 | `talent`         | 整数 0–4                             | 见 5.4                                            |
 | `lastBredMinute` | 整数或 `null`                        | 冷却用                                            |
 
-`definitionId` 改为可空：初代猫有，出生的猫为 `null`。
+`definitionId` 改为可空：初代猫有，出生的猫为 `null`（T-22 实现；T-10 时 Core 还造不出出生的猫，暂保持非空）。
 
 不新增的字段：年龄阶段（由 `bornMinute` 推导）、子女列表（由别的猫的 `parents` 推导）、亲密等级（已是推导）。
 
