@@ -500,10 +500,11 @@ export function guideProgress(world: WorldState) {
 
 const GUIDE_STEPS = ['猫咪入住', '猫咖有客人', '留下共同回忆'] as const;
 
-/** The guide page and the next-step hint above the map. */
+/** The guide page and the next-step hint above the map, naming the first cat as the player did. */
 function cityGuide(world: WorldState) {
   const { housed, cafe, customers, remembered, stage, placed } =
     guideProgress(world);
+  const first = world.cats.find((cat) => cat.id === STARTER_CAT_ID)?.name ?? '';
   const pick = (words: Record<typeof stage, string>) => words[stage];
   const rate = `每位客人每 ${CAFE_HOURS} 游戏小时带来 ${CAFE.coinsPerCustomer} 金币`;
   return {
@@ -512,15 +513,15 @@ function cityGuide(world: WorldState) {
       label: `${GUIDE_STEPS[index]}：${complete ? '已完成' : '未完成'}`,
     })),
     goal: pick({
-      home: '先给 Mochi 安个家',
+      home: `先给 ${first} 安个家`,
       cafe: '在家附近开一间猫咖',
       remember: '猫咖有客人了，再一起留下回忆',
       grow: '让小城继续生长',
     }),
     instruction: pick({
       home: placed
-        ? '点地图上的猫公寓，选「Mochi 入住」。住在附近的猫才会去猫咖做客。'
-        : `回地图选一块城中心的空地，建一座猫公寓（${nextBuildingPrice(world, 'CAT_APARTMENT')} 金币），再让 Mochi 入住。住在附近的猫才会去猫咖做客。`,
+        ? `点地图上的猫公寓，选「${first} 入住」。住在附近的猫才会去猫咖做客。`
+        : `回地图选一块城中心的空地，建一座猫公寓（${nextBuildingPrice(world, 'CAT_APARTMENT')} 金币），再让 ${first} 入住。住在附近的猫才会去猫咖做客。`,
       cafe: placed
         ? `猫咖还没有客人：点猫咖选「移动建筑」，搬到有猫住的公寓 ${CAFE.range} 格内。搬移免费。`
         : `在有猫住的公寓 ${CAFE.range} 格内建一间猫咖（${nextBuildingPrice(world, 'CAT_CAFE')} 金币）。${rate}，每家最多 ${CAFE.seats} 位。`,
@@ -531,16 +532,16 @@ function cityGuide(world: WorldState) {
       home: placed ? '回地图找到公寓' : '回地图选择空地',
       cafe: placed ? '回地图找到猫咖' : '回地图选择空地',
       remember: '在地图找到池塘',
-      grow: '和 Mochi 聊聊共同回忆',
+      grow: `和 ${first} 聊聊共同回忆`,
     }),
     hint: pick({
       home: placed
-        ? '下一步：点猫公寓，让 Mochi 入住'
+        ? `下一步：点猫公寓，让 ${first} 入住`
         : '下一步：点城中心的空地，建一座猫公寓',
       cafe: placed
         ? `下一步：把猫咖搬到公寓 ${CAFE.range} 格内 · 搬移免费`
         : `下一步：在公寓 ${CAFE.range} 格内建一间猫咖`,
-      remember: '下一步：点池塘，和 Mochi 一起钓一次鱼',
+      remember: `下一步：点池塘，和 ${first} 一起钓一次鱼`,
       grow: '点地建设 · 选猫后点地块，在卡片上让它走过去',
     }),
     income: cafe

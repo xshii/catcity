@@ -30,6 +30,7 @@ import {
   spotIdSchema,
 } from './fishing/schema';
 import { assertFishing } from './fishing/validation';
+import { catNameSchema } from './names';
 import { assertResidents } from './residents';
 
 const integer = z.number().int().min(0).max(WORLD_LIMIT);
@@ -56,7 +57,7 @@ export const appearanceSchema = z.strictObject({
 const catSchema = z.strictObject({
   id: text,
   definitionId: z.enum(CAT_DEFINITION_IDS),
-  name: text,
+  name: catNameSchema,
   /** The player's for the stray, the salon's since; any legal one for every cat. */
   appearance: appearanceSchema,
   /** Identity belongs to the instance (spec 041 R-10); age and children are derived. */
@@ -149,7 +150,7 @@ export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
 export const SAVE_VERSION = 25;
-export const CONTENT_VERSION = 19;
+export const CONTENT_VERSION = 20;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
   contentVersion: z.literal(CONTENT_VERSION),

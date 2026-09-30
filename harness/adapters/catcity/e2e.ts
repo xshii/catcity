@@ -22,6 +22,7 @@ export const E2E_SPECS: Readonly<Record<string, SpecEntry>> = {
   'cat-drag.spec.ts': { modules: ['city'] },
   'cat-looks.spec.ts': { modules: ['cats'] },
   'cat-maker.spec.ts': { modules: ['cats'] },
+  'cat-rename.spec.ts': { modules: ['cats'] },
   'catch-card.spec.ts': { modules: ['fishing'] },
   'cats-panel.spec.ts': { modules: ['cats'] },
   // The first minute of a game: Mochi by the pond, and into fishing without travel.

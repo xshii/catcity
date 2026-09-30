@@ -112,6 +112,24 @@
   display: block;
   width: 72px;
 }
+.profile-title {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+/* Beside the name, quiet: a 44px target around a small pencil. */
+#cat-profile #profile-rename {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
 #profile-name {
   display: flex;
   align-items: baseline;

@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { CAT_BREED_IDS, CAT_BREEDS } from '../../src/content/breeds';
 import { CAT_DEFINITIONS } from '../../src/content/cats';
 import { canCatchFish, FISH_IDS } from '../../src/content/fishing';
+import { suggestNames } from '../../src/core';
 import { createWorld, loadWorld } from '../../src/core/world';
+import { nameDialogScreen } from '../../src/view/cats/name-dialog-screen';
+import { strayNaming } from '../../src/view/cats/stray-screen';
 
 // Spec 041 T-14 PR 2 (cat-looks.md 2): a new game starts with a stray whose breed and
 // look the player picks, once.
@@ -73,5 +76,48 @@ describe('a new world with the stray the player picked', () => {
     ];
     for (const stray of bad)
       expect(() => createWorld(42, stray as never)).toThrow();
+  });
+});
+
+describe('the stray’s name (T-25)', () => {
+  const TWELVE = '一二三四五六七八九十一二';
+
+  it('is the name the player gave it; without one, its template’s', () => {
+    const unnamed = createWorld(42, STRAY).getSnapshot();
+    const named = createWorld(42, { ...STRAY, name: '团子' }).getSnapshot();
+    expect(unnamed.cats[0]!.name).toBe('Mochi');
+    expect(named).toEqual({
+      ...unnamed,
+      cats: [{ ...unnamed.cats[0]!, name: '团子' }],
+    });
+    // The same seed, look and name make the same save, which loads exactly.
+    const saved = createWorld(42, { ...STRAY, name: '团子' }).save();
+    expect(createWorld(42, { ...STRAY, name: '团子' }).save()).toBe(saved);
+    expect(loadWorld(saved).save()).toBe(saved);
+  });
+
+  it('holds the name to the bounds RENAME_CAT holds it to', () => {
+    for (const name of ['', '   ', '团\n子', ' 团子', '团子 ', `${TWELVE}三`])
+      expect(
+        () => createWorld(42, { ...STRAY, name }),
+        JSON.stringify(name),
+      ).toThrow();
+    expect(
+      createWorld(42, { ...STRAY, name: TWELVE }).getSnapshot().cats[0]!.name,
+    ).toBe(TWELVE);
+  });
+
+  it('is asked for in a name box on the first suggestion, for a city with no cat yet', () => {
+    const { world, input } = strayNaming(createWorld(42).getSnapshot());
+    expect(world.cats).toEqual([]);
+    expect(world.seed).toBe(42);
+    expect(input).toEqual({
+      title: '给它起个名字',
+      confirm: '带它回家',
+      initial: suggestNames(world, 0, 0)[0],
+      salt: 0,
+    });
+    // The template waiting behind the start is no namesake.
+    expect(nameDialogScreen(world, input, 'Mochi', 0).note).toBe('');
   });
 });

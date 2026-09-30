@@ -177,6 +177,23 @@ describe('a cat’s detail (ui-design 5.2)', () => {
       ['孩子', '还没有孩子'],
     ]);
   });
+
+  it('offers a new name beside the name: the box opens on it, shuffled by the cat’s id (R-16)', () => {
+    expect(detail(pair).rename).toEqual({
+      label: '给 Mochi 改名字',
+      dialog: {
+        title: '给 Mochi 改个名字',
+        confirm: '就叫这个',
+        initial: 'Mochi',
+        salt: 0,
+      },
+    });
+    const other = detailScreen(pair, view({ detail: pepper.id }), null, false)!;
+    expect(other.rename.dialog).toMatchObject({
+      initial: 'Pepper',
+      salt: Number(pepper.id.slice('cat-'.length)),
+    });
+  });
 });
 
 describe('the cats panel’s view state', () => {

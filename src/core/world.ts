@@ -80,11 +80,13 @@ export class World {
 export interface Stray {
   breed: CatBreed;
   appearance: CatAppearance;
+  /** The name the player gave it (T-25), held to the save's name rule; else its template's. */
+  name?: string;
 }
 
 /**
- * A new game from its seed. Mochi is the stray the player picked, the one time a breed is
- * chosen; without a pick it is its template (tests, and the test build's new game).
+ * A new game from its seed. Mochi is the stray the player picked and named, the one time a
+ * breed is chosen; without a pick it is its template (tests, and the test build's new game).
  */
 export function createWorld(seed: number, stray?: Stray): World {
   const map = generateCityMap(seed);
@@ -105,6 +107,7 @@ export function createWorld(seed: number, stray?: Stray): World {
   if (stray) {
     mochi.breedId = stray.breed;
     mochi.appearance = { ...stray.appearance };
+    mochi.name = stray.name ?? mochi.name;
   }
   return new World({
     seed,

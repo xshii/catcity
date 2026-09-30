@@ -10,6 +10,7 @@ export {
   type BreedBlock,
 } from './family';
 export { gameDay } from './bond';
+export { cityNames, nameSalt, suggestNames } from './names';
 export { nextResidentHome, residentIdentity } from './residents';
 export { pettingTastes } from './petting';
 export { travelMinutes } from './fishing/travel';

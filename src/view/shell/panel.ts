@@ -185,6 +185,7 @@ export function mountPanel(
     notify,
     card: document.querySelector<HTMLElement>('.cat-card')!,
     page: get('cats-page-roster'),
+    layer: document.querySelector<HTMLElement>('.shell')!,
   });
   mountRoster({ session, place, view: cats, page: get('cats-page-roster') });
   const petting = mountPetting({

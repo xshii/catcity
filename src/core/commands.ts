@@ -6,6 +6,7 @@ import { appearanceSchema, positionSchema } from './schema';
 import { FISHING, type SpotId } from '../content/fishing';
 import { PETTING, PET_SPOTS, type PetSpot } from '../content/petting';
 import { MAX_TEXT } from './limits';
+import { catNameSchema } from './names';
 
 const id = z.string().min(1).max(100);
 const { maxDirection, maxDepth, maxPower, maxTicks } = FISHING.input;
@@ -100,6 +101,11 @@ export const commandSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('NEUTER_CAT'), catId: id }),
   z.strictObject({
+    type: z.literal('RENAME_CAT'),
+    catId: id,
+    name: catNameSchema,
+  }),
+  z.strictObject({
     type: z.literal('RESTYLE_CAT'),
     catId: id,
     /** Only the five choices: a cat's breed never changes after the stray (T-15). */
@@ -180,6 +186,7 @@ export type GameEvent =
     }
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
   | { type: 'CatInvited'; minute: number; entityId: string; cost: number }
+  | { type: 'CatRenamed'; minute: number; entityId: string }
   | { type: 'CatNeutered'; minute: number; entityId: string; cost: number }
   | { type: 'CatRestyled'; minute: number; entityId: string; cost: number }
   | {
@@ -239,6 +246,7 @@ export type ErrorCode =
   | 'ALREADY_INVITED'
   | 'COMPANION_LIMIT'
   | 'NO_BED'
+  | 'NAME_UNCHANGED'
   | 'ALREADY_NEUTERED'
   | 'CAT_TOO_YOUNG'
   | 'NO_SALON'

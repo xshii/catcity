@@ -531,6 +531,7 @@ export class CityScene extends Phaser.Scene {
         cat.position,
         cat.walk,
         cat.appearance,
+        cat.name,
         catPose(world, cat),
       ]),
       selection,
@@ -569,7 +570,8 @@ export class CityScene extends Phaser.Scene {
         this.names.set(cat.id, this.text(x, y + 31, cat.name, 11).setDepth(1));
       }
       sprite.setPose(catPose(world, cat)).setVisible(!this.riverMode);
-      this.names.get(cat.id)!.setVisible(!this.riverMode);
+      // A renamed cat (R-16): the label is text, never markup.
+      this.names.get(cat.id)!.setText(cat.name).setVisible(!this.riverMode);
     }
     if (this.riverMode) this.ring.setVisible(false);
     for (const [id, sprite] of this.cats)

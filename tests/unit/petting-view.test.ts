@@ -46,7 +46,7 @@ const RESULT = {
   bondLeft: 2,
 } as const;
 const screenOf = (view: PettingView, cat: typeof MOCHI | null = MOCHI) => {
-  const screen = pettingScreen(view, cat, REST);
+  const screen = pettingScreen(view, cat, REST, 'Mochi');
   if (!screen.open) throw new Error('The screen is closed');
   return screen;
 };
@@ -221,10 +221,12 @@ describe('petting view state', () => {
 
 describe('petting screen', () => {
   it('is closed without a round or without its cat', () => {
-    expect(pettingScreen(closedPetting(), MOCHI, REST)).toEqual({
+    expect(pettingScreen(closedPetting(), MOCHI, REST, 'Mochi')).toEqual({
       open: false,
     });
-    expect(pettingScreen(after([open]), null, REST)).toEqual({ open: false });
+    expect(pettingScreen(after([open]), null, REST, 'Mochi')).toEqual({
+      open: false,
+    });
   });
 
   it('shows four spots whose tastes are not known yet', () => {
@@ -422,7 +424,7 @@ describe('reaction lines', () => {
     for (const cat of CAT_DEFINITION_IDS)
       for (const spot of ['CHIN', 'HEAD', 'BELLY'] as const)
         for (const good of [true, false]) {
-          const line = reactionLine(cat, TASTES, spot, good);
+          const line = reactionLine(cat, TASTES, spot, good, 'Mochi');
           expect(line).toMatch(/[一-鿿]/);
           expect(line).not.toContain('{');
           lines.add(line);
@@ -430,8 +432,26 @@ describe('reaction lines', () => {
     expect(lines.size).toBe(CAT_DEFINITION_IDS.length * 6);
   });
 
+  it('布丁 tells the first cat by its current name: Mochi until it is renamed (T-25)', () => {
+    expect(reactionLine('BUDING', TASTES, 'BELLY', false, 'Mochi')).toBe(
+      '肚子不可以！哼，我要去告诉 Mochi。',
+    );
+    expect(reactionLine('BUDING', TASTES, 'BELLY', false, '团子')).toBe(
+      '肚子不可以！哼，我要去告诉 团子。',
+    );
+    // The result page says the name it is given.
+    const buding = { ...MOCHI, name: '布丁', definitionId: 'BUDING' } as const;
+    const ended = after([open, stroke('BELLY'), ...ticks(PETTING.roundTicks)]);
+    const unkind = { ...RESULT, spot: 'BELLY', meter: 0, mood: -1 } as const;
+    const settled = after([{ type: 'settled', result: unkind }], ended);
+    const screen = pettingScreen(settled, buding, REST, '团子');
+    expect(screen.open && screen.result?.line).toBe(
+      '肚子不可以！哼，我要去告诉 团子。',
+    );
+  });
+
   it('name the spot they are about', () => {
-    expect(reactionLine('PEPPER', TASTES, 'CHIN', true)).toBe(
+    expect(reactionLine('PEPPER', TASTES, 'CHIN', true, 'Mochi')).toBe(
       '就是下巴！再来再来！',
     );
     expect(
@@ -440,6 +460,7 @@ describe('reaction lines', () => {
         { favourite: 'BACK', disliked: 'HEAD' },
         'BACK',
         true,
+        'Mochi',
       ),
     ).toBe('就是后背！再来再来！');
   });

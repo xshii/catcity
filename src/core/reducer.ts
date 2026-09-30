@@ -6,7 +6,13 @@ import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
 import { rewardBond, spendDaily } from './bond';
 import { liftMood } from './mood';
-import { instantiateCat, inviteCat, requireCat, restyleCat } from './cats';
+import {
+  instantiateCat,
+  inviteCat,
+  renameCat,
+  requireCat,
+  restyleCat,
+} from './cats';
 import { neuterCat } from './family';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
@@ -47,6 +53,8 @@ export function applyCommand(
       return applyAngling(world, command);
     case 'INVITE_CAT':
       return inviteCat(world, command.definitionId);
+    case 'RENAME_CAT':
+      return renameCat(world, command.catId, command.name);
     case 'NEUTER_CAT':
       return neuterCat(world, command.catId);
     case 'RESTYLE_CAT':

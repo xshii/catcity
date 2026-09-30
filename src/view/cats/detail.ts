@@ -2,7 +2,9 @@ import './cats.css';
 import type { GameSession } from '../../application';
 import { STARTER_CAT_ID } from '../../content/cats';
 import type { Confirm } from '../common/confirm';
+import { ERROR_MESSAGES } from '../common/errors';
 import type { PlaceState } from '../common/place';
+import { mountNameDialog } from './name-dialog';
 import { mountNeuter } from './neuter';
 import { CATS_COPY, detailScreen, talkCard } from './screen';
 import {
@@ -12,6 +14,9 @@ import {
 } from './view-state';
 
 type Model = NonNullable<ReturnType<typeof detailScreen>>;
+/** A pencil (ui-design 2.3): 2px line, round ends. */
+const PENCIL =
+  '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>';
 
 /** One line of a section: a term, its words, an optional meter and a note under them. */
 function createLine(list: HTMLElement) {
@@ -52,7 +57,8 @@ function mountProfile(page: HTMLElement, view: CatsViewStore) {
   profile.setAttribute('aria-labelledby', 'profile-name');
   profile.innerHTML =
     `<button id="profile-back" type="button" aria-label="${CATS_COPY.backLabel}">${CATS_COPY.back}</button>` +
-    '<div class="profile-heading"><span class="profile-portrait" aria-hidden="true"></span><div><h3 id="profile-name"><span></span><span class="roster-sex" role="img"></span></h3><p id="profile-about"></p></div></div>' +
+    '<div class="profile-heading"><span class="profile-portrait" aria-hidden="true"></span><div><div class="profile-title"><h3 id="profile-name"><span></span><span class="roster-sex" role="img"></span></h3>' +
+    `<button id="profile-rename" type="button">${PENCIL}</button></div><p id="profile-about"></p></div></div>` +
     CATS_SECTIONS.map(
       (id) =>
         `<section class="profile-part"><h4><button id="profile-toggle-${id}" type="button" aria-controls="profile-${id}">${CATS_COPY.sections[id]}</button></h4><dl id="profile-${id}"></dl></section>`,
@@ -69,14 +75,19 @@ function mountProfile(page: HTMLElement, view: CatsViewStore) {
     );
   const lines = new Map<CatsSection, ReturnType<typeof createLine>[]>();
   let portrait = '';
+  let shown: Model | null = null;
   return {
     back,
+    rename: $('#profile-rename'),
+    /** The detail on screen, or null. */
+    shown: () => shown,
     /** The family section, which neutering ends, and its title. */
     family: {
       section: $('#profile-family').parentElement!,
       title: $('#profile-toggle-family'),
     },
     apply(model: Model | null) {
+      shown = model;
       profile.hidden = !model;
       page.toggleAttribute('data-profile', !!model);
       if (!model) return;
@@ -88,6 +99,7 @@ function mountProfile(page: HTMLElement, view: CatsViewStore) {
       $('#profile-name [role=img]').textContent = model.sex.mark;
       $('#profile-name [role=img]').setAttribute('aria-label', model.sex.label);
       $('#profile-about').textContent = model.about;
+      $('#profile-rename').setAttribute('aria-label', model.rename.label);
       for (const section of model.sections) {
         const list = $(`#profile-${section.id}`);
         $(`#profile-toggle-${section.id}`).setAttribute(
@@ -125,6 +137,8 @@ export function mountDetail(deps: {
   card: HTMLElement;
   /** The cats panel's roster page: the detail takes its place. */
   page: HTMLElement;
+  /** Where the name box floats, over the panels. */
+  layer: HTMLElement;
 }) {
   const { session, card, view } = deps;
   const profile = mountProfile(deps.page, view);
@@ -170,6 +184,29 @@ export function mountDetail(deps: {
   $('#meet-cat').addEventListener('click', () =>
     session.select(STARTER_CAT_ID),
   );
+  // The pencil opens the name box; a name that stays the same sends nothing (R-16).
+  profile.rename.addEventListener('click', () => {
+    const model = profile.shown();
+    if (!model) return;
+    mountNameDialog({
+      layer: deps.layer,
+      world: session.getSnapshot(),
+      input: model.rename.dialog,
+      done: (name) => {
+        if (name === null || name === model.name) return;
+        const result = session.execute({
+          type: 'RENAME_CAT',
+          catId: model.id,
+          name,
+        });
+        deps.notify(
+          result.ok
+            ? CATS_COPY.rename.done(name)
+            : ERROR_MESSAGES[result.error],
+        );
+      },
+    });
+  });
   // Opening a detail puts the focus on its way back, once it is on screen.
   let opened = view.get().detail;
   view.subscribe((state) => {

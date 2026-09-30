@@ -63,6 +63,9 @@ import v23Content17 from '../fixtures/save-v23-content17.json';
 // A stray picked at the start, its home and a cafe, from before a city could have a cat
 // salon (save 24, content 18).
 import v24Content18 from '../fixtures/save-v24-content18.json';
+// A picked stray and Pepper, from before a names table suggested names (save 25,
+// content 19).
+import v25Content19 from '../fixtures/save-v25-content19.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -102,6 +105,7 @@ const incompatible = {
   v23Content16,
   v23Content17,
   v24Content18,
+  v25Content19,
   future,
 };
 
