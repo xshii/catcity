@@ -12,6 +12,7 @@
 | 居民与关系 | [cats.ts](cats.ts) 由模板创建猫实例、改名；[names.ts](names.ts) 名字 schema 与推荐名；[bond.ts](bond.ts)；个体事实保存在严格状态 schema |
 | 家庭       | [family.ts](family.ts)：生育条件 `breedBlocks` 与亲属 `related`（spec 041 R-31）；绝育 `neuterCat`（R-30）                              |
 | NPC 居民   | [residents.ts](residents.ts)：每天搬来一只、由种子推导身份、存档校验（spec 041 T-30）                                                   |
+| 心愿       | [wishes.ts](wishes.ts)：游戏日开始时想到心愿、只从现在做得到的事里选、对应命令结算时实现、存档校验（spec 041 T-40）                     |
 
 所有修改经过验证命令，拒绝保持整个世界不变；快照只读、存档精确往返。
 同初始状态与命令应复现相同结果；不得引用 Phaser、DOM、网络、真实时钟或不可控随机。
