@@ -13,6 +13,7 @@ export {
 export type { BaitId, CatchKind, FishId, SpotId } from './catalog';
 export {
   canCatchFish,
+  catchLengthMm,
   catchXp,
   discoveredSpecies,
   fishById,
@@ -22,4 +23,5 @@ export {
   skillXp,
   spotOpen,
   spotUnlocked,
+  starOdds,
 } from './rules';

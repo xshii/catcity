@@ -74,11 +74,13 @@ export const SCREEN_COPY = {
   permission: {
     denied: '体感未获授权，已改用按钮；可在设置里重试',
   },
-  /** A caught species' record stars (R-54): only which are reached, never the lengths. */
+  /** A caught species' record stars (R-54): which are collected, never the lengths. */
   atlas: {
     stars: ['铜星', '银星', '金星'],
-    none: '还没有星',
+    names: ['铜', '银', '金'],
     glyph: { lit: '★', unlit: '☆' },
+    label: (collected: readonly string[]) =>
+      `体长评星：${collected.length ? `已收集${collected.join('、')}` : '还没有星'}`,
     newSpecies: (name: string, star: string | null) =>
       `图鉴新添：${name}${star ? `，评上${star}` : ''}`,
     reached: (name: string, star: string) => `${name}的纪录评上${star}`,
@@ -88,15 +90,18 @@ export const SCREEN_COPY = {
 type Atlas = WorldState['fishing']['atlas'];
 type AtlasRecord = Atlas[FishId];
 
-/** An atlas entry's three stars, lit as the record earns them; none for a fish never caught. */
+/**
+ * An atlas entry's bronze, silver and gold, each lit once the record earns it, and the
+ * words read for them; none for a fish never caught.
+ */
 export function atlasStars(id: FishId, record: AtlasRecord) {
   if (!record.count) return null;
   const lit = lengthStar(id, record.bestLengthMm);
   const words = SCREEN_COPY.atlas;
   return {
     lit,
-    marks: [0, 1, 2].map((index) => index < lit),
-    text: lit ? words.stars[lit - 1]! : words.none,
+    marks: words.names.map((name, index) => ({ name, lit: index < lit })),
+    label: words.label(words.stars.slice(0, lit)),
   };
 }
 

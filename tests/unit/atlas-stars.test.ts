@@ -77,13 +77,13 @@ describe('atlasStars: what an atlas entry shows of its stars (ui-design 5.9)', (
     for (const id of FISH_IDS) expect(atlasStars(id, atlas()[id])).toBeNull();
   });
 
-  it('a caught fish shows three marks, the reached ones lit, and names its star in words', () => {
+  it('a caught fish shows bronze, silver and gold each as collected or not, and reads them in words', () => {
     const words = SCREEN_COPY.atlas;
-    for (const [stars, text] of [
-      [0, words.none],
-      [1, words.stars[0]],
-      [2, words.stars[1]],
-      [3, words.stars[2]],
+    for (const [stars, label] of [
+      [0, words.label([])],
+      [1, words.label(['铜星'])],
+      [2, words.label(['铜星', '银星'])],
+      [3, words.label(['铜星', '银星', '金星'])],
     ] as const) {
       const length =
         stars === 0
@@ -91,16 +91,19 @@ describe('atlasStars: what an atlas entry shows of its stars (ui-design 5.9)', (
           : shortestWith('PERCH', stars);
       const shown = atlasStars('PERCH', atlas({ PERCH: length }).PERCH)!;
       expect(shown.lit).toBe(stars);
-      expect(shown.marks).toEqual([0, 1, 2].map((index) => index < stars));
-      expect(shown.text).toBe(text);
+      expect(shown.marks).toEqual(
+        words.names.map((name, index) => ({ name, lit: index < stars })),
+      );
+      expect(shown.label).toBe(label);
     }
+    expect(words.label([])).not.toBe(words.label(['铜星']));
   });
 
   it('shows no threshold and no distance to the next star', () => {
     for (const stars of [1, 2, 3]) {
       const length = shortestWith('PERCH', stars) - 1;
       const shown = atlasStars('PERCH', atlas({ PERCH: length }).PERCH)!;
-      expect(shown.text).not.toMatch(/\d|cm|再长/);
+      expect(shown.label).not.toMatch(/\d|cm|再长/);
     }
   });
 });

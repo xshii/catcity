@@ -59,6 +59,11 @@
   --tension-low: #e9c46a;
   --glint: #fff4c0;
 
+  /* An atlas record's bronze, silver and gold star (R-54); icons, ≥ 3.3:1 on paper */
+  --star-bronze: #a86b3c;
+  --star-silver: #8a8680;
+  --star-gold: #b07d12;
+
   /* Soft warm shadows */
   --shadow-tab: 0 2px 6px rgb(138 111 90 / 0.18);
   --shadow-soft: 0 6px 18px rgb(179 106 69 / 0.12);

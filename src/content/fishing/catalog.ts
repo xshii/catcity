@@ -136,20 +136,25 @@ export const FISH = [
   },
 ] as const;
 /**
- * The record length (mm) each species needs for its bronze, silver and gold star (R-54).
- * Set per species so that a catch earns gold more easily the fewer stars its species has
- * (tests/simulation/atlas-stars). The player sees only the stars, never these lengths.
+ * Typical odds (percent) that one catch is long enough for a bronze, silver and gold
+ * record star (R-54): gold comes rarer the more stars a species has, and bronze is never
+ * a given. The lengths that give these odds follow from each species' sizes (rules.ts).
  */
-export const LENGTH_STARS = {
-  SILVER: [120, 150, 165],
-  CRUCIAN: [265, 330, 370],
-  PERCH: [425, 510, 565],
-  CATFISH: [710, 855, 950],
-  KOI: [600, 700, 770],
-  MOON_CARP: [920, 1075, 1165],
-  MACKEREL: [400, 500, 560],
-  SEA_BREAM: [610, 755, 850],
-} as const satisfies Record<FishId, readonly [number, number, number]>;
+export const STAR_ODDS = {
+  easy: [60, 30, 15],
+  common: [50, 25, 10],
+  hard: [45, 20, 7],
+  rare: [40, 15, 5],
+} as const;
+/** The odds a species of 0–5 stars takes. */
+export const STAR_ODDS_BY_FISH_STARS = [
+  'easy',
+  'easy',
+  'common',
+  'hard',
+  'rare',
+  'rare',
+] as const satisfies readonly (keyof typeof STAR_ODDS)[];
 export const BAITS: Record<
   BaitId,
   { name: string; price: number; hint: string }

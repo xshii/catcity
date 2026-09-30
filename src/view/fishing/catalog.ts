@@ -12,6 +12,7 @@ import type { GameCommand } from '../../core';
 import { MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { fishIllustration } from '../art/illustrations';
 import { withMoodNote } from '../shell/mood';
+import { atlasStars, SCREEN_COPY } from './screen';
 
 type FishAction = Extract<GameCommand, { type: 'SELL_FISH' | 'GIFT_FISH' }>;
 
@@ -80,13 +81,15 @@ export function renderFishingCatalog(
       card.dataset.species = fish.id;
       card.dataset.stars = String(fish.stars);
       card.dataset.discovered = String(record.count > 0);
+      const stars = atlasStars(fish.id, record);
+      if (stars) card.dataset.lengthStars = String(stars.lit);
       card.innerHTML = `<span class="fish-silhouette" aria-hidden="true">${fishIllustration(fish.id)}</span><strong>${fishStars(fish.stars)} ${record.count ? fish.name : '未发现的鱼影'}</strong><span>${fish.price} 金币 · ${fish.behavior}</span><p>出没：${fishHabitats(
         fish.id,
       )
         .map((id) => SPOTS[id].name)
         .join(
           '、',
-        )}</p><p>${fish.clue}</p><p>${fish.requiredBreed ? `仅限${CAT_BREEDS[fish.requiredBreed].name}同行 · ${fish.requiredBreed === cat.breedId ? '品种条件已满足' : '需更换同行猫'}` : '所有品种都能钓到'}</p><p>体长范围：${(fish.minLengthMm / 10).toFixed(1)}～${(fish.maxLengthMm / 10).toFixed(1)} cm<br>鱼种最大长度：${(fish.maxLengthMm / 10).toFixed(1)} cm<br>个人最长：${record.bestLengthMm ? `${(record.bestLengthMm / 10).toFixed(1)} cm` : '尚无纪录'}</p><small>${record.count ? `已钓 ${record.count} 条 · 最大 ${record.bestWeight}g` : '符合线索后，来点耐心'}</small>`;
+        )}</p><p>${fish.clue}</p><p>${fish.requiredBreed ? `仅限${CAT_BREEDS[fish.requiredBreed].name}同行 · ${fish.requiredBreed === cat.breedId ? '品种条件已满足' : '需更换同行猫'}` : '所有品种都能钓到'}</p><p>体长范围：${(fish.minLengthMm / 10).toFixed(1)}～${(fish.maxLengthMm / 10).toFixed(1)} cm<br>鱼种最大长度：${(fish.maxLengthMm / 10).toFixed(1)} cm<br>个人最长：${record.bestLengthMm ? `${(record.bestLengthMm / 10).toFixed(1)} cm` : '尚无纪录'}${stars ? ` ${starsMarkup(stars)}` : ''}</p><small>${record.count ? `已钓 ${record.count} 条 · 最大 ${record.bestWeight}g` : '符合线索后，来点耐心'}</small>`;
       return card;
     }),
   );
@@ -94,6 +97,22 @@ export function renderFishingCatalog(
   get('fish-result').textContent = result
     ? withMoodNote(resultText(result), resultNote)
     : '';
+}
+
+/** A record's bronze, silver and gold, each lit or not; read as words, not glyphs. */
+function starsMarkup({
+  marks,
+  label,
+}: NonNullable<ReturnType<typeof atlasStars>>) {
+  const { glyph } = SCREEN_COPY.atlas;
+  const icons = marks
+    .map(({ name, lit }) =>
+      lit
+        ? `<i class="lit">${glyph.lit}${name}</i>`
+        : `<i>${glyph.unlit}${name}</i>`,
+    )
+    .join(' ');
+  return `<span class="length-stars" role="img" aria-label="${label}">${icons}</span>`;
 }
 
 function resultText(result: NonNullable<WorldState['fishing']['lastResult']>) {
