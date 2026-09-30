@@ -5,6 +5,7 @@ import { shadowAt } from '../../src/core/fishing/shadows';
 import {
   aimAtPoint,
   castPreview,
+  companionBox,
   flightPoint,
   hookedFish,
   landingShare,
@@ -129,6 +130,80 @@ it('places the open-water plane over the canvas as drawn, wherever it sits in it
   expect(centred.left).toBeCloseTo(78 + 390 * V.plane.left);
   expect(centred.top).toBeCloseTo(78 + 390 * V.plane.top);
   expect(centred.side).toBeCloseTo(390 * V.plane.side);
+});
+
+describe('the cat beside the player on the page (R-03)', () => {
+  const { x, y, scale, outline } = V.companion;
+  /** The cat as drawn on a canvas `side` pixels wide, in the box's pixels. */
+  const drawn = (side: number, offset = { left: 0, top: 0 }) => {
+    const unit = side / V.size;
+    return {
+      left: offset.left + (x + outline.left * scale) * unit,
+      right: offset.left + (x + outline.right * scale) * unit,
+      top: offset.top + (y + outline.top * scale) * unit,
+      bottom: offset.top + (y + outline.bottom * scale) * unit,
+      feet: { x: offset.left + x * unit, y: offset.top + y * unit },
+    };
+  };
+  const phones = [
+    // 390×844: the canvas fills its box, wider than the screen.
+    { box: { left: -78, top: 140 }, side: 546, screenRight: 390 },
+    // 360×640 and 375×553: shorter screens draw the river smaller.
+    { box: { left: -35, top: 52 }, side: 430, screenRight: 360 },
+    { box: { left: 16, top: 52 }, side: 343, screenRight: 375 },
+  ];
+
+  it('takes a tap anywhere on the cat as drawn, at least a finger wide and tall', () => {
+    for (const { box, side, screenRight } of phones) {
+      const { touch } = companionBox(
+        box,
+        { ...box, width: side, height: side },
+        screenRight,
+      );
+      const cat = drawn(side);
+      expect(touch.width).toBeGreaterThanOrEqual(V.companionTouch);
+      expect(touch.height).toBeGreaterThanOrEqual(V.companionTouch);
+      expect(touch.left).toBeLessThanOrEqual(cat.left);
+      expect(touch.left + touch.width).toBeGreaterThanOrEqual(cat.right);
+      expect(touch.top + touch.height).toBeGreaterThanOrEqual(cat.bottom);
+      // Grown down and sideways, never up past the ears into the water's hint above.
+      expect(touch.top).toBeCloseTo(cat.top);
+      expect(touch.left + touch.width / 2).toBeCloseTo(
+        (cat.left + cat.right) / 2,
+      );
+    }
+  });
+
+  it('stands its bubble beside the cat at head height, as wide as the screen leaves', () => {
+    for (const { box, side, screenRight } of phones) {
+      const { touch, bubble } = companionBox(
+        box,
+        { ...box, width: side, height: side },
+        screenRight,
+      );
+      expect(bubble.left).toBeGreaterThan(touch.left + touch.width);
+      expect(bubble.top).toBeCloseTo(touch.top);
+      // Its right edge keeps the screen's margin, in page pixels.
+      expect(box.left + bubble.left + bubble.room).toBeCloseTo(
+        screenRight - V.companionBubble.margin,
+      );
+      expect(bubble.room).toBeGreaterThan(120);
+    }
+  });
+
+  it('follows the canvas as drawn, wherever it sits in its box', () => {
+    const box = { left: -78, top: 132 };
+    const { touch } = companionBox(
+      box,
+      { left: 0, top: 210, width: 390, height: 390 },
+      390,
+    );
+    const cat = drawn(390, { left: 78, top: 78 });
+    expect(touch.left).toBeLessThanOrEqual(cat.feet.x);
+    expect(touch.left + touch.width).toBeGreaterThanOrEqual(cat.feet.x);
+    expect(touch.top).toBeCloseTo(cat.top);
+    expect(touch.top + touch.height).toBeGreaterThanOrEqual(cat.feet.y);
+  });
 });
 
 it('turns a tap on the water into the aim whose preview lands there', () => {

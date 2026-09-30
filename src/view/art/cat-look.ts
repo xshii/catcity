@@ -9,6 +9,8 @@ export interface CatPose {
   ears: CatEars;
   curled: boolean;
 }
+/** A small move a cat makes as it answers the player (R-03): a hop, a head tilt, or none. */
+export type CatMotion = 'hop' | 'tilt' | 'none';
 
 const EARS: Record<MoodBand, CatEars> = {
   happy: 'up',

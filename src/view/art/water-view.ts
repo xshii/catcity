@@ -31,6 +31,21 @@ export const WATER_VIEW = {
    * scale), and at full progress `approach` of the way from there to the dock.
    */
   hooked: { below: 24, behind: 20, sway: 16, approach: 0.35 },
+  /**
+   * The cat beside the player: where it stands on the dock, how large it is drawn, and
+   * its outline around that point at scale 1, from `CatArt`'s shapes: ears up or down,
+   * the swishing tail and the breath, down to its shadow.
+   */
+  companion: {
+    x: 196,
+    y: 560,
+    scale: 1.7,
+    outline: { left: -27, top: -22, right: 33, bottom: 25 },
+  },
+  /** The least a finger's target on the cat takes each way, in page pixels (R-03). */
+  companionTouch: 64,
+  /** The cat's speech bubble: its gap from the cat and from the screen's right edge. */
+  companionBubble: { gap: 8, margin: 8 },
 } as const;
 type Point = { x: number; y: number };
 
@@ -145,6 +160,44 @@ export function planeBox(
     left: art.left - box.left + art.width * left,
     top: art.top - box.top + art.height * top,
     side: art.width * side,
+  };
+}
+
+/**
+ * The cat beside the player on the page (R-03), from the canvas as drawn (`art`), in
+ * pixels from the corner of the box that holds it, as `planeBox` places the water.
+ * `touch`: what a tap on the cat takes, its drawn outline grown to a finger's size
+ * sideways evenly and only downward, never up past its ears into the water's hint.
+ * `bubble`: where its speech bubble starts, beside it at head height, and the `room` it
+ * has before the screen's right edge (`screenRight`, in page pixels).
+ */
+export function companionBox(
+  box: { left: number; top: number },
+  art: { left: number; top: number; width: number; height: number },
+  screenRight: number,
+) {
+  const { x, y, scale, outline } = V.companion;
+  const across = (at: number) =>
+    art.left - box.left + ((x + at * scale) * art.width) / V.size;
+  const down = (at: number) =>
+    art.top - box.top + ((y + at * scale) * art.height) / V.size;
+  const [left, right] = [across(outline.left), across(outline.right)];
+  const [top, bottom] = [down(outline.top), down(outline.bottom)];
+  const width = Math.max(V.companionTouch, right - left);
+  const touch = {
+    left: (left + right - width) / 2,
+    top,
+    width,
+    height: Math.max(V.companionTouch, bottom - top),
+  };
+  const start = touch.left + touch.width + V.companionBubble.gap;
+  return {
+    touch,
+    bubble: {
+      left: start,
+      top,
+      room: screenRight - V.companionBubble.margin - (box.left + start),
+    },
   };
 }
 
