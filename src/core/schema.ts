@@ -150,7 +150,7 @@ export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
 export const SAVE_VERSION = 25;
-export const CONTENT_VERSION = 22;
+export const CONTENT_VERSION = 21;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
   contentVersion: z.literal(CONTENT_VERSION),
