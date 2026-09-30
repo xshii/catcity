@@ -8,7 +8,7 @@ import {
   type WorldState,
 } from '../../core';
 import { catPortrait } from '../art/illustrations';
-import { catLook, catPose } from '../art/cat-look';
+import { catPose, lookOf } from '../art/cat-look';
 import { PETTING_COPY, knownTastes } from '../petting/screen';
 import { bondBadge } from '../shell/bond';
 import { moodBadge } from '../shell/mood';
@@ -74,7 +74,7 @@ export function rosterScreen(
     const level = bondBadge(cat.playerBond);
     return {
       id: cat.id,
-      portrait: catPortrait(catLook(cat), drawn),
+      portrait: catPortrait(lookOf(cat), drawn),
       pressed: cat.id === marked,
       disabled: !!world.fishing.active,
       name: cat.name,
@@ -144,7 +144,7 @@ export function detailScreen(
   return {
     id: cat.id,
     portrait: catPortrait(
-      catLook(cat),
+      lookOf(cat),
       pose(world, cat, markedId(world, selected), river),
     ),
     name: cat.name,

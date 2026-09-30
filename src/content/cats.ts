@@ -16,6 +16,22 @@ export const CAT_DEFINITION_IDS = [
 export type CatDefinitionId = (typeof CAT_DEFINITION_IDS)[number];
 /** The coats a cat can wear (ui-design 6.1); the art gives each its colours. */
 export const CAT_COATS = ['cream', 'gray', 'orange', 'tuxedo'] as const;
+/**
+ * A cat's look: five choices, each from a fixed list (spec 041 cat-looks.md 1), in the
+ * order the cat maker shows them. The art draws each; T-14 PR 2 saves them on the cat.
+ */
+export const APPEARANCE_OPTIONS = {
+  colour: ['black', 'gray', 'orange', 'cream', 'white', 'brown'],
+  pattern: ['solid', 'tabby', 'point'],
+  white: ['none', 'mittens', 'bib', 'cow', 'bicolour'],
+  eyes: ['blue', 'copper', 'green'],
+  face: ['round', 'pointed', 'long'],
+} as const;
+export type CatAppearance = {
+  -readonly [
+    Item in keyof typeof APPEARANCE_OPTIONS
+  ]: (typeof APPEARANCE_OPTIONS)[Item][number];
+};
 /** The first-generation cats a player can invite, in the order the list shows them; Mochi starts in the city. */
 export const INVITABLE_CATS: readonly CatDefinitionId[] =
   CAT_DEFINITION_IDS.filter((id) => id !== 'MOCHI');

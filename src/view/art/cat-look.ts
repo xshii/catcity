@@ -1,18 +1,29 @@
 import type { CatBreed } from '../../content/breeds';
+import type { CatAppearance } from '../../content/cats';
 import { moodBand, type MoodBand } from '../../content/mood';
 import { catIdle, MAX_STAT, type CatEntity, type WorldState } from '../../core';
+import { catParts, line, type CatParts } from './cat-parts';
 
-export type CatCoat = CatEntity['appearance']['coat'];
-/** What sets one cat's drawing apart from another's (ui-design 6.1, R-15). */
-export interface CatLook {
-  coat: CatCoat;
-  breed: CatBreed;
-}
-/** The look of a cat: every renderer draws a cat from this. */
-export const catLook = (cat: CatEntity): CatLook => ({
-  coat: cat.appearance.coat,
-  breed: cat.breedId,
-});
+/** The breeds the art draws: the game's two, and the domestic cat T-14 PR 2 brings in. */
+export type ArtBreed = CatBreed | 'DOMESTIC';
+export const ART_BREEDS: readonly ArtBreed[] = [
+  'DOMESTIC',
+  'RAGDOLL',
+  'BRITISH_SHORTHAIR',
+];
+type CatCoat = CatEntity['appearance']['coat'];
+const plain = (
+  colour: CatAppearance['colour'],
+  eyes: CatAppearance['eyes'],
+  white: CatAppearance['white'] = 'none',
+): CatAppearance => ({ colour, pattern: 'solid', white, eyes, face: 'round' });
+/** T-13's coats as five choices, until T-14 PR 2 saves the five on the cat. */
+export const COAT_APPEARANCE: Record<CatCoat, CatAppearance> = {
+  cream: plain('cream', 'blue'),
+  gray: plain('gray', 'copper'),
+  orange: plain('orange', 'green'),
+  tuxedo: plain('black', 'green', 'bicolour'),
+};
 export type CatEars = 'up' | 'mid' | 'down';
 /** How a cat is drawn; the map sprite and the card portrait only render this. */
 export interface CatPose {
@@ -64,27 +75,86 @@ export const CAT_TOKENS = {
   coatOrange: '#ffc681',
   coatBlack: '#6b5d55',
   coatWhite: '#fffaf0',
+  coatBrown: '#94684a',
+  coatCreamShade: '#85644c',
+  coatGrayShade: '#6f7a7e',
+  coatOrangeShade: '#b86a3a',
+  coatBlackShade: '#3f3530',
+  coatWhiteShade: '#8f7f72',
+  coatBrownShade: '#5f3f2d',
+  eyeBlue: '#7eb3dd',
+  eyeCopper: '#d98b3a',
+  eyeGreen: '#b8c24c',
 } as const;
 const T = CAT_TOKENS;
-/**
- * Each coat's fur, its underside (a tuxedo's lower face, chest and belly) and the eyes on
- * its fur: paper on a tuxedo's dark crown, to be seen (ui-design 6.1).
- */
-const COATS: Record<CatCoat, Record<'coat' | 'under' | 'eye', string>> = {
-  cream: { coat: T.coatCream, under: T.coatCream, eye: T.ink },
-  gray: { coat: T.coatGray, under: T.coatGray, eye: T.ink },
-  orange: { coat: T.coatOrange, under: T.coatOrange, eye: T.ink },
-  tuxedo: { coat: T.coatBlack, under: T.coatWhite, eye: T.paper },
+/** Each fur colour and its shade: a tabby's stripes, a point's mask, ears, tail and paws. */
+const FURS: Record<CatAppearance['colour'], readonly [string, string]> = {
+  black: [T.coatBlack, T.coatBlackShade],
+  gray: [T.coatGray, T.coatGrayShade],
+  orange: [T.coatOrange, T.coatOrangeShade],
+  cream: [T.coatCream, T.coatCreamShade],
+  white: [T.coatWhite, T.coatWhiteShade],
+  brown: [T.coatBrown, T.coatBrownShade],
 };
-/** Colours every coat shares; the outline stays warm brown on any fur. */
-const CAT_COLOURS = {
-  line: T.brown,
-  blush: T.sakura,
-  blushSoft: '#f7cfc8',
-  tear: T.mint,
-  doze: '#a08a75',
-} as const;
-type Colour = keyof typeof CAT_COLOURS | 'coat' | 'under' | 'eye';
+/** Fur too dark for warm-brown lines and ink; every shade is dark too. */
+const DARK_FURS: ReadonlySet<CatAppearance['colour']> = new Set([
+  'black',
+  'brown',
+]);
+const IRIS: Record<CatAppearance['eyes'], string> = {
+  blue: T.eyeBlue,
+  copper: T.eyeCopper,
+  green: T.eyeGreen,
+};
+/** Names of the colours a shape is painted in; each look gives each its value. */
+export type Colour =
+  | 'coat'
+  | 'shade'
+  | 'white'
+  | 'line'
+  | 'shadeLine'
+  | 'whiteLine'
+  | 'eye'
+  | 'mouth'
+  | 'iris'
+  | 'pupil'
+  | 'blush'
+  | 'blushSoft'
+  | 'tear'
+  | 'doze';
+
+/**
+ * A look's colours. On light fur, lines are warm brown and eyes ink; on dark fur (black,
+ * brown, and every shade) both are paper, to be seen at 3:1 or more (ui-design 2.2). The
+ * eyes sit on the fur or a point's mask; the mouth on either, or on a bicolour's white.
+ */
+function colours({
+  colour,
+  pattern,
+  white,
+  eyes,
+}: CatAppearance): Record<Colour, string> {
+  const [coat, shade] = FURS[colour];
+  const dark = DARK_FURS.has(colour);
+  const darkFace = dark || pattern === 'point';
+  const darkMouth = white !== 'bicolour' && darkFace;
+  return {
+    coat,
+    shade,
+    white: T.coatWhite,
+    line: dark ? T.paper : T.brown,
+    shadeLine: T.paper,
+    whiteLine: T.brown,
+    eye: darkFace ? T.paper : T.ink,
+    mouth: darkMouth ? T.paper : T.brown,
+    iris: IRIS[eyes],
+    pupil: T.ink,
+    blush: T.sakura,
+    blushSoft: '#f7cfc8',
+    tear: T.mint,
+    doze: '#a08a75',
+  };
+}
 
 /**
  * One shape of the art in the style board's 72×64 portrait space: an ellipse
@@ -98,121 +168,48 @@ export interface CatShape {
   width?: number;
 }
 
-const line = (d: string, stroke: Colour = 'line', width = 2): CatShape => ({
-  d,
-  stroke,
-  width,
-});
-const fur = (d: string): CatShape => ({ d, fill: 'coat', stroke: 'line' });
-/** A path flipped left to right across the portrait's middle (x = 36). */
-const mirror = (d: string) =>
-  d.replace(
-    /([\d.]+) ([\d.]+)/g,
-    (_, x: string, y: string) => `${72 - Number(x)} ${y}`,
-  );
-/** Light fur: a tuxedo's white, any other coat's own colour. */
-const tuft = (d: string): CatShape => ({ d, fill: 'under', stroke: 'line' });
-/** A left part and its mirrored right twin. */
-const pair = (d: string, part = fur) => [part(d), part(mirror(d))];
-/**
- * Fur with its light underside, which shares the fur's lower edge; the outline goes over
- * both.
- */
-const furAndUnder = (d: string, under: string): CatShape[] => [
-  { d, fill: 'coat' },
-  { d: under, fill: 'under' },
-  { d, stroke: 'line' },
-];
+/** What sets one cat's drawing apart (ui-design 6.1, R-15): every renderer draws a cat from this. */
+export interface CatLook extends CatParts {
+  breed: ArtBreed;
+  appearance: Readonly<CatAppearance>;
+  colours: Readonly<Record<Colour, string>>;
+}
+const looks = new Map<string, CatLook>();
+/** The look of a breed and five choices: the same object for the same ones, to compare. */
+export function catLook(breed: ArtBreed, appearance: CatAppearance): CatLook {
+  const { colour, pattern, white, eyes, face } = appearance;
+  const key = [breed, colour, pattern, white, eyes, face].join('/');
+  let look = looks.get(key);
+  if (!look) {
+    look = {
+      breed,
+      appearance: { colour, pattern, white, eyes, face },
+      colours: colours(appearance),
+      ...catParts(breed, appearance),
+    };
+    looks.set(key, look);
+  }
+  return look;
+}
+/** A cat's look: its breed and its coat's five choices (T-14 PR 2: its own five). */
+export const lookOf = (cat: CatEntity): CatLook =>
+  catLook(cat.breedId, COAT_APPEARANCE[cat.appearance.coat]);
+
 const cheeks = (y: number, rx: number, ry: number, fill: Colour) =>
   [22, 50].map((x): CatShape => ({ ellipse: [x, y, rx, ry], fill }));
-const zZ = [
-  line('M48 14L56 14L48 22L56 22', 'doze', 1.8),
-  line('M58 6L63 6L58 11L63 11', 'doze', 1.8),
-];
-/** The dozing ball's body, light below; its ear and wrapped tail are the breed's. */
-const BALL = furAndUnder(
-  'M10 46C10 34 22 26 36 26C50 26 62 34 62 46C62 58 50 58 36 58C22 58 10 58 10 46Z',
-  'M10 46C20 52 52 52 62 46C62 58 50 58 36 58C22 58 10 58 10 46Z',
-);
-const DOZING_EYE = line('M22 42Q26 45 30 42', 'eye');
 
-/**
- * What a breed changes in the outline (ui-design 6.1): a ragdoll's fluffy cheek ruff and
- * plumed tail; a shorthair's rounder face, smaller rounded ears and short tail.
- */
-interface BreedArt {
-  /** Fur at the cheeks, behind the face. */
-  ruff: readonly CatShape[];
-  head: readonly CatShape[];
-  ears: Record<CatEars, readonly CatShape[]>;
-  /** The map sprite's tail, swishing from its root beside the body (58, 50). */
-  tail: readonly CatShape[];
-  /** The dozing ball: one ear, a closed eye, the tail wrapped round and a drawn zZ. */
-  curled: readonly CatShape[];
-}
-
-/** The parts both renderers draw, keyed by the breed and pose they belong to. */
+/** The eyes and the face each mood draws on any cat. */
 export const CAT_ART = {
-  breeds: {
-    RAGDOLL: {
-      ruff: pair('M13 39Q6 39 9 45Q3 48 8 51Q4 56 12 56Q14 61 20 57Z', tuft),
-      // The light lower face dips under each eye and rises between them.
-      head: furAndUnder(
-        'M12 40C12 26 22 16 36 16C50 16 60 26 60 40C60 54 50 58 36 58C22 58 12 54 12 40Z',
-        'M12 40C16 46 26 47 30 44C33 42 35 40 36 40C37 40 39 42 42 44C46 47 56 46 60 40C60 54 50 58 36 58C22 58 12 54 12 40Z',
-      ),
-      ears: {
-        up: pair('M18 26L15 12L26 21'),
-        mid: pair('M16 28L10 16L23 23'),
-        down: pair('M14 30L6 20L20 24'),
-      },
-      tail: [
-        fur(
-          'M56 53Q64 58 70 52Q78 50 77 42Q82 36 77 30Q78 22 71 22Q64 22 65 30Q64 38 60 44Q58 46 56 46Z',
-        ),
-      ],
-      curled: [
-        ...BALL,
-        fur('M18 32L16 22L25 28'),
-        DOZING_EYE,
-        fur(
-          'M59 41Q68 44 66 52Q68 60 58 60Q52 64 45 60Q40 56 47 55Q56 56 59 41Z',
-        ),
-        ...zZ,
-      ],
-    },
-    BRITISH_SHORTHAIR: {
-      ruff: [],
-      head: furAndUnder(
-        'M10 41C10 27 21 18 36 18C51 18 62 27 62 41C62 54 51 58 36 58C21 58 10 54 10 41Z',
-        'M10 41C15 47 26 47 30 44C33 42 35 40 36 40C37 40 39 42 42 44C46 47 57 47 62 41C62 54 51 58 36 58C21 58 10 54 10 41Z',
-      ),
-      ears: {
-        up: pair('M17 28Q13 10 28 21'),
-        mid: pair('M14 30Q8 16 25 24'),
-        down: pair('M12 33Q4 24 22 27'),
-      },
-      tail: [
-        fur('M57 53C63 54 67 50 66 45C65 42 61 43 61 46C61 48 59 48 56 48Z'),
-      ],
-      curled: [
-        ...BALL,
-        fur('M18 33Q14 22 26 28'),
-        DOZING_EYE,
-        line('M62 48Q66 54 60 57'),
-        ...zZ,
-      ],
-    },
-  } satisfies Record<CatBreed, BreedArt>,
   eyes: {
     happy: [
       line('M25 38Q29 33 33 38', 'eye', 2.2),
       line('M39 38Q43 33 47 38', 'eye', 2.2),
     ],
-    calm: [29, 43].map((x): CatShape => ({
-      ellipse: [x, 38, 2.6, 3.4],
-      fill: 'eye',
-    })),
+    // Open eyes show their colour round a dark pupil.
+    calm: [29, 43].flatMap((x): CatShape[] => [
+      { ellipse: [x, 38, 2.8, 3.4], fill: 'iris', stroke: 'eye', width: 1 },
+      { ellipse: [x, 38.4, 1, 2.3], fill: 'pupil' },
+    ]),
     glum: [line('M25 38L33 38', 'eye', 2.2), line('M39 38L47 38', 'eye', 2.2)],
     low: [
       line('M25 36Q29 40 33 36', 'eye', 2.2),
@@ -221,33 +218,33 @@ export const CAT_ART = {
   } satisfies Record<MoodBand, CatShape[]>,
   /** Cheeks and mouth; below the eyes. */
   face: {
-    happy: [...cheeks(44, 4.5, 2.8, 'blush'), line('M32 46Q36 50 40 46')],
+    happy: [
+      ...cheeks(44, 4.5, 2.8, 'blush'),
+      line('M32 46Q36 50 40 46', 'mouth'),
+    ],
     calm: [
       ...cheeks(45, 4, 2.4, 'blushSoft'),
-      line('M34 46L36 48L38 46', 'line', 1.8),
+      line('M34 46L36 48L38 46', 'mouth', 1.8),
     ],
-    glum: [line('M33 48L39 48')],
-    low: [line('M26 42L26 47', 'tear', 2.4), line('M32 50Q36 47 40 50')],
+    glum: [line('M33 48L39 48', 'mouth')],
+    low: [
+      line('M26 42L26 47', 'tear', 2.4),
+      line('M32 50Q36 47 40 50', 'mouth'),
+    ],
   } satisfies Record<MoodBand, CatShape[]>,
 } as const;
 
-/** The portrait's shapes for a breed and pose, bottom to top: the map cat without its tail. */
+/** The portrait's shapes for a look and pose, bottom to top: the map cat without its tail. */
 export function portraitShapes(
-  breed: CatBreed,
+  look: CatLook,
   pose: CatPose,
 ): readonly CatShape[] {
-  const art = CAT_ART.breeds[breed];
-  if (pose.curled) return art.curled;
+  if (pose.curled) return look.curled;
   return [
-    ...art.ruff,
-    ...art.head,
-    ...art.ears[pose.ears],
+    ...look.ruff,
+    ...look.head,
+    ...look.ears[pose.ears],
     ...CAT_ART.eyes[pose.face],
     ...CAT_ART.face[pose.face],
   ];
 }
-
-export const colourOf = (colour: Colour, coat: CatCoat): string =>
-  colour === 'coat' || colour === 'under' || colour === 'eye'
-    ? COATS[coat][colour]
-    : CAT_COLOURS[colour];

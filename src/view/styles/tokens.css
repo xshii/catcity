@@ -67,14 +67,27 @@
   --star-silver: #8a8680;
   --star-gold: #b07d12;
 
-  /* Cat coats (ui-design 2.2), each light fur ≥ 3:1 to --brown; the cat art mirrors them
-     in view/art/cat-look.ts */
+  /* Cat fur colours (ui-design 2.2, spec 041 cat-looks.md 1): each light fur ≥ 3:1 to
+     --brown, the dark ones (black, brown) ≥ 3:1 to their light outline --paper; the cat
+     art mirrors them in view/art/cat-look.ts */
   --coat-cream: #f7e3c4;
   --coat-gray: #cbd2d1;
   --coat-orange: #ffc681;
-  /* A tuxedo's dark crown and back (a warm black) and its light lower face and belly */
   --coat-black: #6b5d55;
   --coat-white: #fffaf0;
+  --coat-brown: #94684a;
+  /* Each fur's shade: a tabby's stripes, a point's mask, ears, tail and paws; all dark,
+     ≥ 3:1 to --paper */
+  --coat-cream-shade: #85644c;
+  --coat-gray-shade: #6f7a7e;
+  --coat-orange-shade: #b86a3a;
+  --coat-black-shade: #3f3530;
+  --coat-white-shade: #8f7f72;
+  --coat-brown-shade: #5f3f2d;
+  /* Cat eyes */
+  --eye-blue: #7eb3dd;
+  --eye-copper: #d98b3a;
+  --eye-green: #b8c24c;
 
   /* Soft warm shadows */
   --shadow-tab: 0 2px 6px rgb(138 111 90 / 0.18);
