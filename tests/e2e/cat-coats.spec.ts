@@ -2,6 +2,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { localOrigin, testPorts } from '../../harness/runner/test-ports';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
+import { settle } from '../../harness/adapters/catcity/city-input';
 import { CAT_BREED_IDS, CAT_BREEDS } from '../../src/content/breeds';
 import { CAT_COATS } from '../../src/content/cats';
 import { createWorld } from '../../src/core/world';
@@ -125,7 +126,14 @@ for (const size of PHONES) {
         'RAGDOLL',
         'BRITISH_SHORTHAIR',
       ]);
-      // Both cats stand on the map on screen, drawn by Phaser.
+      // Both cats stand on the map on screen, drawn by Phaser. A narrow phone follows
+      // one part of the map; the overview shows the whole of it.
+      await page.locator('#city-overview').tap();
+      await expect(page.locator('#city-overview')).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await settle(page);
       for (const cat of cats) {
         const at = await page.evaluate(
           (position) => window.CAT_CITY_DEBUG!.getTileScreenPosition(position),
