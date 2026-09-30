@@ -22,7 +22,7 @@ import { CARE } from '../../content/care';
 import { mountFishingFeedback } from './feedback';
 import { mountFishingSound } from './sound';
 import { mountFishingStage, type FishingShell } from './stage';
-import { renderFishingCatalog } from './catalog';
+import { mountFishBag, renderFishingCatalog } from './catalog';
 import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
@@ -155,6 +155,19 @@ export function mountAngling(
     result: ReturnType<GameSession['execute']>,
     success: string,
   ) => notify(result.ok ? success : ERROR_MESSAGES[result.error]);
+  const bag = mountFishBag(get('fish-inventory'), (command, message) => {
+    const before = session.getSnapshot();
+    const result = session.execute(command);
+    report(
+      result,
+      command.type === 'GIFT_FISH'
+        ? withMoodNote(
+            giftNotice(message, before, session.getSnapshot(), command.catId),
+            outcomeNote(before, session.getSnapshot(), command.catId),
+          )
+        : message,
+    );
+  });
   // Rendering applies state and never changes it; a change during a render (a listener
   // reacting to it) queues another pass, so the last pass always shows the latest state.
   let rendering = false;
@@ -273,30 +286,7 @@ export function mountAngling(
       const cat = world.cats.find((cat) => cat.id === companion.value)!;
       get('companion-specialty').textContent =
         `${cat.name} · ${CAT_BREEDS[cat.breedId].name}：${CAT_BREEDS[cat.breedId].fishingHint}。鱼饵、落点和钓点条件仍需满足。`;
-      renderFishingCatalog(
-        get,
-        world,
-        cat,
-        (command, message) => {
-          const before = session.getSnapshot();
-          const result = session.execute(command);
-          report(
-            result,
-            command.type === 'GIFT_FISH'
-              ? withMoodNote(
-                  giftNotice(
-                    message,
-                    before,
-                    session.getSnapshot(),
-                    command.catId,
-                  ),
-                  outcomeNote(before, session.getSnapshot(), command.catId),
-                )
-              : message,
-          );
-        },
-        resultNote,
-      );
+      renderFishingCatalog(get, world, cat, bag, resultNote);
     }
     if (run) {
       get('angling-phase').textContent = BUTTON_PHASE_NAMES[run.phase];
