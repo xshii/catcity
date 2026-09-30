@@ -1,0 +1,35 @@
+/* A new game's start (spec 041 cat-looks.md 2): a stray by the road, over everything. */
+.stray-start {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: var(--text);
+  background: var(--paper);
+}
+.stray-card {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+.stray-card svg {
+  width: 160px;
+  height: 160px;
+}
+.stray-card h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.stray-card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.stray-card .primary {
+  margin-top: 8px;
+}

@@ -28,7 +28,7 @@ export function instantiateCat(
     definitionId,
     breedId: definition.breedId,
     name: definition.name,
-    appearance: { coat: definition.coat },
+    appearance: { ...definition.appearance },
     sex: definition.sex,
     bornMinute: null,
     generation: 1,

@@ -4,26 +4,6 @@ import { moodBand, type MoodBand } from '../../content/mood';
 import { catIdle, MAX_STAT, type CatEntity, type WorldState } from '../../core';
 import { catParts, line, type CatParts } from './cat-parts';
 
-/** The breeds the art draws: the game's two, and the domestic cat T-14 PR 2 brings in. */
-export type ArtBreed = CatBreed | 'DOMESTIC';
-export const ART_BREEDS: readonly ArtBreed[] = [
-  'DOMESTIC',
-  'RAGDOLL',
-  'BRITISH_SHORTHAIR',
-];
-type CatCoat = CatEntity['appearance']['coat'];
-const plain = (
-  colour: CatAppearance['colour'],
-  eyes: CatAppearance['eyes'],
-  white: CatAppearance['white'] = 'none',
-): CatAppearance => ({ colour, pattern: 'solid', white, eyes, face: 'round' });
-/** T-13's coats as five choices, until T-14 PR 2 saves the five on the cat. */
-export const COAT_APPEARANCE: Record<CatCoat, CatAppearance> = {
-  cream: plain('cream', 'blue'),
-  gray: plain('gray', 'copper'),
-  orange: plain('orange', 'green'),
-  tuxedo: plain('black', 'green', 'bicolour'),
-};
 export type CatEars = 'up' | 'mid' | 'down';
 /** How a cat is drawn; the map sprite and the card portrait only render this. */
 export interface CatPose {
@@ -170,13 +150,13 @@ export interface CatShape {
 
 /** What sets one cat's drawing apart (ui-design 6.1, R-15): every renderer draws a cat from this. */
 export interface CatLook extends CatParts {
-  breed: ArtBreed;
+  breed: CatBreed;
   appearance: Readonly<CatAppearance>;
   colours: Readonly<Record<Colour, string>>;
 }
 const looks = new Map<string, CatLook>();
 /** The look of a breed and five choices: the same object for the same ones, to compare. */
-export function catLook(breed: ArtBreed, appearance: CatAppearance): CatLook {
+export function catLook(breed: CatBreed, appearance: CatAppearance): CatLook {
   const { colour, pattern, white, eyes, face } = appearance;
   const key = [breed, colour, pattern, white, eyes, face].join('/');
   let look = looks.get(key);
@@ -191,9 +171,9 @@ export function catLook(breed: ArtBreed, appearance: CatAppearance): CatLook {
   }
   return look;
 }
-/** A cat's look: its breed and its coat's five choices (T-14 PR 2: its own five). */
+/** A cat's look: its breed and its own five choices. */
 export const lookOf = (cat: CatEntity): CatLook =>
-  catLook(cat.breedId, COAT_APPEARANCE[cat.appearance.coat]);
+  catLook(cat.breedId, cat.appearance);
 
 const cheeks = (y: number, rx: number, ry: number, fill: Colour) =>
   [22, 50].map((x): CatShape => ({ ellipse: [x, y, rx, ry], fill }));

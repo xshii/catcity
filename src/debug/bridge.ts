@@ -1,8 +1,8 @@
 import type { GameSession } from '../application';
+import { CAT_BREED_IDS } from '../content/breeds';
 import { APPEARANCE_OPTIONS, type CatAppearance } from '../content/cats';
 import { createWorld } from '../core';
 import type { Position } from '../core';
-import { ART_BREEDS } from '../view/art/cat-look';
 import { mountCatMaker } from '../view/cats/cat-maker';
 import type { CatChoice, CatMakerInput } from '../view/cats/cat-maker-screen';
 
@@ -26,7 +26,7 @@ function makerInput(input: CatMakerInput) {
   return (
     typeof input?.pickBreed === 'boolean' &&
     typeof input.confirm === 'string' &&
-    ART_BREEDS.includes(input.breed) &&
+    CAT_BREED_IDS.includes(input.breed) &&
     items.every((item) =>
       (APPEARANCE_OPTIONS[item] as readonly string[]).includes(
         input.appearance?.[item],

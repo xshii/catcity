@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { INVITABLE_CATS, MAX_COMPANIONS } from '../../src/content/cats';
+import {
+  CAT_DEFINITIONS,
+  INVITABLE_CATS,
+  MAX_COMPANIONS,
+} from '../../src/content/cats';
 import { createWorld, World } from '../../src/core';
 import {
   arrivedNotice,
@@ -7,7 +11,7 @@ import {
   inviteEntry,
   inviteScreen,
 } from '../../src/view/cats/invite-screen';
-import { catLook, COAT_APPEARANCE } from '../../src/view/art/cat-look';
+import { catLook } from '../../src/view/art/cat-look';
 import { ERROR_MESSAGES } from '../../src/view/common/errors';
 
 // ui-design 5.3: the list of cats to invite, as the page shows it.
@@ -49,7 +53,7 @@ describe('the invite list (ui-design 5.3)', () => {
   it('shows who each cat is: sex in words, breed, personality, favourite fish, what its breed draws', () => {
     expect(inviteCard('DOUBAO')).toEqual({
       name: '豆包',
-      look: catLook('BRITISH_SHORTHAIR', COAT_APPEARANCE.orange),
+      look: catLook('BRITISH_SHORTHAIR', CAT_DEFINITIONS.DOUBAO.appearance),
       sex: { symbol: '♂', word: '公' },
       breed: '英短猫',
       personality: '随和 · 懒洋洋',

@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
 import { FISH_IDS, FISHING, fishById } from '../../src/content/fishing';
 import { RandomService } from '../../src/core/random';
 import { castAngling, initialAngling } from '../../src/minigames/angling';
@@ -33,7 +34,12 @@ const SAMPLES = 40;
 type Dashes = 'pull' | 'ignore' | 'off';
 
 /** A plain (not perfect) strike on a fish of the given stars. */
-function fightOf(seed: number, stars: number, happy: boolean): AnglingRun {
+function fightOf(
+  seed: number,
+  stars: number,
+  happy: boolean,
+  catBreed: CatBreed = 'RAGDOLL',
+): AnglingRun {
   const cast = castAngling(
     initialAngling({
       happy,
@@ -45,7 +51,7 @@ function fightOf(seed: number, stars: number, happy: boolean): AnglingRun {
       aimDepth: 50,
       skillLevel: 1,
       spotId: 'POND',
-      catBreed: 'RAGDOLL',
+      catBreed,
       mode: 'motion',
     }),
     40,
@@ -179,4 +185,30 @@ it('snaps lines of players who ignore dashes on 5★ fish', () => {
   expect(cut, `ignoring dashes lost ${cut} points`).toBeGreaterThanOrEqual(
     TUG.ignoreCut,
   );
+});
+
+/**
+ * The stray a game starts with may be any breed (spec 041 T-14). A breed only decides which
+ * fish may bite; once hooked, a fish fights the same for every cat, so the rates above hold
+ * whatever the breed.
+ */
+it('fights a hooked fish the same with a cat of every breed', () => {
+  const { jitter } = PLAYERS.skilled;
+  const fight = (seed: number, stars: number, breed: CatBreed) => {
+    const hand = new RandomService(seed * 7919);
+    const wobble = () => hand.nextInt(2 * jitter + 1) - jitter;
+    let run = fightOf(seed, stars, false, breed);
+    const fish = fishPath(run, M.fight.graceTicks + M.fight.limitTicks);
+    while (run.phase === 'fight')
+      run = stepMotionRun(run, rodTip('skilled', run, fish, wobble, true), 1);
+    // Compared apart from the breed each run was given.
+    return { ...run, catBreed: null };
+  };
+  for (const stars of STARS)
+    for (let seed = 1; seed <= 5; seed++) {
+      const [first, ...others] = CAT_BREED_IDS.map((breed) =>
+        fight(seed, stars, breed),
+      );
+      for (const other of others) expect(other).toEqual(first);
+    }
 });

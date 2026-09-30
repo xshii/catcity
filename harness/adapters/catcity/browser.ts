@@ -13,6 +13,7 @@ import type { ReplayRecord } from '../../../src/application';
 import type { CatCityDebug } from '../../../src/debug/bridge';
 import { clickTile, reachWaterway } from './city-input';
 import { shoreTiles, samePosition, tileAt } from '../../../src/core/city';
+import { createWorld } from '../../../src/core/world';
 import type { GameAdapter } from '../../runner/contract';
 import { replayWorld } from './replay-world';
 import {
@@ -28,6 +29,18 @@ declare global {
     CAT_CITY_DEBUG?: CatCityDebug;
   }
 }
+/**
+ * A production page starts a new game with the stray and the cat maker (spec 041 T-14).
+ * Checks about something else begin from a saved new game instead: written before the
+ * page loads, and kept when it reloads.
+ */
+export async function savedNewGame(page: Page) {
+  await page.addInitScript((save) => {
+    if (localStorage.getItem('cat-city.save.v1') === null)
+      localStorage.setItem('cat-city.save.v1', save);
+  }, createWorld(42).save());
+}
+
 export async function ready(page: Page) {
   await page.waitForFunction(() => window.CAT_CITY_DEBUG?.version === 1);
   await expect(page.locator('canvas')).toBeVisible();

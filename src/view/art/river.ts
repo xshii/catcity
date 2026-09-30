@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
+import { CAT_DEFINITIONS } from '../../content/cats';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { CatArt } from './cat';
 import {
   catLook,
   catPose,
-  COAT_APPEARANCE,
   lookOf,
   type CatLook,
   type CatMotion,
@@ -132,7 +132,10 @@ export class RiverView {
   private line: { width: number; colour: number } | null = null;
   private companion: CatArt;
   /** The companion's look; redrawn when the cat by the water looks different. */
-  private companionLook: CatLook = catLook('RAGDOLL', COAT_APPEARANCE.cream);
+  private companionLook: CatLook = catLook(
+    CAT_DEFINITIONS.MOCHI.breedId,
+    CAT_DEFINITIONS.MOCHI.appearance,
+  );
   private waterKind: SpotId = 'POND';
   private waterFrame = -1;
   /** The spot and light last painted, as `spot/light`. */
