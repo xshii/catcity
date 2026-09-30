@@ -1,12 +1,21 @@
 import { expect, it } from 'vitest';
+import { buildingPrice } from '../../src/content/city';
 import { ARRIVAL_MINUTES } from '../../src/content/residents';
-import { residentIdentity } from '../../src/core';
+import { createWorld, residentIdentity, World } from '../../src/core';
 import { $, click, openGame, text } from '../helpers/view-rig';
 
 // Spec 041 T-30 (ui-design 5.7): tapping a lodge shows who lives there.
 
+/** A new game with the coins for a lodge, dearer than the starting coins (T-31). */
+const saved = () => ({
+  'cat-city.save.v1': new World({
+    ...createWorld(42).getSnapshot(),
+    coins: buildingPrice('CAT_LODGE', 0),
+  }).save(),
+});
+
 it('the lodge card counts its residents and names them as they move in, keeping its button', () => {
-  const game = openGame();
+  const game = openGame({ storage: saved() });
   // The guide picks the plot it recommends; the lodge goes up there.
   click('#city-tab-guide');
   click('#city-action');

@@ -50,15 +50,16 @@ const arrivals = (result: ReturnType<typeof advance>) =>
     : [];
 
 describe('the lodge (R-40)', () => {
-  it('houses four residents, no companion, and costs 250 × 1.6^(n−1)', () => {
+  it('houses four residents, no companion, and costs 3000 × 1.6^(n−1)', () => {
     expect(BUILDINGS.CAT_LODGE.residentCapacity).toBe(4);
     expect(BUILDINGS.CAT_LODGE.homeCapacity).toBe(0);
-    // 250 × 1.6^n to the nearest 5: 1024 → 1025, 1638.4 → 1640, 2621.44 → 2620.
+    // 3000 × 1.6^n to the nearest 5 (spec 041 T-31): 12288 → 12290, 19660.8 → 19660,
+    // 31457.28 → 31455.
     expect(
       Array.from({ length: 6 }, (_, existing) =>
         buildingPrice('CAT_LODGE', existing),
       ),
-    ).toEqual([250, 400, 640, 1025, 1640, 2620]);
+    ).toEqual([3000, 4800, 7680, 12290, 19660, 31455]);
   });
 
   it('takes no companion: not as a home, not as a bed for a newcomer', () => {
