@@ -48,8 +48,8 @@ export const CITY_PLAN = {
     { x: 2, y: 5 },
   ],
   /**
-   * Every home is a tile from a cafe, and every one of the 26 customers finds a seat
-   * whatever the order the homes are built and filled in.
+   * Every home is at most two tiles from a cafe, and every one of the 26 customers finds
+   * a seat whatever order the cafes, apartments and lodges are each built in.
    */
   cafes: [
     { x: 6, y: 3 },
