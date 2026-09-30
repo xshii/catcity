@@ -132,7 +132,7 @@
 
 ### [x] T-05 撸猫上线（R-05、R-20 – R-24）
 
-- **完成**：PR #61（`fa3ba45`），存档 19，测试版 `test-20260930-1001-fa3ba454-3f0563`。用户 2026-09-30 决定：心情效果改为任意 8 游戏小时内最多 3 局（`CARE.pettingLifts`），R-23 两个目标都用完美玩家量（开心的竿 75% / 75%，60→80 需 3 局），实测表见 039 的"节奏"。证据：`tests/unit/petting.test.ts`、`tests/simulation/pacing.test.ts` 的撸猫玩家两条断言；推送前完整检查通过（单元与画面 851 条、E2E 57 条、验收 15 步），产物 `artifacts/2026-09-30T01-52-22-898Z-58714/`（`catcity-wt49`）；截图 `artifacts/T-05/{round,pull-away,result}-{390x844,360x640}.png`，按钮不挡脸。
+- **完成**：PR #61（`fa3ba45`），存档 19，测试版 `test-20260930-1001-fa3ba454-3f0563`。用户 2026-09-30 决定：心情效果改为任意 8 游戏小时内最多 3 局（`CARE.pettingLifts`），R-23 两个目标都用完美玩家量（开心的竿 75% / 75%，60→80 需 3 局），实测表见 039 的"节奏"。之后用户 2026-09-30 又放宽为任意 10 游戏小时内最多 4 局（内容 16，开心的竿 80% / 80%，60→80 仍需 3 局）。证据：`tests/unit/petting.test.ts`、`tests/simulation/pacing.test.ts` 的撸猫玩家两条断言；推送前完整检查通过（单元与画面 851 条、E2E 57 条、验收 15 步），产物 `artifacts/2026-09-30T01-52-22-898Z-58714/`（`catcity-wt49`）；截图 `artifacts/T-05/{round,pull-away,result}-{390x844,360x640}.png`，按钮不挡脸。
 - **分支**：已有 `feat/petting`，worktree `/Users/gakki/dev/catcity-wt49`，最后提交 `eca1273`。
 - **依赖**：无（成长数值已在 main）。存档版本 19。
 - **先读这些文件**：该分支的 `specs/039-petting/requirements.md`（全文）、design.md 第 8 节、`src/core/bond.ts`、`src/core/mood.ts`、`src/content/care.ts`、`src/view/shell/clock-speed.ts`、`tests/simulation/pacing.test.ts`。
