@@ -10,7 +10,7 @@ export const CARE = {
    * time; later rounds lift nothing (user 2026-09-30, spec 041 R-23). A sliding window,
    * not a clock hour. Tuned by tests/simulation/pacing.test.ts.
    */
-  pettingLifts: { rounds: 3, windowMinutes: 8 * 60 },
+  pettingLifts: { rounds: 4, windowMinutes: 10 * 60 },
 } as const;
 
 /**
