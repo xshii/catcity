@@ -11,6 +11,7 @@ import {
   openGear,
   showFish,
 } from '../../harness/adapters/catcity/navigation';
+import { fishById } from '../../src/content/fishing';
 import { createWorld } from '../../src/core';
 import { greenZone } from '../../src/minigames/angling';
 import { moodBadge } from '../../src/view/shell/mood';
@@ -376,6 +377,30 @@ for (const viewport of [
     await singleScreen(page);
     await page.locator('#fish-cancel').click();
     expect(errors).toEqual([]);
+  });
+
+  test(`phone ${viewport.width}×${viewport.height}: a caught fish's record stars fit its atlas page (T-42)`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await ready(page);
+    // The stocked silvers with the record at the species' longest: all three stars.
+    const save = JSON.parse(stockedSave());
+    save.world.fishing.atlas.SILVER.bestLengthMm =
+      fishById('SILVER').maxLengthMm;
+    await page.evaluate(
+      (value) => window.CAT_CITY_DEBUG!.loadFixture({ save: value }),
+      JSON.stringify(save),
+    );
+    await enterRiver(page);
+    await showFish(page, 'SILVER');
+    await onScreen(page.locator('[data-species="SILVER"] .length-stars'));
+    await singleScreen(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`atlas-stars-${viewport.width}.png`),
+      fullPage: true,
+    });
   });
 }
 
