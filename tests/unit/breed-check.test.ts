@@ -69,6 +69,20 @@ describe('breedBlocks (spec 041 R-31)', () => {
     expect(blocks(world)).toEqual([block]);
   });
 
+  it('reports a grandmother and her grandson as related (user 2026-09-30)', () => {
+    const daughter = {
+      ...mochi,
+      id: 'cat-50',
+      parents: { mother: mochi.id, father: 'cat-9' },
+    };
+    const world = withPepper({
+      parents: { mother: daughter.id, father: 'cat-9' },
+    });
+    expect(blocks({ ...world, cats: [...world.cats, daughter] })).toEqual([
+      'RELATED',
+    ]);
+  });
+
   it('reports a cat paired with itself as that alone', () => {
     expect(breedBlocks(ready, mochi.id, mochi.id)).toEqual(['SAME_CAT']);
   });
@@ -111,36 +125,67 @@ describe('breedBlocks (spec 041 R-31)', () => {
   });
 });
 
-describe('related (spec 041 R-31)', () => {
+describe('related (spec 041 R-31; direct line by the user, 2026-09-30)', () => {
   const cat = (id: string, parents: CatEntity['parents'] = null) => ({
     ...mochi,
     id,
     parents,
   });
-  const mother = cat('cat-1');
-  const father = cat('cat-2');
-  const kitten = cat('cat-3', { mother: mother.id, father: father.id });
-  const sister = cat('cat-4', { mother: mother.id, father: father.id });
+  const litter = (mother: CatEntity, father: CatEntity) => ({
+    mother: mother.id,
+    father: father.id,
+  });
+  const grandma = cat('cat-1');
+  const grandpa = cat('cat-2');
+  const mother = cat('cat-3', litter(grandma, grandpa));
+  const aunt = cat('cat-4', litter(grandma, grandpa));
+  const father = cat('cat-5');
+  const kitten = cat('cat-6', litter(mother, father));
+  const stranger = cat('cat-7');
+  const greatGrandchild = cat('cat-8', litter(kitten, stranger));
+  const cousin = cat('cat-10', litter(aunt, stranger));
+  const halfByMother = cat('cat-11', litter(mother, stranger));
+  const halfByFather = cat('cat-12', litter(stranger, father));
+  const world: WorldState = {
+    ...ready,
+    cats: [
+      grandma,
+      grandpa,
+      mother,
+      aunt,
+      father,
+      kitten,
+      stranger,
+      greatGrandchild,
+      cousin,
+      halfByMother,
+      halfByFather,
+    ],
+  };
+  const kin = (a: CatEntity, b: CatEntity) => related(world, a, b);
 
   it('counts parent and child, either way round', () => {
-    expect(related(mother, kitten)).toBe(true);
-    expect(related(kitten, father)).toBe(true);
+    expect(kin(mother, kitten)).toBe(true);
+    expect(kin(kitten, father)).toBe(true);
+  });
+
+  it('counts grandparent and grandchild either way round, and further up', () => {
+    expect(kin(grandma, kitten)).toBe(true);
+    expect(kin(kitten, grandpa)).toBe(true);
+    expect(kin(greatGrandchild, grandma)).toBe(true);
+    expect(kin(grandpa, greatGrandchild)).toBe(true);
   });
 
   it('counts siblings, and half-siblings on either side', () => {
-    expect(related(kitten, sister)).toBe(true);
-    expect(
-      related(kitten, cat('cat-5', { mother: mother.id, father: 'cat-9' })),
-    ).toBe(true);
-    expect(
-      related(kitten, cat('cat-6', { mother: 'cat-8', father: father.id })),
-    ).toBe(true);
+    expect(kin(mother, aunt)).toBe(true);
+    expect(kin(kitten, halfByMother)).toBe(true);
+    expect(kin(halfByFather, kitten)).toBe(true);
   });
 
-  it('does not count cousins or first-generation strangers', () => {
-    const cousin = cat('cat-10', { mother: kitten.id, father: 'cat-7' });
-    const otherCousin = cat('cat-11', { mother: sister.id, father: 'cat-8' });
-    expect(related(cousin, otherCousin)).toBe(false);
-    expect(related(mother, father)).toBe(false);
+  it('does not count aunt and niece, cousins or first-generation strangers', () => {
+    expect(kin(aunt, kitten)).toBe(false);
+    expect(kin(kitten, aunt)).toBe(false);
+    expect(kin(kitten, cousin)).toBe(false);
+    expect(kin(grandma, father)).toBe(false);
   });
 });

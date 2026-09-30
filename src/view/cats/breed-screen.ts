@@ -82,7 +82,7 @@ export function breedScreen(world: WorldState, selected: string | null) {
     .filter((cat) => cat.id !== self.id)
     .map((cat) => {
       const missing = lines(
-        [...pairBreedBlocks(self, cat), ...catBreedBlocks(world, cat)],
+        [...pairBreedBlocks(world, self, cat), ...catBreedBlocks(world, cat)],
         cat,
       );
       return {

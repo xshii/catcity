@@ -27,13 +27,34 @@ export type BreedBlock = (typeof BREED_BLOCKS)[number];
 const failing = (checks: [BreedBlock, boolean][]): BreedBlock[] =>
   checks.filter(([, fails]) => fails).map(([block]) => block);
 
-/** Parent and child, or two cats with the same mother or the same father; cousins are not. */
-export function related(a: CatEntity, b: CatEntity): boolean {
-  const childOf = (cat: CatEntity, parent: CatEntity) =>
-    cat.parents?.mother === parent.id || cat.parents?.father === parent.id;
+/** Every cat the cat descends from: its parents, theirs, and so on up. */
+function ancestors(world: WorldState, cat: CatEntity): Set<string> {
+  const found = new Set<string>();
+  const next = [cat];
+  while (next.length) {
+    const { parents } = next.pop()!;
+    if (!parents) continue;
+    for (const id of [parents.mother, parents.father]) {
+      found.add(id);
+      const parent = world.cats.find((cat) => cat.id === id);
+      if (parent) next.push(parent);
+    }
+  }
+  return found;
+}
+
+/**
+ * The direct line, however far up (user 2026-09-30), or two cats with the same mother or
+ * the same father. An aunt and her niece, or cousins, are not related.
+ */
+export function related(
+  world: WorldState,
+  a: CatEntity,
+  b: CatEntity,
+): boolean {
   return (
-    childOf(a, b) ||
-    childOf(b, a) ||
+    ancestors(world, a).has(b.id) ||
+    ancestors(world, b).has(a.id) ||
     (!!a.parents &&
       !!b.parents &&
       (a.parents.mother === b.parents.mother ||
@@ -42,11 +63,15 @@ export function related(a: CatEntity, b: CatEntity): boolean {
 }
 
 /** What keeps the two from being a pair, whatever state each is in. */
-export function pairBreedBlocks(a: CatEntity, b: CatEntity): BreedBlock[] {
+export function pairBreedBlocks(
+  world: WorldState,
+  a: CatEntity,
+  b: CatEntity,
+): BreedBlock[] {
   if (a.id === b.id) return ['SAME_CAT'];
   return failing([
     ['NEED_PAIR', a.sex === b.sex],
-    ['RELATED', related(a, b)],
+    ['RELATED', related(world, a, b)],
   ]);
 }
 
@@ -89,7 +114,7 @@ export function breedBlocks(
   const a = requireCat(world, aId);
   const b = requireCat(world, bId);
   const found = new Set([
-    ...pairBreedBlocks(a, b),
+    ...pairBreedBlocks(world, a, b),
     ...catBreedBlocks(world, a),
     ...catBreedBlocks(world, b),
     ...cityBreedBlocks(world),

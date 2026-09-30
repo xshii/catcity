@@ -108,16 +108,18 @@ type BreedBlock =
   | 'BOND_TOO_LOW' | 'RELATED' | 'COOLING_DOWN' | 'NO_BED' | 'COMPANION_LIMIT';
 
 catStage(world, cat): 'kitten' | 'adult'
-related(a, b): boolean                   // 父母—子女，或同父 / 同母；表亲不算
+related(world, a, b): boolean            // 直系（任意代的祖先—后代），或同父 / 同母；叔侄、表亲不算
 breedBlocks(world, aId, bId): BreedBlock[] // 空数组表示可以生育；界面逐条显示
 // breedBlocks 的三部分，界面按对方、自己、全城分组显示（ui-design 5.4）：
-pairBreedBlocks(a, b)          // SAME_CAT（同一只时只报这一条）、NEED_PAIR、RELATED
+pairBreedBlocks(world, a, b)   // SAME_CAT（同一只时只报这一条）、NEED_PAIR、RELATED
 catBreedBlocks(world, cat)     // KITTEN、NEUTERED、NOT_HAPPY、BOND_TOO_LOW、COOLING_DOWN
 cityBreedBlocks(world)         // NO_BED（公寓床位 ≤ 有住所的猫）、COMPANION_LIMIT（MAX_COMPANIONS）
 inherit(seed, kittenId, mother, father): { breedId, coat, personality, favoriteFish, sex, talent }
 ```
 
 `breedBlocks` 返回**全部**未满足的条件，不是第一条。命令被拒绝时只报其中第一条对应的错误码。
+
+亲属按 R-31 的字面：直系包括父母与子女、祖辈与孙辈，一直往上（用户 2026-09-30 决定）；`related` 沿 `parents` 向上找全部祖先（猫永不删除，父母一定在 `world.cats` 里）。同父或同母的同胞也算；叔侄、表亲不算。后果：伙伴猫上限 8 只并且小猫也占名额时，五代目需要至少 9 只猫，达不到，见 T-22。
 
 ### 5.2 命令
 
