@@ -154,8 +154,9 @@
 
 目标：让世界里可以有 8 只各不相同的猫。M1 内部有严格顺序：T-10 → T-11 → T-12，T-13 可以和 T-12 并行。
 
-### [ ] T-10 猫的身份属于实例（R-10、R-11）
+### [x] T-10 猫的身份属于实例（R-10、R-11）
 
+- **完成**：PR #68（`5bf8345`），存档 20，测试版 `test-20260930-1308-5bf83452-9ba1b3`。证据：`tests/integration/save-safety.test.ts`（每个新字段的篡改被拒绝）、`legacy-saves.test.ts`（v19 被拒绝）、`tests/unit/cat-identity.test.ts`（`catStage` 边界）；推送前完整检查通过（单元与画面 917 条、E2E 64 条、验收 15 步），产物 `artifacts/2026-09-30T04-58-50-212Z-32197/`（`catcity-wt10`）。`definitionId` 改可空推迟到 T-22（见本节第 1 步）。玩家看不到变化。
 - **分支**：`feat/cat-identity`
 - **依赖**：T-05 合并（都改猫的 schema，先后合并可以少一次冲突）。存档 20。
 - **先读这些文件**：design.md 第 3 节；`src/core/schema.ts`（`catSchema`、`assertTemplate`）；`src/core/cats.ts`；`src/content/cats.ts`；`tests/unit/companionship.test.ts`；`tests/integration/save-safety.test.ts`。
@@ -169,8 +170,9 @@
 - **验收**：三条命令；完整检查。这一步玩家看不到变化，报告里说明。
 - **不做**：不加任何命令和界面。
 
-### [ ] T-11 初代猫名单与邀请（R-12、R-13）
+### [x] T-11 初代猫名单与邀请（R-12、R-13）
 
+- **完成**：PR #70（`1b5635e`），内容 11，测试版 `test-20260930-1402-1b5635ec-2bdbff`。证据：`tests/unit/invite.test.ts`（每个拒绝条件、价格序列、出生点、回放）与画面测试台；推送前完整检查通过（单元与画面 945 条、E2E 66 条、验收 15 步），产物 `artifacts/2026-09-30T05-54-02-572Z-62760/`（`catcity-wt11`）；截图 `artifacts/T-11/invite-list-{390x844,360x640}.png`。
 - **分支**：`feat/invite-cats`
 - **依赖**：T-10。内容 11。
 - **先读这些文件**：design.md 第 4 节；`src/core/fishing/commands.ts` 里的 `INVITE_PEPPER`；`src/content/city.ts` 的 `buildingPrice`；`src/view/` 里出现"邀请"的地方（`grep -rn "INVITE_PEPPER" src tests harness`）；`harness/adapters/catcity/browser.ts`。
@@ -197,13 +199,34 @@
 - **验收**：三条命令；完整检查；两个尺寸的截图。
 - **注意**：8 只猫的存档用 Core 命令预制，不要在浏览器里一只只邀请。
 
-### [ ] T-13 花色与品种画得出区别（R-15）
+### [x] T-13 花色与品种画得出区别（R-15）
 
+- **完成**：PR #71（`7a800d2`），存档 21、内容 12，测试版 `test-20260930-1517-7a800d2b-49e02b`。证据：`cat-look` 单测（8 种组合、token 一致、对比度 ≥ 3:1，用户决定调浅橘与灰）、存档往返与篡改；推送前完整检查通过（单元与画面 970 条、E2E 69 条、验收 15 步），产物 `artifacts/2026-09-30T07-07-43-757Z-88554/`（`catcity-wt13`）；截图 `artifacts/T-13/coats.png` 与两个尺寸的地图、名册。外观之后由 T-14 改为分层五项。
 - **分支**：`style/cat-coats`
 - **依赖**：T-10。可与 T-12 并行。
 - **先读这些文件**：`src/view/art/cat-look.ts`（`CAT_COLOURS`、`CAT_ART`）、`src/view/art/cat.ts`、`src/view/styles/tokens.css`、`tests/unit/cat-look.test.ts`。
 - **做什么**：花色从 2 种扩到 4 种（首批：奶油、灰、橘、黑白），schema 的 `coat` 枚举同步（存档格式变化：如果 T-10 还没合并就并入它的版本 20，否则再升一版）；品种用耳朵和尾巴的轮廓区分（布偶：毛茸尾；英短：圆脸短耳）。颜色值进 `tokens.css` 并由单测核对和 TS 常量一致。
 - **验收**：三条命令；完整检查；一张 4 花色 × 2 品种的对照截图。
+
+---
+
+### [ ] T-14 捏猫：外观五项与流浪猫开局（R-17）
+
+- **分支**：`feat/cat-looks`（两个 PR）
+- **依赖**：T-13。存档 +1，内容 +1。
+- **先读这些文件**：[cat-looks.md](cat-looks.md)（全文）、ui-design.md 2.2 与 6.1、`src/view/art/cat-look.ts`、`src/view/art/cat.ts`、`src/view/art/illustrations.ts`、`src/content/cats.ts`、`src/content/breeds.ts`、`src/core/schema.ts`（`appearance`、`assertTemplate`）、`src/core/world.ts`（新世界怎么建）。
+- **做什么**：
+  - PR 1（画法与画面）：外观五项的分层画法（三种品种轮廓上叠脸型、毛色、花纹、白斑、眼色），深色毛用浅色描线；捏猫画面模块（纯模型 + DOM 应用，能不能选品种由输入决定），🎲 随机用注入的随机源；一张"所有选项"的对照图。这一步不改存档。
+  - PR 2（开局）：`DOMESTIC` 田园猫品种；外观五项入档取代 `coat`；新游戏开场"捡到一只流浪猫"，进入捏猫画面选品种与外观，确认后开始；校验按 cat-looks.md 第 2 节（外观不再和模板比）；三种开局品种下节奏与平衡模拟都达标。
+- **测试**：见 cat-looks.md 第 5 节。截图 390×844、360×640（捏猫画面默认、随机后）与对照图。
+- **不做**：自动起名；每只猫的随机差异；美容院（T-15）。
+
+### [ ] T-15 猫咪美容院（R-18）
+
+- **分支**：`feat/cat-salon`
+- **依赖**：T-14。存档可能 +1（新建筑类型），内容 +1。
+- **做什么**：建筑 `CAT_SALON`（价格由经济模拟定标）；命令 `RESTYLE_CAT { catId, appearance }`，每次收 `RESTYLE_PRICE`（先定 50），错误码 `NO_SALON`、`INSUFFICIENT_COINS`、`APPEARANCE_UNCHANGED`；点美容院选一只伙伴猫，复用 T-14 的捏猫画面（不能选品种）。
+- **测试**：每个拒绝条件世界不变；收费；外观改后名册和地图同步；画面测试台走一遍；截图。
 
 ---
 
@@ -226,6 +249,8 @@
 - **验收**：三条命令。这一步没有命令，不需要升版本。
 
 ### [ ] T-22 生育与遗传（R-32 – R-35）
+
+- **2026-09-30 更新**：后代属性改为三项（钓感、耐力、亲人）加家族传承，参考《中国式家长》，见 design.md 5.4；外观按 T-14 的五项逐层遗传。
 
 - **分支**：`feat/breed`。依赖 T-20、T-21。存档 21；内容 12（与 T-20 同一版，后合并的不再升）。
 - **先读这些文件**：design.md 5.2 – 5.4；`src/core/random.ts`；`src/minigames/angling.ts` 和 `angling-motion.ts` 里 `happy` 加成的读法；`tests/simulation/fight-balance.test.ts`。
