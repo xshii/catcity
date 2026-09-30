@@ -9,7 +9,7 @@ import type { CatEntity, WorldState } from '../../src/core';
 import { breedScreen } from '../../src/view/cats/breed-screen';
 import { readyPair } from '../helpers/family';
 
-// Worlds built here, as in breed-check.test.ts: no cat can be born yet (T-22).
+// Worlds built here, as in breed-check.test.ts: not validated saves.
 const ready: WorldState = {
   ...readyPair().getSnapshot(),
   minute: 10 * 1440,
