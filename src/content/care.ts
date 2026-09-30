@@ -22,6 +22,9 @@ export const BOND = {
   chatsPerDay: 1,
   /** Gifts that earn points and lift mood, per cat and game day; later ones are kept. */
   giftsPerDay: 3,
+  /** A good round of petting (spec 039), for the first `pettingPerDay` of a game day per cat. */
+  petting: 2,
+  pettingPerDay: 3,
   dayMinutes: 24 * 60,
 } as const;
 

@@ -4,6 +4,9 @@ import { fishingFixture } from './fishing-fixture';
 import { pettingTastes } from '../../src/core';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import { SAVE_VERSION, type CatEntity } from '../../src/core/schema';
+import { gameDay } from '../../src/core/bond';
+import { BOND } from '../../src/content/care';
+import { MOOD as CAT_MOOD } from '../../src/content/mood';
 import { PETTING, PET_SPOTS, type PetSpot } from '../../src/content/petting';
 import type { PetStroke } from '../../src/minigames/petting';
 
@@ -123,8 +126,8 @@ describe('PET_CAT', () => {
     expect(after.cats[0]).toEqual({
       ...before.cats[0]!,
       mood: before.cats[0]!.mood + LOVELY_MOOD,
-      playerBond: 1,
-      lastBondMinute: before.minute,
+      playerBond: BOND.petting,
+      pettingBond: { day: gameDay(before.minute), count: 1 },
       petting: after.cats[0]!.petting,
     });
     expect({ ...after, cats: [] }).toEqual({ ...before, cats: [] });
@@ -242,26 +245,66 @@ describe('the hourly limit', () => {
   });
 });
 
-describe('the bond', () => {
-  it('grows with a good round, through the shared hourly rule', () => {
-    const world = calm();
-    pet(world, lovely);
-    expect(cat(world)).toMatchObject({
-      playerBond: 1,
-      lastBondMinute: world.getSnapshot().minute,
+describe('the bond (spec 041 R-20)', () => {
+  it('grows by its points with each of the first good rounds of a game day, then no more that day', () => {
+    // Low enough that no round makes the cat happy.
+    const world = calm(20);
+    const bonds: number[] = [];
+    for (let round = 1; round <= BOND.pettingPerDay + 1; round++) {
+      pet(world, lovely);
+      bonds.push(cat(world).playerBond);
+    }
+    expect(bonds).toEqual(
+      bonds.map(
+        (_, index) => Math.min(index + 1, BOND.pettingPerDay) * BOND.petting,
+      ),
+    );
+    expect(cat(world).mood).toBeLessThan(CAT_MOOD.happy);
+    expect(cat(world).pettingBond).toEqual({
+      day: gameDay(world.getSnapshot().minute),
+      count: BOND.pettingPerDay,
     });
-    pet(world, lovely);
-    expect(cat(world).playerBond).toBe(1);
-    advance(world, 60);
-    pet(world, lovely);
-    expect(cat(world).playerBond).toBe(2);
   });
 
-  it('does not grow with a round below half a meter', () => {
-    const world = calm();
+  it('gives one more to a cat that is happy as the round begins', () => {
+    const happy = calm(CAT_MOOD.happy);
+    pet(happy, lovely);
+    expect(cat(happy).playerBond).toBe(BOND.petting + BOND.happy);
+    // The round's own mood comes after: a round that makes the cat happy earns the plain points.
+    const cheered = calm(CAT_MOOD.happy - 1);
+    pet(cheered, lovely);
+    expect(cat(cheered).mood).toBeGreaterThanOrEqual(CAT_MOOD.happy);
+    expect(cat(cheered).playerBond).toBe(BOND.petting);
+  });
+
+  it('does not grow with a round below half a meter, which leaves the day’s rounds as they were', () => {
+    const world = calm(20);
     const result = pet(world, perPurr(tastes.favourite, 4));
     expect(result.ok && result.events[0]).toMatchObject({ meter: 40 });
-    expect(cat(world)).toMatchObject({ playerBond: 0, lastBondMinute: null });
+    expect(cat(world)).toMatchObject({ playerBond: 0, pettingBond: null });
+    for (let round = 0; round < BOND.pettingPerDay; round++)
+      pet(world, lovely);
+    expect(cat(world).playerBond).toBe(BOND.pettingPerDay * BOND.petting);
+  });
+
+  it('starts over with the next game day, for each cat by itself', () => {
+    const world = calm(20);
+    world.dispatch({ type: 'INVITE_PEPPER' });
+    const pepper = cat(world, 1).id;
+    const bonds = () => world.getSnapshot().cats.map((cat) => cat.playerBond);
+    for (let round = 0; round < BOND.pettingPerDay; round++)
+      pet(world, lovely);
+    pet(world, perPurr(pettingTastes(SEED, pepper).favourite, 8), pepper);
+    const full = BOND.pettingPerDay * BOND.petting;
+    expect(bonds()).toEqual([full, BOND.petting]);
+    const minute = world.getSnapshot().minute;
+    advance(world, BOND.dayMinutes - (minute % BOND.dayMinutes) - 1);
+    pet(world, lovely);
+    expect(bonds()).toEqual([full, BOND.petting]);
+    advance(world, 1);
+    expect(cat(world).mood).toBeLessThan(CAT_MOOD.happy);
+    pet(world, lovely);
+    expect(bonds()).toEqual([full + BOND.petting, BOND.petting]);
   });
 });
 
@@ -376,9 +419,26 @@ describe('saves', () => {
     expect(() => loadWorld(JSON.stringify(save))).toThrow();
   });
 
-  it('reject a cat without the field', () => {
+  it.each([
+    [
+      'a counted round on a day yet to come',
+      { day: 1_000_000, count: 1 },
+    ],
+    ['a day without a counted round', { day: 0, count: 0 }],
+    [
+      'more counted rounds than a day allows',
+      { day: 0, count: BOND.pettingPerDay + 1 },
+    ],
+  ])('reject %s', (_, pettingBond) => {
     const save = JSON.parse(played().save());
-    delete save.world.cats[0].petting;
+    expect(save.world.cats[0].pettingBond).toEqual({ day: 0, count: 1 });
+    save.world.cats[0].pettingBond = pettingBond;
+    expect(() => loadWorld(JSON.stringify(save))).toThrow();
+  });
+
+  it.each(['petting', 'pettingBond'])('reject a cat without %s', (field) => {
+    const save = JSON.parse(played().save());
+    delete save.world.cats[0][field];
     expect(() => loadWorld(JSON.stringify(save))).toThrow();
   });
 });

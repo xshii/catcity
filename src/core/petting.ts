@@ -5,7 +5,8 @@ import {
   playPetting,
   type PetTastes,
 } from '../minigames/petting';
-import { rewardBond } from './bond';
+import { BOND } from '../content/care';
+import { rewardBond, spendDaily } from './bond';
 import { requireCat } from './cats';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import { RandomService, streamSeed } from './random';
@@ -46,6 +47,15 @@ export function petCat(
   const outcome = pettingOutcome(
     playPetting(pettingTastes(world.seed, cat.id), command.strokes),
   );
+  // A good round counts toward the bond for the first rounds of a game day; like a gift
+  // or a chat, it reads the cat's mood as the round begins.
+  const counted =
+    outcome.good &&
+    spendDaily(cat.pettingBond, world.minute, BOND.pettingPerDay);
+  if (counted) {
+    cat.pettingBond = counted;
+    rewardBond(cat, BOND.petting);
+  }
   const hour = Math.floor(world.minute / LIMIT.hourMinutes);
   const played = cat.petting.hour === hour ? cat.petting.rounds : 0;
   const full = played < LIMIT.fullRounds;
@@ -63,7 +73,6 @@ export function petCat(
     hour,
     rounds: Math.min(LIMIT.fullRounds, played + 1),
   };
-  if (outcome.good) rewardBond(cat, world.minute);
   return [
     {
       type: 'CatPetted',

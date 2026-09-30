@@ -295,14 +295,15 @@ function play(seed: number) {
           ? [BOND.chat]
           : command.type === 'GIFT_FISH'
             ? [BOND.gift, BOND.favoriteGift]
-            : ['FISH_CONTROL', 'FISH_MOTION_CONTROL'].includes(command.type)
-              ? [BOND.catch]
-              : [];
-      // A catch reads the happy of its run; a gift or a chat the mood of the moment.
-      const happy =
-        command.type === 'INTERACT' || command.type === 'GIFT_FISH'
-          ? cat.mood >= MOOD.happy
-          : before.fishing.active!.happy;
+            : command.type === 'PET_CAT'
+              ? [BOND.petting]
+              : ['FISH_CONTROL', 'FISH_MOTION_CONTROL'].includes(command.type)
+                ? [BOND.catch]
+                : [];
+      // A catch reads the happy of its run; a gift, a chat or petting the mood of the moment.
+      const happy = ['INTERACT', 'GIFT_FISH', 'PET_CAT'].includes(command.type)
+        ? cat.mood >= MOOD.happy
+        : before.fishing.active!.happy;
       expect(
         points.map((base) => base + (happy ? BOND.happy : 0)),
         `bond: ${where}`,

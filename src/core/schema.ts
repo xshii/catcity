@@ -62,6 +62,8 @@ const catSchema = z.strictObject({
   chatBond: dailyCount(BOND.chatsPerDay).nullable(),
   /** Gifts that counted on the latest day one did. */
   giftBond: dailyCount(BOND.giftsPerDay).nullable(),
+  /** Good petting rounds that counted on the latest day one did. */
+  pettingBond: dailyCount(BOND.pettingPerDay).nullable(),
   lastChatMoodMinute: integer.nullable(),
   fishingSpotId: spotIdSchema.nullable(),
   walk: z
@@ -158,9 +160,11 @@ export function assertWorld(value: unknown): WorldState {
     if (
       (cat.chatBond !== null && cat.chatBond.day > gameDay(world.minute)) ||
       (cat.giftBond !== null && cat.giftBond.day > gameDay(world.minute)) ||
+      (cat.pettingBond !== null &&
+        cat.pettingBond.day > gameDay(world.minute)) ||
       (cat.lastChatMoodMinute !== null && cat.lastChatMoodMinute > world.minute)
     )
-      throw new Error('Future chat or gift');
+      throw new Error('Future chat, gift or petting');
     if (
       cat.home !== null &&
       !world.buildings.some((building) => building.id === cat.home)
