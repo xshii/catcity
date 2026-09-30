@@ -13,7 +13,7 @@ import { toViewModel } from '../shell/model';
 import { moodBadge } from '../shell/mood';
 import { bondBadge } from '../shell/bond';
 import { catPortrait, fishIllustration } from '../art/illustrations';
-import { catLook, catPose } from '../art/cat-look';
+import { catPose, lookOf } from '../art/cat-look';
 import { riverBackdrop } from '../art/river-palette';
 import {
   CATCH_CARD_MS,
@@ -64,7 +64,7 @@ function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
       const pose = catPose(world, cat, {
         atRiver: river && cat.id === selected,
       });
-      const next = catPortrait(catLook(cat), pose);
+      const next = catPortrait(lookOf(cat), pose);
       if (portrait !== next) {
         portrait = next;
         button.querySelector('svg')?.remove();

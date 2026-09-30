@@ -2,7 +2,14 @@ import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { CatArt } from './cat';
-import { catLook, catPose, type CatLook, type CatMotion } from './cat-look';
+import {
+  catLook,
+  catPose,
+  COAT_APPEARANCE,
+  lookOf,
+  type CatLook,
+  type CatMotion,
+} from './cat-look';
 import { rodPose, rodShape, rodStance, type RodStance } from './rod-pose';
 import {
   castPreview,
@@ -125,7 +132,7 @@ export class RiverView {
   private line: { width: number; colour: number } | null = null;
   private companion: CatArt;
   /** The companion's look; redrawn when the cat by the water looks different. */
-  private companionLook: CatLook = { coat: 'cream', breed: 'RAGDOLL' };
+  private companionLook: CatLook = catLook('RAGDOLL', COAT_APPEARANCE.cream);
   private waterKind: SpotId = 'POND';
   private waterFrame = -1;
   /** The spot and light last painted, as `spot/light`. */
@@ -500,13 +507,10 @@ export class RiverView {
     const cat =
       world.cats.find((cat) => cat.id === (active?.catId ?? preview.catId)) ??
       world.cats[0]!;
-    const { coat, breed } = catLook(cat);
-    if (
-      coat !== this.companionLook.coat ||
-      breed !== this.companionLook.breed
-    ) {
+    // The same breed and choices give the same look object.
+    if (lookOf(cat) !== this.companionLook) {
       this.companion.destroy();
-      this.companionLook = { coat, breed };
+      this.companionLook = lookOf(cat);
       this.companion = new CatArt(
         this.scene,
         COMPANION.x,

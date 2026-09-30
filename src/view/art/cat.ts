@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
 import {
   CAT_ART,
-  colourOf,
-  type CatCoat,
   type CatLook,
   type CatMotion,
   type CatPose,
@@ -44,20 +42,20 @@ function pathPoints(d: string, origin: { x: number; y: number }) {
 function draw(
   g: Phaser.GameObjects.Graphics,
   shapes: readonly CatShape[],
-  coat: CatCoat,
+  look: CatLook,
   origin: { x: number; y: number },
 ) {
   const hex = (shape: CatShape, key: 'fill' | 'stroke') =>
-    Phaser.Display.Color.HexStringToColor(colourOf(shape[key]!, coat)).color;
+    Phaser.Display.Color.HexStringToColor(look.colours[shape[key]!]).color;
   for (const shape of shapes) {
     if (shape.ellipse) {
       const [cx, cy, rx, ry] = shape.ellipse;
-      g.fillStyle(hex(shape, 'fill')).fillEllipse(
-        cx - origin.x,
-        cy - origin.y,
-        rx * 2,
-        ry * 2,
-      );
+      const at = [cx - origin.x, cy - origin.y, rx * 2, ry * 2] as const;
+      g.fillStyle(hex(shape, 'fill')).fillEllipse(...at);
+      if (shape.stroke)
+        g.lineStyle(shape.width ?? 2, hex(shape, 'stroke')).strokeEllipse(
+          ...at,
+        );
       continue;
     }
     const points = pathPoints(shape.d!, origin);
@@ -101,22 +99,20 @@ export class CatArt extends Phaser.GameObjects.Container {
     super(scene, x, y);
     scene.add.existing(this);
     this.setScale(scale);
-    const { coat } = look;
-    const art = CAT_ART.breeds[look.breed];
     const tailRoot = { x: 58, y: 50 };
-    const tail = draw(scene.add.graphics(), art.tail, coat, tailRoot);
+    const tail = draw(scene.add.graphics(), look.tail, look, tailRoot);
     tail.setPosition(tailRoot.x - FEET.x, tailRoot.y - FEET.y);
     this.ears = scene.add.graphics();
     this.eyes = scene.add.graphics().setPosition(0, EYE_LINE - FEET.y);
     this.face = scene.add.graphics();
     this.awake = scene.add.container(0, 0, [
       tail,
-      draw(scene.add.graphics(), [...art.ruff, ...art.head], coat, FEET),
+      draw(scene.add.graphics(), [...look.ruff, ...look.head], look, FEET),
       this.ears,
       this.eyes,
       this.face,
     ]);
-    this.curled = draw(scene.add.graphics(), art.curled, coat, FEET);
+    this.curled = draw(scene.add.graphics(), look.curled, look, FEET);
     this.figure = scene.add
       .container(0, FEET_Y, [this.awake, this.curled])
       .setScale(SIZE);
@@ -193,13 +189,13 @@ export class CatArt extends Phaser.GameObjects.Container {
     this.pose = key;
     this.awake.setVisible(!pose.curled);
     this.curled.setVisible(pose.curled);
-    const { coat, breed } = this.look;
-    draw(this.ears.clear(), CAT_ART.breeds[breed].ears[pose.ears], coat, FEET);
-    draw(this.eyes.clear(), CAT_ART.eyes[pose.face], coat, {
+    const { look } = this;
+    draw(this.ears.clear(), look.ears[pose.ears], look, FEET);
+    draw(this.eyes.clear(), CAT_ART.eyes[pose.face], look, {
       x: FEET.x,
       y: EYE_LINE,
     });
-    draw(this.face.clear(), CAT_ART.face[pose.face], coat, FEET);
+    draw(this.face.clear(), CAT_ART.face[pose.face], look, FEET);
     return this;
   }
 

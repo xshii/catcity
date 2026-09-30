@@ -8,7 +8,8 @@ import { CAT_COATS } from '../../src/content/cats';
 import { createWorld } from '../../src/core/world';
 import { invite } from '../helpers/world';
 import {
-  CAT_ART,
+  catLook,
+  COAT_APPEARANCE,
   portraitShapes,
   type CatLook,
   type CatPose,
@@ -48,15 +49,15 @@ function sheet(tokens: string) {
   const awake: CatPose = { face: 'calm', ears: 'up', curled: false };
   const svg = (shapes: string) =>
     `<svg viewBox="2 0 84 64" aria-hidden="true">${shapes}</svg>`;
-  const figure = ({ coat, breed }: CatLook) =>
+  const figure = (look: CatLook) =>
     svg(
-      [...CAT_ART.breeds[breed].tail, ...portraitShapes(breed, awake)]
-        .map((shape) => shapeSvg(shape, coat))
+      [...look.tail, ...portraitShapes(look, awake)]
+        .map((shape) => shapeSvg(shape, look.colours))
         .join(''),
     );
   const cells = CAT_BREED_IDS.flatMap((breed) =>
     CAT_COATS.map((coat) => {
-      const look = { coat, breed };
+      const look = catLook(breed, COAT_APPEARANCE[coat]);
       return `<figure data-look="${coat}/${breed}">${figure(look)}${catPortrait(look, awake)}${catPortrait(look, { ...awake, curled: true })}<figcaption>${COAT_NAMES[coat]} · ${CAT_BREEDS[breed].name}</figcaption></figure>`;
     }),
   );

@@ -7,10 +7,11 @@ import { createWorld, loadWorld } from '../../src/core/world';
 import { invite } from '../helpers/world';
 import { MOOD_COPY } from '../../src/view/shell/mood';
 import {
-  CAT_ART,
   CAT_TOKENS,
+  COAT_APPEARANCE,
   catLook,
   catPose,
+  lookOf,
   portraitShapes,
   type CatEars,
   type CatLook,
@@ -18,9 +19,13 @@ import {
   type CatShape,
 } from '../../src/view/art/cat-look';
 import { catPortrait, shapeSvg } from '../../src/view/art/illustrations';
+import { box, contrast, outline, type Point } from '../helpers/cat-shapes';
 import { finishFishing, fishingFixture } from './fishing-fixture';
 
-const MOCHI: CatLook = { coat: 'cream', breed: 'RAGDOLL' };
+/** A cat's look as T-13 had it: a breed and a coat. */
+const coated = (breed: CatBreed, coat: (typeof CAT_COATS)[number]) =>
+  catLook(breed, COAT_APPEARANCE[coat]);
+const MOCHI = coated('RAGDOLL', 'cream');
 
 type Cat = WorldState['cats'][number];
 const withCat = (edit: (cat: Cat) => void): WorldState => {
@@ -166,7 +171,7 @@ describe('the card portrait draws the pose', () => {
   it('colours the fur by coat, outlines in warm brown and stays decorative', () => {
     const pose: CatPose = { face: 'calm', ears: 'up', curled: false };
     expect(catPortrait(MOCHI, pose)).toContain('fill="#f7e3c4"');
-    expect(catPortrait({ ...MOCHI, coat: 'gray' }, pose)).not.toContain(
+    expect(catPortrait(coated('RAGDOLL', 'gray'), pose)).not.toContain(
       'fill="#f7e3c4"',
     );
     for (const markup of [...faces.map((face) => awake(face)), curled('low')]) {
@@ -177,65 +182,8 @@ describe('the card portrait draws the pose', () => {
   });
 });
 
-type Point = readonly [number, number];
-/** A point of a Bézier curve through its control points (de Casteljau). */
-const bezier = (points: readonly Point[], t: number): Point =>
-  points.length === 1
-    ? points[0]!
-    : bezier(
-        points
-          .slice(1)
-          .map((next, i): Point => [
-            points[i]![0] + (next[0] - points[i]![0]) * t,
-            points[i]![1] + (next[1] - points[i]![1]) * t,
-          ]),
-        t,
-      );
-/** Points along a shape: an ellipse's box corners, or a path with its curves sampled. */
-function outline(shape: CatShape): Point[] {
-  if (shape.ellipse) {
-    const [cx, cy, rx, ry] = shape.ellipse;
-    return [
-      [cx - rx, cy - ry],
-      [cx + rx, cy + ry],
-    ];
-  }
-  const points: Point[] = [];
-  for (const part of shape.d!.match(/[MLQCZ][^MLQCZ]*/g)!) {
-    const numbers = part
-      .slice(1)
-      .trim()
-      .split(/[\s,]+/)
-      .filter(Boolean);
-    const given: Point[] = [];
-    for (let i = 0; i < numbers.length; i += 2)
-      given.push([Number(numbers[i]), Number(numbers[i + 1])]);
-    if (part[0] === 'Q' || part[0] === 'C') {
-      const from = points.at(-1)!;
-      for (let step = 1; step <= 10; step++)
-        points.push(bezier([from, ...given], step / 10));
-    } else points.push(...given);
-  }
-  return points;
-}
-function box(shapes: readonly CatShape[]) {
-  const points = shapes.flatMap(outline);
-  const xs = points.map(([x]) => x);
-  const ys = points.map(([, y]) => y);
-  const [left, right] = [Math.min(...xs), Math.max(...xs)];
-  const [top, bottom] = [Math.min(...ys), Math.max(...ys)];
-  return {
-    left,
-    right,
-    top,
-    bottom,
-    width: right - left,
-    height: bottom - top,
-  };
-}
-
 describe('each breed has its own outline (ui-design 6.1, R-15)', () => {
-  const art = (breed: CatBreed) => CAT_ART.breeds[breed];
+  const art = (breed: CatBreed) => coated(breed, 'cream');
   const ragdoll = art('RAGDOLL');
   const shorthair = art('BRITISH_SHORTHAIR');
   const colours = (markup: string) => new Set(markup.match(/#[0-9a-f]{6}/g));
@@ -244,7 +192,7 @@ describe('each breed has its own outline (ui-design 6.1, R-15)', () => {
     for (const curled of [false, true]) {
       const pose: CatPose = { face: 'calm', ears: 'up', curled };
       const [first, second] = CAT_BREED_IDS.map((breed) =>
-        catPortrait({ coat: 'cream', breed }, pose),
+        catPortrait(art(breed), pose),
       );
       expect(first).not.toBe(second);
       expect(colours(first!)).toEqual(colours(second!));
@@ -300,7 +248,7 @@ describe('each breed has its own outline (ui-design 6.1, R-15)', () => {
   it('draws a portrait as the map cat without its tail: the breed’s ruff, face and ears', () => {
     for (const breed of CAT_BREED_IDS) {
       const pose: CatPose = { face: 'happy', ears: 'mid', curled: false };
-      const shapes = portraitShapes(breed, pose);
+      const shapes = portraitShapes(art(breed), pose);
       expect(shapes).toEqual(
         expect.arrayContaining([
           ...art(breed).ruff,
@@ -308,8 +256,8 @@ describe('each breed has its own outline (ui-design 6.1, R-15)', () => {
           ...art(breed).ears.mid,
         ]),
       );
-      expect(shapes).not.toEqual(expect.arrayContaining(art(breed).tail));
-      expect(portraitShapes(breed, { ...pose, curled: true })).toBe(
+      expect(shapes).not.toEqual(expect.arrayContaining([...art(breed).tail]));
+      expect(portraitShapes(art(breed), { ...pose, curled: true })).toBe(
         art(breed).curled,
       );
     }
@@ -319,11 +267,8 @@ describe('each breed has its own outline (ui-design 6.1, R-15)', () => {
     const world = createWorld(42);
     invite(world);
     const [mochi, pepper] = world.getSnapshot().cats;
-    expect(catLook(mochi!)).toEqual(MOCHI);
-    expect(catLook(pepper!)).toEqual({
-      coat: 'gray',
-      breed: 'BRITISH_SHORTHAIR',
-    });
+    expect(lookOf(mochi!)).toBe(MOCHI);
+    expect(lookOf(pepper!)).toBe(coated('BRITISH_SHORTHAIR', 'gray'));
   });
 });
 
@@ -337,12 +282,12 @@ describe('four coats in the colours of tokens.css (ui-design 2.2, 6.1)', () => {
   };
   const awake: CatPose = { face: 'calm', ears: 'up', curled: false };
   const looks = CAT_COATS.flatMap((coat) =>
-    CAT_BREED_IDS.map((breed): CatLook => ({ coat, breed })),
+    CAT_BREED_IDS.map((breed) => ({ coat, look: coated(breed, coat) })),
   );
   /** The cat on the map: its tail behind the portrait's shapes. */
-  const figure = ({ coat, breed }: CatLook, pose: CatPose) =>
-    [...CAT_ART.breeds[breed].tail, ...portraitShapes(breed, pose)]
-      .map((shape) => shapeSvg(shape, coat))
+  const figure = (look: CatLook, pose: CatPose) =>
+    [...look.tail, ...portraitShapes(look, pose)]
+      .map((shape) => shapeSvg(shape, look.colours))
       .join('');
 
   it('mirrors the values of the CSS tokens of the same name', () => {
@@ -354,22 +299,8 @@ describe('four coats in the colours of tokens.css (ui-design 2.2, 6.1)', () => {
   });
 
   it('keeps every light fur at 3:1 or more against the warm-brown outline (WCAG)', () => {
-    // Relative luminance and contrast ratio as WCAG 2 defines them.
-    const luminance = (hex: string) => {
-      const [r, g, b] = [1, 3, 5].map((at) => {
-        const channel = parseInt(hex.slice(at, at + 2), 16) / 255;
-        return channel <= 0.04045
-          ? channel / 12.92
-          : ((channel + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-    };
-    const contrast = (a: string, b: string) => {
-      const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-      return (light! + 0.05) / (dark! + 0.05);
-    };
     expect(contrast('#ffffff', '#000000')).toBeCloseTo(21);
-    // The tuxedo's dark fur is the exception: its eyes are paper there (ui-design 6.1).
+    // The tuxedo's dark fur is the exception: its eyes and outline are paper there.
     for (const fur of [T.coatCream, T.coatGray, T.coatOrange, T.coatWhite])
       expect(contrast(fur, T.brown), fur).toBeGreaterThanOrEqual(3);
   });
@@ -380,42 +311,46 @@ describe('four coats in the colours of tokens.css (ui-design 2.2, 6.1)', () => {
 
   it('draws each of the 4 coats × 2 breeds apart, in the roster and on the map', () => {
     for (const pose of [awake, { ...awake, curled: true }]) {
-      expect(new Set(looks.map((look) => catPortrait(look, pose))).size).toBe(
-        8,
-      );
-      expect(new Set(looks.map((look) => figure(look, pose))).size).toBe(8);
+      expect(
+        new Set(looks.map(({ look }) => catPortrait(look, pose))).size,
+      ).toBe(8);
+      expect(new Set(looks.map(({ look }) => figure(look, pose))).size).toBe(8);
     }
   });
 
   it('fills a solid coat with its own colour only, eyes in ink and lines in warm brown', () => {
-    for (const look of looks.filter(({ coat }) => coat !== 'tuxedo'))
+    for (const { coat, look } of looks.filter(({ coat }) => coat !== 'tuxedo'))
       for (const markup of [
         catPortrait(look, awake),
         catPortrait(look, { ...awake, curled: true }),
         figure(look, awake),
       ]) {
-        expect(markup).toContain(`fill="${FUR[look.coat]}"`);
+        expect(markup).toContain(`fill="${FUR[coat]}"`);
         for (const other of [...Object.values(FUR), T.coatWhite])
-          if (other !== FUR[look.coat]) expect(markup).not.toContain(other);
+          if (other !== FUR[coat]) expect(markup).not.toContain(other);
         expect(markup).toContain(T.ink);
         expect(markup).toContain(`stroke="${T.brown}"`);
       }
   });
 
-  it('draws a tuxedo dark with a light lower face, paper eyes on the dark and a brown outline', () => {
+  // T-14 (cat-looks.md 1): dark fur takes a light outline; the white keeps the brown one.
+  it('draws a tuxedo dark with a light lower face, paper eyes and outline on the dark, brown round the white', () => {
+    const happy: CatPose = { ...awake, face: 'happy' };
     for (const breed of CAT_BREED_IDS) {
-      const look: CatLook = { coat: 'tuxedo', breed };
+      const look = coated(breed, 'tuxedo');
       for (const markup of [
-        catPortrait(look, awake),
+        catPortrait(look, happy),
         catPortrait(look, { ...awake, curled: true }),
-        figure(look, awake),
+        figure(look, happy),
       ]) {
         expect(markup).toContain(`fill="${T.coatBlack}"`);
         expect(markup).toContain(`fill="${T.coatWhite}"`);
         expect(markup).toContain(`stroke="${T.brown}"`);
+        expect(markup).toContain(`stroke="${T.paper}"`);
         expect(markup).not.toContain(T.ink);
       }
-      expect(catPortrait(look, awake)).toContain(`fill="${T.paper}"`);
+      // Open eyes: a paper rim round the eye colour; only the pupils are dark.
+      expect(catPortrait(look, awake)).toContain(`stroke="${T.paper}"`);
     }
   });
 
@@ -424,10 +359,11 @@ describe('four coats in the colours of tokens.css (ui-design 2.2, 6.1)', () => {
     const underEyes = ([x]: Point) =>
       (x >= 25 && x <= 33) || (x >= 39 && x <= 47);
     for (const breed of CAT_BREED_IDS) {
-      const ruff = new Set<CatShape>(CAT_ART.breeds[breed].ruff);
+      const look = coated(breed, 'tuxedo');
+      const ruff = new Set<CatShape>(look.ruff);
       // The face's underside; a ragdoll's ruff is light fur too, out at the cheeks.
-      const under = portraitShapes(breed, awake).filter(
-        (shape) => shape.fill === 'under' && !ruff.has(shape),
+      const under = portraitShapes(look, awake).filter(
+        (shape) => shape.fill === 'white' && !ruff.has(shape),
       );
       expect(under).toHaveLength(1);
       for (const [, y] of outline(under[0]!).filter(underEyes))
