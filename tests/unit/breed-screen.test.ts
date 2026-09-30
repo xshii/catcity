@@ -39,6 +39,7 @@ describe('who a cat could have a kitten with (spec 041 T-21, ui-design 5.4)', ()
         sex: { mark: '♂', label: '公' },
         ok: true,
         lines: ['✓ 可以'],
+        kitten: '和 Pepper 生小猫',
       },
     ]);
     expect(model.alone).toBe('');

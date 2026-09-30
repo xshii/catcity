@@ -112,7 +112,9 @@ export function mountNameDialog(deps: {
   root.addEventListener('keydown', (event) => {
     const target = event.target as HTMLElement;
     if (event.key === 'Escape') {
+      // On top of everything: Escape closes the box, not the panel under it.
       event.preventDefault();
+      event.stopPropagation();
       close(null);
     } else if (event.key === 'Tab') {
       // The box is modal: Tab goes round its stops, from the last to the first.

@@ -1,7 +1,9 @@
 import { CAT_BREEDS } from '../../content/breeds';
 import { personalityLabel } from '../../content/cats';
 import { fishById, SPOTS } from '../../content/fishing';
+import { TALENT_NAMES, type Talent } from '../../content/family';
 import {
+  familyMarks,
   MAX_STAT,
   nameSalt,
   pettingTastes,
@@ -35,9 +37,17 @@ export const CATS_COPY = {
     likes: '喜好',
     family: '家人',
   } satisfies Record<CatsSection, string>,
-  // T-24 names the parents and the kittens; until T-22 every cat is first-generation.
+  // T-24 makes the names ways to those cats.
   fromAfar: '从别处来到小城',
+  parents: (mother: string, father: string) =>
+    `妈妈 ${mother} · 爸爸 ${father}`,
   noKittens: '还没有孩子',
+  /** The three talents (R-35), in the order of `TALENT_NAMES`. */
+  talents: { feel: '钓感', stamina: '耐力', affection: '亲人' },
+  /** Family marks (design 5.4): its line's when it was born, and its own since. */
+  heritage: (line: number, own: number) =>
+    `这一脉 ${line} 枚 · 它自己 ${own} 枚`,
+  heritageNote: '和你的关系到「亲密」「家人」各记一枚，之后的小猫会带上',
   /** The pencil beside the name and the name box it opens (R-16, ui-design 5.4). */
   rename: {
     label: (name: string) => `给 ${name} 改名字`,
@@ -46,6 +56,12 @@ export const CATS_COPY = {
     done: (name: string) => `以后它就叫 ${name} 了。`,
   },
 } as const;
+
+/** A cat's three talents in words: "钓感 1 · 耐力 0 · 亲人 2". */
+export const talentText = (talent: Talent): string =>
+  TALENT_NAMES.map((name) => `${CATS_COPY.talents[name]} ${talent[name]}`).join(
+    ' · ',
+  );
 
 /** The cat with the player: the one on the rod while a run lasts, else the selected one, else the first. */
 function markedId(world: WorldState, selected: string | null) {
@@ -127,6 +143,14 @@ export function detailScreen(
     pettingTastes(world.seed, cat.id),
     cat.petting.discovered,
   );
+  const nameOf = (id: string) =>
+    world.cats.find((item) => item.id === id)!.name;
+  const kittens = world.cats
+    .filter(
+      (item) =>
+        item.parents?.mother === cat.id || item.parents?.father === cat.id,
+    )
+    .map((item) => item.name);
   const lines: Record<CatsSection, ReturnType<typeof line>[]> = {
     now: [
       line('心情', mood.text, mood.hint),
@@ -143,10 +167,24 @@ export function detailScreen(
       ),
       line('摸摸', known || TASTE_COPY.unknown),
       line('本领', CAT_BREEDS[cat.breedId].fishingHint),
+      line('天赋', talentText(cat.talent)),
     ],
     family: [
-      line('父母', CATS_COPY.fromAfar),
-      line('孩子', CATS_COPY.noKittens),
+      line(
+        '父母',
+        cat.parents
+          ? CATS_COPY.parents(
+              nameOf(cat.parents.mother),
+              nameOf(cat.parents.father),
+            )
+          : CATS_COPY.fromAfar,
+      ),
+      line('孩子', kittens.join('、') || CATS_COPY.noKittens),
+      line(
+        '家传',
+        CATS_COPY.heritage(cat.heritage, familyMarks(cat)),
+        CATS_COPY.heritageNote,
+      ),
     ],
   };
   return {

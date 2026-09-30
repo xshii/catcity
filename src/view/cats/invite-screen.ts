@@ -98,14 +98,14 @@ export function inviteScreen(
   };
 }
 
-/** Where the newcomer moved in; apartments are numbered in the order they were built. */
+/** An apartment's number: apartments are numbered in the order they were built. */
+export const apartmentNumber = (world: WorldState, id: string): number =>
+  world.buildings
+    .filter((building) => building.type === 'CAT_APARTMENT')
+    .findIndex((building) => building.id === id) + 1;
+
+/** Where the newcomer moved in. */
 export function arrivedNotice(world: WorldState, catId: string): string {
   const cat = world.cats.find((item) => item.id === catId)!;
-  const apartments = world.buildings.filter(
-    (building) => building.type === 'CAT_APARTMENT',
-  );
-  return INVITE_COPY.arrived(
-    cat.name,
-    apartments.findIndex((building) => building.id === cat.home) + 1,
-  );
+  return INVITE_COPY.arrived(cat.name, apartmentNumber(world, cat.home!));
 }

@@ -16,7 +16,7 @@
 | `src/providers/`、`src/platform/`          | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                                                                 |
 | `src/view/city/`、`src/view/fishing/`      | 城市和钓鱼交互、面板与只读状态呈现                                                                                           |
 | `src/view/fishing/motion/`                 | 钓鱼的可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                                                     |
-| `src/view/cats/`                           | 猫咪面板（spec 041）：名册与详情（含绝育）、邀请新伙伴的名单、"和谁生小猫"的条件列表；捏猫画面（T-14）；起名框（T-25）       |
+| `src/view/cats/`                           | 猫咪面板（spec 041）：名册与详情（含绝育）、邀请名单、和谁生小猫与生小猫（T-22）；捏猫画面（T-14）；起名框（T-25）           |
 | `src/view/petting/`、`src/view/companion/` | 撸猫画面（spec 039）；事实回忆                                                                                               |
 | `src/view/common/`                         | 各 View 模块共用：地点状态与模块间接口（`Tools`、`Aim`、`CatMoves`）、设置卡、确认框、心情/关系/错误/摸摸喜好文案、ViewModel |
 | `src/view/art/`                            | 美工：城市地图与棋盘几何、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                                                        |

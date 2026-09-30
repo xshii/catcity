@@ -35,6 +35,8 @@ export const E2E_SPECS: Readonly<Record<string, SpecEntry>> = {
     smoke: true,
   },
   'invite.spec.ts': { modules: ['cats'] },
+  // A kitten by touch: the confirmation, the name box and the card of its birth (T-22).
+  'kitten.spec.ts': { modules: ['cats'] },
   'main-page.spec.ts': { modules: ['city'], layout: true },
   'motion-fishing.spec.ts': { modules: ['fishing'] },
   'neuter.spec.ts': { modules: ['cats'] },

@@ -165,6 +165,8 @@ describe('a cat’s detail (ui-design 5.2)', () => {
       ],
       ['摸摸', '还不知道'],
       ['本领', expect.any(String)],
+      // Spec 041 R-35: none for a first-generation cat.
+      ['天赋', '钓感 0 · 耐力 0 · 亲人 0'],
     ]);
     expect(likes[2]![1]).not.toBe('');
   });
@@ -175,6 +177,7 @@ describe('a cat’s detail (ui-design 5.2)', () => {
     ).toEqual([
       ['父母', '从别处来到小城'],
       ['孩子', '还没有孩子'],
+      ['家传', '这一脉 0 枚 · 它自己 0 枚'],
     ]);
   });
 
