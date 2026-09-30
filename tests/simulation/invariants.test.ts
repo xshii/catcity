@@ -17,6 +17,7 @@ import { NEUTER_PRICE } from '../../src/content/family';
 import { MOOD } from '../../src/content/mood';
 import { BAITS, FISHING, fishById, SPOT_IDS } from '../../src/content/fishing';
 import { PETTING, PET_SPOTS } from '../../src/content/petting';
+import { WISH } from '../../src/content/wishes';
 import { createWorld, loadWorld } from '../../src/core';
 import type { CommandResult, GameCommand, WorldState } from '../../src/core';
 import { RandomService } from '../../src/core/random';
@@ -299,14 +300,24 @@ function play(seed: number) {
     expect(after.minute).toBeGreaterThanOrEqual(before.minute);
     expect(after.nextId).toBeGreaterThanOrEqual(before.nextId);
     checkBounds(after);
+    /** Whether the command granted this cat its wish (spec 041 R-53). */
+    const wished = (catId: string) =>
+      result.ok &&
+      result.events.some(
+        (event) => event.type === 'WishFulfilled' && event.entityId === catId,
+      );
     for (const [index, cat] of before.cats.entries()) {
       const change = after.cats[index]!.mood - cat.mood;
       if (!change) continue;
-      expect(moodMayChange(command), `mood: ${where}`).toBe(true);
+      // A granted wish lifts mood, whichever command granted it.
+      expect(moodMayChange(command) || wished(cat.id), `mood: ${where}`).toBe(
+        true,
+      );
       moodMoves.add(`${command.type}${change > 0 ? '+' : '-'}`);
     }
     // The bond only grows, by its source's points and one more from a happy cat, from
-    // chat, a gift, a run's end (specs 036, 038) or a good round of petting (spec 039).
+    // chat, a gift, a run's end (specs 036, 038), a good round of petting (spec 039) or a
+    // granted wish (spec 041 R-53), alone or on top of the command's own points.
     for (const [index, cat] of before.cats.entries()) {
       const grown = after.cats[index]!.playerBond - cat.playerBond;
       if (!grown) continue;
@@ -321,13 +332,19 @@ function play(seed: number) {
                 ? [BOND.catch]
                 : [];
       // A catch reads the happy of its run; a gift, a chat or petting the mood of the moment.
-      const happy = ['INTERACT', 'GIFT_FISH', 'PET_CAT'].includes(command.type)
-        ? cat.mood >= MOOD.happy
-        : before.fishing.active!.happy;
-      expect(
-        points.map((base) => base + (happy ? BOND.happy : 0)),
-        `bond: ${where}`,
-      ).toContain(grown);
+      const happy = () =>
+        ['INTERACT', 'GIFT_FISH', 'PET_CAT'].includes(command.type)
+          ? cat.mood >= MOOD.happy
+          : before.fishing.active!.happy;
+      const own = points.map((base) => base + (happy() ? BOND.happy : 0));
+      // A wish reads the mood as it is granted, after the command's own lift.
+      const allowed = wished(cat.id)
+        ? [0, ...own].flatMap((base) => [
+            base + WISH.bond,
+            base + WISH.bond + BOND.happy,
+          ])
+        : own;
+      expect(allowed, `bond: ${where}`).toContain(grown);
     }
     // Recovery during a walk only happens once the walk stopped for lack of energy.
     if (result.ok)

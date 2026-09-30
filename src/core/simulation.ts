@@ -10,6 +10,7 @@ import { liftMood } from './mood';
 import { gridDistance } from './city/map';
 import { cafeAssignment } from './city/customers';
 import { residentArrives } from './residents';
+import { wishesArise } from './wishes';
 
 export function simulate(
   world: WorldState,
@@ -20,6 +21,7 @@ export function simulate(
   for (let step = 0; step < minutes; step++) {
     const minute = ++world.minute;
     residentArrives(world, events);
+    wishesArise(world);
     // The whole city is paid at the same minutes from one seating of the cats, so no
     // cat pays two cafes in one interval, whatever was moved in between.
     if (minute % BUILDINGS.CAT_CAFE.intervalMinutes === 0)

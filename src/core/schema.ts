@@ -17,6 +17,7 @@ import { BOND, CARE } from '../content/care';
 import { PET_SPOTS } from '../content/petting';
 import { MAX_TALENT } from '../content/family';
 import { MAX_RESIDENTS } from '../content/residents';
+import { WISH_KINDS } from '../content/wishes';
 import { gameDay } from './bond';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
@@ -32,6 +33,7 @@ import {
 import { assertFishing } from './fishing/validation';
 import { catNameSchema } from './names';
 import { assertResidents } from './residents';
+import { assertWishes } from './wishes';
 
 const integer = z.number().int().min(0).max(WORLD_LIMIT);
 export const positionSchema = z.strictObject({ x: integer, y: integer });
@@ -107,6 +109,17 @@ const catSchema = z.strictObject({
     /** Minutes of the latest rounds that lifted mood, oldest first, as many as the allowance holds. */
     lifted: z.array(integer).max(CARE.pettingLifts.rounds),
   }),
+  /** What the cat wishes for now (spec 041 R-50), and the game day it thought of it. */
+  wish: z
+    .strictObject({
+      kind: z.enum(WISH_KINDS),
+      /** The fish for a fish, the water for an outing; null for the others. */
+      target: z.string().min(1).max(100).nullable(),
+      sinceDay: integer,
+    })
+    .nullable(),
+  /** The game day its last wish was granted: no new one comes that day (R-53). */
+  lastWishDay: integer.nullable(),
 });
 const buildingSchema = z.strictObject({
   id: text,
@@ -149,8 +162,8 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 25;
-export const CONTENT_VERSION = 20;
+export const SAVE_VERSION = 27;
+export const CONTENT_VERSION = 23;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
   contentVersion: z.literal(CONTENT_VERSION),
@@ -224,6 +237,7 @@ export function assertWorld(value: unknown): WorldState {
   }
   assertCity(world);
   assertResidents(world);
+  assertWishes(world);
   assertFishing(world, uniqueId);
   return world;
 }
