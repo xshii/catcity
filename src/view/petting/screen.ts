@@ -1,4 +1,8 @@
-import type { CatDefinitionId } from '../../content/cats';
+import {
+  CAT_DEFINITION_IDS,
+  CAT_DEFINITIONS,
+  type CatDefinitionId,
+} from '../../content/cats';
 import {
   PETTING,
   PET_SPOTS,
@@ -159,15 +163,26 @@ const LINES: Record<
   },
 };
 
+/**
+ * Whose words a cat speaks in: the first cat its first personality word belongs to. Every
+ * word is a first cat's, and a kitten takes one of each parent's (spec 041 R-33).
+ */
+const voiceOf = (personality: readonly string[]): CatDefinitionId =>
+  CAT_DEFINITION_IDS.find((id) =>
+    (CAT_DEFINITIONS[id].personality as readonly string[]).includes(
+      personality[0]!,
+    ),
+  )!;
+
 export function reactionLine(
-  definitionId: CatDefinitionId,
+  personality: readonly string[],
   tastes: PetTastes,
   spot: PetSpot,
   good: boolean,
   /** The first cat's name: Mochi, or what the player named it (T-25). */
   first: string,
 ): string {
-  const line = LINES[definitionId][tasteOf(tastes, spot)];
+  const line = LINES[voiceOf(personality)][tasteOf(tastes, spot)];
   return (good ? line.good : line.poor)
     .replaceAll('{spot}', PET_SPOT_NAMES[spot])
     .replaceAll('{first}', first);
@@ -206,7 +221,7 @@ const signed = (value: number) =>
  */
 export function pettingScreen(
   view: PettingView,
-  cat: Pick<CatEntity, 'name' | 'definitionId' | 'petting'> | null,
+  cat: Pick<CatEntity, 'name' | 'personality' | 'petting'> | null,
   /** The cat's look when nothing is happening to it. */
   rest: CatPose,
   /** The first cat's name, which a line may mention. */
@@ -285,7 +300,7 @@ export function pettingScreen(
           }
         : {
             line: reactionLine(
-              cat.definitionId,
+              cat.personality,
               round.tastes,
               result.spot,
               result.meter >= PETTING.good,

@@ -52,3 +52,9 @@
   font-size: 11px;
   color: var(--text-muted);
 }
+/* The way to a kitten under a partner who misses nothing (T-22). */
+.breed-kitten {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+}

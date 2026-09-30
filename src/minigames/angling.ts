@@ -10,6 +10,7 @@ import {
   type FishId,
   type SpotId,
 } from '../content/fishing';
+import { TALENT_EFFECTS } from '../content/family';
 import { MOOD } from '../content/mood';
 import { RandomService } from '../core/random';
 
@@ -61,9 +62,12 @@ export interface AnglingRun {
   outside: number;
   /** The cat was happy when the run began (spec 032): a small bonus for the whole run. */
   happy: boolean;
+  /** The cat's 钓感 (spec 041 R-35), read as the run began: a wider window to lift in. */
+  feel: number;
   /** The fish of the shadow the cast landed on (spec 033); null before the cast or off shadows. */
   shadow: FishId | null;
 }
+/** A new run; a cat without 钓感 when `feel` is left out. */
 export function initialAngling(
   input: Pick<
     AnglingRun,
@@ -78,10 +82,11 @@ export function initialAngling(
     | 'aimDepth'
     | 'mode'
     | 'happy'
-  >,
+  > & { feel?: number },
 ): AnglingRun {
   return {
     ...input,
+    feel: input.feel ?? 0,
     catchKind: 'fish',
     lengthMm: 0,
     lootAmount: 0,
@@ -121,7 +126,8 @@ export function greenZone(run: AnglingRun): { low: number; high: number } {
       stars * ZONE.widthPerStar +
       (run.skillLevel - 1) * ZONE.widthPerSkill +
       (run.precision ? ZONE.precisionBonus : 0) +
-      (run.happy ? MOOD.bonus.greenZone : 0),
+      (run.happy ? MOOD.bonus.greenZone : 0) +
+      (run.phase === 'hook' ? run.feel * TALENT_EFFECTS.feel.hookZone : 0),
   );
   const targetCenter =
     run.phase === 'hook'

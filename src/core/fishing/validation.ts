@@ -69,6 +69,7 @@ export function assertFishing(
         (cat) =>
           cat.id === run.catId &&
           cat.breedId === run.catBreed &&
+          cat.talent.feel === run.feel &&
           cat.fishingSpotId === run.spotId,
       ) ||
       run.seed !== runSeed(world.seed, serialOf(run.id)) ||

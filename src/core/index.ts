@@ -9,6 +9,7 @@ export {
   pairBreedBlocks,
   type BreedBlock,
 } from './family';
+export { familyMarks } from './inheritance';
 export { gameDay } from './bond';
 export { cityNames, nameSalt, suggestNames } from './names';
 export { nextResidentHome, residentIdentity } from './residents';

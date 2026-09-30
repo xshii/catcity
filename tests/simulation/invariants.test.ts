@@ -114,6 +114,14 @@ function commandFor(
     () => ({ type: 'INVITE_CAT', definitionId: pick(CAT_DEFINITION_IDS) }),
     () => ({ type: 'NEUTER_CAT', catId: catId() }),
     () => ({
+      type: 'BREED_CATS',
+      motherId: catId(),
+      fatherId: catId(),
+      name: '团子',
+      // By the step, not a draw: the sex takes nothing from the sequence.
+      sex: step % 2 ? 'F' : 'M',
+    }),
+    () => ({
       type: 'ADVANCE_TIME',
       minutes: chance(90) ? rng.nextInt(90) : 600,
     }),
@@ -164,8 +172,11 @@ function coinChange(
       return -BAITS[command.baitId].price;
     case 'INVITE_CAT':
       return -invitePrice(
-        before.cats.filter((cat) => INVITABLE_CATS.includes(cat.definitionId))
-          .length,
+        before.cats.filter(
+          (cat) =>
+            cat.definitionId !== null &&
+            INVITABLE_CATS.includes(cat.definitionId),
+        ).length,
       );
     case 'NEUTER_CAT':
       return -NEUTER_PRICE;
@@ -205,6 +216,7 @@ function coinChange(
     case 'INTERACT':
     case 'PET_CAT':
     case 'RENAME_CAT':
+    case 'BREED_CATS':
     case 'DEBUG_SPAWN_CAT':
       return 0;
   }
@@ -242,6 +254,7 @@ function moodMayChange(command: GameCommand): boolean {
     case 'INVITE_CAT':
     case 'RENAME_CAT':
     case 'NEUTER_CAT':
+    case 'BREED_CATS':
     case 'RESTYLE_CAT':
     case 'DEBUG_SPAWN_CAT':
       return false;
@@ -388,8 +401,9 @@ describe('Core under random command sequences', () => {
   it('reaches mood drift both ways, chat, an escape and petting both ways', () => {
     // Random play rarely lands a fish; catch and gift mood are unit-tested (mood.test.ts).
     // Exhaustion while walking shows up as ADVANCE_TIME− alongside drift. The seed is one
-    // whose play reaches all six: 48 did until NEUTER_CAT joined the draw (T-20), 3 does.
-    expect([...play(3).moodMoves].sort()).toEqual([
+    // whose play reaches all six: 48 did until NEUTER_CAT joined the draw (T-20), 3 until
+    // BREED_CATS did (T-22). Of seeds 1 to 200 now only 90 and 128 reach all six.
+    expect([...play(90).moodMoves].sort()).toEqual([
       'ADVANCE_TIME+',
       'ADVANCE_TIME-',
       'FISH_CONTROL-',

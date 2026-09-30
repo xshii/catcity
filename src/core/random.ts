@@ -8,6 +8,7 @@ const STREAM_SALT = {
   petting: 0x9e3779b1,
   names: 0x7f4a7c15,
   resident: 0x68e31da4,
+  inherit: 0x3c6ef372,
   wish: 0x2c1b3c6d,
 } as const;
 const RUN_SEED_MULTIPLIER = 2246822519;

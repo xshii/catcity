@@ -72,6 +72,9 @@ import v25Content20 from '../fixtures/save-v25-content20.json';
 // A picked stray at home and Pepper, two game days on, from before a cat carried a wish
 // (save 25, content 21).
 import v25Content21 from '../fixtures/save-v25-content21.json';
+// Mochi and Pepper happy and trusting the player, every condition for a kitten met, from
+// before a kitten could be born (save 26, content 22).
+import v26Content22 from '../fixtures/save-v26-content22.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -114,6 +117,7 @@ const incompatible = {
   v25Content19,
   v25Content20,
   v25Content21,
+  v26Content22,
   future,
 };
 

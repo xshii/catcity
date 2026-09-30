@@ -11,8 +11,9 @@ import type { CatEntity, WorldState } from '../../src/core';
 import { breedBlocks, related, type BreedBlock } from '../../src/core/family';
 import { readyPair } from '../helpers/family';
 
-// Pure rules over instances built here: no cat is born yet (T-22), so the worlds below
-// are not validated saves. Late enough in the game for a cooldown to have run out.
+// Pure rules over instances built here: the worlds below are not validated saves (a
+// "kitten" here is no inheritance of its parents, T-22). Late enough in the game for a
+// cooldown to have run out.
 const ready: WorldState = {
   ...readyPair().getSnapshot(),
   minute: 10 * 1440,

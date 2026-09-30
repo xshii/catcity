@@ -10,7 +10,8 @@
 | 钓鱼       | [fishing/](fishing/)：资格、命令、结算、鱼影、持久状态校验                                                                              |
 | 时间与随机 | [simulation.ts](simulation.ts)、[random.ts](random.ts)、[limits.ts](limits.ts)                                                          |
 | 居民与关系 | [cats.ts](cats.ts) 由模板创建猫实例、改名；[names.ts](names.ts) 名字 schema 与推荐名；[bond.ts](bond.ts)；个体事实保存在严格状态 schema |
-| 家庭       | [family.ts](family.ts)：生育条件 `breedBlocks` 与亲属 `related`（spec 041 R-31）；绝育 `neuterCat`（R-30）                              |
+| 家庭       | [family.ts](family.ts)：生育条件 `breedBlocks` 与亲属 `related`（R-31）、生小猫 `breedCats`（R-32）、绝育 `neuterCat`（R-30）           |
+| 遗传       | [inheritance.ts](inheritance.ts)：遗传 `inherit`、家传 `familyMarks`、出生的猫的存档校验 `assertBorn`（spec 041 R-33 – R-35）           |
 | NPC 居民   | [residents.ts](residents.ts)：每天搬来一只、由种子推导身份、存档校验（spec 041 T-30）                                                   |
 | 心愿       | [wishes.ts](wishes.ts)：游戏日开始时想到心愿、只从现在做得到的事里选、对应命令结算时实现、存档校验（spec 041 T-40）                     |
 
