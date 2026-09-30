@@ -160,7 +160,7 @@
 - **依赖**：T-05 合并（都改猫的 schema，先后合并可以少一次冲突）。存档 20。
 - **先读这些文件**：design.md 第 3 节；`src/core/schema.ts`（`catSchema`、`assertTemplate`）；`src/core/cats.ts`；`src/content/cats.ts`；`tests/unit/companionship.test.ts`；`tests/integration/save-safety.test.ts`。
 - **做什么**：
-  1. `catSchema` 加字段：`sex`、`bornMinute`、`generation`、`parents`、`neutered`、`talent`、`lastBredMinute`；`definitionId` 改为可空。
+  1. `catSchema` 加字段：`sex`、`bornMinute`、`generation`、`parents`、`neutered`、`talent`、`lastBredMinute`。`definitionId` 暂不改为可空（2026-09-30 调整：这时 Core 造不出没有模板的猫，枚举本身就拒绝 `null`；改可空会让画面模块为不存在的猫写兜底，挪到 T-22）。
   2. `CAT_DEFINITIONS` 每个模板加 `sex`（Mochi `F`，Pepper `M`）。
   3. `instantiateCat` 填初代的默认值。
   4. `assertTemplate` 改成 design.md 3.3 的两条分支。初代猫那一支完整实现。出生的猫那一支在本任务里**直接拒绝**（任何 `definitionId === null` 的猫都不合法），因为这时还没有能创建它们的命令；T-22 实现遗传后再放开，并接入"重算遗传并比较"。不要写一个"暂时不检查"的占位。
@@ -232,7 +232,7 @@
 - **做什么**：
   1. `inherit(seed, kittenId, mother, father)`。
   2. 命令 `BREED_CATS`。
-  3. 放开 T-10 里对出生的猫的拒绝，接入"重算遗传并比较"的校验。
+  3. 放开 T-10 里对出生的猫的拒绝：`definitionId` 改为可空（T-10 推迟到这里），接入"重算遗传并比较"的校验；画面里按模板取的地方（`view/shell/model.ts` 的性格标签、`view/petting/screen.ts` 的撸猫台词）改为读猫自己的字段。
   4. 天赋：开一竿时把猫的 `talent` 读进这一竿的状态（这一竿的 schema 加一个字段，**存档升到 21**）。
   5. 界面：确认框复用 T-25 的起名框（输入或点选推荐名）；成功后出庆祝卡，选中小猫。如果 T-25 还没做，先在本任务里做起名框，T-25 只剩改名。
 - **测试**：遗传的确定性和分布（1000 个种子里每项特征确实来自父母之一）；取消不消耗 id；篡改小猫的任何遗传特征被拒绝；天赋上限 4；平衡模拟：天赋 4 让新手 4★ 上鱼率提升不超过 10 个百分点。

@@ -14,6 +14,7 @@ import {
 } from './limits';
 import { BOND, CARE } from '../content/care';
 import { PET_SPOTS } from '../content/petting';
+import { MAX_TALENT } from '../content/family';
 import { gameDay } from './bond';
 import { z } from 'zod';
 import { BUILDING_IDS } from '../content/city';
@@ -46,6 +47,15 @@ const catSchema = z.strictObject({
   definitionId: z.enum(CAT_DEFINITION_IDS),
   name: text,
   appearance: z.strictObject({ coat: z.enum(['cream', 'gray']) }),
+  /** Identity belongs to the instance (spec 041 R-10); age and children are derived. */
+  sex: z.enum(['F', 'M']),
+  /** Null for a first-generation cat, which arrives grown. */
+  bornMinute: integer.nullable(),
+  generation: integer.min(1),
+  parents: z.strictObject({ mother: text, father: text }).nullable(),
+  neutered: z.boolean(),
+  talent: z.number().int().min(0).max(MAX_TALENT),
+  lastBredMinute: integer.nullable(),
   personality: z.array(text).max(10),
   traits: z.array(text).max(10),
   preferences: z.strictObject({
@@ -119,7 +129,7 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 export const CONTENT_VERSION = 10;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
@@ -161,9 +171,11 @@ export function assertWorld(value: unknown): WorldState {
       (cat.giftBond !== null && cat.giftBond.day > gameDay(world.minute)) ||
       (cat.pettingBond !== null &&
         cat.pettingBond.day > gameDay(world.minute)) ||
-      (cat.lastChatMoodMinute !== null && cat.lastChatMoodMinute > world.minute)
+      (cat.lastChatMoodMinute !== null &&
+        cat.lastChatMoodMinute > world.minute) ||
+      (cat.lastBredMinute !== null && cat.lastBredMinute > world.minute)
     )
-      throw new Error('Future chat, gift or petting');
+      throw new Error('Future chat, gift, petting or breeding');
     if (
       cat.home !== null &&
       !world.buildings.some((building) => building.id === cat.home)
@@ -198,10 +210,18 @@ export function assertWorld(value: unknown): WorldState {
 const sameList = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((item, index) => item === b[index]);
 
-/** Identity and tastes come from the template; only the name is free text. */
+/**
+ * A first-generation cat is its template: identity and tastes come from it, and it has no
+ * birth, parents or talent. Only the name is free text.
+ */
 function assertTemplate(cat: CatEntity, cats: readonly CatEntity[]) {
   const definition = CAT_DEFINITIONS[cat.definitionId];
   if (
+    cat.bornMinute !== null ||
+    cat.generation !== 1 ||
+    cat.parents !== null ||
+    cat.talent !== 0 ||
+    cat.sex !== definition.sex ||
     cat.breedId !== definition.breedId ||
     cat.appearance.coat !== definition.coat ||
     !sameList(cat.personality, definition.personality) ||
