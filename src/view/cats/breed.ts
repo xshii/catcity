@@ -50,7 +50,7 @@ export function mountBreeding(deps: {
     $('breed-partners').replaceChildren(
       ...model.partners.map((partner) => {
         const row = document.createElement('li');
-        row.dataset.catId = partner.id;
+        row.dataset.partnerId = partner.id;
         row.dataset.ok = String(partner.ok);
         const name = document.createElement('strong');
         name.textContent = partner.name;

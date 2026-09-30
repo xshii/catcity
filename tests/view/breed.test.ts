@@ -60,6 +60,10 @@ describe('who to have a kitten with, in the cats panel (spec 041 T-21)', () => {
     const pepper = game.world().cats[1]!;
     openCats('roster');
     click('#breed-open');
+    // The list's rows do not take the roster cards' `data-cat-id`, which picks a cat.
+    expect(
+      document.querySelectorAll(`[data-cat-id="${pepper.id}"]`),
+    ).toHaveLength(1);
     click(`[data-cat-id="${pepper.id}"]`);
     expect(text('#breed-open')).toBe('Pepper 和谁生小猫…');
     expect(listed().map((cat) => cat.lines)).toEqual([
