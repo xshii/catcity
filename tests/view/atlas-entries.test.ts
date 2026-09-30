@@ -17,6 +17,7 @@ import {
   type FishId,
 } from '../../src/content/fishing';
 import { SCREEN_COPY } from '../../src/view/fishing/screen';
+import { invite } from '../helpers/world';
 
 const entry = (species: FishId) => text(`[data-species="${species}"]`);
 const option = (species: FishId) =>
@@ -38,7 +39,7 @@ const details = (species: FishId) => {
 /** A new game with Pepper invited and these species caught once, at their smallest. */
 function caught(...species: FishId[]) {
   const world = createWorld(42);
-  expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+  invite(world);
   const state = world.getSnapshot();
   for (const id of species) {
     const fish = fishById(id);

@@ -248,7 +248,9 @@ test('city guide makes construction, income and the relationship activity discov
  */
 function progressSave() {
   const world = loadWorld(progressSaves().perchAtReeds);
-  expect(world.dispatch({ type: 'INVITE_PEPPER' }).ok).toBe(true);
+  expect(
+    world.dispatch({ type: 'INVITE_CAT', definitionId: 'PEPPER' }).ok,
+  ).toBe(true);
   return world;
 }
 

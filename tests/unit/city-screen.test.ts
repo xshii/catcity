@@ -23,7 +23,7 @@ import {
   type CityViewEvent,
 } from '../../src/view/city/view-state';
 import { ERROR_MESSAGES } from '../../src/view/shell/errors';
-import { advance, buildCafe, untilPayout } from '../helpers/world';
+import { advance, buildCafe, invite, untilPayout } from '../helpers/world';
 
 const HOURS = BUILDINGS.CAT_CAFE.intervalMinutes / 60;
 const view = (...events: CityViewEvent[]) =>
@@ -338,12 +338,8 @@ describe('city screen', () => {
     });
     const home = world.getSnapshot().buildings[1]!.id;
     world.dispatch({ type: 'ASSIGN_HOME', catId: 'mochi', buildingId: home });
-    world.dispatch({ type: 'INVITE_PEPPER' });
-    world.dispatch({
-      type: 'ASSIGN_HOME',
-      catId: world.getSnapshot().cats[1]!.id,
-      buildingId: home,
-    });
+    // Pepper moves into the other bed of the same apartment.
+    expect(invite(world).home).toBe(home);
     expect(detail()).toBe(
       `客人 2/${CAFE.seats} · 每 ${HOURS} 小时 ${2 * CAFE.coinsPerCustomer} 金币 · Mochi、Pepper`,
     );

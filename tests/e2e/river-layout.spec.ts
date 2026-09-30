@@ -103,7 +103,7 @@ async function cityNavigation(page: Page) {
   await closeRiverPanel(page);
   await page.locator('#city-tab-cats').click();
   await onScreen(page.locator('#panel-cats'));
-  await onScreen(page.locator('#invite-pepper'));
+  await onScreen(page.locator('#invite-open'));
   await onScreen(page.locator('[data-cat-id="mochi"]'));
   // Spec 032: the band from Core in words as well as a face, and the hint when happy.
   const badge = moodBadge(before.cats.find((cat) => cat.id === 'mochi')!.mood);

@@ -1,0 +1,108 @@
+/* Inviting a new companion (spec 041 ui-design 5.3): the way in and the list, in the cats panel. */
+.tool-page[data-view='invite'] > :not(.cat-invite) {
+  display: none;
+}
+/*
+ * The list takes the roster's place and scrolls inside the panel (ui-design P2, 3.3); the
+ * panel's title and tabs, and the list's way back, stay put.
+ */
+#panel-cats:has(> .tool-page[data-view='invite']) {
+  display: flex;
+  flex-direction: column;
+}
+.tool-page[data-view='invite'],
+.cat-invite {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.invite-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+}
+.invite-open svg {
+  flex: none;
+}
+.invite-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 4px;
+}
+.invite-heading h3 {
+  margin: 0;
+  font-size: 16px;
+}
+#invite-back {
+  min-height: 44px;
+  padding: 6px 12px;
+}
+.invite-beds {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.invite-list {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+.invite-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 4px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.invite-portrait svg {
+  width: 48px;
+}
+.invite-about p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.invite-about .invite-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+.invite-name strong {
+  font-size: 16px;
+}
+.invite-sex {
+  font-size: 14px;
+}
+.invite-button,
+.invite-reason {
+  grid-column: 1 / -1;
+}
+.invite-button {
+  justify-self: end;
+  min-height: 44px;
+}
+.invite-reason {
+  justify-self: end;
+  font-size: 12px;
+  color: var(--text-accent);
+  text-align: right;
+}

@@ -100,6 +100,66 @@ const LINES: Record<
       poor: '喂，{spot}不给摸！',
     },
   },
+  // Gentle, sleepy and clingy: soft, and wants you to stay.
+  NIANGAO: {
+    favourite: {
+      good: '{spot}……好舒服，想就这样睡着。',
+      poor: '{spot}最喜欢了……再轻一点嘛。',
+    },
+    neutral: {
+      good: '暖暖的……再陪我待一会儿好不好？',
+      poor: '{spot}也还好……我知道更舒服的地方。',
+    },
+    disliked: {
+      good: '{spot}不要啦……别的地方都好舒服。',
+      poor: '呜，{spot}不行……我去旁边眯一会儿。',
+    },
+  },
+  // Brave and steady: few words, never in a hurry.
+  ZHIMA: {
+    favourite: {
+      good: '{spot}，正合适。你的手很稳。',
+      poor: '{spot}没错。别急，跟着呼噜声来。',
+    },
+    neutral: {
+      good: '嗯，不坏。今天就这样吧。',
+      poor: '{spot}还行。你再找找，我不说。',
+    },
+    disliked: {
+      good: '{spot}我不喜欢。不过这回算你过关。',
+      poor: '{spot}不行。我走开一下，不是生气。',
+    },
+  },
+  // Sweet and chatty: says everything, with exclamation marks.
+  BUDING: {
+    favourite: {
+      good: '对对对，就是{spot}！你怎么知道的呀？',
+      poor: '{spot}最棒啦！可是太快了，慢慢来嘛。',
+    },
+    neutral: {
+      good: '好开心！明天也要来摸我哦！',
+      poor: '{spot}还行啦。悄悄说，还有更好的地方！',
+    },
+    disliked: {
+      good: '哎呀{spot}不要！别的地方好舒服，原谅你啦。',
+      poor: '{spot}不可以！哼，我要去告诉 Mochi。',
+    },
+  },
+  // Easygoing and lazy: drawls, and cannot be bothered to run off.
+  DOUBAO: {
+    favourite: {
+      good: '{spot}……就这里……别停……',
+      poor: '{spot}是对的……慢慢来，不急。',
+    },
+    neutral: {
+      good: '随便摸摸也挺好……哈欠。',
+      poor: '{spot}啊，都行都行……',
+    },
+    disliked: {
+      good: '{spot}不太舒服……别的地方舒服就行。',
+      poor: '{spot}……懒得躲了，不过真的不太行。',
+    },
+  },
 };
 
 export function reactionLine(

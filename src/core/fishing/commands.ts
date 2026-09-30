@@ -1,6 +1,4 @@
-import { CITY_START } from '../../content/city';
 import { atFishingShore, resumeWalk } from '../city/walking';
-import { gridDistance } from '../city/map';
 import {
   BAITS,
   catchXp,
@@ -13,7 +11,7 @@ import {
 } from '../../content/fishing';
 import { BOND } from '../../content/care';
 import { MOOD } from '../../content/mood';
-import { instantiateCat, requireCat } from '../cats';
+import { requireCat } from '../cats';
 import {
   castAngling,
   initialAngling,
@@ -24,12 +22,11 @@ import { stepMotionRun, strikeMotionRun } from '../../minigames/angling-motion';
 import { rewardBond, spendDaily } from '../bond';
 import { liftCalmMood, liftMood } from '../mood';
 import { CommandError, type GameCommand, type GameEvent } from '../commands';
-import type { Position, WorldState } from '../schema';
-import { isWalkable } from '../city/path';
+import type { WorldState } from '../schema';
 import { failureTrash } from './rewards';
 import { shadowUnderCast } from './shadows';
 import { runSeed } from '../random';
-import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from '../limits';
+import { MAX_STAT, WORLD_LIMIT } from '../limits';
 
 const { cast: CAST, supplies: SUPPLIES } = FISHING;
 
@@ -73,21 +70,6 @@ export function applyAngling(
     } else world.coins += SUPPLIES.trashCoins;
     fishing.supplies[key]--;
     emit(command.type === 'USE_CAN' ? 'can-used' : 'trash-recycled');
-  } else if (command.type === 'INVITE_PEPPER') {
-    if (world.cats.some((cat) => cat.definitionId === 'PEPPER'))
-      throw new CommandError('ALREADY_INVITED');
-    if (world.cats.length >= MAX_CATS) throw new CommandError('CAT_LIMIT');
-    // Newcomers arrive at the free tile nearest the starter crossroads.
-    const { crossroads } = CITY_START;
-    const distance = (p: Position) => gridDistance(p, crossroads);
-    const position = world.map.tiles
-      .map((tile) => tile.position)
-      .filter((p) => isWalkable(world, p))
-      .sort((a, b) => distance(a) - distance(b) || a.y - b.y || a.x - b.x)[0];
-    if (!position) throw new CommandError('INVALID_PLACEMENT');
-    const cat = instantiateCat('PEPPER', `cat-${world.nextId++}`, position);
-    world.cats.push(cat);
-    emit('companion-invited', cat.id);
   } else if (command.type === 'BUY_BAIT') {
     const price = BAITS[command.baitId].price;
     if (world.coins < price) throw new CommandError('INSUFFICIENT_COINS');

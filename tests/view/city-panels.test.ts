@@ -53,10 +53,10 @@ describe('city panels', () => {
     click('#city-tab-outing');
     click('[data-outing-spot="POND"]');
     expect(visible('#begin-fishing')).toBe(true);
-    // Pepper is invited from the cats page, never from the river roster.
+    // New companions are invited from the cats page, never from the river roster.
     click('#begin-fishing');
     expect($('#visit-river').getAttribute('aria-pressed')).toBe('true');
-    expect(visible('#invite-pepper')).toBe(false);
+    expect(visible('#invite-open')).toBe(false);
   });
 
   // In the browser the clock changes the world every second (pages.spec.ts lost its

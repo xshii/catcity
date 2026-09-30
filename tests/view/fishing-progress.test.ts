@@ -89,7 +89,8 @@ describe('skill and atlas unlock a new waterway; bait changes catches and Pepper
       .fishing.inventory.find((fish) => fish.speciesId === 'PERCH')!;
     enterRiver(game);
     openCats();
-    click('#invite-pepper');
+    click('#invite-open');
+    click('[data-invite-cat="PEPPER"]');
     closeRiverPanel();
     const pepper = game
       .world()

@@ -7,6 +7,11 @@ import {
   ROAD_PRICE,
 } from '../../src/content/city';
 import { BOND } from '../../src/content/care';
+import {
+  CAT_DEFINITION_IDS,
+  INVITABLE_CATS,
+  invitePrice,
+} from '../../src/content/cats';
 import { MOOD } from '../../src/content/mood';
 import { BAITS, FISHING, fishById, SPOT_IDS } from '../../src/content/fishing';
 import { PETTING, PET_SPOTS } from '../../src/content/petting';
@@ -103,7 +108,7 @@ function commandFor(
     () => ({ type: 'SELL_FISH', fishId: fishId() }),
     () => ({ type: 'GIFT_FISH', fishId: fishId(), catId: catId() }),
     () => ({ type: 'BUY_BAIT', baitId: pick(['WORM', 'SHRIMP'] as const) }),
-    () => ({ type: 'INVITE_PEPPER' }),
+    () => ({ type: 'INVITE_CAT', definitionId: pick(CAT_DEFINITION_IDS) }),
     () => ({
       type: 'ADVANCE_TIME',
       minutes: chance(90) ? rng.nextInt(90) : 600,
@@ -153,6 +158,11 @@ function coinChange(
       );
     case 'BUY_BAIT':
       return -BAITS[command.baitId].price;
+    case 'INVITE_CAT':
+      return -invitePrice(
+        before.cats.filter((cat) => INVITABLE_CATS.includes(cat.definitionId))
+          .length,
+      );
     case 'RECYCLE_TRASH':
       return FISHING.supplies.trashCoins;
     case 'SELL_FISH': {
@@ -184,7 +194,6 @@ function coinChange(
     case 'FISH_CAST':
     case 'FISH_CANCEL':
     case 'GIFT_FISH':
-    case 'INVITE_PEPPER':
     case 'INTERACT':
     case 'PET_CAT':
     case 'DEBUG_SPAWN_CAT':
@@ -221,7 +230,7 @@ function moodMayChange(command: GameCommand): boolean {
     case 'FISH_CANCEL':
     case 'SELL_FISH':
     case 'BUY_BAIT':
-    case 'INVITE_PEPPER':
+    case 'INVITE_CAT':
     case 'DEBUG_SPAWN_CAT':
       return false;
   }
@@ -346,8 +355,9 @@ describe('Core under random command sequences', () => {
 
   it('reaches mood drift both ways, chat, an escape and petting both ways', () => {
     // Random play rarely lands a fish; catch and gift mood are unit-tested (mood.test.ts).
-    // Exhaustion while walking shows up as ADVANCE_TIME− alongside drift.
-    expect([...play(32).moodMoves].sort()).toEqual([
+    // Exhaustion while walking shows up as ADVANCE_TIME− alongside drift. The seed is one
+    // whose play reaches all six.
+    expect([...play(48).moodMoves].sort()).toEqual([
       'ADVANCE_TIME+',
       'ADVANCE_TIME-',
       'FISH_CONTROL-',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance, interact } from '../helpers/world';
+import { advance, interact, invite } from '../helpers/world';
 import { fishingFixture, finishFishing } from './fishing-fixture';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import { MOOD, moodBand } from '../../src/content/mood';
@@ -246,7 +246,7 @@ describe('a happy cat takes half of every gain (spec 038)', () => {
 
   it('a gift of another fish and the hour at home too', () => {
     const world = withMood(MOOD.happy, fishingFixture(42));
-    world.dispatch({ type: 'INVITE_PEPPER' });
+    invite(world);
     world.dispatch({
       type: 'FISH_BEGIN',
       catId: 'mochi',
