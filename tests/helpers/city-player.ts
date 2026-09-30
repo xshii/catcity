@@ -1,6 +1,6 @@
 import { BUILDINGS, CAFE } from '../../src/content/city';
 import { cafeAssignment } from '../../src/core/city';
-import { createWorld, World } from '../../src/core/world';
+import { createWorld, World, type Stray } from '../../src/core/world';
 import type { Position, WorldState } from '../../src/core';
 
 /**
@@ -51,9 +51,9 @@ const must = (world: World, command: unknown) => {
 const withCoins = (world: World, coins: number) =>
   new World({ ...world.getSnapshot(), coins });
 
-/** A new game where all 16 cats already exist, none of them housed. */
-export function crowdedStart(): World {
-  const world = createWorld(CITY_PLAN.seed);
+/** A new game where all 16 cats already exist, none of them housed; Mochi is `stray`. */
+export function crowdedStart(stray?: Stray): World {
+  const world = createWorld(CITY_PLAN.seed, stray);
   for (const position of STANDING.slice(0, CITY_PLAN.cats - 1))
     must(world, { type: 'DEBUG_SPAWN_CAT', position });
   return world;
@@ -152,9 +152,11 @@ export function playCity(options: {
   fishing: number;
   speed: number;
   realMinutes: number;
+  /** The new game's stray (spec 041 T-14); Mochi's template without one. */
+  stray?: Stray;
 }) {
   const minutesPerRealMinute = 60 * options.speed;
-  let world = crowdedStart();
+  let world = crowdedStart(options.stray);
   const purchases: Purchase[] = [];
   let cafeIncome = 0;
   let realMinute = 0;
