@@ -29,8 +29,14 @@ import v15 from '../fixtures/save-v15.json';
 // A motion fight under line tension from before runs recorded the fish shadow they
 // landed on (save 16).
 import v16 from '../fixtures/save-v16.json';
-// Two cats from before cats carried a petting record (save 17).
-import v17 from '../fixtures/save-v17-before-petting.json';
+// A bond counted once per game hour and a hunger need, from before bond points (save 17).
+import v17 from '../fixtures/save-v17.json';
+// A walk scheduled under the slower walking minutes (content 8, save 17).
+import v17Content8 from '../fixtures/save-v17-content8.json';
+// A cafe paid 10 coins an hour without customers, at the flat prices (content 9).
+import v18Content9 from '../fixtures/save-v18-content9.json';
+// Two cats from before cats carried a petting record (save 18, content 10).
+import v18Content10 from '../fixtures/save-v18-content10.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -57,6 +63,9 @@ const incompatible = {
   v15,
   v16,
   v17,
+  v17Content8,
+  v18Content9,
+  v18Content10,
   future,
 };
 

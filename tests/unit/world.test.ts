@@ -1,10 +1,34 @@
 import { WORLD_LIMIT } from '../../src/core/limits';
-import { CITY_START } from '../../src/content/city';
-import { advance, buildCafe, interact } from '../helpers/world';
+import { BOND } from '../../src/content/care';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../src/content/city';
+import { advance, buildCafe, interact, untilPayout } from '../helpers/world';
 import { describe, expect, it } from 'vitest';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import type { GameCommand } from '../../src/core/commands';
 import { RandomService } from '../../src/core/random';
+
+const INTERVAL = BUILDINGS.CAT_CAFE.intervalMinutes;
+/** Mochi's home, then after `wait` minutes a cafe beside it; returns the coins left. */
+function servedCafe(world: World, wait: number): number {
+  world.dispatch({
+    type: 'BUILD_BUILDING',
+    buildingType: 'CAT_APARTMENT',
+    position: { x: 4, y: 3 },
+  });
+  world.dispatch({
+    type: 'ASSIGN_HOME',
+    catId: 'mochi',
+    buildingId: 'building-1',
+  });
+  advance(world, wait);
+  expect(buildCafe(world, { x: 4, y: 4 }).ok).toBe(true);
+  return world.getSnapshot().coins;
+}
 
 describe('headless world', () => {
   it('creates an independent persistent Mochi in a 10×10 world', () => {
@@ -32,7 +56,9 @@ describe('headless world', () => {
   it('builds a cafe and charges exactly once', () => {
     const world = createWorld(42);
     expect(buildCafe(world, { x: 4, y: 4 }).ok).toBe(true);
-    expect(world.getSnapshot().coins).toBe(700);
+    expect(world.getSnapshot().coins).toBe(
+      CITY_START.coins - buildingPrice('CAT_CAFE', 0),
+    );
     expect(world.getSnapshot().buildings[0]).toMatchObject({
       type: 'CAT_CAFE',
       position: { x: 4, y: 4 },
@@ -57,7 +83,7 @@ describe('headless world', () => {
 
   it('rejects insufficient funds without changes', () => {
     const save = JSON.parse(createWorld(1).save());
-    save.world.coins = 299;
+    save.world.coins = buildingPrice('CAT_CAFE', 0) - 1;
     const world = loadWorld(JSON.stringify(save));
     const before = world.save();
     expect(buildCafe(world, { x: 4, y: 4 })).toMatchObject({
@@ -67,16 +93,15 @@ describe('headless world', () => {
     expect(world.save()).toBe(before);
   });
 
-  it('counts income from construction, including partial hours', () => {
+  it('pays income on the game clock, whenever the cafe was built', () => {
     const world = createWorld(42);
-    advance(world, 25);
-    buildCafe(world, { x: 4, y: 4 });
-    advance(world, 59);
-    expect(world.getSnapshot().coins).toBe(700);
+    const built = servedCafe(world, 25);
+    advance(world, untilPayout(world) - 1);
+    expect(world.getSnapshot().coins).toBe(built);
     advance(world, 1);
-    expect(world.getSnapshot().coins).toBe(710);
-    advance(world, 120);
-    expect(world.getSnapshot().coins).toBe(730);
+    expect(world.getSnapshot().coins).toBe(built + CAFE.coinsPerCustomer);
+    advance(world, 2 * INTERVAL);
+    expect(world.getSnapshot().coins).toBe(built + 3 * CAFE.coinsPerCustomer);
   });
 
   it.each([-1, 0.5, NaN, Infinity, 43201])(
@@ -106,7 +131,7 @@ describe('headless world', () => {
     ).toBe(false);
   });
 
-  it('stores structured memories, caps history and rate-limits bond rewards', () => {
+  it('stores structured memories, caps history and counts one chat a day toward the bond', () => {
     const world = createWorld(42);
     for (let i = 0; i < 55; i++)
       expect(interact(world, 'mochi', `hello ${i}`, '喵。').ok).toBe(true);
@@ -117,10 +142,13 @@ describe('headless world', () => {
       minute: CITY_START.minute,
       message: 'hello 54',
     });
-    expect(cat.playerBond).toBe(1);
+    expect(cat.playerBond).toBe(BOND.chat);
     advance(world, 60);
     interact(world, 'mochi', 'hello again', '喵。');
-    expect(world.getSnapshot().cats[0]!.playerBond).toBe(2);
+    expect(world.getSnapshot().cats[0]!.playerBond).toBe(BOND.chat);
+    advance(world, BOND.dayMinutes);
+    interact(world, 'mochi', 'good morning', '喵。');
+    expect(world.getSnapshot().cats[0]!.playerBond).toBe(2 * BOND.chat);
     expect(interact(world, 'missing', 'hi', 'hi').ok).toBe(false);
   });
 
@@ -140,9 +168,20 @@ describe('headless world', () => {
     const world = createWorld(1);
     expect(buildCafe(world, { x: 4, y: 4 })).toMatchObject({
       ok: true,
-      events: [{ type: 'BuildingBuilt', cost: 300 }],
+      events: [{ type: 'BuildingBuilt', cost: buildingPrice('CAT_CAFE', 0) }],
     });
-    const result = advance(world, 60);
+    // Income needs a customer: Mochi moves in next door.
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_APARTMENT',
+      position: { x: 4, y: 3 },
+    });
+    world.dispatch({
+      type: 'ASSIGN_HOME',
+      catId: 'mochi',
+      buildingId: 'building-2',
+    });
+    const result = advance(world, INTERVAL);
     expect(
       result.ok &&
         result.events.some((event) => event.type === 'IncomeGenerated'),
@@ -153,13 +192,15 @@ describe('headless world', () => {
 
 it('keeps time running when cafe income reaches the coin limit', () => {
   const world = createWorld(42);
-  buildCafe(world, { x: 4, y: 4 });
+  servedCafe(world, 0);
   const save = JSON.parse(world.save());
-  save.world.coins = WORLD_LIMIT - 5;
+  save.world.coins = WORLD_LIMIT - 1;
   const capped = loadWorld(JSON.stringify(save));
-  expect(capped.dispatch({ type: 'ADVANCE_TIME', minutes: 120 }).ok).toBe(true);
+  expect(
+    capped.dispatch({ type: 'ADVANCE_TIME', minutes: 2 * INTERVAL }).ok,
+  ).toBe(true);
   expect(capped.getSnapshot()).toMatchObject({
-    minute: save.world.minute + 120,
+    minute: save.world.minute + 2 * INTERVAL,
     coins: WORLD_LIMIT,
   });
 });

@@ -6,7 +6,7 @@ import {
   settle,
 } from '../../harness/adapters/catcity/city-input';
 import { readWorld, ready } from '../../harness/adapters/catcity/browser';
-import { CITY_START } from '../../src/content/city';
+import { BUILDINGS, CITY_START } from '../../src/content/city';
 import type { Position } from '../../src/core';
 import { MAP_VIEW } from '../../src/view/city/geometry';
 
@@ -178,7 +178,7 @@ test('a new game guides the next step above the map and keeps one clock control'
   await ready(page);
   await expect(page.locator('#notice')).not.toContainText('欢迎回来');
   await expect(page.locator('#city-hint')).toContainText('下一步');
-  await expect(page.locator('#city-hint')).toContainText('猫咖');
+  await expect(page.locator('#city-hint')).toContainText('猫公寓');
   await expect(page.locator('#city-hint')).toBeInViewport({ ratio: 1 });
   // One time control, next to the clock and the coins in the floating scene bar.
   await expect(
@@ -196,18 +196,25 @@ test('a new game guides the next step above the map and keeps one clock control'
   // Saving is automatic; the guide says so beside the explicit save.
   await expect(page.locator('#city-save')).toContainText('自动保存');
   await expect(page.locator('#city-panel-guide')).not.toContainText('种子');
+  // A home, a resident, then a cafe within reach of the home (spec 040).
+  await page.getByRole('button', { name: '回地图选择空地' }).click();
+  await page.locator('[data-build-type=CAT_APARTMENT]').click();
+  await expect(page.locator('#city-hint')).toContainText('入住');
+  await page.locator('#assign-home-mochi').click();
+  await expect(page.locator('#city-hint')).toContainText('建一间猫咖');
+  await page.locator('#city-tab-guide').click();
   await page.getByRole('button', { name: '回地图选择空地' }).click();
   await page.locator('[data-build-type=CAT_CAFE]').click();
+  // The cafe has its customer: the next step is fishing together.
   await expect(page.locator('#city-hint')).toContainText('下一步');
-  await expect(page.locator('#city-hint')).toContainText('速度');
-  await page.locator('#city-tab-guide').click();
-  await expect(page.locator('#city-goal')).toContainText('第一笔收入');
-  await page.locator('#city-action').click();
-  await expect(page.locator('#river-tools')).toBeHidden();
-  await expect(page.locator('#clock-speed')).toBeFocused();
-  expect((await readWorld(page)).minute).toBe(CITY_START.minute);
-  await page.evaluate(() => window.CAT_CITY_DEBUG!.advanceTime(60));
   await expect(page.locator('#city-hint')).toContainText('池塘');
+  await page.locator('#city-tab-guide').click();
+  await expect(page.locator('#city-goal')).toContainText('猫咖有客人了');
+  await expect(page.locator('#city-instruction')).toContainText('速度');
+  await expect(page.locator('#cafe-income')).toContainText(
+    `距离下次结算 ${BUILDINGS.CAT_CAFE.intervalMinutes - (CITY_START.minute % BUILDINGS.CAT_CAFE.intervalMinutes)} 游戏分钟`,
+  );
+  expect((await readWorld(page)).minute).toBe(CITY_START.minute);
 
   await page.reload();
   await ready(page);
@@ -302,7 +309,9 @@ test('a selected cat walks only through an explicit action; apartments list 入�
   // Tapping land opens its card with the walk as one clearly named action.
   await clickTile(page, 4, 4);
   await expect(page.locator('#city-selection-label')).toContainText('空地');
-  await expect(page.locator('#walk-here')).toHaveText('让 Mochi 走到这里');
+  await expect(page.locator('#walk-here')).toHaveText(
+    /^让 Mochi 走到这里 · 约 \d+ 分钟$/,
+  );
   await expect(page.locator('[data-build-type=CAT_CAFE]')).toBeVisible();
   expect(await readWorld(page)).toEqual(before);
   await page.locator('#walk-here').click();

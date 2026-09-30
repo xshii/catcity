@@ -57,6 +57,8 @@ const strikeWindow = (run: AnglingRun) =>
   (run.happy ? MOOD.bonus.strikeWindowTicks : 0);
 
 const F = M.fight;
+/** The longest a fight lasts. */
+const FIGHT_TICKS = F.graceTicks + F.limitTicks;
 const W = M.walk;
 /** Fixed-point scale for the walk, so replays never depend on floating-point drift. */
 const SCALE = 100;
@@ -91,13 +93,47 @@ export interface FishState {
  * the water's edge. The fish waits while the player settles in, then eases up to speed.
  */
 export function fishPoint(run: AnglingRun, tick: number): FishState {
-  return fishPath(run, tick)[tick]!;
+  validTick(tick);
+  return tick > FIGHT_TICKS
+    ? walkFish(run, tick)[tick]!
+    : { ...fightPath(run)[tick]! };
 }
 
-/** The fish at every tick from 0 to `ticks`, in one pass (see `fishPoint`). */
+/** The fish at every tick from 0 to `ticks` (see `fishPoint`). */
 export function fishPath(run: AnglingRun, ticks: number): FishState[] {
-  if (!Number.isInteger(ticks) || ticks < 0)
-    throw new Error('Invalid fish tick');
+  validTick(ticks);
+  return ticks > FIGHT_TICKS
+    ? walkFish(run, ticks)
+    : fightPath(run)
+        .slice(0, ticks + 1)
+        .map((fish) => ({ ...fish }));
+}
+
+function validTick(tick: number): void {
+  if (!Number.isInteger(tick) || tick < 0) throw new Error('Invalid fish tick');
+}
+
+/**
+ * The path of the latest fight asked about, walked once: a fight asks for one more tick
+ * of the same path on every tick. It follows from the seed and the fish alone, so
+ * remembering it changes no answer.
+ */
+let remembered: {
+  seed: number;
+  speciesId: AnglingRun['speciesId'];
+  path: FishState[];
+} | null = null;
+function fightPath(run: AnglingRun): readonly FishState[] {
+  if (remembered?.seed !== run.seed || remembered.speciesId !== run.speciesId)
+    remembered = {
+      seed: run.seed,
+      speciesId: run.speciesId,
+      path: walkFish(run, FIGHT_TICKS),
+    };
+  return remembered.path;
+}
+
+function walkFish(run: AnglingRun, ticks: number): FishState[] {
   const rng = new RandomService(streamSeed(run.seed, 'fish'));
   const speed = pick(W.speed, run);
   const margin = (pick(F.radius, run).start + F.breathe.amplitude) * SCALE;
@@ -237,12 +273,14 @@ export function stepMotionRun(
   if (point && (!onPlane(point.x) || !onPlane(point.y)))
     throw new Error('Invalid motion point');
   const run = { ...input };
+  // Fixed for the whole wait: nothing a step changes moves the bite.
+  const bite = run.phase === 'waiting' ? motionSchedule(run).bite : 0;
   for (let i = 0; i < ticks; i++) {
     if (run.phase === 'caught' || run.phase === 'escaped') break;
     run.tick++;
     run.phaseTick++;
     if (run.phase === 'waiting') {
-      if (run.phaseTick >= motionSchedule(run).bite) {
+      if (run.phaseTick >= bite) {
         run.phase = 'hook';
         run.phaseTick = 0;
       }

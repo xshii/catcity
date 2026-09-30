@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUILDING_IDS,
-  BUILDINGS,
+  buildingPrice,
   CITY_COSTS,
+  landPrice,
   ROAD_PRICE,
 } from '../../src/content/city';
+import { BOND } from '../../src/content/care';
+import { MOOD } from '../../src/content/mood';
 import { BAITS, FISHING, fishById, SPOT_IDS } from '../../src/content/fishing';
 import { PETTING, PET_SPOTS } from '../../src/content/petting';
 import { createWorld, loadWorld } from '../../src/core';
@@ -128,7 +131,7 @@ function coinChange(
   if (!result.ok) return 0;
   switch (command.type) {
     case 'BUY_LAND':
-      return -CITY_COSTS.buyLand;
+      return -landPrice(command.position);
     case 'PLACE_ROAD':
       return -CITY_COSTS.placeRoad;
     case 'UPGRADE_ROAD':
@@ -142,7 +145,12 @@ function coinChange(
       return ROAD_PRICE[tile.road!];
     }
     case 'BUILD_BUILDING':
-      return -BUILDINGS[command.buildingType].cost;
+      return -buildingPrice(
+        command.buildingType,
+        before.buildings.filter(
+          (building) => building.type === command.buildingType,
+        ).length,
+      );
     case 'BUY_BAIT':
       return -BAITS[command.baitId].price;
     case 'RECYCLE_TRASH':
@@ -277,22 +285,28 @@ function play(seed: number) {
       expect(moodMayChange(command), `mood: ${where}`).toBe(true);
       moodMoves.add(`${command.type}${change > 0 ? '+' : '-'}`);
     }
-    // The bond only grows, one at a time, from chat, a gift, a run's end (spec 036) or a
-    // good round of petting (spec 039).
+    // The bond only grows, by its source's points and one more from a happy cat, from
+    // chat, a gift, a run's end (specs 036, 038) or a good round of petting (spec 039).
     for (const [index, cat] of before.cats.entries()) {
       const grown = after.cats[index]!.playerBond - cat.playerBond;
       if (!grown) continue;
-      expect(grown, `bond: ${where}`).toBe(1);
+      const points =
+        command.type === 'INTERACT'
+          ? [BOND.chat]
+          : command.type === 'GIFT_FISH'
+            ? [BOND.gift, BOND.favoriteGift]
+            : ['FISH_CONTROL', 'FISH_MOTION_CONTROL'].includes(command.type)
+              ? [BOND.catch]
+              : [];
+      // A catch reads the happy of its run; a gift or a chat the mood of the moment.
+      const happy =
+        command.type === 'INTERACT' || command.type === 'GIFT_FISH'
+          ? cat.mood >= MOOD.happy
+          : before.fishing.active!.happy;
       expect(
-        [
-          'INTERACT',
-          'GIFT_FISH',
-          'FISH_CONTROL',
-          'FISH_MOTION_CONTROL',
-          'PET_CAT',
-        ],
+        points.map((base) => base + (happy ? BOND.happy : 0)),
         `bond: ${where}`,
-      ).toContain(command.type);
+      ).toContain(grown);
     }
     // Recovery during a walk only happens once the walk stopped for lack of energy.
     if (result.ok)

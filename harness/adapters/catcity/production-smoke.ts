@@ -5,6 +5,12 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { LocalPublication } from '../../runner/local-publication';
 import type { WorldState } from '../../../src/core';
+import {
+  buildingPrice,
+  CITY_COSTS,
+  CITY_START,
+  landPrice,
+} from '../../../src/content/city';
 import { closeRiverPanel, openBag, openChat, showFish } from './navigation';
 
 export async function productionSmoke(publication: LocalPublication) {
@@ -32,7 +38,14 @@ export async function productionSmoke(publication: LocalPublication) {
     await page.locator('#place-road').click();
     await clickTile(page, 4, 4);
     await page.locator('[data-build-type=CAT_CAFE]').click();
-    await expect(page.getByTestId('coins')).toHaveText('620');
+    await expect(page.getByTestId('coins')).toHaveText(
+      String(
+        CITY_START.coins -
+          landPrice({ x: 2, y: 5 }) -
+          CITY_COSTS.placeRoad -
+          buildingPrice('CAT_CAFE', 0),
+      ),
+    );
     await page.screenshot({
       path: join(publication.evidence, 'city.png'),
       fullPage: true,

@@ -3,23 +3,56 @@ import { CARE } from '../../content/care';
 import {
   BUILDING_IDS,
   BUILDINGS,
+  CAFE,
   CITY_COSTS,
   CITY_TIME,
+  landPrice,
   ROAD_PRICE,
   WALK_MINUTES,
 } from '../../content/city';
 import { SPOTS, spotOpen, type SpotId } from '../../content/fishing';
-import { onShore, samePosition, tileAt } from '../../core/city';
+import {
+  cafeAssignment,
+  gridDistance,
+  nextBuildingPrice,
+  onShore,
+  samePosition,
+  tileAt,
+  touchesNetwork,
+  walkMinutes,
+} from '../../core/city';
 import {
   MAX_STAT,
+  travelMinutes,
   type CatEntity,
+  type ErrorCode,
   type GameCommand,
+  type Position,
   type WorldState,
 } from '../../core';
+import { ERROR_MESSAGES } from '../shell/errors';
 import type { CityView, CityViewEvent } from './view-state';
 
 const ROAD_NAMES = { DIRT: '土路', STONE: '石路' } as const;
 const { CAT_CAFE } = BUILDINGS;
+/** A cafe pays once per this many game hours. */
+const CAFE_HOURS = CAT_CAFE.intervalMinutes / 60;
+/** What a cafe with this many customers pays, in the player's words. */
+const cafePay = (customers: number) =>
+  `每 ${CAFE_HOURS} 小时 ${customers * CAFE.coinsPerCustomer} 金币`;
+/**
+ * Every cafe's customers, seated once per world snapshot: the session hands out one
+ * frozen snapshot per world change, so renders and drag checks of it share the result.
+ */
+const seatings = new WeakMap<WorldState, ReturnType<typeof cafeAssignment>>();
+function customersOf(world: WorldState, cafeId: string): CatEntity[] {
+  let seating = seatings.get(world);
+  if (!seating) {
+    seating = cafeAssignment(world);
+    seatings.set(world, seating);
+  }
+  return seating.get(cafeId) ?? [];
+}
 
 /** What a card button does; the DOM maps each kind to its handler. */
 export type CardIntent =
@@ -54,8 +87,8 @@ export interface CityCard {
 export interface CityScreenInputs {
   /** The session's selected cat: waterway cards send it to the shore. */
   selectedCat: string | null;
-  /** Why Core would reject this command now, in the player's words; null when it passes. */
-  blocked: (command: GameCommand) => string | null;
+  /** Core's rejection of this command now; null when it passes. */
+  blocked: (command: GameCommand) => ErrorCode | null;
 }
 
 /**
@@ -85,7 +118,7 @@ export type CityScreen = ReturnType<typeof cityScreen>;
 function card(
   world: WorldState,
   view: CityView,
-  { selectedCat, blocked }: CityScreenInputs,
+  { selectedCat, blocked: rejection }: CityScreenInputs,
 ): CityCard | null {
   const selected = view.selection!;
   const buttons: CardButton[] = [];
@@ -117,6 +150,16 @@ function card(
       ...new Set(buttons.flatMap(({ reason }) => (reason ? [reason] : []))),
     ],
   });
+  /** Why Core would reject the command now, in the player's words. */
+  const blocked = (input: GameCommand) => {
+    const code = rejection(input);
+    return code && ERROR_MESSAGES[code];
+  };
+  /** The same for a paid command; too few coins is said with the real figures. */
+  const affordable = (input: GameCommand, price: number) =>
+    rejection(input) === 'INSUFFICIENT_COINS'
+      ? `金币不足：需要 ${price}，现有 ${world.coins}。`
+      : blocked(input);
   const wait = () =>
     button(
       'city-wait',
@@ -163,15 +206,18 @@ function card(
         spotId,
       } as const;
       const onTheWay = cat.walk?.spotId === spotId;
+      const reason = !unlocked
+        ? condition
+        : onTheWay
+          ? `${cat.name} 已经在路上了。`
+          : blocked(travel);
       button(
         'walk-to-waterway',
-        onTheWay ? '正在走向岸边' : `让 ${cat.name} 走到岸边`,
+        onTheWay
+          ? '正在走向岸边'
+          : `让 ${cat.name} 走到岸边${reason ? '' : took(travelMinutes(world, cat.id, spotId))}`,
         command(travel, `${cat.name} 出发了，可以看着它沿路线走到岸边。`),
-        !unlocked
-          ? condition
-          : onTheWay
-            ? `${cat.name} 已经在路上了。`
-            : blocked(travel),
+        reason,
       );
     }
     if (cat.walk) wait();
@@ -219,10 +265,11 @@ function card(
           blocked(home),
         );
       }
+    const customers = customersOf(world, building.id);
     return done(
       title,
       building.type === 'CAT_CAFE'
-        ? '猫咖每小时提供营业收入，沿道路迎接城市里的猫。'
+        ? `客人 ${customers.length}/${CAFE.seats} · ${cafePay(customers.length)}${customers.length ? ` · ${customers.map((cat) => cat.name).join('、')}` : ` · 家在 ${CAFE.range} 格内的猫会来做客，搬移免费`}`
         : `住户 ${residents.length}/${BUILDINGS.CAT_APARTMENT.homeCapacity}${residents.length ? ` · ${residents.map((cat) => cat.name).join('、')}` : ' · 住在家旁边，体力恢复更快'}`,
     );
   }
@@ -231,9 +278,9 @@ function card(
     detail = '先购买土地，再选择猫咖、公寓或道路。';
     button(
       'buy-land',
-      `买下土地 · ${CITY_COSTS.buyLand} 金币`,
+      `买下土地 · ${landPrice(position)} 金币`,
       command({ type: 'BUY_LAND', position }, '土地买好了，现在选择要建什么。'),
-      blocked({ type: 'BUY_LAND', position }),
+      affordable({ type: 'BUY_LAND', position }, landPrice(position)),
     );
   } else if (tile.road) {
     detail =
@@ -248,7 +295,7 @@ function card(
           { type: 'UPGRADE_ROAD', position },
           '道路升级了，猫咪可以更快地走过。',
         ),
-        blocked({ type: 'UPGRADE_ROAD', position }),
+        affordable({ type: 'UPGRADE_ROAD', position }, CITY_COSTS.upgradeRoad),
       );
     const refund = ROAD_PRICE[tile.road];
     button(
@@ -264,6 +311,7 @@ function card(
     detail = '建筑要紧挨一格连着城中心路网的道路；也可以在这里铺路。';
     for (const type of BUILDING_IDS) {
       const definition = BUILDINGS[type];
+      const price = nextBuildingPrice(world, type);
       const build = {
         type: 'BUILD_BUILDING',
         buildingType: type,
@@ -271,16 +319,16 @@ function card(
       } as const;
       button(
         `build-${type.toLowerCase()}`,
-        `${definition.name} · ${definition.cost}`,
+        `${definition.name} · ${price}`,
         command(build, `${definition.name} 建好了。`),
-        blocked(build),
+        affordable(build, price),
       ).buildType = type;
     }
     button(
       'place-road',
       `土路 · ${CITY_COSTS.placeRoad}`,
       command({ type: 'PLACE_ROAD', position }, '土路铺好了。'),
-      blocked({ type: 'PLACE_ROAD', position }),
+      affordable({ type: 'PLACE_ROAD', position }, CITY_COSTS.placeRoad),
     );
   }
   // A picked cat can be sent to the tile on its card.
@@ -291,90 +339,154 @@ function card(
       catId: walker.id,
       destination: position,
     } as const;
+    const reason = blocked(walk);
     button(
       'walk-here',
-      `让 ${walker.name} 走到这里`,
+      `让 ${walker.name} 走到这里${reason ? '' : took(walkMinutes(world, walker.id, position))}`,
       command(walk, `${walker.name} 出发了，沿路线走过去。`, {
         type: 'select',
         selection: { kind: 'cat', catId: walker.id },
       }),
-      blocked(walk),
+      reason,
     );
   }
   return done(title, detail);
 }
+
+/** How long a walk Core accepts takes, beside its button. */
+const took = (minutes: number | null) =>
+  minutes === null ? '' : ` · 约 ${minutes} 分钟`;
 
 function walking(cat: CatEntity) {
   if (cat.walk && cat.needs.energy === 0)
     return '体力耗尽，路线已暂停；歇一会儿会自己接着走。';
   if (cat.walk)
     return `正在走路 · 还剩 ${cat.walk.route.length} 格 · 每格 ${CARE.walkEnergyPerTile} 体力`;
-  return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。`;
+  return `点一块地，在卡片上选「让 ${cat.name} 走到这里」；再点这只猫取消选择。草地 ${WALK_MINUTES.GRASS} 分钟/格 · 土路 ${WALK_MINUTES.DIRT} · 石路 ${WALK_MINUTES.STONE}。`;
 }
 
 /** Said as a cat is picked: the card's way to send it, and lifting it (spec 035). */
 export const selectedNotice = (name: string) =>
   `已选中 ${name}：点一块地，在卡片上选「让 ${name} 走到这里」；也可以长按猫咪，拖到想去的地方。`;
 
-/** The tutorial's stage: open a cafe, earn from it, then fish together. */
+/** Owned free grass that Core lets a building stand on, the town centre first; `near` keeps it in cafe range. */
+function freeSite(world: WorldState, near?: Position): Position | null {
+  const candidates = [{ x: 4, y: 4 }];
+  for (let y = 0; y < world.map.height; y++)
+    for (let x = 0; x < world.map.width; x++) candidates.push({ x, y });
+  return (
+    candidates.find((position) => {
+      const tile = tileAt(world.map, position);
+      return (
+        tile?.terrain === 'GRASS' &&
+        tile.owned &&
+        !tile.road &&
+        ![...world.cats, ...world.buildings].some((entity) =>
+          samePosition(entity.position, position),
+        ) &&
+        touchesNetwork(world, position) &&
+        (!near || gridDistance(near, position) <= CAFE.range)
+      );
+    }) ?? null
+  );
+}
+
+/**
+ * The tutorial's stage, from what is true of the world now: a cat has a home, a cafe has
+ * customers, Mochi remembers fishing together. Whether a cafe has ever paid is not
+ * recorded anywhere, so no step claims it. `site` is the tile the guide points at;
+ * `placed` says a building stands there.
+ */
 export function guideProgress(world: WorldState) {
-  const cafe = world.buildings.find((building) => building.type === 'CAT_CAFE');
-  const earned = cafe
-    ? Math.floor(
-        (world.minute - cafe.builtAtMinute) / CAT_CAFE.intervalMinutes,
-      ) * CAT_CAFE.income
-    : 0;
+  const homes = world.buildings.filter((building) =>
+    world.cats.some((cat) => cat.home === building.id),
+  );
+  const apartment = world.buildings.find(
+    (building) => building.type === 'CAT_APARTMENT',
+  );
+  const cafes = world.buildings.filter(
+    (building) => building.type === 'CAT_CAFE',
+  );
+  const cafe =
+    cafes.find((building) => customersOf(world, building.id).length) ??
+    cafes[0];
+  const customers = cafe ? customersOf(world, cafe.id).length : 0;
   const remembered = !!world.cats.find((cat) => cat.id === STARTER_CAT_ID)
     ?.fishingMemory;
-  const stage = !cafe
-    ? 'cafe'
-    : !earned
-      ? 'earn'
+  const stage = !homes.length
+    ? 'home'
+    : !customers
+      ? 'cafe'
       : !remembered
         ? 'remember'
         : 'grow';
-  return { cafe, earned, remembered, stage } as const;
+  const placed =
+    stage === 'home' ? apartment : stage === 'cafe' ? cafe : undefined;
+  const site =
+    placed?.position ??
+    (stage === 'home'
+      ? freeSite(world)
+      : stage === 'cafe'
+        ? freeSite(world, homes[0]!.position)
+        : null);
+  return {
+    housed: homes.length > 0,
+    cafe,
+    customers,
+    remembered,
+    stage,
+    site,
+    placed: !!placed,
+  } as const;
 }
 
-const GUIDE_STEPS = ['猫咖开张', '获得营业收入', '留下共同回忆'] as const;
+const GUIDE_STEPS = ['猫咪入住', '猫咖有客人', '留下共同回忆'] as const;
 
 /** The guide page and the next-step hint above the map. */
 function cityGuide(world: WorldState) {
-  const { cafe, earned, remembered, stage } = guideProgress(world);
+  const { housed, cafe, customers, remembered, stage, placed } =
+    guideProgress(world);
   const pick = (words: Record<typeof stage, string>) => words[stage];
+  const rate = `每位客人每 ${CAFE_HOURS} 游戏小时带来 ${CAFE.coinsPerCustomer} 金币`;
   return {
-    steps: [!!cafe, earned > 0, remembered].map((complete, index) => ({
+    steps: [housed, customers > 0, remembered].map((complete, index) => ({
       complete,
       label: `${GUIDE_STEPS[index]}：${complete ? '已完成' : '未完成'}`,
     })),
     goal: pick({
-      cafe: '先给 Mochi 建一间猫咖',
-      earn: '猫咖开张了，试试第一笔收入',
-      remember: '有了落脚点，再一起留下回忆',
+      home: '先给 Mochi 安个家',
+      cafe: '在家附近开一间猫咖',
+      remember: '猫咖有客人了，再一起留下回忆',
       grow: '让小城继续生长',
     }),
     instruction: pick({
-      cafe: `回地图选一块空地，先买地、再建猫咖或公寓。城中心已有少量土地和土路。猫咖需要 ${CAT_CAFE.cost} 金币。`,
-      earn: `猫咖每游戏小时自动赚 ${CAT_CAFE.income} 金币。时间一直在走；顶部时钟旁的速度按钮可以切到 2× 或 4×。`,
-      remember: '在地图点池塘，站在岸边就能开始钓鱼，留下一段共同回忆。',
-      grow: '扩建猫咖赚收入，安排公寓与道路，带不同的猫去岸边钓鱼。猫空闲时会自己恢复体力。',
+      home: placed
+        ? '点地图上的猫公寓，选「Mochi 入住」。住在附近的猫才会去猫咖做客。'
+        : `回地图选一块城中心的空地，建一座猫公寓（${nextBuildingPrice(world, 'CAT_APARTMENT')} 金币），再让 Mochi 入住。住在附近的猫才会去猫咖做客。`,
+      cafe: placed
+        ? `猫咖还没有客人：点猫咖选「移动建筑」，搬到有猫住的公寓 ${CAFE.range} 格内。搬移免费。`
+        : `在有猫住的公寓 ${CAFE.range} 格内建一间猫咖（${nextBuildingPrice(world, 'CAT_CAFE')} 金币）。${rate}，每家最多 ${CAFE.seats} 位。`,
+      remember: `${rate}，全城同时结算；顶部时钟旁的速度按钮可以切到 2× 或 4×。在地图点池塘，站在岸边就能开始钓鱼，留下一段共同回忆。`,
+      grow: '多住几只猫、在家附近开猫咖赚收入，安排公寓与道路，带不同的猫去岸边钓鱼。猫空闲时会自己恢复体力。',
     }),
     action: pick({
-      cafe: '回地图选择空地',
-      earn: '去调快时间',
+      home: placed ? '回地图找到公寓' : '回地图选择空地',
+      cafe: placed ? '回地图找到猫咖' : '回地图选择空地',
       remember: '在地图找到池塘',
       grow: '和 Mochi 聊聊共同回忆',
     }),
     hint: pick({
-      cafe: '下一步：点城中心的空地，建一间猫咖',
-      earn: '下一步：等猫咖营业满 1 小时 · 可点顶部「速度」调快',
+      home: placed
+        ? '下一步：点猫公寓，让 Mochi 入住'
+        : '下一步：点城中心的空地，建一座猫公寓',
+      cafe: placed
+        ? `下一步：把猫咖搬到公寓 ${CAFE.range} 格内 · 搬移免费`
+        : `下一步：在公寓 ${CAFE.range} 格内建一间猫咖`,
       remember: '下一步：点池塘，和 Mochi 一起钓一次鱼',
       grow: '点地建设 · 选猫后点地块，在卡片上让它走过去',
     }),
-    /** Waiting for the first income points at the clock speed button. */
-    speedTarget: stage === 'earn',
     income: cafe
-      ? `第一家猫咖 · 累计赚取 ${earned} 金币 · 距离下笔收入 ${CAT_CAFE.intervalMinutes - ((world.minute - cafe.builtAtMinute) % CAT_CAFE.intervalMinutes)} 游戏分钟`
+      ? `猫咖 · 客人 ${customers}/${CAFE.seats} · ${cafePay(customers)} · 距离下次结算 ${CAT_CAFE.intervalMinutes - (world.minute % CAT_CAFE.intervalMinutes)} 游戏分钟`
       : null,
   };
 }

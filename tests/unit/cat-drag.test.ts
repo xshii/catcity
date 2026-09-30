@@ -15,7 +15,6 @@ import {
   initialCityView,
   reduceCityView,
 } from '../../src/view/city/view-state';
-import { ERROR_MESSAGES } from '../../src/view/shell/errors';
 
 const gesture = (...events: MapPointerEvent[]) =>
   events.reduce<MapGesture>(reduceMapGesture, { phase: 'idle' });
@@ -166,7 +165,7 @@ describe('map gesture', () => {
 describe('cat drop', () => {
   const judge = (world: World) => (command: GameCommand) => {
     const result = world.check(command);
-    return result.ok ? null : ERROR_MESSAGES[result.error];
+    return result.ok ? null : result.error;
   };
   const drop = (world: World, tile: Position | null, catId = 'mochi') =>
     catDrop(world.getSnapshot(), catId, tile, judge(world));

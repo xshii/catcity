@@ -18,6 +18,7 @@ export {
   fishById,
   fishHabitats,
   skillLevel,
+  skillXp,
   spotOpen,
   spotUnlocked,
 } from './rules';

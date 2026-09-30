@@ -529,10 +529,12 @@ export class RiverView {
     // run) the float's flight arcs onto it dashed from the rod tip (spec 033 F5, F5b).
     const live = !active ? preview.live : active.phase === 'charge';
     const colour = aim.shadow ? AIM.onShadow : AIM.ring;
+    // Motion aiming at an end of the water: more pitch moves the ring no further.
+    const limit = !active && preview.live && aim.limit ? AIM.limit : null;
     this.marker.clear().setVisible(!cast);
     if (!cast) {
       if (live) {
-        this.marker.lineStyle(3, colour, 0.9);
+        this.marker.lineStyle(3, colour, AIM.alpha);
         for (let i = 0; i + 1 < aim.arc.length; i += 2)
           this.marker.lineBetween(
             aim.arc[i]!.x,
@@ -542,14 +544,14 @@ export class RiverView {
           );
       }
       this.marker
-        .lineStyle(3, colour, 0.9)
+        .lineStyle(3, colour, limit?.alpha ?? AIM.alpha)
         .strokeEllipse(
           land.x,
           land.y,
           V.ring.width * land.scale,
-          V.ring.height * land.scale,
+          V.ring.height * land.scale * (limit?.flatten ?? 1),
         )
-        .lineStyle(2, colour, 0.9)
+        .lineStyle(2, colour, AIM.alpha)
         .lineBetween(
           land.x,
           land.y - 8 * land.scale,

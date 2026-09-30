@@ -1,10 +1,11 @@
-import { MAX_CATS, MAX_STAT, WORLD_LIMIT } from './limits';
-import { CARE } from '../content/care';
+import { MAX_CATS, WORLD_LIMIT } from './limits';
+import { BOND, CARE } from '../content/care';
 import { MOOD } from '../content/mood';
 import { applyCity } from './city/building';
 import { queueWalk } from './city/walking';
 import { applyAngling } from './fishing/commands';
-import { rewardBond } from './bond';
+import { rewardBond, spendDaily } from './bond';
+import { liftMood } from './mood';
 import { instantiateCat, requireCat } from './cats';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
@@ -61,8 +62,18 @@ export function applyCommand(
         reply: command.reply,
       });
       cat.memories = cat.memories.slice(-CARE.memoryLimit);
-      if (rewardBond(cat, world.minute))
-        cat.mood = Math.min(MAX_STAT, cat.mood + MOOD.chat);
+      const chats = spendDaily(cat.chatBond, world.minute, BOND.chatsPerDay);
+      if (chats) {
+        cat.chatBond = chats;
+        rewardBond(cat, BOND.chat);
+      }
+      if (
+        cat.lastChatMoodMinute === null ||
+        world.minute - cat.lastChatMoodMinute >= MOOD.chatCooldownMinutes
+      ) {
+        liftMood(cat, MOOD.chat);
+        cat.lastChatMoodMinute = world.minute;
+      }
       events.push({
         type: 'ConversationRecorded',
         minute: world.minute,

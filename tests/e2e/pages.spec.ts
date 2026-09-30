@@ -3,6 +3,7 @@ import { createServer, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { clickTile } from '../../harness/adapters/catcity/city-input';
+import { buildingPrice, CITY_START } from '../../src/content/city';
 
 // Serve the exact production build under a repository path, with no Vite
 // fallback or root asset aliases that could conceal a broken Pages deployment.
@@ -72,8 +73,9 @@ test('Pages subpath loads production assets and preserves a built cafe on reload
   await expect(page.locator('canvas')).toBeVisible();
   expect(await page.evaluate(() => 'CAT_CITY_DEBUG' in window)).toBe(false);
   await clickTile(page, 4, 4);
+  const built = String(CITY_START.coins - buildingPrice('CAT_CAFE', 0));
   await page.locator('[data-build-type=CAT_CAFE]').click();
-  await expect(page.getByTestId('coins')).toHaveText('700');
+  await expect(page.getByTestId('coins')).toHaveText(built);
   await page.locator('#city-tab-guide').click();
   await page.getByRole('button', { name: '保存进度' }).click();
   const saved = await page.evaluate(() =>
@@ -82,7 +84,7 @@ test('Pages subpath loads production assets and preserves a built cafe on reload
   expect(saved).not.toBeNull();
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
-  await expect(page.getByTestId('coins')).toHaveText('700');
+  await expect(page.getByTestId('coins')).toHaveText(built);
   await clickTile(page, 4, 4);
   await expect(page.locator('#move-building')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('pages.png') });

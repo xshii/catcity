@@ -36,7 +36,9 @@ export function instantiateCat(
     fishGift: null,
     playerBond: 0,
     home: null,
-    lastBondMinute: null,
+    chatBond: null,
+    giftBond: null,
+    lastChatMoodMinute: null,
     petting: { discovered: [], hour: null, rounds: 0 },
   };
 }

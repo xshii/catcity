@@ -1,0 +1,315 @@
+# 041 总体规划：架构设计
+
+- 配套文档：[需求分析](requirements.md)、[任务分解](tasks.md)、[美工、界面与交互](ui-design.md)、[能玩很多年](long-life.md)
+- 现有架构以 [docs/architecture.md](../../docs/architecture.md) 为准，本文件只写**为了实现新需求要改变或新增的部分**，以及每个决定的理由和被放弃的方案。
+- 约定：文中"伙伴猫"指玩家可以调遣的猫（`world.cats`），"居民"指 NPC（`world.residents`）。
+
+## 1. 不变的原则
+
+下面这些已经在代码里成立，新功能必须继续遵守。它们也是验收时最容易被破坏的地方。
+
+| 原则             | 具体含义                                                                                                 | 在哪里被强制                                                      |
+| ---------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Core 是真相      | 世界只通过 `World.dispatch(command)` 改变；View 拿到的快照是冻结的                                       | `src/application/session.ts`、`tests/integration/session.test.ts` |
+| 命令先校验       | `commandSchema` 校验形状，规则校验失败抛 `CommandError(code)`；被拒绝的命令不改变世界、不消耗随机数和 ID | `src/core/commands.ts`、`tests/simulation/invariants.test.ts`     |
+| 客户端不报结果   | 命令只带输入（抚摸序列、抛竿力度），分数、奖励、遗传结果都由 Core 算                                     | 各命令的单测                                                      |
+| 只存事实         | 能从别的字段推导的值不入档（等级、价格、年龄阶段、图鉴评星）                                             | `assertWorld`                                                     |
+| 确定性           | 随机来自 `streamSeed(world.seed, 名称, ID)`；不用 `Math.random`、真实时钟                                | `src/core/random.ts`                                              |
+| 时间分块等价     | `ADVANCE_TIME 60` 等于 60 次 `ADVANCE_TIME 1`                                                            | `tests/simulation/world.test.ts`                                  |
+| 画面由纯模型决定 | 每个画面有 `view-state.ts`（纯 reducer）和 `screen.ts`（纯函数）；DOM 只应用模型                         | spec 015、eslint 规则                                             |
+| 数值在 content   | 调参只改 `src/content/**`；测试从 content 读数值，不写死                                                 | —                                                                 |
+
+## 2. 模块总览
+
+新增和改动的模块（★ 新增，△ 改动）：
+
+```
+src/content/
+  cats.ts            △ 初代猫名单（6 只）、花色、性格词表
+  breeds.ts          △ 之后扩到 4 个品种
+  family.ts          ★ 生育、绝育、幼猫期、天赋的数值
+  residents.ts       ★ 居民的名字表、到来节奏、上限
+  wishes.ts          ★ 心愿模板与奖励
+  city.ts            △ 新建筑 CAT_LODGE
+  petting.ts         （来自分支 feat/petting）
+src/core/
+  cats.ts            △ instantiateCat 不再只认模板；catStage()
+  family.ts          ★ breedCheck / breed / neuter / 遗传 / 亲属判断
+  residents.ts       ★ 居民到来、residentPlace()
+  wishes.ts          ★ 心愿生成与完成
+  schema.ts          △ 猫的新字段、world.residents、校验
+  city/customers.ts  △ 居民也算客人
+  petting.ts         （来自分支 feat/petting）
+src/view/
+  cats/              ★ 名册、猫详情、家谱、心愿（从 shell/ 和 fishing/stage.ts 里搬出名册）
+  petting/           （来自分支 feat/petting）
+  art/cat-look.ts    △ 花色、幼猫体型、在河畔不蜷睡
+  art/residents.ts   ★ 居民在地图上的绘制
+```
+
+依赖方向不变：`content ← core ← application ← view`；`minigames` 只依赖 `content`。
+
+## 3. 猫的身份模型（R-10、R-11）
+
+### 3.1 问题
+
+现在每只猫必须等于 `CAT_DEFINITIONS` 里的某个模板（`assertTemplate`），邀请命令是写死的 `INVITE_PEPPER`。这让"出生的猫"无法存在。
+
+### 3.2 决定
+
+猫的特征属于实例。模板只用来创建初代猫和校验初代猫。
+
+`CatEntity` 新增字段：
+
+| 字段             | 类型                                 | 说明                                              |
+| ---------------- | ------------------------------------ | ------------------------------------------------- |
+| `sex`            | `'F' \| 'M'`                         | —                                                 |
+| `bornMinute`     | 整数或 `null`                        | 初代猫为 `null`（一直是成年）；出生的猫记出生时刻 |
+| `generation`     | 整数 ≥ 1                             | 初代为 1                                          |
+| `parents`        | `{ mother: id, father: id } \| null` | 初代为 `null`                                     |
+| `neutered`       | 布尔                                 | —                                                 |
+| `talent`         | 整数 0–4                             | 见 5.4                                            |
+| `lastBredMinute` | 整数或 `null`                        | 冷却用                                            |
+
+`definitionId` 改为可空：初代猫有，出生的猫为 `null`。
+
+不新增的字段：年龄阶段（由 `bornMinute` 推导）、子女列表（由别的猫的 `parents` 推导）、亲密等级（已是推导）。
+
+### 3.3 校验（保持"存档不能伪造猫"）
+
+`assertWorld` 里：
+
+- `definitionId !== null`：必须 `parents === null`、`generation === 1`、`bornMinute === null`、`talent === 0`，并且品种、花色、性格、喜好、喜欢的鱼、性别都等于模板。
+- `definitionId === null`：必须有 `parents`，父母都在 `world.cats` 里（猫永不删除，所以一定在），母亲 `sex === 'F'`、父亲 `sex === 'M'`；然后**用同一个遗传函数重新推导**这只猫的特征并比较，不一致就拒绝。遗传函数的输入只有世界种子、这只猫的 id 和父母，所以可以重算。
+- `generation === max(父母) + 1`；`bornMinute ≤ world.minute`；`talent` 在遗传函数允许的范围内。
+- 没有环：父母的 id 序号必须小于子女的 id 序号（ID 按分配顺序递增，天然无环）。
+
+### 3.4 被放弃的方案
+
+- **每个出生的猫生成一个新模板**：模板表会进存档，等于把"定义"和"实例"又混在一起。
+- **存一份基因串再解码**：没有隐性基因的需求（需求里明确不做），多一层编码没有收益。
+
+## 4. 初代猫与邀请（R-12、R-13）
+
+- `CAT_DEFINITIONS` 扩到 6 只，公母各 3。Mochi（母，布偶）和 Pepper（公，英短）保留。其余 4 只的名字、性格、喜欢的鱼在 content 里定，喜欢的鱼要分散到不同水域，给玩家去不同地方钓鱼的理由。
+- 命令 `INVITE_PEPPER` 改为 `INVITE_CAT { definitionId }`。不保留旧命令别名（AGENTS.md）。
+- 条件：该模板还没被邀请过；伙伴猫数量 < `MAX_COMPANIONS`（8）；有空的公寓床位；金币够。费用 `200 × 2^(已邀请数)`，用和建筑价格相同的整数算法。
+- 新猫直接入住那张空床，出生点是离住所最近的可走格子。
+- `MAX_CATS`（引擎上限 16）保留为存档边界；`MAX_COMPANIONS = 8` 放在 content，是玩法上限。
+
+## 5. 家庭：绝育、生育、世代（R-30 – R-37）
+
+### 5.1 纯函数
+
+```ts
+// src/core/family.ts
+type BreedBlock =
+  | 'SAME_CAT' | 'NEED_PAIR' | 'KITTEN' | 'NEUTERED' | 'NOT_HAPPY'
+  | 'BOND_TOO_LOW' | 'RELATED' | 'COOLING_DOWN' | 'NO_BED' | 'COMPANION_LIMIT';
+
+catStage(world, cat): 'kitten' | 'adult'
+related(world, a, b): boolean            // 父母—子女，或同父 / 同母
+breedBlocks(world, aId, bId): BreedBlock[] // 空数组表示可以生育；界面逐条显示
+inherit(seed, kittenId, mother, father): { breedId, coat, personality, favoriteFish, sex, talent }
+```
+
+`breedBlocks` 返回**全部**未满足的条件，不是第一条。命令被拒绝时只报其中第一条对应的错误码。
+
+### 5.2 命令
+
+| 命令         | 输入                           | 规则                                                                                                        |
+| ------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `NEUTER_CAT` | `catId`                        | 成年、未绝育、金币够；设 `neutered = true`，扣金币                                                          |
+| `BREED_CATS` | `motherId`、`fatherId`、`name` | `breedBlocks` 为空；分配新 id；`inherit`；小猫入住空床，出现在离住所最近的可走格子；父母记 `lastBredMinute` |
+
+名字：去掉首尾空白后 1–12 个字符。
+
+### 5.2.1 起名与快捷选名（R-16）
+
+| 项目       | 决定                                                                                                                                                                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 名字表     | `src/content/names.ts`：约 60 个中文小名（两到三个字，食物、植物、天气一类），不分性别                                                                                                                                             |
+| 推荐       | 纯函数 `suggestNames(world, salt, page) → string[6]`：用 `streamSeed(world.seed, 'names', salt)` 打乱名字表，去掉城里伙伴猫和居民已经用的名字，取第 `page` 组 6 个。生小猫时 `salt` 是下一只猫的 id 序号；改名时是这只猫的 id 序号 |
+| 换一批     | 只是 `page + 1`，属于画面状态，不发命令、不消耗随机数。名字表用完后回到第一组                                                                                                                                                      |
+| 为空       | 命令里的名字为空时，Core 用 `suggestNames(world, salt, 0)[0]`，和画面预填的是同一个                                                                                                                                                |
+| 改名       | 命令 `RENAME_CAT { catId, name }`：只对伙伴猫；不花钱、不限次数、不改任何数值；名字没变时拒绝（`NAME_UNCHANGED`），让回放里没有空操作                                                                                              |
+| 校验       | 命令 schema：去掉首尾空白后 1–12 个字符，不含换行和控制字符。存档里猫的 `name` 同样校验                                                                                                                                            |
+| 重名       | 允许（玩家可能就是想要两只"团子"）。画面在输入框下提醒"城里已经有一只团子了"，不阻止                                                                                                                                               |
+| 记忆与对话 | 对话和回忆里的名字都从猫的当前 `name` 读，不把名字写死进已保存的文字；已经保存的聊天记录保持原样                                                                                                                                   |
+
+不做：敏感词过滤（单机游戏，名字只有玩家自己看到）；表情符号以外的特殊限制。
+
+### 5.3 随机
+
+遗传用 `streamSeed(world.seed, 'inherit', kittenIdNumber)`。界面**不预览**遗传结果（预览等于剧透，而且玩家可以反复取消重来）。确认前不分配 id，所以取消不消耗任何东西。
+
+### 5.4 天赋
+
+- 只有一种天赋：提竿窗口 +1 tick 每级（体感与按钮版都走已有的 `strikeWindowTicks` 加成路径）。
+- 小猫的天赋 = 父母中较高者，再以 50% 概率 +1，上限 4。初代为 0。
+- 天赋在开一竿时读入这一竿的状态（和 `happy` 一样），之后不变。
+- 必须过钓鱼平衡模拟：天赋 4 的猫让新手的 4★ 上鱼率提升不超过 10 个百分点。超过就把每级改成 0.5 tick 的等价（隔级生效）。
+
+### 5.5 幼猫
+
+- `catStage` 由 `world.minute - bornMinute < KITTEN_MINUTES` 推导。
+- 幼猫不能：`FISH_BEGIN`、`TRAVEL_TO_FISHING_SPOT`、`BREED_CATS`、`NEUTER_CAT`（都报 `CAT_TOO_YOUNG`）。能：步行、入住、聊天、撸猫、收礼。
+- 幼猫的心情和亲密规则与成年猫相同；没有任何只属于幼猫的需要。
+
+## 6. 居民 NPC（R-40 – R-46）
+
+### 6.1 决定：居民是最小的存档事实 + 推导出来的生活
+
+```ts
+world.residents: { id: string; home: string; arrivedMinute: number }[]   // 最多 16
+```
+
+名字、品种、花色、性别由 `streamSeed(world.seed, 'resident', idNumber)` 推导，不入档。居民没有位置字段、心情、亲密、记忆。
+
+### 6.2 到来
+
+`simulate` 在每个游戏日开始的那一分钟（`minute % 1440 === 0`）：如果有居民楼还有空位，分配新 id，加入一只居民，住进最老的有空位的居民楼。每天最多一只。玩家没有操作。
+
+### 6.3 位置
+
+```ts
+// src/core/residents.ts，纯函数，不读写世界以外的东西
+residentPlace(world, resident, minute): { from: Position; to: Position; progress: number }
+```
+
+- 每只居民有一个固定的日程周期（例如 240 游戏分钟），相位由它的 id 决定，所以大家不会同时出门。
+- 周期内：在家 → 沿路走到它的猫咖 → 在猫咖 → 走回家。路线用现有的 `findWalkingPath` 算一次，按世界快照缓存。
+- 没有可达的猫咖时，居民待在家门口。
+- 居民**不占格子**：不出现在 `occupied` 校验里，不影响寻路和建设。画面上可以和别的东西重叠，绘制时错开半格并画得比伙伴猫小。
+
+### 6.4 客人
+
+`cafeAssignment` 的输入从"有住所的伙伴猫"改为"有住所的伙伴猫 + 居民"。座位顺序：先伙伴猫（按 id），再居民（按 id）。
+
+### 6.5 被放弃的方案
+
+- **居民也是 `world.cats`**：会继承步行、占格、心情漂移、亲密等全部规则，每多一只居民都在增加模拟成本和校验面，而需求明确说居民首版没有这些。
+- **居民完全不入档、只由建筑推导**：那样"每天来一只"无法表达，拆改建筑时居民会凭空变化。
+
+### 6.6 经济重新定标
+
+居民加入后满城是 8 + 16 = 24 位客人，需要 5 家猫咖。`tests/simulation/economy.test.ts` 的"满城"定义要跟着改，四个目标（4× 挂机上限、建满 12–20 小时、首家猫咖回本、1× 下不超过钓鱼）不变。达不到时改价格参数，不改区间。
+
+## 7. 心愿（R-50 – R-53）
+
+```ts
+cat.wish: { kind: WishKind; target: string | null; sinceDay: number } | null
+cat.lastWishDay: number | null      // 上一个心愿完成的那一天，用来保证第二天才有新心愿
+```
+
+- 生成：`simulate` 在每个游戏日开始时，对每只没有心愿、`lastWishDay < 今天` 的成年伙伴猫，用 `streamSeed(seed, 'wish', catIdNumber, day)` 决定今天是否想到一个心愿（概率在 content），以及是哪一个。
+- 候选只包含**现在做得到**的：想要的鱼必须出自已开放的水域并且这只猫的品种钓得到；"想有个家"只在没有住所时出现；"想家附近有猫咖"只在有住所且 3 格内没有猫咖时出现；"想被摸摸"只在撸猫上线后出现。
+- 完成：在对应命令的结算里检查（`GIFT_FISH`、`ASSIGN_HOME`、`BUILD_BUILDING` / `MOVE_BUILDING`、`PET_CAT`、钓到鱼）。完成时清空 `wish`，记 `lastWishDay`，发事件 `WishFulfilled`，给亲密 +10、心情 +10（走 `rewardBond`、`liftMood`）。
+- 没有期限。心愿不会因为世界变化而失效；如果它变得已经满足（比如玩家本来就要建猫咖），下一次相关命令结算时自然完成。
+
+## 8. 撸猫接入（R-20 – R-24）
+
+分支 `feat/petting` 的架构保留（纯引擎、一局结束发一条 `PET_CAT { catId, strokes }`、Core 重放结算）。合并前的改动：
+
+| 改动                                                                                                 | 位置                                         |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 亲密改用 `rewardBond(cat, BOND.petting)` + `spendDaily(cat.pettingBond, minute, BOND.pettingPerDay)` | `src/core/petting.ts`、`src/content/care.ts` |
+| 心情改用 `liftMood`                                                                                  | `src/core/petting.ts`                        |
+| 每小时限制保留（作用于心情）；每日限制作用于亲密                                                     | —                                            |
+| 撸猫期间时钟固定 1×                                                                                  | 见下                                         |
+| 部位按钮移到猫身体轮廓之外，用引线指向部位                                                           | `src/view/petting/`                          |
+
+时钟固定：`mountClockSpeed` 现在用 `place.get() !== 'city'` 判断是否锁定。撸猫是覆盖层，不是地点。在 `src/view/shell/place.ts` 增加一个只读的"小游戏进行中"标志（`place` 为 `river`，或撸猫画面打开），`mountClockSpeed` 和 `main.ts` 的时钟读取这个标志。不要把撸猫做成第三个 `Place`：地点决定底部工具条和场景，撸猫不改变它们。
+
+## 9. 地图容量核算
+
+64 个种子实测：草地 65–73 格。满配需要：
+
+| 用途                                 | 数量 | 格子     |
+| ------------------------------------ | ---- | -------- |
+| 公寓（8 伙伴 ÷ 2）                   | 4    | 4        |
+| 居民楼（16 居民 ÷ 4）                | 4    | 4        |
+| 猫咖（24 客人 ÷ 5）                  | 5    | 5        |
+| 道路（每座建筑至少邻接一格连通的路） | —    | 约 15–20 |
+| 伙伴猫站立                           | 8    | 8        |
+| 合计                                 |      | 约 36–41 |
+
+65 格够用，还剩约 25 格给公园等后续建筑。结论：**不需要扩图**。居民不占格子是这个结论成立的前提。
+
+## 10. 画面结构
+
+### 10.1 猫咪面板重组（R-14）
+
+现在名册在 `src/view/fishing/stage.ts`，详情在 `src/view/shell/panel.ts` 和 `src/view/companion/journal.ts`，是历史原因。新建 `src/view/cats/`：
+
+| 文件            | 责任                                                                          |
+| --------------- | ----------------------------------------------------------------------------- |
+| `view-state.ts` | 纯 reducer：选中的猫、当前分区、确认对话框（绝育 / 生育 / 起名）              |
+| `screen.ts`     | 纯函数：`catsScreen(world, view) → { roster, detail, family, wish, dialogs }` |
+| `roster.ts`     | 名册：纵向可滚动列表，每行头像、名字、世代、心情、亲密                        |
+| `detail.ts`     | 详情：分区折叠，默认展开"现在"（心情、亲密、心愿）                            |
+| `family.ts`     | 家谱：父母两行、子女列表，点名字切换选中的猫                                  |
+
+搬迁时**行为不变**：先搬文件并让现有测试通过，再加新内容。不要在同一个 PR 里又搬又改。
+
+### 10.2 可交互元素不重建（N-6）
+
+教训：操作卡和鱼篓在每次世界变化时 `replaceChildren()`，时钟每秒推进一次，按钮每秒被换掉，点击会丢。
+
+规则：任何在世界变化时运行的 DOM 应用函数，如果它创建可点击的元素，必须满足其一：
+
+1. 模型没变就不动 DOM（把模型序列化成签名比较）；或者
+2. 按稳定的 key（实体 id）复用已有元素，只更新文字和 `disabled`。
+
+`src/view/city/actions.ts` 是参考实现。新的名册、鱼篓、家谱都按这个写，并各有一条画面测试：连续 5 次 `ADVANCE_TIME` 后按钮是同一个元素。
+
+### 10.3 河畔的三项（R-01 – R-03）
+
+| 需求         | 决定放在哪里                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 猫醒着       | `catPose(world, cat, { atRiver })`：`atRiver` 为真时 `curled` 恒为假。调用方（`river.ts`、`stage.ts`）根据 `place` 和是否是河畔的同伴传入                                      |
+| 收获卡倒计时 | view-state 增加事件 `dismissed`（效果同已有的 `said`：清空 `watched`）；计时器在 `panel.ts`，面板打开或 `document.hidden` 时暂停；时长常量放在 `screen.ts` 的 `SCREEN_COPY` 旁 |
+| 点猫反应     | 纯函数 `catReaction({ band, phase, result, count }) → { motion, line }`；台词表放在钓鱼画面文案旁；可聚焦的透明按钮盖在猫上，不放在水面层里                                    |
+
+## 11. 存档版本计划
+
+每次格式变化升一版，并把升版前的存档加入 `tests/fixtures/` 和 `tests/integration/legacy-saves.test.ts` 作为拒绝样本。内容数值变化升 `CONTENT_VERSION`。
+
+| 里程碑                          | 变化                                         | 存档 | 内容   |
+| ------------------------------- | -------------------------------------------- | ---- | ------ |
+| 当前 main                       | —                                            | 18   | 10     |
+| M0 撸猫（T-05）                 | 每只猫的 `petting`、`pettingBond`            | 19   | 10     |
+| M1 个体的猫（T-10、T-11、T-13） | 3.2 的字段；`INVITE_CAT`；花色枚举           | 20   | 11     |
+| M2 家庭（T-20、T-22）           | 进行中的一竿记下 `talent`；新命令            | 21   | 12     |
+| M3 居民（T-30、T-31）           | `world.residents`；`CAT_LODGE`；经济重新定标 | 22   | 13、14 |
+| M4 心愿（T-40）                 | `cat.wish`、`cat.lastWishDay`                | 23   | 15     |
+
+表里的号码是计划值。实际合并时以 main 上的当前值加一为准，并在 PR 里写明。
+
+M1 一次把猫身上家庭需要的字段都加上，M2 只为"这一竿的天赋"再升一次。并行开发时，版本号在开工前按上表认领；合并时发现被占用，后合并的一方改成下一个号并补拒绝样本。
+
+生成拒绝样本的方法：在 `/Users/gakki/dev/catcity-wt8`（main 的分离检出）里用一段一次性脚本创建世界并 `save()`，把 JSON 拷到分支的 `tests/fixtures/`，不要在 wt8 里留下文件。
+
+## 12. 测试策略
+
+| 层         | 写什么                               | 新功能的最低要求                 |
+| ---------- | ------------------------------------ | -------------------------------- |
+| 单元       | 每条规则和边界；被拒绝的命令不改世界 | 每个新命令、每个纯函数           |
+| 模拟       | 不变量、节奏、经济、平衡             | 每个带数值的功能至少一条区间断言 |
+| 集成       | 存档往返、旧档拒绝、回放             | 每次升版                         |
+| 画面测试台 | 面板显示、文案、按钮流程、元素不重建 | 每个新画面                       |
+| E2E        | 真实触摸、布局、刷新续玩             | 每个新画面一条冒烟，两个手机尺寸 |
+
+模拟测试的写法（来自这一轮的教训）：
+
+- 先写模拟，再定数值。数值设计文档里的估算有三处被模拟推翻。
+- 区间是需求，数值是实现。模拟变红时改数值；确实需要改区间时，那是需求变更，要用户同意。
+- 不要让结果依赖玩家的操作节奏。任何"按次加、按时间减"的量都会这样，要在多种节奏下断言。
+- 每个用例在本机覆盖率下不超过 1 秒。慢的时候先测时间花在哪里，再优化；不要调超时。
+- 模拟玩家要包含"最会钻空子的玩家"（钓到喜欢的鱼就送、每局只摸最喜欢的部位），上界由他决定。
+
+## 13. 流程与环境
+
+- 一台 10 核机器，同一时间只能跑一个完整检查。并行的分支只跑 `typecheck`、`lint`、`test:coverage`，浏览器测试交给完整检查。
+- 每个任务一个分支一个 worktree。现在 `/Users/gakki/dev/` 下有 50 多个旧 worktree，已合并的可以清理（`git worktree remove`，先确认分支已合并、工作区干净）。
+- 合并流程、发布命令、提交格式见 [tasks.md 的执行规程](tasks.md#执行规程)。

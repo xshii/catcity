@@ -4,7 +4,6 @@ import { fishingFixture } from './fishing-fixture';
 import { pettingTastes } from '../../src/core';
 import { createWorld, loadWorld, World } from '../../src/core/world';
 import { SAVE_VERSION, type CatEntity } from '../../src/core/schema';
-import { CARE } from '../../src/content/care';
 import { PETTING, PET_SPOTS, type PetSpot } from '../../src/content/petting';
 import type { PetStroke } from '../../src/minigames/petting';
 
@@ -253,7 +252,7 @@ describe('the bond', () => {
     });
     pet(world, lovely);
     expect(cat(world).playerBond).toBe(1);
-    advance(world, CARE.bondCooldownMinutes);
+    advance(world, 60);
     pet(world, lovely);
     expect(cat(world).playerBond).toBe(2);
   });

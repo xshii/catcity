@@ -1,10 +1,10 @@
 {
-  "saveVersion": 17,
-  "contentVersion": 8,
+  "saveVersion": 18,
+  "contentVersion": 9,
   "world": {
     "seed": 42,
-    "minute": 515,
-    "coins": 1000,
+    "minute": 480,
+    "coins": 460,
     "nextId": 3,
     "map": {
       "width": 10,
@@ -913,7 +913,26 @@
         }
       ]
     },
-    "buildings": [],
+    "buildings": [
+      {
+        "id": "building-1",
+        "type": "CAT_APARTMENT",
+        "position": {
+          "x": 4,
+          "y": 4
+        },
+        "builtAtMinute": 420
+      },
+      {
+        "id": "building-2",
+        "type": "CAT_CAFE",
+        "position": {
+          "x": 4,
+          "y": 3
+        },
+        "builtAtMinute": 420
+      }
+    ],
     "cats": [
       {
         "id": "mochi",
@@ -928,64 +947,24 @@
           "likes": ["fish", "quiet", "windows"],
           "dislikes": ["noise", "crowds"]
         },
-        "mood": 70,
-        "needs": {
-          "hunger": 30,
-          "energy": 100
-        },
-        "memories": [
-          {
-            "id": "memory-2",
-            "kind": "conversation",
-            "minute": 420,
-            "message": "你好",
-            "reply": "喵。"
-          }
-        ],
-        "playerBond": 1,
-        "home": null,
-        "position": {
-          "x": 7,
-          "y": 3
-        },
-        "lastBondMinute": 420,
-        "fishingSpotId": "POND",
-        "walk": null,
-        "breedId": "RAGDOLL",
-        "favoriteFish": ["SILVER", "CRUCIAN"],
-        "fishingMemory": null,
-        "fishGift": null
-      },
-      {
-        "id": "cat-1",
-        "definitionId": "PEPPER",
-        "name": "Pepper",
-        "appearance": {
-          "coat": "gray"
-        },
-        "personality": ["curious", "playful"],
-        "traits": ["adventurous"],
-        "preferences": {
-          "likes": ["fish", "exploring"],
-          "dislikes": ["waiting"]
-        },
         "mood": 68,
         "needs": {
-          "hunger": 30,
           "energy": 100
         },
         "memories": [],
         "playerBond": 0,
-        "home": null,
+        "home": "building-1",
         "position": {
-          "x": 5,
-          "y": 5
+          "x": 7,
+          "y": 3
         },
-        "lastBondMinute": null,
-        "fishingSpotId": null,
+        "chatBond": null,
+        "giftBond": null,
+        "lastChatMoodMinute": null,
+        "fishingSpotId": "POND",
         "walk": null,
-        "breedId": "BRITISH_SHORTHAIR",
-        "favoriteFish": ["PERCH", "CATFISH"],
+        "breedId": "RAGDOLL",
+        "favoriteFish": ["SILVER", "CRUCIAN"],
         "fishingMemory": null,
         "fishGift": null
       }

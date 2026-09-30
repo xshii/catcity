@@ -7,7 +7,7 @@ import {
 } from './fishing-fixture';
 import { describe, expect, it } from 'vitest';
 import { loadWorld } from '../../src/core/world';
-import { FISHING, fishById } from '../../src/content/fishing';
+import { FISHING, fishById, skillXp, SPOTS } from '../../src/content/fishing';
 import {
   castAngling,
   greenZone,
@@ -300,7 +300,7 @@ it('makes every motion cast steady, and a button cast only when released in the 
 });
 
 it('unlocks distinct waterways through skill and discoveries, with real bait/direction conditions', () => {
-  const world = createWorld(42);
+  let world = createWorld(42);
   const before = world.save();
   expect(
     world.dispatch({
@@ -344,12 +344,23 @@ it('unlocks distinct waterways through skill and discoveries, with real bait/dir
     expect(world.getSnapshot().fishing.lastResult!.caught).toBe(true);
     return world.getSnapshot().fishing.lastResult!.speciesId;
   };
+  const travel = (spotId: 'REEDS' | 'MOON') =>
+    world.dispatch({ type: 'TRAVEL_TO_FISHING_SPOT', catId: 'mochi', spotId });
   expect(catchAt('POND', 'BREAD', -30)).toBe('SILVER');
   expect(catchAt('POND', 'BREAD', 30)).toBe('CRUCIAN');
   catchAt('POND', 'BREAD', 0);
+  // Two species are not enough: the reeds also take the skill of a fourth catch.
+  expect(travel('REEDS')).toEqual({ ok: false, error: 'SPOT_LOCKED' });
+  catchAt('POND', 'BREAD', 0);
   expect(catchAt('REEDS', 'WORM', 0)).toBe('PERCH');
   expect(catchAt('REEDS', 'SHRIMP', 30)).toBe('CATFISH');
-  catchAt('REEDS', 'WORM', 0);
+  // Four species are not enough for the moon lake: its skill takes many more catches
+  // (tests/simulation/pacing). This save is one catch short of it.
+  expect(travel('MOON')).toEqual({ ok: false, error: 'SPOT_LOCKED' });
+  const practised = JSON.parse(world.save());
+  practised.world.fishing.xp = skillXp(SPOTS.MOON.level) - 1;
+  world = loadWorld(JSON.stringify(practised));
+  expect(travel('MOON')).toEqual({ ok: false, error: 'SPOT_LOCKED' });
   catchAt('REEDS', 'WORM', 0);
   expect(catchAt('MOON', 'WORM', -30)).toBe('KOI');
   expect(world.getSnapshot().fishing.atlas.KOI.count).toBe(1);

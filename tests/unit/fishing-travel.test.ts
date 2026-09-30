@@ -1,5 +1,10 @@
 import { CARE } from '../../src/content/care';
-import { CITY_START } from '../../src/content/city';
+import {
+  BUILDINGS,
+  buildingPrice,
+  CAFE,
+  CITY_START,
+} from '../../src/content/city';
 import { advance, buildCafe } from '../helpers/world';
 import { fishingFixture as createWorld, finishWalk } from './fishing-fixture';
 import { walkingMinutes } from '../../src/core/city/path';
@@ -7,9 +12,12 @@ import { expect, it } from 'vitest';
 import {
   FISH,
   SPOT_IDS,
+  SPOTS,
   fishById,
+  skillXp,
   spotUnlocked,
 } from '../../src/content/fishing';
+import { travelMinutes } from '../../src/core';
 import { loadWorld, type World } from '../../src/core/world';
 import {
   greenZone,
@@ -21,8 +29,19 @@ function unlocked() {
   const world = createWorld(42);
   buildCafe(world, { x: 4, y: 4 });
   world.dispatch({ type: 'INVITE_PEPPER' });
+  // Pepper lives beside the cafe and is its customer; it idles away from home.
+  world.dispatch({
+    type: 'BUILD_BUILDING',
+    buildingType: 'CAT_APARTMENT',
+    position: { x: 4, y: 3 },
+  });
+  world.dispatch({
+    type: 'ASSIGN_HOME',
+    catId: world.getSnapshot().cats[1]!.id,
+    buildingId: world.getSnapshot().buildings[1]!.id,
+  });
   const fixture = JSON.parse(world.save());
-  fixture.world.fishing.xp = 120;
+  fixture.world.fishing.xp = skillXp(SPOTS.MOON.level);
   fixture.world.cats[1].needs.energy = 50;
   for (const id of ['SILVER', 'CRUCIAN', 'PERCH', 'CATFISH'] as const) {
     const fish = fishById(id);
@@ -84,7 +103,14 @@ it('queues real shore travel, advancing income and idle cats recovery only on th
   expect(state.minute).toBe(CITY_START.minute + 20 + duration);
   // The game starts on a full hour: income and recovery count from there.
   const elapsed = state.minute - CITY_START.minute;
-  expect(state.coins).toBe(700 + 10 * Math.floor(elapsed / 60));
+  expect(state.coins).toBe(
+    CITY_START.coins -
+      buildingPrice('CAT_CAFE', 0) -
+      buildingPrice('CAT_APARTMENT', 0) +
+      CAFE.coinsPerCustomer *
+        (Math.floor(state.minute / BUILDINGS.CAT_CAFE.intervalMinutes) -
+          Math.floor(CITY_START.minute / BUILDINGS.CAT_CAFE.intervalMinutes)),
+  );
   expect(state.cats.map((cat) => cat.needs.energy)).toEqual([
     // Walking costs a tile each; idle Pepper recovers every tick from the start.
     100 - route.length,
@@ -258,11 +284,12 @@ it('rejects travel during an active fishing run and rejects clock overflow atomi
 });
 
 it('validates destination unlocks and persisted location, including active-run agreement', () => {
-  expect(spotUnlocked('COAST', 79, 3)).toBe(false);
-  expect(spotUnlocked('COAST', 80, 2)).toBe(false);
-  expect(spotUnlocked('COAST', 80, 3)).toBe(true);
-  expect(spotUnlocked('MOON', 119, 4)).toBe(false);
-  expect(spotUnlocked('MOON', 120, 4)).toBe(true);
+  for (const spotId of ['COAST', 'MOON'] as const) {
+    const { level, species } = SPOTS[spotId];
+    expect(spotUnlocked(spotId, skillXp(level) - 1, species)).toBe(false);
+    expect(spotUnlocked(spotId, skillXp(level), species - 1)).toBe(false);
+    expect(spotUnlocked(spotId, skillXp(level), species)).toBe(true);
+  }
   const locked = JSON.parse(createWorld(42).save());
   locked.world.cats[0].fishingSpotId = 'COAST';
   expect(() => loadWorld(JSON.stringify(locked))).toThrow(
@@ -357,4 +384,30 @@ it('uses distinct freshwater and sea pools with seeded lengths and earns sea cat
     );
     expect(world.getSnapshot().coins).toBe(coins + fishById(species).price);
   }
+});
+
+it('tells how long the walk to a shore takes, from the route the travel then queues', () => {
+  const world = unlocked();
+  const before = world.save();
+  const minutes = travelMinutes(world.getSnapshot(), 'mochi', 'REEDS');
+  expect(world.save()).toBe(before);
+  expect(
+    world.dispatch({
+      type: 'TRAVEL_TO_FISHING_SPOT',
+      catId: 'mochi',
+      spotId: 'REEDS',
+    }).ok,
+  ).toBe(true);
+  const queued = world.getSnapshot();
+  expect(minutes).toBe(
+    queued.cats[0]!.walk!.route.reduce(
+      (sum, position) => sum + walkingMinutes(queued, position),
+      0,
+    ),
+  );
+  advance(world, minutes!);
+  expect(world.getSnapshot().cats[0]!.fishingSpotId).toBe('REEDS');
+  // Nothing to tell for a cat that is there already or does not exist.
+  expect(travelMinutes(world.getSnapshot(), 'mochi', 'REEDS')).toBeNull();
+  expect(travelMinutes(world.getSnapshot(), 'ghost', 'POND')).toBeNull();
 });

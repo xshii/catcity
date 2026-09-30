@@ -86,11 +86,16 @@ body {
   color: var(--text-accent);
   white-space: nowrap;
 }
-/* The last message floats under the scene bar and its hint, and never takes a tap. */
+/*
+ * The last message floats in one place on every page: under the scene bar and the row
+ * below it (the city's hint, the river's scene chip), as tall as its words. It never
+ * takes a tap.
+ */
 .game-screen #notice {
   position: absolute;
   z-index: 32;
   top: calc(var(--under-bar) + 40px);
+  min-height: 0;
   /* Centred, as wide as its words: up to the width between the sides, not half of it. */
   left: 16px;
   right: 16px;
@@ -111,6 +116,13 @@ body {
   display: none;
 }
 /*
+ * The river's chip is lower than the city's hint row: right under it, two lines of a
+ * message end above the water's far edge on short phones too.
+ */
+.game-screen.river-screen #notice {
+  top: calc(var(--under-bar) + 32px);
+}
+/*
  * An open panel covers the scene and the bar's usual place: the message shows over the
  * panel, along its bottom edge, clear of its heading, tabs and controls.
  */
@@ -118,7 +130,6 @@ body {
   z-index: 38;
   top: auto;
   bottom: calc(var(--over-nav) + 6px);
-  min-height: 0;
 }
 /* A message stays readable for a while, then gives the scene back. */
 .game-screen #notice.fading {
@@ -742,10 +753,6 @@ body {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-#clock-speed.guide-target {
-  border-color: var(--accent-strong);
-  box-shadow: var(--glow-accent);
 }
 .city-save {
   display: flex;
