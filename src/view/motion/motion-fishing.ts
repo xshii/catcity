@@ -133,7 +133,6 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     `<span id="motion-fish" class="motion-fish" hidden aria-hidden="true">${fishShadow()}</span>` +
     '<span id="motion-ring" class="motion-ring" hidden aria-hidden="true"></span>' +
     `<span id="motion-power" class="motion-power" hidden role="meter" aria-label="${POWER_COPY.label}" aria-valuemin="0" aria-valuemax="${FISHING.input.maxPower}"></span>` +
-    `<p id="motion-legend" class="motion-legend" hidden>${SCREEN_COPY.cast.legend}</p>` +
     '<progress id="motion-hold" class="motion-hold" max="100" value="0" hidden aria-label="遛鱼进度"></progress>';
   deps.plane.append(overlay);
   const $ = <T extends HTMLElement>(id: string) =>
@@ -144,7 +143,6 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     fish: $('motion-fish'),
     ring: $('motion-ring'),
     power: $('motion-power'),
-    legend: $('motion-legend'),
     hold: $<HTMLProgressElement>('motion-hold'),
     skip: $('motion-guide-skip'),
   };
@@ -370,7 +368,6 @@ export function mountMotionFishing(deps: MotionFishingDeps) {
     overlay.dataset.phase = model.overlayPhase;
     el.skip.hidden = !model.guide;
     el.power.hidden = !model.powerMeter;
-    el.legend.hidden = !model.powerMeter;
     el.power.setAttribute('aria-valuenow', String(power));
     el.power.setAttribute(
       'aria-valuetext',

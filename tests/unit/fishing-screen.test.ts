@@ -590,7 +590,6 @@ describe('fishing screen', () => {
         expect(castNotice(charge, null)).toBeNull();
       }
     expect(SCREEN_COPY.cast.onShadow).toBe('落在鱼影上');
-    expect(SCREEN_COPY.cast.legend).toBe('落点圈变绿＝对准了鱼影');
   });
 
   it('labels the pause button from the state', () => {

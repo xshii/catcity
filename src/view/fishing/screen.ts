@@ -48,7 +48,6 @@ export const SCREEN_COPY = {
   },
   /** The ring turns green over a fish shadow, and a cast says so once (spec 033 F5b). */
   cast: {
-    legend: '落点圈变绿＝对准了鱼影',
     onShadow: '落在鱼影上',
   },
   calibrate: {

@@ -219,9 +219,9 @@ describe('motion fishing', () => {
     expect(meter.getAttribute('aria-valuetext')).toBe(
       `力度 ${precise}，精准区间 ${band.min}–${band.max}`,
     );
-    // The legend says what a green landing ring means.
-    expect(visible('#motion-legend')).toBe(true);
-    expect(text('#motion-legend')).toBe(SCREEN_COPY.cast.legend);
+    // No words over the water say what a green ring means (user, 2026-09-30).
+    expect(document.querySelector('#motion-legend')).toBeNull();
+    expect(document.body.textContent).not.toContain('落点圈变绿');
     pitch(100);
     expect(meter.getAttribute('aria-valuenow')).toBe('100');
     expect(meter.getAttribute('aria-valuetext')).toContain(
@@ -238,7 +238,6 @@ describe('motion fishing', () => {
       aimDepth: 100,
       precision: true,
     });
-    expect(visible('#motion-legend')).toBe(false);
   });
 
   it.each([true, false])(
