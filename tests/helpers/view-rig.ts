@@ -330,14 +330,17 @@ export function choose(selector: string, value: string) {
   field.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-/** A key held or released on the focused element, like `page.keyboard.down/up`. */
+/**
+ * A key held or released on the focused element, like `page.keyboard.down/up`. Enter on
+ * a focused button clicks it, as a browser does, unless the page took the key.
+ */
 export function key(
   type: 'keydown' | 'keyup',
-  code: 'Space' | 'Escape' | 'Tab',
+  code: 'Space' | 'Escape' | 'Tab' | 'Enter',
   shiftKey = false,
 ) {
   const target = document.activeElement ?? document.body;
-  target.dispatchEvent(
+  const unhandled = target.dispatchEvent(
     new KeyboardEvent(type, {
       bubbles: true,
       cancelable: true,
@@ -346,6 +349,16 @@ export function key(
       shiftKey,
     }),
   );
+  if (
+    unhandled &&
+    type === 'keydown' &&
+    code === 'Enter' &&
+    target instanceof HTMLButtonElement &&
+    !target.disabled
+  )
+    target.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }),
+    );
 }
 
 /** A tilt reading: Chromium exposes the sensor events, tests fire them. */
