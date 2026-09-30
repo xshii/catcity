@@ -72,6 +72,8 @@ export type FishingViewEvent =
   | { type: 'notice'; text: string | null }
   /** The notice bar was given a message, by anything on the page. */
   | { type: 'said' }
+  /** The catch card was tapped, or its time ran out (R-02). */
+  | { type: 'dismissed' }
   /** The player did a guide step's move; only the step being taught moves on. */
   | { type: 'guide'; did: GuideStep }
   | { type: 'skip-guide' };
@@ -200,7 +202,9 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
     case 'notice':
       return motion({ notice: event.text });
     case 'said':
-      // The catch card gives way to a newer notice; a run's own notices change nothing.
+    case 'dismissed':
+      // The catch card gives way to a newer notice, a tap or its time; in a run there is
+      // no card, so a run's own notices change nothing.
       return view.runId === null && view.watched
         ? { ...view, watched: null }
         : view;

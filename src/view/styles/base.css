@@ -1079,6 +1079,10 @@ input::placeholder {
   text-align: center;
   box-shadow: var(--shadow-sheet);
   animation: catch-pop 0.35s ease-out;
+  /* A tap anywhere on it closes it (R-02); the countdown keeps inside its corners. */
+  pointer-events: auto;
+  cursor: pointer;
+  overflow: hidden;
 }
 .catch-reveal svg {
   display: block;
@@ -1107,6 +1111,26 @@ input::placeholder {
 .catch-reveal .loot-art {
   font-size: 56px;
   padding: 8px;
+}
+/* The card closes by itself (R-02): its time runs out along its bottom edge. */
+.catch-reveal .catch-countdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--apricot);
+  transform-origin: left center;
+  animation: catch-countdown var(--catch-card-ms) linear forwards;
+}
+/* A panel, the settings or a hidden page hold the countdown, and the bar with it. */
+.catch-reveal[data-countdown='held'] .catch-countdown {
+  animation-play-state: paused;
+}
+@keyframes catch-countdown {
+  to {
+    transform: scaleX(0);
+  }
 }
 @keyframes catch-pop {
   from {
@@ -1207,6 +1231,7 @@ input::placeholder {
 }
 @media (prefers-reduced-motion: reduce) {
   .catch-reveal,
+  .catch-reveal .catch-countdown,
   .fish-control[aria-pressed='true'] .reel-icon {
     animation: none;
   }
