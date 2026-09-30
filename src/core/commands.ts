@@ -98,6 +98,7 @@ export const commandSchema = z.discriminatedUnion('type', [
     type: z.literal('INVITE_CAT'),
     definitionId: z.enum(CAT_DEFINITION_IDS),
   }),
+  z.strictObject({ type: z.literal('NEUTER_CAT'), catId: id }),
   z.strictObject({
     type: z.literal('ADVANCE_TIME'),
     minutes: z.number().int().min(0).max(MAX_ADVANCE_MINUTES),
@@ -173,6 +174,7 @@ export type GameEvent =
     }
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
   | { type: 'CatInvited'; minute: number; entityId: string; cost: number }
+  | { type: 'CatNeutered'; minute: number; entityId: string; cost: number }
   | {
       type: 'CatPetted';
       minute: number;
@@ -228,7 +230,9 @@ export type ErrorCode =
   | 'NO_SUPPLIES'
   | 'ALREADY_INVITED'
   | 'COMPANION_LIMIT'
-  | 'NO_BED';
+  | 'NO_BED'
+  | 'ALREADY_NEUTERED'
+  | 'CAT_TOO_YOUNG';
 export type CommandResult =
   { ok: true; events: GameEvent[] } | { ok: false; error: ErrorCode };
 /** A dry run: whether Core would accept the command now. */

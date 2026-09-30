@@ -238,7 +238,7 @@
 
 ### [ ] T-20 绝育（R-30）
 
-- **分支**：`feat/neuter`。依赖 T-12。内容 12。
+- **分支**：`feat/neuter`。依赖 T-12。内容 17（开工时 main 是存档 23、内容 15，合并前 main 已用掉内容 16；存档格式不变，`neutered` 是 T-10 加的），补 `save-v23-content16.json` 拒绝样本。确认框是可复用的 `view/common/confirm.ts`，T-22 的生小猫可以直接用。
 - **做什么**：命令 `NEUTER_CAT { catId }`；content `NEUTER_PRICE = 100`；错误码 `ALREADY_NEUTERED`、`CAT_TOO_YOUNG`；猫详情"家人"分区里的按钮，点了先出确认框，写明"不可撤销"。
 - **测试**：成功扣费并置位；重复、幼猫、金币不足被拒且世界不变；确认框取消不发命令。
 - **验收**：三条命令；完整检查；截图确认框。

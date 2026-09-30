@@ -1,7 +1,9 @@
 import './cats.css';
 import type { GameSession } from '../../application';
 import { STARTER_CAT_ID } from '../../content/cats';
+import type { Confirm } from '../common/confirm';
 import type { PlaceState } from '../common/place';
+import { mountNeuter } from './neuter';
 import { CATS_COPY, detailScreen, talkCard } from './screen';
 import {
   CATS_SECTIONS,
@@ -69,6 +71,11 @@ function mountProfile(page: HTMLElement, view: CatsViewStore) {
   let portrait = '';
   return {
     back,
+    /** The family section, which neutering ends, and its title. */
+    family: {
+      section: $('#profile-family').parentElement!,
+      title: $('#profile-toggle-family'),
+    },
     apply(model: Model | null) {
       profile.hidden = !model;
       page.toggleAttribute('data-profile', !!model);
@@ -104,12 +111,16 @@ function mountProfile(page: HTMLElement, view: CatsViewStore) {
 /**
  * The selected cat on the cats panel's pages (spec 041 T-12): its card above the chat,
  * and the detail that a roster row opens in the roster's place. `talkCard` and
- * `detailScreen` decide them. Nothing here changes the world except choosing the first cat.
+ * `detailScreen` decide them. Nothing here changes the world except choosing the first cat
+ * and, once confirmed, neutering (T-20).
  */
 export function mountDetail(deps: {
   session: GameSession;
   place: PlaceState;
   view: CatsViewStore;
+  /** Asks before neutering (ui-design 4.2). */
+  confirm: Confirm;
+  notify: (text: string) => void;
   /** The cat card of the page markup, above the chat. */
   card: HTMLElement;
   /** The cats panel's roster page: the detail takes its place. */
@@ -117,6 +128,7 @@ export function mountDetail(deps: {
 }) {
   const { session, card, view } = deps;
   const profile = mountProfile(deps.page, view);
+  mountNeuter({ ...deps, ...profile.family });
   const $ = <T extends HTMLElement = HTMLElement>(selector: string) =>
     card.querySelector<T>(selector)!;
   const render = () => {
