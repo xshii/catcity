@@ -113,6 +113,36 @@ describe('motion fishing', () => {
     expect(pressed('buttons')).toBe(true);
   });
 
+  it('a calibration re-centres the aim on the pose held once it settles', () => {
+    // Recorded 2026-09-30: the river was entered lying on one side and calibrated sitting
+    // up, and the aim stayed centred on the first pose.
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    const turned = 20;
+    const hold = (gamma: number) => {
+      for (let reading = 0; reading < 8; reading++) orient(gamma, 0);
+    };
+    hold(turned);
+    expect($<HTMLInputElement>('#fish-direction').value).not.toBe('0');
+    openSettings();
+    click('#settings-calibrate');
+    const quiet = Array<number>(12).fill(0);
+    for (const rates of [FLICK, quiet, FLICK, quiet]) {
+      spin(rates);
+      game.wait(G.calibration.quietMs + 50);
+    }
+    game.wait(G.calibration.windowMs);
+    expect(hint()).toContain('校准完成');
+    game.wait(G.calibration.settleMs);
+    hold(turned);
+    expect($<HTMLInputElement>('#fish-direction').value).toBe('0');
+    // Turning from there aims to the side, as from any centre.
+    hold(turned - G.aimRangeDeg);
+    expect($<HTMLInputElement>('#fish-direction').value).toBe(
+      String(-FISHING.input.maxDirection),
+    );
+  });
+
   it('the tilt aim survives the city clock refreshing the view', () => {
     const game = openGame({ storage: SEASONED });
     inMotionRiver(game);

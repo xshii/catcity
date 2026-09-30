@@ -39,7 +39,7 @@ export const CAT_TAP_MS = { bubble: 1500, repeat: 500 } as const;
 /** Player-facing words of the fishing screen's switchable controls. */
 export const SCREEN_COPY = {
   hint: {
-    calibrating: '校准：向下快甩两次',
+    calibrating: '校准：手机斜握约 45° 朝脸，稳住后向下快甩两次',
     paused: '已暂停 · 点「继续钓鱼」再继续',
     aim: '左右瞄准 · 俯仰调远近 · 下甩抛竿',
     waiting: '拿稳鱼竿，等"！"再上扬',
@@ -83,7 +83,8 @@ export const SCREEN_COPY = {
   calibrate: {
     button: '校准甩竿',
     done: (peak: number) => `校准完成：下甩 ${peak}°/s`,
-    failed: '没感到两次一致的下甩，打开设置点「校准甩竿」再试一次',
+    failed:
+      '没认出两次下甩：斜握手机朝脸，甩下去停一下，再到设置点「校准甩竿」',
   },
   /** The river's section of the settings sheet (spec 034). */
   settings: {
