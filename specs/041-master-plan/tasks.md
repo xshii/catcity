@@ -115,8 +115,9 @@
 - **验收**：三条命令；完整检查；截图"倒计时一半的收获卡"。
 - **注意**：不要用 `setInterval` 每帧更新宽度；不要让计时器在卡片消失后还触发。
 
-### [ ] T-04 钓鱼时点猫有反应（R-03）
+### [x] T-04 钓鱼时点猫有反应（R-03）
 
+- **完成**：PR #62（`fb74c5f`），测试版 `test-20260930-1016-fb74c5f8-21e38a`。证据：`tests/unit/cat-reaction.test.ts`、`tests/view/cat-tap.test.ts` 在旧代码上失败、新代码上通过；E2E `fishing-scene.spec.ts` 遛鱼时点猫出现气泡且没有 `FISH_STRIKE`；推送前完整检查通过（单元与画面 865 条、E2E 59 条、验收 15 步），产物 `artifacts/2026-09-30T02-08-10-822Z-72530/`（`catcity-wt04`）；截图 `cat-bubble-390x844.png`、`cat-bubble-360x640.png`。与设计稿不同：气泡在猫头右侧（正上方是体感提示）；动作按任务只有三种；按钮方式遛鱼时操作条盖住猫。
 - **分支**：`feat/tap-the-cat`
 - **依赖**：T-02 先合并（都改 `river.ts` 的同伴）。
 - **先读这些文件**：`src/view/art/river.ts`、`src/view/art/cat.ts`（`CatArt`）、`src/view/fishing/screen.ts` 的 `SCREEN_COPY`、`src/view/motion/motion-fishing.ts` 里水面层的 `pointer-events` 和首次点击请求授权的逻辑、spec 034。
