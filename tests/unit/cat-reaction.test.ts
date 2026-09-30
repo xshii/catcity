@@ -114,6 +114,7 @@ describe('the catch the cat talks about', () => {
       coarsePointer: false,
       guide: null,
       autoCalibrate: false,
+      aimHintSeen: false,
     }),
     river,
     { type: 'run', runId: 'r' },

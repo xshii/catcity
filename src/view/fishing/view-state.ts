@@ -1,3 +1,4 @@
+import type { AnglingRun } from '../../minigames/angling';
 import type { Place } from '../shell/place';
 
 export type Capability = 'unknown' | 'ready' | 'denied' | 'unsupported';
@@ -5,6 +6,17 @@ export type Preference = 'motion' | 'buttons';
 /** The first motion cast, taught one step at a time, in this order (spec 033 F3). */
 export const GUIDE_STEPS = ['aim', 'power', 'cast', 'strike', 'fight'] as const;
 export type GuideStep = (typeof GUIDE_STEPS)[number];
+/** Where each guide step is taught: aiming before a run, then the run's phases. */
+export const GUIDE_PHASES: Record<
+  GuideStep,
+  readonly (AnglingRun['phase'] | null)[]
+> = {
+  aim: [null],
+  power: [null],
+  cast: [null],
+  strike: ['waiting', 'hook'],
+  fight: ['fight'],
+};
 
 /**
  * Everything the fishing screen decides from, besides the world snapshot (spec 015).
@@ -48,6 +60,8 @@ export interface FishingView {
      * until one finishes.
      */
     autoCalibrate: boolean;
+    /** The aim hint was closed or cast from on this device: it shows only once. */
+    aimHintSeen: boolean;
   };
 }
 
@@ -76,7 +90,9 @@ export type FishingViewEvent =
   | { type: 'dismissed' }
   /** The player did a guide step's move; only the step being taught moves on. */
   | { type: 'guide'; did: GuideStep }
-  | { type: 'skip-guide' };
+  | { type: 'skip-guide' }
+  /** The aim hint's close was pressed. */
+  | { type: 'aim-hint-seen' };
 
 export function initialFishingView(
   options: Pick<
@@ -86,6 +102,7 @@ export function initialFishingView(
     | 'coarsePointer'
     | 'guide'
     | 'autoCalibrate'
+    | 'aimHintSeen'
   >,
 ): FishingView {
   return {
@@ -108,6 +125,7 @@ export function initialFishingView(
       notice: null,
       guide: options.guide,
       autoCalibrate: options.autoCalibrate,
+      aimHintSeen: options.aimHintSeen,
     },
   };
 }
@@ -120,13 +138,27 @@ export const canPlay = (view: FishingView) =>
   !view.pageHidden;
 export const motionActive = (view: FishingView) =>
   view.motion.preference === 'motion' && view.motion.capability === 'ready';
+/**
+ * The aim hint shows once per device (user, 2026-09-30): while motion aims with no guide
+ * step, calibration or its result over it (mid-guide too, re-aiming past the guide's aim
+ * steps), until closed or cast.
+ */
+export const aimHintShown = (view: FishingView) =>
+  !view.motion.aimHintSeen &&
+  !(view.motion.guide && GUIDE_PHASES[view.motion.guide].includes(null)) &&
+  !view.motion.calibrating &&
+  view.motion.notice === null &&
+  canPlay(view) &&
+  motionActive(view) &&
+  view.runId === null;
 
 /**
  * Pure transitions. Invariants (unit-tested under random event sequences): outside play
  * input is paused and released; a held button implies play; the settings sheet is only
  * open on the river with no tools over it; calibration only runs while motion is active
  * and playable, before a run, and starts by itself only until one finishes; the guide
- * only moves forward, one step per move, and only in motion play.
+ * only moves forward, one step per move, and only in motion play; the aim hint, once
+ * seen (closed, or cast from while it showed), stays seen.
  */
 export function reduceFishingView(
   view: FishingView,
@@ -165,6 +197,11 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
         ...view,
         runId: event.runId,
         watched: event.runId ?? view.watched,
+        motion: {
+          ...view.motion,
+          aimHintSeen:
+            view.motion.aimHintSeen || (!!event.runId && aimHintShown(view)),
+        },
       };
     case 'hold':
       return event.pressed && event.buttonRun && canPlay(view)
@@ -216,6 +253,8 @@ function step(view: FishingView, event: FishingViewEvent): FishingView {
         : view;
     case 'skip-guide':
       return motion({ guide: null });
+    case 'aim-hint-seen':
+      return motion({ aimHintSeen: true });
   }
 }
 

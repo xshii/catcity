@@ -5,7 +5,9 @@ import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
 import type { MoodBand } from '../../content/mood';
 import type { CatMotion } from '../art/cat-look';
 import {
+  aimHintShown,
   canPlay,
+  GUIDE_PHASES,
   motionActive,
   type FishingView,
   type GuideStep,
@@ -45,6 +47,8 @@ export const SCREEN_COPY = {
     settle: '稳住，用圈罩住鱼',
     fight: '倾斜手机，让圈罩住鱼',
     pull: '往回拉！',
+    /** The aim hint shows once, with this close (user, 2026-09-30). */
+    close: '关闭提示',
   },
   /** The first motion cast, one step at a time (spec 033 F3). */
   guide: {
@@ -74,7 +78,6 @@ export const SCREEN_COPY = {
   },
   /** The ring turns green over a fish shadow, and a cast says so once (spec 033 F5b). */
   cast: {
-    legend: '落点圈变绿＝对准了鱼影',
     onShadow: '落在鱼影上',
   },
   calibrate: {
@@ -166,16 +169,6 @@ const GUIDE_AIM = {
   direction: Math.round(FISHING.input.maxDirection / 3),
   power: 65,
 };
-/** Where each guide step is taught: aiming before a run, then the run's phases. */
-const GUIDE_PHASES: Record<GuideStep, readonly (AnglingRun['phase'] | null)[]> =
-  {
-    aim: [null],
-    power: [null],
-    cast: [null],
-    strike: ['waiting', 'hook'],
-    fight: ['fight'],
-  };
-
 /**
  * What the fishing scene shows (spec 015). Pure: the DOM only applies this, after every
  * change, so no route can leave a control stale. Nothing of the river shows elsewhere,
@@ -220,6 +213,8 @@ export function fishingScreen(view: FishingView, run: AnglingRun | null) {
         : usual,
     /** The first-cast guide's step whose hint shows, with a way to skip the guide. */
     guide,
+    /** The one-time aim hint shows, with a way to close it. */
+    aimHint: aiming && aimHintShown(view),
     pauseLabel: view.paused
       ? SCREEN_COPY.pause.resume
       : SCREEN_COPY.pause.pause,
@@ -410,7 +405,7 @@ function hint(view: FishingView, motionRun: AnglingRun | null): string {
   const words = SCREEN_COPY.hint;
   if (view.motion.calibrating) return words.calibrating;
   if (view.motion.notice && !motionRun) return view.motion.notice;
-  if (!motionRun) return words.aim;
+  if (!motionRun) return aimHintShown(view) ? words.aim : '';
   if (view.paused) return words.paused;
   if (motionRun.phase === 'waiting') return words.waiting;
   if (motionRun.phase === 'hook') return words.hook;

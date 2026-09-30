@@ -203,7 +203,6 @@ const RIVER_PARTS = {
   chip: '#river-place',
   gear: '#river-settings',
   plane: '#motion-fishing',
-  legend: '#motion-legend',
   hint: '#motion-fishing-hint',
   card: '#catch-reveal',
   bar: '#map-heading',
@@ -312,7 +311,7 @@ for (const viewport of PHONES) {
     await expect(page.locator('#notice')).toBeHidden();
   });
 
-  test(`phone ${viewport.width}×${viewport.height}: on the river a notice keeps off the water, the legend and the hint (motion)`, async ({
+  test(`phone ${viewport.width}×${viewport.height}: on the river a notice keeps off the water and the hint (motion)`, async ({
     browser,
   }, testInfo) => {
     const context = await phoneContext(browser, viewport);
@@ -326,10 +325,12 @@ for (const viewport of PHONES) {
       window.CAT_CITY_DEBUG!.useManualFishingClock(true),
     );
     await sensorsOn(page);
-    await expect(page.locator('#motion-legend')).toBeVisible();
+    // Aiming: the plane is up before any run. The first aim on this device, so the
+    // once-only aim hint shows (user, 2026-09-30).
+    await expect(page.locator('#motion-fishing')).toBeVisible();
     const aiming = await noticeOnRiver(page, testInfo, 'motion-aim');
     expect(aiming.parts.map(({ part }) => part)).toEqual(
-      expect.arrayContaining(['plane', 'legend', 'hint']),
+      expect.arrayContaining(['plane', 'hint']),
     );
     // A quick flick down casts; the wait, the bite and the fight follow on the clock.
     await spin(page, [0, 300, 700, 900, 100, 0]);

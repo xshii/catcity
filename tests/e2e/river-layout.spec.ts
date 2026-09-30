@@ -421,7 +421,7 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
 ])
-  test(`phone ${viewport.width}×${viewport.height}: the settings gear sits over the water, clear of the aim legend and hint`, async ({
+  test(`phone ${viewport.width}×${viewport.height}: the settings gear sits over the water, clear of the aim hint`, async ({
     browser,
   }) => {
     const context = await phoneContext(browser, viewport);
@@ -433,9 +433,10 @@ for (const viewport of [
     await enterRiver(page);
     await sensorsOn(page);
     const gear = page.locator('#river-settings');
-    const legend = page.locator('#motion-legend');
+    // The first aim on this device: the once-only aim hint and its close show.
     const hint = page.locator('#motion-fishing-hint');
-    for (const control of [gear, legend, hint]) await onScreen(control);
+    const close = page.locator('#motion-hint-close');
+    for (const control of [gear, hint, close]) await onScreen(control);
     const box = (await gear.boundingBox())!;
     // A finger-sized target on the water, where calibration used to sit.
     expect(box.width).toBeGreaterThanOrEqual(44);
@@ -443,8 +444,12 @@ for (const viewport of [
     const water = (await page.locator('#motion-fishing').boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(water.x);
     expect(box.y).toBeGreaterThanOrEqual(water.y);
-    for (const other of [legend, hint])
+    for (const other of [hint, close])
       expect(apart(box, (await other.boundingBox())!)).toBe(true);
+    // The hint's close is finger-sized too.
+    const closeBox = (await close.boundingBox())!;
+    expect(closeBox.width).toBeGreaterThanOrEqual(44);
+    expect(closeBox.height).toBeGreaterThanOrEqual(44);
     // In button mode it stays clear of the cast button.
     await gear.click();
     await page.locator('#settings-mode-buttons').click();
