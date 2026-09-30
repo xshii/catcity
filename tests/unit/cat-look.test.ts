@@ -352,6 +352,27 @@ describe('four coats in the colours of tokens.css (ui-design 2.2, 6.1)', () => {
     }
   });
 
+  it('keeps every light fur at 3:1 or more against the warm-brown outline (WCAG)', () => {
+    // Relative luminance and contrast ratio as WCAG 2 defines them.
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((at) => {
+        const channel = parseInt(hex.slice(at, at + 2), 16) / 255;
+        return channel <= 0.04045
+          ? channel / 12.92
+          : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const contrast = (a: string, b: string) => {
+      const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (light! + 0.05) / (dark! + 0.05);
+    };
+    expect(contrast('#ffffff', '#000000')).toBeCloseTo(21);
+    // The tuxedo's dark fur is the exception: its eyes are paper there (ui-design 6.1).
+    for (const fur of [T.coatCream, T.coatGray, T.coatOrange, T.coatWhite])
+      expect(contrast(fur, T.brown), fur).toBeGreaterThanOrEqual(3);
+  });
+
   it('has a colour for every coat a cat can wear', () => {
     expect(Object.keys(FUR)).toEqual([...CAT_COATS]);
   });

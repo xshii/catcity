@@ -110,7 +110,7 @@ DOM 控件保留名称、焦点、当前选择和文字状态；不只依赖颜�
 | `--shadow-primary` / `--glow-accent` / `--glow-good` | 底边 + 叶绿光；3px 杏色 / 鼠尾草光圈 | 主按钮；咬钩与引导目标；选中猫卡与上钩   |
 | `--glow-screen`                                      | 杏色内发光                           | 不能振动的设备上鱼、吃紧时的画面边缘暖光 |
 | `--star-bronze` / `--star-silver` / `--star-gold`    | `#a86b3c` / `#8a8680` / `#b07d12`    | 图鉴纪录星、金色细线（暖纸 ≥3.3:1）      |
-| `--coat-cream` / `--coat-gray` / `--coat-orange`     | `#f7e3c4` / `#c9d0cf` / `#f2b880`    | 奶油、灰、橘（描线对比 3.7/3.0/2.65:1）  |
+| `--coat-cream` / `--coat-gray` / `--coat-orange`     | `#f7e3c4` / `#cbd2d1` / `#ffc681`    | 奶油、灰、橘（与描线 ≥ 3:1）             |
 | `--coat-black` / `--coat-white`                      | `#6b5d55` / `#fffaf0`                | 黑白的深色块与浅色块（眼睛用 `--paper`） |
 | `--radius-sm` / `-md` / `-lg` / `-pill`              | 10 / 14 / 20 / 999px                 | 输入框；按钮与列表项；卡片与浮条；胶囊   |
 | `--font-ui`                                          | 圆体系统字体栈                       | 全局字体                                 |

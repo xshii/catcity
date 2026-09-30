@@ -60,8 +60,8 @@ export const CAT_TOKENS = {
   sakura: '#f2b8b5',
   mint: '#9ccfc8',
   coatCream: '#f7e3c4',
-  coatGray: '#c9d0cf',
-  coatOrange: '#f2b880',
+  coatGray: '#cbd2d1',
+  coatOrange: '#ffc681',
   coatBlack: '#6b5d55',
   coatWhite: '#fffaf0',
 } as const;
