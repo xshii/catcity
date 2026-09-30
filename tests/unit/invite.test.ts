@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CAT_COATS,
   CAT_DEFINITIONS,
   CAT_DEFINITION_IDS,
   INVITABLE_CATS,
@@ -94,6 +95,16 @@ describe('the first-generation cats (R-12)', () => {
       lists.add([...fish].sort().join());
     }
     expect(lists.size).toBe(4);
+  });
+
+  it('each looks like no other: its own coat and breed, all four coats worn (R-15)', () => {
+    const looks = CAT_DEFINITION_IDS.map(
+      (id) => `${CAT_DEFINITIONS[id].coat}/${CAT_DEFINITIONS[id].breedId}`,
+    );
+    expect(new Set(looks).size).toBe(looks.length);
+    expect(
+      new Set(CAT_DEFINITION_IDS.map((id) => CAT_DEFINITIONS[id].coat)),
+    ).toEqual(new Set(CAT_COATS));
   });
 });
 
