@@ -5,12 +5,13 @@ import {
   CAFE,
   CITY_TIME,
   landPrice,
+  RESTYLE_PRICE,
   WALK_MINUTES,
 } from '../../src/content/city';
 import { travelMinutes } from '../../src/core';
 import type { GameCommand, WorldState } from '../../src/core';
 import { walkMinutes } from '../../src/core/city';
-import { createWorld, loadWorld, type World } from '../../src/core/world';
+import { createWorld, loadWorld, World } from '../../src/core/world';
 import {
   cityScreen,
   guideProgress,
@@ -502,5 +503,87 @@ describe('city screen', () => {
         position: site!,
       }),
     ).toEqual({ ok: true });
+  });
+});
+
+// Spec 041 T-15 (cat-looks.md 3): the cat salon on the map, and choosing a cat there.
+describe('the cat salon on the map', () => {
+  /** A new game with coins, a salon on (4,4) and Pepper; then `coins` left over. */
+  const salonCity = (coins = 1000) => {
+    const world = new World({
+      ...createWorld(42).getSnapshot(),
+      coins: 10_000,
+    });
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_SALON',
+      position: { x: 4, y: 4 },
+    });
+    invite(world);
+    return new World({ ...world.getSnapshot(), coins });
+  };
+
+  it('is offered on a plot only while the city has none', () => {
+    const world = new World({ ...createWorld(42).getSnapshot(), coins: 5000 });
+    expect(ids(world, view(tile(6, 4)))).toContain('build-cat_salon');
+    expect(
+      screenOf(world, view(tile(6, 4))).card!.buttons.find(
+        ({ id }) => id === 'build-cat_salon',
+      )!.text,
+    ).toBe(`猫咪美容院 · ${buildingPrice('CAT_SALON', 0)}`);
+    world.dispatch({
+      type: 'BUILD_BUILDING',
+      buildingType: 'CAT_SALON',
+      position: { x: 4, y: 4 },
+    });
+    expect(ids(world, view(tile(6, 4)))).toEqual([
+      'build-cat_cafe',
+      'build-cat_apartment',
+      'place-road',
+    ]);
+  });
+
+  it('lists every companion to restyle, and says what one restyle costs', () => {
+    const world = salonCity();
+    const [mochi, pepper] = world.getSnapshot().cats;
+    const card = screenOf(world, view(tile(4, 4))).card!;
+    expect(card.title).toBe('猫咪美容院');
+    expect(card.detail).toBe(
+      `每次改造 ${RESTYLE_PRICE} 金币 · 选一只猫，重新挑它的毛色、花纹、白斑、眼色和脸型；品种不变`,
+    );
+    expect(card.buttons).toEqual([
+      expect.objectContaining({ id: 'move-building' }),
+      {
+        id: 'restyle-mochi',
+        text: '给 Mochi 改造',
+        reason: null,
+        intent: { kind: 'restyle', catId: mochi!.id },
+      },
+      {
+        id: `restyle-${pepper!.id}`,
+        text: '给 Pepper 改造',
+        reason: null,
+        intent: { kind: 'restyle', catId: pepper!.id },
+      },
+    ]);
+    expect(card.reasons).toEqual([]);
+  });
+
+  it('says what is needed when coins are short, once for all the cats', () => {
+    const world = salonCity(RESTYLE_PRICE - 1);
+    const card = screenOf(world, view(tile(4, 4))).card!;
+    const short = `金币不足：需要 ${RESTYLE_PRICE}，现有 ${RESTYLE_PRICE - 1}。`;
+    expect(card.buttons.slice(1).map(({ reason }) => reason)).toEqual([
+      short,
+      short,
+    ]);
+    expect(card.reasons).toEqual([short]);
+    // The last coin is enough.
+    const exact = salonCity(RESTYLE_PRICE);
+    expect(
+      screenOf(exact, view(tile(4, 4))).card!.buttons.map(
+        ({ reason }) => reason,
+      ),
+    ).toEqual([null, null, null]);
   });
 });

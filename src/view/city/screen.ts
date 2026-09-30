@@ -7,6 +7,8 @@ import {
   CITY_COSTS,
   CITY_TIME,
   landPrice,
+  MAX_SALONS,
+  RESTYLE_PRICE,
   ROAD_PRICE,
   WALK_MINUTES,
 } from '../../content/city';
@@ -65,7 +67,9 @@ export type CardIntent =
     }
   | { kind: 'talk' }
   | { kind: 'move'; buildingId: string }
-  | { kind: 'enter'; spotId: SpotId; catId: string };
+  | { kind: 'enter'; spotId: SpotId; catId: string }
+  /** Opens the cat maker on the cat, at the salon (spec 041 T-15). */
+  | { kind: 'restyle'; catId: string };
 
 interface CardButton {
   id: string;
@@ -160,6 +164,20 @@ function card(
     rejection(input) === 'INSUFFICIENT_COINS'
       ? `金币不足：需要 ${price}，现有 ${world.coins}。`
       : blocked(input);
+  /**
+   * Why a cat could not be restyled whatever look is picked: Core asked with the cat's
+   * own look judges coins before the look, so only an unchanged look is left to pass.
+   */
+  const restylable = (cat: CatEntity) => {
+    const restyle = {
+      type: 'RESTYLE_CAT',
+      catId: cat.id,
+      appearance: cat.appearance,
+    } as const;
+    return rejection(restyle) === 'APPEARANCE_UNCHANGED'
+      ? null
+      : affordable(restyle, RESTYLE_PRICE);
+  };
   const wait = () =>
     button(
       'city-wait',
@@ -265,6 +283,19 @@ function card(
           blocked(home),
         );
       }
+    if (building.type === 'CAT_SALON') {
+      for (const cat of world.cats)
+        button(
+          `restyle-${cat.id}`,
+          `给 ${cat.name} 改造`,
+          { kind: 'restyle', catId: cat.id },
+          restylable(cat),
+        );
+      return done(
+        title,
+        `每次改造 ${RESTYLE_PRICE} 金币 · 选一只猫，重新挑它的毛色、花纹、白斑、眼色和脸型；品种不变`,
+      );
+    }
     const customers = customersOf(world, building.id);
     return done(
       title,
@@ -309,7 +340,12 @@ function card(
     );
   } else {
     detail = '建筑要紧挨一格连着城中心路网的道路；也可以在这里铺路。';
+    const salons = world.buildings.filter(
+      (item) => item.type === 'CAT_SALON',
+    ).length;
     for (const type of BUILDING_IDS) {
+      // A city has one salon: once it stands, plots no longer offer another.
+      if (type === 'CAT_SALON' && salons >= MAX_SALONS) continue;
       const definition = BUILDINGS[type];
       const price = nextBuildingPrice(world, type);
       const build = {

@@ -19,6 +19,8 @@ export function mountCity(deps: {
   tools: Tools;
   notify: (text: string) => void;
   enterFishing: (spotId: SpotId, catId: string) => void;
+  /** Opens the salon's cat maker on the cat (spec 041 T-15). */
+  restyle: (catId: string) => void;
   talk: (message: string) => void;
   elements: {
     /** The action card goes right after the map stage. */
@@ -38,6 +40,7 @@ export function mountCity(deps: {
     tools,
     notify,
     enterFishing: deps.enterFishing,
+    restyle: deps.restyle,
     anchor: elements.stage,
   });
   mountOuting(session, elements.outing, actions.focusWaterway);
