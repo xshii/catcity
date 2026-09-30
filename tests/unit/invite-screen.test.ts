@@ -67,9 +67,9 @@ describe('the invite list (ui-design 5.3)', () => {
     expect(inviteEntry(createWorld(42).getSnapshot())).toBe(
       `邀请新伙伴（还能邀请 ${INVITABLE_CATS.length} 只）`,
     );
-    // Seven cats: one place left under the limit.
-    expect(inviteEntry(crowded(6).getSnapshot())).toBe(
-      `邀请新伙伴（还能邀请 ${MAX_COMPANIONS - 7} 只）`,
+    // One cat short of the limit: one place left.
+    expect(inviteEntry(crowded(MAX_COMPANIONS - 2).getSnapshot())).toBe(
+      '邀请新伙伴（还能邀请 1 只）',
     );
     const everyone = game(3);
     for (const id of INVITABLE_CATS) invite(everyone, id);
@@ -112,7 +112,7 @@ describe('the invite list (ui-design 5.3)', () => {
     expect(reasons(game(1, 150))).toEqual(
       new Set(['true,金币不足：需要 200，现有 150。']),
     );
-    expect(reasons(crowded(7))).toEqual(
+    expect(reasons(crowded(MAX_COMPANIONS - 1))).toEqual(
       new Set([`true,${ERROR_MESSAGES.COMPANION_LIMIT}`]),
     );
     expect(ERROR_MESSAGES.COMPANION_LIMIT).toContain(String(MAX_COMPANIONS));

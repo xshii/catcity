@@ -86,13 +86,13 @@ export function mountFishingLayout(
     get('spot-unlocks'),
   );
 
-  // Everything about the cats lives in one panel, the same on every screen.
+  // Everything about the cats lives in one panel, the same on every screen; the page
+  // mount puts the roster on its first page.
   const { pages: cats, show: showCats } = groups(get('panel-cats'), 'cats', [
     ['roster', '猫咪'],
     ['talk', '说说话'],
     ['memory', '共同回忆'],
   ]);
-  cats.roster!.append(get('river-roster'));
   cats.talk!.append(document.querySelector<HTMLElement>('.cat-card')!);
   cats.memory!.append(document.querySelector<HTMLElement>('.journal')!);
   const replyPages = document.createElement('div');

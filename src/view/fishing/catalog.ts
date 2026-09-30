@@ -154,5 +154,5 @@ function resultText(result: NonNullable<WorldState['fishing']['lastResult']>) {
     ? result.speciesId
       ? `钓到了！${fishStars(fishById(result.speciesId).stars)} ${fishById(result.speciesId).name} · ${result.weight}g · ${(result.lengthMm / 10).toFixed(1)} cm · 可卖 ${fishById(result.speciesId).price} 金币，已放入鱼篓。`
       : `钓到了${LOOT[result.catchKind as keyof typeof LOOT]}！${result.catchKind === 'coins' ? `已打开，获得 ${result.lootAmount} 金币。` : result.catchKind === 'can' ? '罐头已收好，需要时可以恢复体力。' : '已收入鱼篓补给。'}`
-    : `${result.reason === 'missed-hook' ? '错过了提竿时机' : result.reason === 'line-break' ? '张力太极端，鱼儿挣脱了' : '鱼儿溜走了'}。${result.trashAmount ? '钓到一件垃圾，已收好，可回收换取 3 金币。' : '调整一下，再试一竿吧。'}`;
+    : `${result.reason === 'missed-hook' ? '错过了提竿时机' : result.reason === 'line-break' ? '张力太极端，鱼儿挣脱了' : result.reason === 'out-of-ring' ? '鱼在圈外太久，挣脱跑了' : '鱼儿溜走了'}。${result.trashAmount ? '钓到一件垃圾，已收好，可回收换取 3 金币。' : '调整一下，再试一竿吧。'}`;
 }

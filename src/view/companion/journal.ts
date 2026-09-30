@@ -12,16 +12,6 @@ export function mountCompanionship(session: GameSession) {
     const fishing = cat.fishingMemory;
     const gift = cat.fishGift;
     const remembered = !!fishing || !!gift;
-    get('reunion').textContent = fishing
-      ? `你又来啦。还想去我们第一次钓鱼的${SPOTS[fishing.spotId].name}吗？`
-      : gift
-        ? `你送我的${fishById(gift.speciesId).name}，我还记得呢。`
-        : `我是 ${cat.name}。这里给你留了个位置。`;
-    get('bond').textContent = remembered
-      ? '有了一段共同回忆'
-      : cat.memories.length
-        ? '已经聊过几次'
-        : '初次见面 · 不用急着熟悉';
     get('memory-empty').hidden = remembered;
     get('memory-card').hidden = !remembered;
     get('journal-count').textContent = remembered
