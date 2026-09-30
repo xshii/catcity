@@ -29,6 +29,7 @@ import {
   spotIdSchema,
 } from './fishing/schema';
 import { assertFishing } from './fishing/validation';
+import { catNameSchema } from './names';
 
 const integer = z.number().int().min(0).max(WORLD_LIMIT);
 export const positionSchema = z.strictObject({ x: integer, y: integer });
@@ -46,7 +47,7 @@ const memorySchema = z.strictObject({
 const catSchema = z.strictObject({
   id: text,
   definitionId: z.enum(CAT_DEFINITION_IDS),
-  name: text,
+  name: catNameSchema,
   /** Five choices (spec 041 T-14): the player's for the stray, any legal ones for all. */
   appearance: z.strictObject({
     colour: z.enum(APPEARANCE_OPTIONS.colour),

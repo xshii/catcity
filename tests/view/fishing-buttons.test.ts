@@ -331,7 +331,8 @@ describe('the button flow', () => {
     expect($<HTMLProgressElement>('[data-cat-id="mochi"] progress').value).toBe(
       tired + CARE.recovery.idle,
     );
-    const name = 'Mochi <b>你好</b>';
+    // Markup in a name stays text; a name has at most 12 characters (R-16).
+    const name = '<b>你好</b>';
     const save = JSON.parse(localStorage.getItem('cat-city.save.v1')!);
     save.world.cats[0].name = name;
     game.session.loadFixture(JSON.stringify(save));

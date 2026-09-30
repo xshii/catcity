@@ -196,6 +196,7 @@ function coinChange(
     case 'GIFT_FISH':
     case 'INTERACT':
     case 'PET_CAT':
+    case 'RENAME_CAT':
     case 'DEBUG_SPAWN_CAT':
       return 0;
   }
@@ -231,6 +232,7 @@ function moodMayChange(command: GameCommand): boolean {
     case 'SELL_FISH':
     case 'BUY_BAIT':
     case 'INVITE_CAT':
+    case 'RENAME_CAT':
     case 'DEBUG_SPAWN_CAT':
       return false;
   }

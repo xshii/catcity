@@ -98,9 +98,9 @@ it('rejects cats that no longer match their template or duplicate a unique resid
   });
   twoPeppers.world.nextId++;
   expect(() => loadWorld(JSON.stringify(twoPeppers))).toThrow();
-  // Names stay free text: the UI renders them literally.
+  // Names stay free text within 12 characters (R-16): the UI renders them literally.
   const renamed = JSON.parse(base);
-  renamed.world.cats[0].name = 'Mochi <b>你好</b>';
+  renamed.world.cats[0].name = '<b>你好</b>';
   expect(() => loadWorld(JSON.stringify(renamed))).not.toThrow();
 });
 

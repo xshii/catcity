@@ -47,4 +47,5 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   ALREADY_INVITED: '它已经住在小城了。',
   COMPANION_LIMIT: `伙伴猫已经有 ${MAX_COMPANIONS} 只了，小城住不下更多伙伴。`,
   NO_BED: '没有空床位：先建一座公寓。',
+  NAME_UNCHANGED: '还是原来的名字。',
 };

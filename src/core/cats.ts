@@ -61,6 +61,18 @@ export function instantiateCat(
   };
 }
 
+/** A companion's new name (spec 041 R-16): free, as often as wished; nothing else changes. */
+export function renameCat(
+  world: WorldState,
+  catId: string,
+  name: string,
+): GameEvent[] {
+  const cat = requireCat(world, catId);
+  if (cat.name === name) throw new CommandError('NAME_UNCHANGED');
+  cat.name = name;
+  return [{ type: 'CatRenamed', minute: world.minute, entityId: cat.id }];
+}
+
 /** The cat a command names; a missing one rejects the command. */
 export function requireCat(world: WorldState, id: string): CatEntity {
   const cat = world.cats.find((cat) => cat.id === id);
