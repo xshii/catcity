@@ -21,6 +21,18 @@ import type { SettingsSheet } from '../common/settings';
 /** The river caption before a run. */
 const READY_TIP = '点击水面选择落点，再准备抛竿';
 
+/** The tool sheet the shell lays out around the river's panels (shell/layout.ts). */
+export interface FishingLayout {
+  refresh: () => void;
+  close: () => void;
+  isOpen: () => boolean;
+  /** Opens the cats panel on its conversation page. */
+  openTalk: () => void;
+  /** The travel line it puts in the gear panel. */
+  travelDuration: HTMLElement;
+  travelButton: HTMLButtonElement;
+}
+
 /** Page elements the fishing scene is handed by the shell: the map frame and the scene switch. */
 export interface FishingShell {
   game: HTMLElement;
@@ -30,6 +42,11 @@ export interface FishingShell {
   notice: HTMLElement;
   /** The settings sheet of every page: its sound and haptics, and the river's section. */
   settings: SettingsSheet;
+  /**
+   * Lays out the tool sheet once the river's panels exist; `toggled` runs when a panel
+   * opens or closes.
+   */
+  layout: (toggled: () => void) => FishingLayout;
 }
 
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */

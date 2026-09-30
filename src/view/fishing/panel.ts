@@ -24,7 +24,6 @@ import { mountFishingSound } from './sound';
 import { mountFishingStage, type FishingShell } from './stage';
 import { mountFishBag, renderFishingCatalog } from './catalog';
 import { mountCatTap } from './cat-tap';
-import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
 import { onShore } from '../../core/city';
@@ -414,7 +413,7 @@ export function mountAngling(
     rodTip: () => motion.point(),
     onCastStart: () => begin(),
   });
-  const layout = mountFishingLayout(session, place, () =>
+  const layout = shell.layout(() =>
     view.dispatch({ type: 'tools', open: layout.isOpen() }),
   );
   const collections = mountFishingCollections(get);

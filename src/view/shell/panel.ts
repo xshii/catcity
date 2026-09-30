@@ -1,5 +1,6 @@
 import type { PlaceState } from '../common/place';
 import type { GameSession } from '../../application';
+import { mountFishingLayout } from './layout';
 import { mountAngling } from '../fishing/panel';
 import { mountCity } from '../city/panel';
 import { mountClockSpeed } from './clock-speed';
@@ -133,6 +134,7 @@ export function mountPanel(
       visitRiver: get('visit-river'),
       notice: get('notice'),
       settings,
+      layout: (toggled) => mountFishingLayout(session, place, toggled),
     },
   );
   said = angling.said;
