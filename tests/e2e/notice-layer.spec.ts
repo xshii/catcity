@@ -201,7 +201,7 @@ test('picking a cat says it can also be lifted and dragged, clear of the hint an
 /** What the river shows that a notice must keep off, by name. */
 const RIVER_PARTS = {
   chip: '#river-place',
-  gear: '#river-settings',
+  gear: '#settings-gear',
   plane: '#motion-fishing',
   legend: '#motion-legend',
   hint: '#motion-fishing-hint',

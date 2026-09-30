@@ -40,7 +40,7 @@ async function singleScreen(page: Page) {
       'panel-cats',
       'city-panel-guide',
       'city-panel-outing',
-      'river-settings-sheet',
+      'settings-sheet',
     ]
       .map((id) => document.getElementById(id)!)
       .filter((element) => element.getClientRects().length)
@@ -271,12 +271,12 @@ for (const viewport of [
     await openGear(page, 'supplies');
     await onScreen(page.locator('[data-buy-bait="WORM"]'));
     await singleScreen(page);
-    // Settings open from the gear over the water, all on one screen (spec 034).
+    // Settings open from the gear, all on one screen (spec 034, 2026-09-30).
     await closeRiverPanel(page);
-    await onScreen(page.locator('#river-settings'));
-    await page.locator('#river-settings').click();
+    await onScreen(page.locator('#settings-gear'));
+    await page.locator('#settings-gear').click();
     for (const id of [
-      'river-settings-close',
+      'settings-close',
       'settings-mode-motion',
       'settings-mode-buttons',
       'sound-toggle',
@@ -284,8 +284,8 @@ for (const viewport of [
     ])
       await onScreen(page.locator(`#${id}`));
     await singleScreen(page);
-    await page.locator('#river-settings-close').click();
-    await expect(page.locator('#river-settings-sheet')).toBeHidden();
+    await page.locator('#settings-close').click();
+    await expect(page.locator('#settings-sheet')).toBeHidden();
     await openGear(page, 'info');
     await onScreen(page.locator('#companion-specialty'));
     await onScreen(page.locator('#spot-unlocks'));

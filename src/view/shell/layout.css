@@ -20,6 +20,11 @@ body {
   /* Below the scene bar, and above the tool bar. */
   --under-bar: calc(var(--safe-top) + var(--bar-height) + 8px);
   --over-nav: calc(var(--safe-bottom) + var(--nav-height) + 8px);
+  /* The settings gear, at the right under the scene bar on every page (2026-09-30). */
+  --gear-right: max(8px, env(safe-area-inset-right));
+  --gear-size: 44px;
+  /* What floats beside the gear keeps this far from the right edge. */
+  --gear-room: calc(var(--gear-right) + var(--gear-size) + 8px);
 }
 .game-screen.shell {
   position: fixed;

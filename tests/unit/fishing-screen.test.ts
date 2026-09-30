@@ -106,7 +106,7 @@ describe('fishing screen', () => {
           readyToCast: false,
           console: false,
           overlay: false,
-          settings: { gear: false, open: false, calibrate: false },
+          settings: { page: false, calibrate: false },
         });
         expect(askSensors(state, run)).toBe(false);
       }
@@ -268,22 +268,24 @@ describe('fishing screen', () => {
       });
   });
 
-  it('shows the gear on the river and its sheet while open, over paused play', () => {
+  it('fills the page section of the settings sheet on the river; the open sheet covers play', () => {
     const closed = view({}, river, ready);
-    expect(fishingScreen(closed, null).settings).toMatchObject({
-      gear: true,
-      open: false,
-    });
+    expect(fishingScreen(closed, null).settings.page).toBe(true);
     const open = replay(closed, { type: 'settings', open: true });
     expect(fishingScreen(open, null)).toMatchObject({
-      settings: { gear: true, open: true },
+      settings: { page: true },
       // The sheet covers play: no aiming, no gesture counts.
       overlay: false,
     });
     expect(motionWant(open, null)).toBeNull();
-    // The gear stays during a run, in either mode.
+    // The river's section stays during a run, in either mode.
     for (const run of [runOf('motion'), runOf('buttons')])
-      expect(fishingScreen(closed, run).settings.gear).toBe(true);
+      expect(fishingScreen(closed, run).settings.page).toBe(true);
+    // The sheet opened in the city has no river section.
+    expect(
+      fishingScreen(view({}, { type: 'settings', open: true }), null).settings
+        .page,
+    ).toBe(false);
   });
 
   it('gives the river to motion play while motion is on, with aim tools before a run', () => {

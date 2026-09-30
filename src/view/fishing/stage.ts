@@ -16,6 +16,7 @@ import { catPortrait, fishIllustration } from '../art/illustrations';
 import { catPose } from '../art/cat-look';
 import { riverBackdrop } from '../art/river-palette';
 import { CATCH_CARD_MS, type catchCountdown } from './screen';
+import type { SettingsSheet } from '../shell/settings';
 
 /** The river caption before a run. */
 const READY_TIP = '点击水面选择落点，再准备抛竿';
@@ -95,6 +96,8 @@ export interface FishingShell {
   visitRiver: HTMLElement;
   /** The notice bar: the fishing screen keeps it off the catch card. */
   notice: HTMLElement;
+  /** The settings sheet of every page: its sound and haptics, and the river's section. */
+  settings: SettingsSheet;
 }
 
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */

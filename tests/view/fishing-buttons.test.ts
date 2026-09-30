@@ -208,22 +208,22 @@ describe('the button flow', () => {
   it('the gear opens the settings; ✕, a tap outside or Escape closes them and focus returns', () => {
     const game = openGame();
     enterRiver(game);
-    expect(visible('#river-settings')).toBe(true);
-    expect($('#river-settings').getAttribute('aria-label')).toBe('设置');
+    expect(visible('#settings-gear')).toBe(true);
+    expect($('#settings-gear').getAttribute('aria-label')).toBe('设置');
     for (const close of [
-      () => click('#river-settings-close'),
-      () => click('#river-settings-shade'),
+      () => click('#settings-close'),
+      () => click('#settings-shade'),
       () => key('keydown', 'Escape'),
     ]) {
       openSettings();
-      expect($('#river-settings').getAttribute('aria-expanded')).toBe('true');
-      expect(document.activeElement).toBe($('#river-settings-close'));
+      expect($('#settings-gear').getAttribute('aria-expanded')).toBe('true');
+      expect(document.activeElement).toBe($('#settings-close'));
       close();
-      expect(visible('#river-settings-sheet')).toBe(false);
-      expect($('#river-settings').getAttribute('aria-expanded')).toBe('false');
-      expect(document.activeElement).toBe($('#river-settings'));
+      expect(visible('#settings-sheet')).toBe(false);
+      expect($('#settings-gear').getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe($('#settings-gear'));
     }
-    // The gear and its sheet are the river's alone.
+    // The river's section of the sheet is the river's alone.
     backToCity();
   });
 
@@ -231,13 +231,14 @@ describe('the button flow', () => {
     const game = openGame({ audio: true });
     enterRiver(game);
     openSettings();
-    expect($('#river-settings-sheet').getAttribute('aria-modal')).toBe('true');
+    expect($('#settings-sheet').getAttribute('aria-modal')).toBe('true');
+    // The common settings first, then the river's own.
     const stops = [
-      '#river-settings-close',
-      '#settings-mode-motion',
-      '#settings-mode-buttons',
+      '#settings-close',
       '#sound-toggle',
       '#haptics-toggle',
+      '#settings-mode-motion',
+      '#settings-mode-buttons',
     ];
     // Forward from the ✕ through every control and round to it; calibration is hidden.
     for (const next of [...stops.slice(1), stops[0]!]) {
@@ -249,7 +250,7 @@ describe('the button flow', () => {
     // Closed, Tab is the page's again.
     closeSettings();
     key('keydown', 'Tab');
-    expect(document.activeElement).toBe($('#river-settings'));
+    expect(document.activeElement).toBe($('#settings-gear'));
   });
 
   it('a run keeps its mode: the settings lock the choice and say why, and pause the run', () => {
@@ -282,7 +283,7 @@ describe('the button flow', () => {
     expect(text('#settings-mode-note')).toBe(SCREEN_COPY.settings.waiting);
   });
 
-  it('the gear panel keeps bait supplies only; the settings moved to the gear over the water', () => {
+  it('the gear panel keeps bait supplies only; the settings moved to the settings gear', () => {
     const game = openGame();
     enterRiver(game);
     openGear(game, 'supplies');
@@ -295,8 +296,8 @@ describe('the button flow', () => {
       '#settings-mode-motion',
     ])
       expect(gear.querySelector(id)).toBeNull();
-    // The gear over the water is under the panel's shade while it is open.
-    expect(visible('#river-settings-sheet')).toBe(false);
+    // Opening the panel leaves the settings sheet closed.
+    expect(visible('#settings-sheet')).toBe(false);
   });
 
   it('city clock updates preserve the focused cat card and render fixture names literally', () => {

@@ -148,12 +148,15 @@ export function mountAngling(
   });
   const settings = mountFishingSettings({
     view,
-    plane: shell.game,
-    layer: root,
+    sheet: shell.settings,
     choose: (mode) => motion.choose(mode),
   });
-  const feedback = mountFishingFeedback(session, stage.stage, settings.haptics);
-  mountFishingSound(session, view, settings.sound);
+  const feedback = mountFishingFeedback(
+    session,
+    stage.stage,
+    shell.settings.haptics,
+  );
+  mountFishingSound(session, view, shell.settings.sound);
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
