@@ -460,11 +460,10 @@ describe('fishing screen', () => {
         guide,
         hint: SCREEN_COPY.guide[guide],
       });
-    // A step waits for its moment: the usual hint shows until then; while the guide is
-    // unfinished, the aim has none (the aim hint comes after the guide).
+    // A step waits for its moment: the usual hint shows until then.
     expect(
       fishingScreen(view({ guide: 'strike' }, river, ready), null),
-    ).toMatchObject({ guide: null, hint: '', aimHint: false });
+    ).toMatchObject({ guide: null, hint: SCREEN_COPY.hint.aim });
     expect(
       fishingScreen(view({ guide: 'aim' }, ...playing), runOf('motion')),
     ).toMatchObject({ guide: null, hint: SCREEN_COPY.hint.waiting });

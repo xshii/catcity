@@ -4,6 +4,7 @@ import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
 import {
   aimHintShown,
   canPlay,
+  GUIDE_PHASES,
   motionActive,
   type FishingView,
   type GuideStep,
@@ -93,16 +94,6 @@ const GUIDE_AIM = {
   direction: Math.round(FISHING.input.maxDirection / 3),
   power: 65,
 };
-/** Where each guide step is taught: aiming before a run, then the run's phases. */
-const GUIDE_PHASES: Record<GuideStep, readonly (AnglingRun['phase'] | null)[]> =
-  {
-    aim: [null],
-    power: [null],
-    cast: [null],
-    strike: ['waiting', 'hook'],
-    fight: ['fight'],
-  };
-
 /**
  * What the fishing scene shows (spec 015). Pure: the DOM only applies this, after every
  * change, so no route can leave a control stale. Nothing of the river shows elsewhere,

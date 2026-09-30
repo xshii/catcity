@@ -1,3 +1,4 @@
+import type { AnglingRun } from '../../minigames/angling';
 import type { Place } from '../shell/place';
 
 export type Capability = 'unknown' | 'ready' | 'denied' | 'unsupported';
@@ -5,6 +6,17 @@ export type Preference = 'motion' | 'buttons';
 /** The first motion cast, taught one step at a time, in this order (spec 033 F3). */
 export const GUIDE_STEPS = ['aim', 'power', 'cast', 'strike', 'fight'] as const;
 export type GuideStep = (typeof GUIDE_STEPS)[number];
+/** Where each guide step is taught: aiming before a run, then the run's phases. */
+export const GUIDE_PHASES: Record<
+  GuideStep,
+  readonly (AnglingRun['phase'] | null)[]
+> = {
+  aim: [null],
+  power: [null],
+  cast: [null],
+  strike: ['waiting', 'hook'],
+  fight: ['fight'],
+};
 
 /**
  * Everything the fishing screen decides from, besides the world snapshot (spec 015).
@@ -127,12 +139,13 @@ export const canPlay = (view: FishingView) =>
 export const motionActive = (view: FishingView) =>
   view.motion.preference === 'motion' && view.motion.capability === 'ready';
 /**
- * The aim hint shows once per device (user, 2026-09-30): while motion aims after the
- * first-cast guide, with no calibration or its result over it, until closed or cast.
+ * The aim hint shows once per device (user, 2026-09-30): while motion aims with no guide
+ * step, calibration or its result over it (mid-guide too, re-aiming past the guide's aim
+ * steps), until closed or cast.
  */
 export const aimHintShown = (view: FishingView) =>
   !view.motion.aimHintSeen &&
-  view.motion.guide === null &&
+  !(view.motion.guide && GUIDE_PHASES[view.motion.guide].includes(null)) &&
   !view.motion.calibrating &&
   view.motion.notice === null &&
   canPlay(view) &&

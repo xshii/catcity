@@ -421,6 +421,10 @@ for (const viewport of [
     expect(box.y).toBeGreaterThanOrEqual(water.y);
     for (const other of [hint, close])
       expect(apart(box, (await other.boundingBox())!)).toBe(true);
+    // The hint's close is finger-sized too.
+    const closeBox = (await close.boundingBox())!;
+    expect(closeBox.width).toBeGreaterThanOrEqual(44);
+    expect(closeBox.height).toBeGreaterThanOrEqual(44);
     // In button mode it stays clear of the cast button.
     await gear.click();
     await page.locator('#settings-mode-buttons').click();

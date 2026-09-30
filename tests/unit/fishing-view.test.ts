@@ -276,7 +276,7 @@ describe('fishing view state', () => {
     ).toBe('aim');
   });
 
-  it('shows the aim hint once per device: after the guide, until closed or cast (user, 2026-09-30)', () => {
+  it('shows the aim hint once per device, until closed or cast (user, 2026-09-30)', () => {
     const aiming = replay(atRiver(), ready);
     expect(aimHintShown(aiming)).toBe(true);
     const closed = replay(aiming, { type: 'aim-hint-seen' });
@@ -288,10 +288,21 @@ describe('fishing view state', () => {
     expect(aimHintShown(replay(cast, { type: 'run', runId: null }))).toBe(
       false,
     );
-    // Not while the guide teaches, calibration or its notice is up, play is covered or
-    // motion is off; a cast then leaves it for later.
+    // Mid-guide, re-aiming past the guide's aim steps, it shows too; closed or cast
+    // from, the next aim has none.
+    const midGuide = replay(atRiver(start({ guide: 'strike' })), ready);
+    expect(aimHintShown(midGuide)).toBe(true);
+    for (const seen of [
+      { type: 'aim-hint-seen' },
+      { type: 'run', runId: 'a' },
+    ] as const)
+      expect(
+        aimHintShown(replay(midGuide, seen, { type: 'run', runId: null })),
+      ).toBe(false);
+    // Not while the guide teaches at the aim, calibration or its notice is up, play is
+    // covered or motion is off; a cast then leaves it for later.
     for (const hidden of [
-      replay(atRiver(start({ guide: 'strike' })), ready),
+      replay(atRiver(start({ guide: 'aim' })), ready),
       replay(aiming, { type: 'calibrating', on: true }),
       replay(aiming, { type: 'notice', text: '校准完成' }),
       replay(aiming, { type: 'tools', open: true }),
