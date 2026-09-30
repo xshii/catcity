@@ -9,7 +9,6 @@ import {
 import { catchFish } from '../../harness/adapters/catcity/angling-input';
 import { expect, test } from '@playwright/test';
 import {
-  invitePepper,
   openChat,
   openGear,
   showBagFish,
@@ -288,7 +287,7 @@ test('fishing progress survives a real reload, and the reloaded panel keeps its 
   ).toHaveJSProperty('disabled', true);
 });
 
-test('old demo saves require an explicit reset; atlas shows all tiers, lengths and breed requirements', async ({
+test('old demo saves require an explicit reset; a new atlas shows each tier and where it lives, and hides the rest', async ({
   page,
 }) => {
   const oldSave = JSON.stringify({
@@ -337,14 +336,15 @@ test('old demo saves require an explicit reset; atlas shows all tiers, lengths a
   await expect(page.locator('[data-species="SILVER"]')).toContainText(
     '芦苇河湾',
   );
-  await expect(page.locator('[data-species="SILVER"]')).toContainText(
+  // A fish never caught keeps its stars and where it lives (user decision, 2026-09-30).
+  await expect(page.locator('[data-species="SILVER"]')).not.toContainText(
     '8.0～18.0 cm',
   );
   await showFish(page, 'SEA_BREAM');
   await expect(page.locator('[data-species="SEA_BREAM"]')).toContainText(
     '潮汐海岸',
   );
-  await expect(page.locator('[data-species="SEA_BREAM"]')).toContainText(
+  await expect(page.locator('[data-species="SEA_BREAM"]')).not.toContainText(
     '25.0～90.0 cm',
   );
   await expect(page.locator('[data-species="SEA_BREAM"]')).not.toContainText(
@@ -355,27 +355,11 @@ test('old demo saves require an explicit reset; atlas shows all tiers, lengths a
   );
   await showFish(page, 'MOON_CARP');
   await expect(page.locator('[data-species="MOON_CARP"]')).toContainText(
-    '鱼种最大长度：120.0 cm',
+    '未发现的鱼影',
   );
-  await expect(page.locator('[data-species="MOON_CARP"]')).toContainText(
-    '需更换同行猫',
-  );
-  await showFish(page, 'KOI');
-  await expect(page.locator('[data-species="KOI"]')).toContainText(
-    '品种条件已满足',
-  );
-  await invitePepper(page);
-  const pepper = (await readWorld(page)).cats.find(
-    (cat) => cat.definitionId === 'PEPPER',
-  )!;
-  await openGear(page);
-  await page.locator('#fish-companion').selectOption(pepper.id);
-  await showFish(page, 'MOON_CARP');
-  await expect(page.locator('[data-species="MOON_CARP"]')).toContainText(
-    '品种条件已满足',
-  );
-  await showFish(page, 'KOI');
-  await expect(page.locator('[data-species="KOI"]')).toContainText(
-    '需更换同行猫',
-  );
+  for (const hidden of ['月光鲤', '鱼种最大长度', '仅限英短猫同行'])
+    await expect(page.locator('[data-species="MOON_CARP"]')).not.toContainText(
+      hidden,
+    );
+  // Breed conditions of caught fish: tests/view/atlas-entries.test.ts.
 });

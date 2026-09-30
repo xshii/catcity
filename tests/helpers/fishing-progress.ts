@@ -1,5 +1,6 @@
 import { createWorld, type CommandResult, type World } from '../../src/core';
 import { FISHING, type BaitId, type SpotId } from '../../src/content/fishing';
+import { RandomService, runSeed } from '../../src/core/random';
 import { greenZone } from '../../src/minigames/angling';
 
 /**
@@ -94,4 +95,19 @@ export function progressSaves() {
   const atReeds = world.save();
   landFish(world, 'REEDS', 'WORM', FISHING.input.maxDirection);
   return { oneCatchShort, reedsOpen, atReeds, perchAtReeds: world.save() };
+}
+
+/**
+ * The save with its next run numbered so that the catch comes out among the longest
+ * (or the shortest) twentieth of its species: at the pond a catch's weight, and so its
+ * length, is the run's first draw. Tests check the length the catch came out at.
+ */
+export function withNextCatch(save: string, longest: boolean) {
+  const data = JSON.parse(save);
+  const draw = (serial: number) =>
+    new RandomService(runSeed(data.world.seed, serial)).nextInt(20);
+  let serial = data.world.nextId;
+  while (draw(serial) !== (longest ? 19 : 0)) serial++;
+  data.world.nextId = serial;
+  return JSON.stringify(data);
 }

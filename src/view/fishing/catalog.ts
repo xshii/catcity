@@ -116,13 +116,14 @@ export function renderFishingCatalog(
       card.dataset.discovered = String(record.count > 0);
       const stars = atlasStars(fish.id, record);
       if (stars) card.dataset.lengthStars = String(stars.lit);
-      card.innerHTML = `<span class="fish-silhouette" aria-hidden="true">${fishIllustration(fish.id)}</span><strong>${fishStars(fish.stars)} ${record.count ? fish.name : '未发现的鱼影'}</strong><span>${fish.price} 金币 · ${fish.behavior}</span><p>出没：${fishHabitats(
-        fish.id,
-      )
+      const silhouette = `<span class="fish-silhouette" aria-hidden="true">${fishIllustration(fish.id)}</span>`;
+      const where = `<p>出没：${fishHabitats(fish.id)
         .map((id) => SPOTS[id].name)
-        .join(
-          '、',
-        )}</p><p>${fish.clue}</p><p>${fish.requiredBreed ? `仅限${CAT_BREEDS[fish.requiredBreed].name}同行 · ${fish.requiredBreed === cat.breedId ? '品种条件已满足' : '需更换同行猫'}` : '所有品种都能钓到'}</p><p>体长范围：${(fish.minLengthMm / 10).toFixed(1)}～${(fish.maxLengthMm / 10).toFixed(1)} cm<br>鱼种最大长度：${(fish.maxLengthMm / 10).toFixed(1)} cm<br>个人最长：${record.bestLengthMm ? `${(record.bestLengthMm / 10).toFixed(1)} cm` : '尚无纪录'}${stars ? ` ${starsMarkup(stars)}` : ''}</p><small>${record.count ? `已钓 ${record.count} 条 · 最大 ${record.bestWeight}g` : '符合线索后，来点耐心'}</small>`;
+        .join('、')}</p>`;
+      // A fish never caught keeps its stars and where it may be found, nothing more.
+      card.innerHTML = !record.count
+        ? `${silhouette}<strong>${fishStars(fish.stars)} ${SCREEN_COPY.atlas.unknown}</strong>${where}`
+        : `${silhouette}<strong>${fishStars(fish.stars)} ${fish.name}</strong><span>${fish.price} 金币 · ${fish.behavior}</span>${where}<p>${fish.clue}</p><p>${fish.requiredBreed ? `仅限${CAT_BREEDS[fish.requiredBreed].name}同行 · ${fish.requiredBreed === cat.breedId ? '品种条件已满足' : '需更换同行猫'}` : '所有品种都能钓到'}</p><p>体长范围：${(fish.minLengthMm / 10).toFixed(1)}～${(fish.maxLengthMm / 10).toFixed(1)} cm<br>鱼种最大长度：${(fish.maxLengthMm / 10).toFixed(1)} cm<br>个人最长：${(record.bestLengthMm / 10).toFixed(1)} cm${stars ? ` ${starsMarkup(stars)}` : ''}</p><small>已钓 ${record.count} 条 · 最大 ${record.bestWeight}g</small>`;
       return card;
     }),
   );
