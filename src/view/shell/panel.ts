@@ -8,6 +8,7 @@ import { mountCompanionship } from '../companion/journal';
 import { mountPetting } from '../petting/panel';
 import { mountBreeding } from '../cats/breed';
 import { mountInvite } from '../cats/invite';
+import { mountRoster } from '../cats/roster';
 import { toViewModel } from './model';
 import { bondNote } from './bond';
 import { withMoodNote } from './mood';
@@ -178,6 +179,8 @@ export function mountPanel(
       outing: get('city-panel-outing'),
     },
   });
+  // The roster heads the cats panel's first page, before petting, kittens and invites.
+  mountRoster({ session, place, page: get('cats-page-roster') });
   const petting = mountPetting({
     session,
     place,

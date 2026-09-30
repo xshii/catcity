@@ -1,6 +1,4 @@
 import type { PlaceState } from '../shell/place';
-import type { GameSession } from '../../application';
-import { CAT_BREEDS } from '../../content/breeds';
 import {
   FISHING,
   fishById,
@@ -8,12 +6,9 @@ import {
   SPOTS,
   type SpotId,
 } from '../../content/fishing';
-import { MAX_STAT, type CatEntity, type WorldState } from '../../core';
+import type { WorldState } from '../../core';
 import { toViewModel } from '../shell/model';
-import { moodBadge } from '../shell/mood';
-import { bondBadge } from '../shell/bond';
-import { catPortrait, fishIllustration } from '../art/illustrations';
-import { catLook, catPose } from '../art/cat-look';
+import { fishIllustration } from '../art/illustrations';
 import { riverBackdrop } from '../art/river-palette';
 import {
   CATCH_CARD_MS,
@@ -25,74 +20,6 @@ import type { SettingsSheet } from '../shell/settings';
 
 /** The river caption before a run. */
 const READY_TIP = '点击水面选择落点，再准备抛竿';
-
-function createEnergyCard(cat: CatEntity, select: (id: string) => void) {
-  const button = document.createElement('button');
-  button.className = 'energy-cat';
-  button.dataset.catId = cat.id;
-  let portrait = '';
-  const text = document.createElement('span');
-  const name = document.createElement('strong');
-  const energy = document.createElement('small');
-  const progress = document.createElement('progress');
-  progress.max = MAX_STAT;
-  const activity = document.createElement('small');
-  const mood = document.createElement('small');
-  mood.className = 'mood-line';
-  mood.setAttribute('role', 'img');
-  const hint = document.createElement('small');
-  hint.className = 'mood-hint';
-  // The curled portrait shows it; screen readers hear the words.
-  const rest = document.createElement('small');
-  rest.className = 'rest-label';
-  rest.textContent = '在休息';
-  const bond = document.createElement('small');
-  bond.className = 'bond-line';
-  bond.setAttribute('role', 'img');
-  text.append(name, energy, progress, activity, rest, mood, hint, bond);
-  button.append(text);
-  button.addEventListener('click', () => select(cat.id));
-  return {
-    button,
-    update(
-      cat: CatEntity,
-      world: WorldState,
-      selected: string,
-      river: boolean,
-    ) {
-      // At the river the selected cat is the one fishing with the player: awake (R-01).
-      const pose = catPose(world, cat, {
-        atRiver: river && cat.id === selected,
-      });
-      const next = catPortrait(catLook(cat), pose);
-      if (portrait !== next) {
-        portrait = next;
-        button.querySelector('svg')?.remove();
-        button.insertAdjacentHTML('afterbegin', portrait);
-      }
-      button.setAttribute('aria-pressed', String(cat.id === selected));
-      button.disabled = !!world.fishing.active;
-      name.textContent = cat.name;
-      energy.textContent = `${CAT_BREEDS[cat.breedId].name} · ${cat.needs.energy}/${MAX_STAT}`;
-      progress.value = cat.needs.energy;
-      progress.setAttribute('aria-label', `${cat.name} 体力`);
-      activity.textContent = cat.walk
-        ? `步行中 · 剩 ${cat.walk.route.length} 格`
-        : cat.fishingSpotId
-          ? `在${SPOTS[cat.fishingSpotId].name}岸边`
-          : '在小城里';
-      rest.hidden = !pose.curled;
-      const badge = moodBadge(cat.mood);
-      mood.textContent = badge.text;
-      mood.setAttribute('aria-label', badge.label);
-      hint.textContent = badge.hint;
-      hint.hidden = !badge.hint;
-      const level = bondBadge(cat.playerBond);
-      bond.textContent = `${level.hearts} ${level.name}`;
-      bond.setAttribute('aria-label', level.label);
-    },
-  };
-}
 
 /** Page elements the fishing scene is handed by the shell: the map frame and the scene switch. */
 export interface FishingShell {
@@ -107,7 +34,6 @@ export interface FishingShell {
 
 /** Scene HUD renders snapshots; every action is forwarded to the session or an input control. */
 export function mountFishingStage(
-  session: GameSession,
   place: PlaceState,
   shell: FishingShell,
   access: { canEnter: () => boolean; onNeedTravel: () => void },
@@ -130,14 +56,6 @@ export function mountFishingStage(
   const countdownBar = document.createElement('span');
   countdownBar.className = 'catch-countdown';
   countdownBar.setAttribute('aria-hidden', 'true');
-  const roster = document.createElement('section');
-  roster.id = 'river-roster';
-  roster.setAttribute('aria-label', '猫咪体力');
-  roster.innerHTML =
-    '<div id="cat-energy-cards" class="cat-energy-cards"></div>';
-  stage.before(roster);
-  const cards = new Map<string, ReturnType<typeof createEnergyCard>>();
-  const cardContainer = roster.querySelector<HTMLElement>('#cat-energy-cards')!;
   let resultKey = '';
   let previousRun: string | undefined;
   // The class only styles the river; modules read and follow `place` directly.
@@ -209,23 +127,6 @@ export function mountFishingStage(
           }[run.phase]
         : READY_TIP;
       stage.dataset.phase = run?.phase ?? 'ready';
-      // Keep button identity across clock ticks so keyboard focus and touch targets survive.
-      let next = cardContainer.firstElementChild;
-      for (const cat of world.cats) {
-        let card = cards.get(cat.id);
-        if (!card) {
-          card = createEnergyCard(cat, (id) => session.select(id));
-          cards.set(cat.id, card);
-        }
-        card.update(cat, world, selected, place.get() === 'river');
-        if (card.button !== next) cardContainer.insertBefore(card.button, next);
-        next = card.button.nextElementSibling;
-      }
-      for (const [id, card] of cards) {
-        if (world.cats.some((cat) => cat.id === id)) continue;
-        card.button.remove();
-        cards.delete(id);
-      }
       const result = world.fishing.lastResult;
       reveal.hidden = !countdown;
       if (reveal.dataset.countdown !== (countdown ?? '')) {
