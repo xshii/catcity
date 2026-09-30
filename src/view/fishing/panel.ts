@@ -77,7 +77,7 @@ export function mountAngling(
   };
   // Asked only after mounting, once the location field exists.
   const requestedSpot = () => (location.value as SpotId) || 'POND';
-  const stage = mountFishingStage(session, place, shell, {
+  const stage = mountFishingStage(place, shell, {
     canEnter: () => {
       const world = session.getSnapshot();
       return atShore(

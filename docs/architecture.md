@@ -15,11 +15,10 @@
 | `src/application/`                       | GameSession、依赖端口、存储协调、命令记录、对话 Provider 编排与提案校验                |
 | `src/providers/`、`src/platform/`        | 规则/Mock 对话；浏览器保存、新世界种子和可选实机调试日志适配                           |
 | `src/view/city/`、`src/view/fishing/`    | 城市和钓鱼交互、面板与只读状态呈现                                                     |
-| `src/view/cats/`                         | 猫咪面板的画面（spec 041）：现在是"和谁生小猫"的条件列表，名册与详情在 T-12 搬入       |
+| `src/view/cats/`                         | 猫咪面板（spec 041）：名册与详情、邀请新伙伴的名单、"和谁生小猫"的条件列表             |
 | `src/view/motion/`                       | 可选体感：权限、倾斜预瞄、甩竿、二维提竿与姿态解缠                                     |
 | `src/view/art/`                          | 美工：城市地图、河景、猫的 Phaser 绘制与 SVG 插画、鱼的配色                            |
 | `src/view/shell/`、`src/view/companion/` | 应用装配、导航、布局/ViewModel；事实回忆                                               |
-| `src/view/cats/`                         | 猫咪面板里邀请新伙伴的名单（spec 041 T-11）                                            |
 | `src/view/styles/`                       | 视觉 token（`tokens.css`）与共用基础样式；玩法布局样式留在对应 View 模块               |
 | `src/debug/`                             | 仅开发/测试存在的观察桥与验证后调试命令                                                |
 | `harness/runner/`、`adapters/`、`tasks/` | 通用执行/证据/发布；游戏适配；验收契约，入口 `harness/run.ts`                          |
@@ -41,7 +40,7 @@
 
 Core 派生资源消耗、奖励和关系变化，不接受客户端自报鱼种、价格、分数或亲密度。命令拒绝必须保持金币、地图、实体、计数器和 RNG 完全不变。诊断轨迹在 Application，不能用事件日志代替存档。
 
-场景选择、当前面板、分页、镜头、预瞄、按住状态、输入暂停、动画、传感器权限与首竿引导进度属于 View。钓鱼画面的可切换状态集中在 `view/fishing/view-state.ts`（纯 reducer，不变量由随机事件序列单测守护），显示由纯函数 `view/fishing/screen.ts` 决定，DOM 只应用它，任何状态或世界变化都走同一次渲染（spec 015）；城市画面同样由 `view/city/view-state.ts` 与 `view/city/screen.ts` 组成。View 模块不在 document 上按 id 查找别的模块的元素，只在自己创建或被传入的元素内查找（lint 强制，例外见 spec 015）。当前场景由 `view/shell/place.ts` 的地点状态统一持有，模块订阅它或调用 `Tools`（关闭面板、打开聊天）；每个页面共用的设置卡由 `view/shell/settings.ts` 持有，模块订阅它的开关、调用它关闭，并从它拿到自己那一节的元素。模块不通过点击别的模块的按钮或观察其样式类通信。它们只能转换为已知命令；硬件读数与动画不能决定奖励。每个 DOM 内容有单一渲染责任，例如对白分页由 shell 布局管理，事实回忆由 companion 管理。
+场景选择、当前面板、分页、镜头、预瞄、按住状态、输入暂停、动画、传感器权限与首竿引导进度属于 View。钓鱼画面的可切换状态集中在 `view/fishing/view-state.ts`（纯 reducer，不变量由随机事件序列单测守护），显示由纯函数 `view/fishing/screen.ts` 决定，DOM 只应用它，任何状态或世界变化都走同一次渲染（spec 015）；城市画面同样由 `view/city/view-state.ts` 与 `view/city/screen.ts` 组成；猫咪面板的名册与详情由 `view/cats/screen.ts` 决定，面板自己的状态在 `view/cats/view-state.ts`。View 模块不在 document 上按 id 查找别的模块的元素，只在自己创建或被传入的元素内查找（lint 强制，例外见 spec 015）。当前场景由 `view/shell/place.ts` 的地点状态统一持有，模块订阅它或调用 `Tools`（关闭面板、打开聊天）；每个页面共用的设置卡由 `view/shell/settings.ts` 持有，模块订阅它的开关、调用它关闭，并从它拿到自己那一节的元素。模块不通过点击别的模块的按钮或观察其样式类通信。它们只能转换为已知命令；硬件读数与动画不能决定奖励。每个 DOM 内容有单一渲染责任，例如对白分页由 shell 布局管理，事实回忆由 companion 管理。
 
 ## 时间与确定性
 

@@ -1,5 +1,4 @@
 import type { PlaceState } from './place';
-import { STARTER_CAT_ID } from '../../content/cats';
 import type { GameSession } from '../../application';
 import { mountAngling } from '../fishing/panel';
 import { mountCity } from '../city/panel';
@@ -7,7 +6,9 @@ import { mountClockSpeed } from './clock-speed';
 import { mountCompanionship } from '../companion/journal';
 import { mountPetting } from '../petting/panel';
 import { mountBreeding } from '../cats/breed';
+import { mountDetail } from '../cats/detail';
 import { mountInvite } from '../cats/invite';
+import { mountRoster } from '../cats/roster';
 import { toViewModel } from './model';
 import { bondNote } from './bond';
 import { withMoodNote } from './mood';
@@ -52,39 +53,15 @@ export function mountPanel(
     void notice.offsetWidth;
     notice.classList.add('fading');
   };
-  // The level a chat just reached, shown in the panel: it stays after the notice fades.
-  let bondNews = { catId: '', note: '' };
+  // The selected cat's card above the chat; the level a chat reached stays on it.
+  const detail = mountDetail({
+    session,
+    card: document.querySelector<HTMLElement>('.cat-card')!,
+  });
   const render = () => {
     const model = toViewModel(session.getSnapshot(), session.selectedEntity);
     get('coins').textContent = model.coins;
     get('clock').textContent = `第 ${model.day} 天 · ${model.time}`;
-    get('cat-detail').hidden = !model.cat;
-    get('cat-description').hidden = !!model.cat;
-    get('meet-cat').hidden = !!model.cat;
-    get('cat-name').textContent = model.cat?.name ?? '认识 Mochi';
-    const mood = model.cat?.moodBadge;
-    get('mood').textContent = mood?.text ?? '第一位居民';
-    get('mood').setAttribute('aria-label', mood?.label ?? '第一位居民');
-    get('mood-hint').textContent = mood?.hint ?? '';
-    get('mood-hint').hidden = !mood?.hint;
-    if (model.cat) {
-      document.querySelector('label[for=message]')!.textContent =
-        `和 ${model.cat.name} 说句话`;
-      document
-        .querySelector('.cat-avatar')!
-        .classList.toggle('gray-cat', model.cat.appearance.coat === 'gray');
-      get('traits').textContent = model.cat.personalityLabel;
-      const bond = model.cat.bondBadge;
-      get('bond-level').setAttribute('aria-label', bond.label);
-      get('bond-hearts').textContent = bond.hearts;
-      get('bond-name').textContent = bond.name;
-      get<HTMLProgressElement>('bond-progress').max = bond.progress.max;
-      get<HTMLProgressElement>('bond-progress').value = bond.progress.value;
-      get('bond-next').textContent = bond.next;
-      const news = bondNews.catId === model.cat.id ? bondNews.note : '';
-      get('bond-news').textContent = news;
-      get('bond-news').hidden = !news;
-    }
     get('save-recovery').hidden = !session.storageError;
     get('reset-demo').hidden = !session.saveRejected;
     get('storage-error').hidden = !session.storageError;
@@ -95,9 +72,6 @@ export function mountPanel(
     session.resetDemo();
     notify('已开始新版试玩。');
   });
-  get('meet-cat').addEventListener('click', () =>
-    session.select(STARTER_CAT_ID),
-  );
   get('save').addEventListener('click', () => {
     notify(
       session.save() ? '进度已保存在这台设备。' : '保存未完成，请查看提示。',
@@ -116,10 +90,9 @@ export function mountPanel(
         get<HTMLInputElement>('message').value = '';
         const after = session.getSnapshot();
         const name = after.cats.find((cat) => cat.id === catId)?.name ?? '小猫';
-        bondNews = { catId, note: bondNote(before, after, catId) };
-        notify(
-          withMoodNote(`${name} 轻轻动了动耳朵，回应了你。`, bondNews.note),
-        );
+        const note = bondNote(before, after, catId);
+        detail.chatted(catId, note);
+        notify(withMoodNote(`${name} 轻轻动了动耳朵，回应了你。`, note));
         render();
       } else
         notify(
@@ -178,6 +151,8 @@ export function mountPanel(
       outing: get('city-panel-outing'),
     },
   });
+  // The roster heads the cats panel's first page, before petting, kittens and invites.
+  mountRoster({ session, place, page: get('cats-page-roster') });
   const petting = mountPetting({
     session,
     place,
