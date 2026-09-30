@@ -12,7 +12,7 @@ import {
   reactionLine,
 } from '../../src/view/petting/screen';
 import { BOND, CARE } from '../../src/content/care';
-import { CAT_DEFINITION_IDS } from '../../src/content/cats';
+import { CAT_DEFINITION_IDS, CAT_DEFINITIONS } from '../../src/content/cats';
 import {
   closedPetting,
   pettingPhase,
@@ -24,7 +24,7 @@ import {
 const TASTES = { favourite: 'CHIN', disliked: 'BELLY' } as const;
 const MOCHI = {
   name: 'Mochi',
-  definitionId: 'MOCHI',
+  personality: [...CAT_DEFINITIONS.MOCHI.personality] as string[],
   petting: { discovered: [] as PetSpot[], lifted: [] as number[] },
 } as const;
 const REST: CatPose = { face: 'calm', ears: 'up', curled: false };
@@ -424,7 +424,13 @@ describe('reaction lines', () => {
     for (const cat of CAT_DEFINITION_IDS)
       for (const spot of ['CHIN', 'HEAD', 'BELLY'] as const)
         for (const good of [true, false]) {
-          const line = reactionLine(cat, TASTES, spot, good, 'Mochi');
+          const line = reactionLine(
+            CAT_DEFINITIONS[cat].personality,
+            TASTES,
+            spot,
+            good,
+            'Mochi',
+          );
           expect(line).toMatch(/[一-鿿]/);
           expect(line).not.toContain('{');
           lines.add(line);
@@ -433,14 +439,30 @@ describe('reaction lines', () => {
   });
 
   it('布丁 tells the first cat by its current name: Mochi until it is renamed (T-25)', () => {
-    expect(reactionLine('BUDING', TASTES, 'BELLY', false, 'Mochi')).toBe(
-      '肚子不可以！哼，我要去告诉 Mochi。',
-    );
-    expect(reactionLine('BUDING', TASTES, 'BELLY', false, '团子')).toBe(
-      '肚子不可以！哼，我要去告诉 团子。',
-    );
+    expect(
+      reactionLine(
+        CAT_DEFINITIONS.BUDING.personality,
+        TASTES,
+        'BELLY',
+        false,
+        'Mochi',
+      ),
+    ).toBe('肚子不可以！哼，我要去告诉 Mochi。');
+    expect(
+      reactionLine(
+        CAT_DEFINITIONS.BUDING.personality,
+        TASTES,
+        'BELLY',
+        false,
+        '团子',
+      ),
+    ).toBe('肚子不可以！哼，我要去告诉 团子。');
     // The result page says the name it is given.
-    const buding = { ...MOCHI, name: '布丁', definitionId: 'BUDING' } as const;
+    const buding = {
+      ...MOCHI,
+      name: '布丁',
+      personality: [...CAT_DEFINITIONS.BUDING.personality] as string[],
+    } as const;
     const ended = after([open, stroke('BELLY'), ...ticks(PETTING.roundTicks)]);
     const unkind = { ...RESULT, spot: 'BELLY', meter: 0, mood: -1 } as const;
     const settled = after([{ type: 'settled', result: unkind }], ended);
@@ -450,13 +472,43 @@ describe('reaction lines', () => {
     );
   });
 
-  it('name the spot they are about', () => {
-    expect(reactionLine('PEPPER', TASTES, 'CHIN', true, 'Mochi')).toBe(
-      '就是下巴！再来再来！',
+  it('a kitten speaks in the voice of its first personality word (spec 041 T-22)', () => {
+    // One word of Pepper's, then one of Mochi's: it talks like Pepper.
+    expect(
+      reactionLine(['playful', 'shy'], TASTES, 'CHIN', true, 'Mochi'),
+    ).toBe(
+      reactionLine(
+        CAT_DEFINITIONS.PEPPER.personality,
+        TASTES,
+        'CHIN',
+        true,
+        'Mochi',
+      ),
     );
+    expect(reactionLine(['shy'], TASTES, 'CHIN', true, 'Mochi')).toBe(
+      reactionLine(
+        CAT_DEFINITIONS.MOCHI.personality,
+        TASTES,
+        'CHIN',
+        true,
+        'Mochi',
+      ),
+    );
+  });
+
+  it('name the spot they are about', () => {
     expect(
       reactionLine(
-        'PEPPER',
+        CAT_DEFINITIONS.PEPPER.personality,
+        TASTES,
+        'CHIN',
+        true,
+        'Mochi',
+      ),
+    ).toBe('就是下巴！再来再来！');
+    expect(
+      reactionLine(
+        CAT_DEFINITIONS.PEPPER.personality,
         { favourite: 'BACK', disliked: 'HEAD' },
         'BACK',
         true,

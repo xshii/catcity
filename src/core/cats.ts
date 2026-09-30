@@ -9,7 +9,7 @@ import {
   type CatDefinitionId,
 } from '../content/cats';
 import { BUILDINGS, RESTYLE_PRICE } from '../content/city';
-import { KITTEN_MINUTES } from '../content/family';
+import { KITTEN_MINUTES, NO_TALENT } from '../content/family';
 import { gridDistance } from './city/map';
 import { isWalkable } from './city/path';
 import { CommandError, type GameEvent } from './commands';
@@ -36,7 +36,8 @@ export function instantiateCat(
     generation: 1,
     parents: null,
     neutered: false,
-    talent: 0,
+    talent: { ...NO_TALENT },
+    heritage: 0,
     lastBredMinute: null,
     personality: [...definition.personality],
     traits: [...definition.traits],
@@ -44,13 +45,20 @@ export function instantiateCat(
       likes: [...definition.likes],
       dislikes: [...definition.dislikes],
     },
+    favoriteFish: [...definition.favoriteFish],
+    ...newToTheCity(position),
+  };
+}
+
+/** How every cat starts out in the city, whoever it is: a stranger yet, rested, at `position`. */
+export function newToTheCity(position: Position) {
+  return {
     position: { ...position },
     mood: CAT_START.mood,
     needs: { ...CAT_START.needs },
     fishingSpotId: null,
     walk: null,
     memories: [],
-    favoriteFish: [...definition.favoriteFish],
     fishingMemory: null,
     fishGift: null,
     playerBond: 0,
@@ -60,7 +68,7 @@ export function instantiateCat(
     pettingBond: null,
     lastChatMoodMinute: null,
     petting: { discovered: [], lifted: [] },
-  };
+  } satisfies Partial<CatEntity>;
 }
 
 /** A companion's new name (spec 041 R-16): free, as often as wished; nothing else changes. */
@@ -116,9 +124,26 @@ export function freeBeds(world: WorldState): BuildingEntity[] {
 /** What the next invitation costs: it doubles with every cat that came by invitation. */
 export const nextInvitePrice = (world: WorldState): number =>
   invitePrice(
-    world.cats.filter((cat) => INVITABLE_CATS.includes(cat.definitionId))
-      .length,
+    world.cats.filter(
+      (cat) =>
+        cat.definitionId !== null && INVITABLE_CATS.includes(cat.definitionId),
+    ).length,
   );
+
+/**
+ * Where a cat new to the city appears: the walkable tile nearest its home, ties by row
+ * then column (spec 041 design 4, 5.2).
+ */
+export function arrivalTile(
+  world: WorldState,
+  home: BuildingEntity,
+): Position | undefined {
+  const distance = (p: Position) => gridDistance(p, home.position);
+  return world.map.tiles
+    .map((tile) => tile.position)
+    .filter((p) => isWalkable(world, p))
+    .sort((a, b) => distance(a) - distance(b) || a.y - b.y || a.x - b.x)[0];
+}
 
 /**
  * A first-generation cat not yet in the city comes to live in the first free bed (spec
@@ -136,11 +161,7 @@ export function inviteCat(
   if (!home) throw new CommandError('NO_BED');
   const cost = nextInvitePrice(world);
   if (world.coins < cost) throw new CommandError('INSUFFICIENT_COINS');
-  const distance = (p: Position) => gridDistance(p, home.position);
-  const position = world.map.tiles
-    .map((tile) => tile.position)
-    .filter((p) => isWalkable(world, p))
-    .sort((a, b) => distance(a) - distance(b) || a.y - b.y || a.x - b.x)[0];
+  const position = arrivalTile(world, home);
   if (!position) throw new CommandError('INVALID_PLACEMENT');
   world.coins -= cost;
   const cat = instantiateCat(definitionId, `cat-${world.nextId++}`, position);

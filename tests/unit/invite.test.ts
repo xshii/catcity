@@ -5,6 +5,7 @@ import {
   INVITABLE_CATS,
   MAX_COMPANIONS,
   invitePrice,
+  personalityLabel,
 } from '../../src/content/cats';
 import { BUILDINGS } from '../../src/content/city';
 import { SPOTS, SPOT_IDS, type FishId } from '../../src/content/fishing';
@@ -63,13 +64,13 @@ describe('the first-generation cats (R-12)', () => {
     expect(newcomers).toHaveLength(4);
     const names = CAT_DEFINITION_IDS.map((id) => CAT_DEFINITIONS[id].name);
     expect(new Set(names).size).toBe(names.length);
-    const labels = CAT_DEFINITION_IDS.map(
-      (id) => CAT_DEFINITIONS[id].personalityLabel,
+    const labels = CAT_DEFINITION_IDS.map((id) =>
+      personalityLabel(CAT_DEFINITIONS[id].personality),
     );
     expect(new Set(labels).size).toBe(labels.length);
     for (const id of newcomers) {
       expect(CAT_DEFINITIONS[id].name).toMatch(/^[一-鿿]{1,12}$/);
-      expect(CAT_DEFINITIONS[id].personalityLabel).toMatch(
+      expect(personalityLabel(CAT_DEFINITIONS[id].personality)).toMatch(
         /^[一-鿿]+( · [一-鿿]+)+$/,
       );
       expect(CAT_DEFINITIONS[id].unique).toBe(true);

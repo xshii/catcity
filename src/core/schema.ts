@@ -4,6 +4,7 @@ import {
   CAT_DEFINITION_IDS,
   CAT_DEFINITIONS,
   STARTER_CAT_ID,
+  type CatDefinitionId,
 } from '../content/cats';
 import {
   MAX_BOND,
@@ -15,7 +16,7 @@ import {
 } from './limits';
 import { BOND, CARE } from '../content/care';
 import { PET_SPOTS } from '../content/petting';
-import { MAX_TALENT } from '../content/family';
+import { MAX_TALENT, NO_TALENT, TALENT_NAMES } from '../content/family';
 import { MAX_RESIDENTS } from '../content/residents';
 import { gameDay } from './bond';
 import { z } from 'zod';
@@ -30,6 +31,7 @@ import {
   spotIdSchema,
 } from './fishing/schema';
 import { assertFishing } from './fishing/validation';
+import { assertBorn } from './inheritance';
 import { catNameSchema } from './names';
 import { assertResidents } from './residents';
 
@@ -54,9 +56,11 @@ export const appearanceSchema = z.strictObject({
   eyes: z.enum(APPEARANCE_OPTIONS.eyes),
   face: z.enum(APPEARANCE_OPTIONS.face),
 });
+const talentLevel = z.number().int().min(0).max(MAX_TALENT);
 const catSchema = z.strictObject({
   id: text,
-  definitionId: z.enum(CAT_DEFINITION_IDS),
+  /** The template of a first-generation cat; null for one born in the city (T-22). */
+  definitionId: z.enum(CAT_DEFINITION_IDS).nullable(),
   name: catNameSchema,
   /** The player's for the stray, the salon's since; any legal one for every cat. */
   appearance: appearanceSchema,
@@ -67,7 +71,14 @@ const catSchema = z.strictObject({
   generation: integer.min(1),
   parents: z.strictObject({ mother: text, father: text }).nullable(),
   neutered: z.boolean(),
-  talent: z.number().int().min(0).max(MAX_TALENT),
+  /** 钓感, 耐力 and 亲人 (R-35, design 5.4): none for a first-generation cat. */
+  talent: z.strictObject({
+    feel: talentLevel,
+    stamina: talentLevel,
+    affection: talentLevel,
+  }),
+  /** The family marks (家传) of its line when it was born: 0 for a first-generation cat. */
+  heritage: integer,
   lastBredMinute: integer.nullable(),
   personality: z.array(text).max(10),
   traits: z.array(text).max(10),
@@ -149,8 +160,8 @@ export type Position = z.infer<typeof positionSchema>;
 export type CatEntity = z.infer<typeof catSchema>;
 export type BuildingEntity = z.infer<typeof buildingSchema>;
 export type WorldState = z.infer<typeof worldSchema>;
-export const SAVE_VERSION = 25;
-export const CONTENT_VERSION = 20;
+export const SAVE_VERSION = 26;
+export const CONTENT_VERSION = 21;
 export const saveSchema = z.strictObject({
   saveVersion: z.literal(SAVE_VERSION),
   contentVersion: z.literal(CONTENT_VERSION),
@@ -185,7 +196,8 @@ export function assertWorld(value: unknown): WorldState {
       throw new Error('Invalid income clock');
   }
   for (const cat of world.cats) {
-    assertTemplate(cat, world.cats);
+    if (cat.definitionId === null) assertBorn(world, cat);
+    else assertTemplate(cat, cat.definitionId, world.cats);
     if (
       (cat.chatBond !== null && cat.chatBond.day > gameDay(world.minute)) ||
       (cat.giftBond !== null && cat.giftBond.day > gameDay(world.minute)) ||
@@ -233,16 +245,22 @@ const sameList = (a: readonly string[], b: readonly string[]) =>
 
 /**
  * A first-generation cat is its template: identity and tastes come from it, and it has no
- * birth, parents or talent. The name is free text and the look any legal one (the stray's
- * pick, later the salon's). Mochi is the stray: its breed is the player's pick (T-14).
+ * birth, parents, talent or family marks. The name is free text and the look any legal one
+ * (the stray's pick, later the salon's). Mochi is the stray: its breed is the player's pick
+ * (T-14). A cat born in the city answers to its parents instead (`assertBorn`).
  */
-function assertTemplate(cat: CatEntity, cats: readonly CatEntity[]) {
-  const definition = CAT_DEFINITIONS[cat.definitionId];
+function assertTemplate(
+  cat: CatEntity,
+  definitionId: CatDefinitionId,
+  cats: readonly CatEntity[],
+) {
+  const definition = CAT_DEFINITIONS[definitionId];
   if (
     cat.bornMinute !== null ||
     cat.generation !== 1 ||
     cat.parents !== null ||
-    cat.talent !== 0 ||
+    TALENT_NAMES.some((name) => cat.talent[name] !== NO_TALENT[name]) ||
+    cat.heritage !== 0 ||
     cat.sex !== definition.sex ||
     (cat.id !== STARTER_CAT_ID && cat.breedId !== definition.breedId) ||
     !sameList(cat.personality, definition.personality) ||
@@ -254,7 +272,7 @@ function assertTemplate(cat: CatEntity, cats: readonly CatEntity[]) {
     throw new Error('Cat does not match its template');
   if (
     definition.unique &&
-    cats.filter((other) => other.definitionId === cat.definitionId).length > 1
+    cats.filter((other) => other.definitionId === definitionId).length > 1
   )
     throw new Error('Duplicate unique resident');
 }

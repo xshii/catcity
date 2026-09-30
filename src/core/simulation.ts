@@ -58,7 +58,7 @@ export function simulate(
         const rest = moodRest(cat.playerBond);
         cat.mood =
           cat.mood > rest
-            ? Math.max(rest, moodAfterDrift(cat.mood))
+            ? Math.max(rest, moodAfterDrift(cat.mood, cat.talent.affection))
             : Math.min(rest, cat.mood + MOOD.drift);
         if (nearHome(world, cat)) liftMood(cat, MOOD.home);
       }

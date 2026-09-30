@@ -10,6 +10,7 @@ import {
   type FishId,
 } from '../../content/fishing';
 import { BOND } from '../../content/care';
+import { castCost } from '../../content/family';
 import { MOOD } from '../../content/mood';
 import { requireCat } from '../cats';
 import {
@@ -28,7 +29,7 @@ import { shadowUnderCast } from './shadows';
 import { runSeed } from '../random';
 import { MAX_STAT, WORLD_LIMIT } from '../limits';
 
-const { cast: CAST, supplies: SUPPLIES } = FISHING;
+const { supplies: SUPPLIES } = FISHING;
 
 export function applyAngling(
   world: WorldState,
@@ -49,11 +50,11 @@ export function applyAngling(
   /** The cast itself costs stamina and one bait (bread is free); preparing is free. */
   const payForCast = (catId: string, baitId: BaitId) => {
     const cat = world.cats.find((cat) => cat.id === catId)!;
-    if (cat.needs.energy < CAST.staminaCost)
-      throw new CommandError('LOW_STAMINA');
+    const cost = castCost(cat.talent.stamina);
+    if (cat.needs.energy < cost) throw new CommandError('LOW_STAMINA');
     if (baitId !== 'BREAD' && fishing.baits[baitId] === 0)
       throw new CommandError('NO_BAIT');
-    cat.needs.energy -= CAST.staminaCost;
+    cat.needs.energy -= cost;
     if (baitId !== 'BREAD') fishing.baits[baitId]--;
   };
   if (command.type === 'USE_CAN' || command.type === 'RECYCLE_TRASH') {
@@ -85,7 +86,7 @@ export function applyAngling(
       throw new CommandError('SPOT_LOCKED');
     if (!atFishingShore(world, cat, command.spotId))
       throw new CommandError('TRAVEL_REQUIRED');
-    if (cat.needs.energy < CAST.staminaCost)
+    if (cat.needs.energy < castCost(cat.talent.stamina))
       throw new CommandError('LOW_STAMINA');
     if (fishing.inventory.length >= FISHING.bag.capacity)
       throw new CommandError('BAG_FULL');
@@ -106,6 +107,7 @@ export function applyAngling(
       skillLevel: skillLevel(fishing.xp),
       mode,
       happy: cat.mood >= MOOD.happy,
+      feel: cat.talent.feel,
     });
     emit('started', fishing.active.id);
   } else if (

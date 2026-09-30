@@ -19,6 +19,7 @@ import {
 } from '../../content/fishing';
 import { greenZone } from '../../minigames/angling';
 import { CARE } from '../../content/care';
+import { castCost } from '../../content/family';
 import { mountFishingFeedback } from './feedback';
 import { mountFishingSound } from './sound';
 import { mountFishingStage, type FishingShell } from './stage';
@@ -55,7 +56,6 @@ import { withMoodNote } from '../common/mood';
 import { giftNotice, outcomeNote } from '../common/bond';
 import type { Trace } from '../../platform/device-log';
 
-const CAST_COST = FISHING.cast.staminaCost;
 /** Before a run the button flow's power rests at half; it is charged in the run. */
 const REST_POWER = FISHING.input.maxPower / 2;
 /** A render that triggers more than this many re-renders is a state loop, not UI. */
@@ -356,9 +356,11 @@ export function mountAngling(
     layout.travelButton.textContent = atDestination
       ? '已经抵达'
       : '出发去钓点 →';
-    castStart.disabled = active || energy < CAST_COST || !atDestination;
+    // A cat's 耐力 lowers what its cast costs (spec 041 R-35).
+    const cost = castCost(selectedCat.talent.stamina);
+    castStart.disabled = active || energy < cost || !atDestination;
     castStart.textContent = atDestination
-      ? `准备抛竿 ↗ · 抛出耗 ${CAST_COST} 体力`
+      ? `准备抛竿 ↗ · 抛出耗 ${cost} 体力`
       : '先在地图走到岸边';
     root
       .querySelectorAll<HTMLButtonElement>('[data-bait]')

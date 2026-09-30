@@ -62,3 +62,38 @@ export function crowdedFamily(): World {
   }
   return world;
 }
+
+/** Pepper's id in `readyPair`. */
+export const PEPPER_ID = 'cat-2';
+
+/** `readyPair` after Mochi and Pepper had a kitten named 团子 (spec 041 R-32). */
+export function withKitten(): World {
+  const world = readyPair();
+  const born = world.dispatch({
+    type: 'BREED_CATS',
+    motherId: 'mochi',
+    fatherId: PEPPER_ID,
+    name: '团子',
+  });
+  if (!born.ok) throw new Error(born.error);
+  return world;
+}
+
+/**
+ * The world `minutes` of game time later, with the cats `ids` happy and trusting the
+ * player: what play would have made of them meanwhile. A valid save.
+ */
+export function later(world: World, minutes: number, ids: string[]): World {
+  const advanced = world.dispatch({ type: 'ADVANCE_TIME', minutes });
+  if (!advanced.ok) throw new Error(advanced.error);
+  const state = world.getSnapshot();
+  for (const cat of state.cats)
+    if (ids.includes(cat.id)) {
+      cat.mood = MOOD.happy;
+      cat.playerBond = Math.max(
+        cat.playerBond,
+        BOND_LEVELS[BREED_BOND_LEVEL].bond,
+      );
+    }
+  return new World(state);
+}

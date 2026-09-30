@@ -6,8 +6,15 @@ import {
   NEUTER_PRICE,
 } from '../content/family';
 import { MOOD } from '../content/mood';
-import { catStage, freeBeds, requireCat } from './cats';
-import { CommandError, type GameEvent } from './commands';
+import {
+  arrivalTile,
+  catStage,
+  freeBeds,
+  newToTheCity,
+  requireCat,
+} from './cats';
+import { CommandError, type ErrorCode, type GameEvent } from './commands';
+import { familyMarks, inherit } from './inheritance';
 import type { CatEntity, WorldState } from './schema';
 
 /**
@@ -142,4 +149,79 @@ export function breedBlocks(
     ...cityBreedBlocks(world),
   ]);
   return BREED_BLOCKS.filter((block) => found.has(block));
+}
+
+/** The error a refused kitten reports: its first unmet condition (design 5.1). */
+const BLOCK_ERRORS: Record<BreedBlock, ErrorCode> = {
+  SAME_CAT: 'SAME_CAT',
+  NEED_PAIR: 'NEED_PAIR',
+  KITTEN: 'CAT_TOO_YOUNG',
+  NEUTERED: 'CAT_NEUTERED',
+  NOT_HAPPY: 'NOT_HAPPY',
+  BOND_TOO_LOW: 'BOND_TOO_LOW',
+  RELATED: 'RELATED',
+  COOLING_DOWN: 'COOLING_DOWN',
+  NO_BED: 'NO_BED',
+  COMPANION_LIMIT: 'COMPANION_LIMIT',
+};
+
+/**
+ * A kitten for a pair that meets every condition (spec 041 R-32, design 5.2): the next id,
+ * its inheritance, the name the player gave it, the first free bed and the walkable tile
+ * nearest it. It carries its line's family marks and those its parents earned; both
+ * parents rest from now. Nothing is drawn or allocated for a refused pair.
+ */
+export function breedCats(
+  world: WorldState,
+  motherId: string,
+  fatherId: string,
+  name: string,
+): GameEvent[] {
+  const blocks = breedBlocks(world, motherId, fatherId);
+  const mother = requireCat(world, motherId);
+  const father = requireCat(world, fatherId);
+  // The command names who is who: the mother is the queen.
+  const block =
+    blocks[0] === 'SAME_CAT' || (mother.sex === 'F' && father.sex === 'M')
+      ? blocks[0]
+      : 'NEED_PAIR';
+  if (block) throw new CommandError(BLOCK_ERRORS[block]);
+  const home = freeBeds(world)[0]!;
+  const position = arrivalTile(world, home);
+  if (!position) throw new CommandError('INVALID_PLACEMENT');
+  const id = `cat-${world.nextId++}`;
+  const passed = familyMarks(mother) + familyMarks(father);
+  const { likes, dislikes, ...inherited } = inherit(
+    world.seed,
+    id,
+    mother,
+    father,
+    passed,
+  );
+  world.cats.push({
+    ...newToTheCity(position),
+    ...inherited,
+    id,
+    definitionId: null,
+    name,
+    preferences: { likes, dislikes },
+    bornMinute: world.minute,
+    generation: Math.max(mother.generation, father.generation) + 1,
+    parents: { mother: mother.id, father: father.id },
+    neutered: false,
+    heritage: mother.heritage + father.heritage + passed,
+    lastBredMinute: null,
+    home: home.id,
+  });
+  mother.lastBredMinute = world.minute;
+  father.lastBredMinute = world.minute;
+  return [
+    {
+      type: 'CatBorn',
+      minute: world.minute,
+      entityId: id,
+      motherId: mother.id,
+      fatherId: father.id,
+    },
+  ];
 }

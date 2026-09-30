@@ -66,6 +66,9 @@ import v24Content18 from '../fixtures/save-v24-content18.json';
 // A picked stray and Pepper, from before a names table suggested names (save 25,
 // content 19).
 import v25Content19 from '../fixtures/save-v25-content19.json';
+// Mochi and Pepper in an apartment, from before a cat had three talents and a kitten
+// could be born (save 25, content 20).
+import v25Content20 from '../fixtures/save-v25-content20.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -106,6 +109,7 @@ const incompatible = {
   v23Content17,
   v24Content18,
   v25Content19,
+  v25Content20,
   future,
 };
 

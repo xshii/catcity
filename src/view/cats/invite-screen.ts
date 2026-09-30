@@ -3,6 +3,7 @@ import {
   CAT_DEFINITIONS,
   INVITABLE_CATS,
   MAX_COMPANIONS,
+  personalityLabel,
   type CatDefinitionId,
 } from '../../content/cats';
 import { fishById } from '../../content/fishing';
@@ -46,7 +47,7 @@ export function inviteCard(id: CatDefinitionId) {
     look: catLook(cat.breedId, cat.appearance),
     sex: SEX[cat.sex],
     breed: CAT_BREEDS[cat.breedId].name,
-    personality: cat.personalityLabel,
+    personality: personalityLabel(cat.personality),
     likes: INVITE_COPY.likes(
       cat.favoriteFish.map((fish) => fishById(fish).name).join('、'),
     ),

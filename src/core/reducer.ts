@@ -13,7 +13,7 @@ import {
   requireCat,
   restyleCat,
 } from './cats';
-import { neuterCat } from './family';
+import { breedCats, neuterCat } from './family';
 import { CommandError, type GameCommand, type GameEvent } from './commands';
 import type { WorldState } from './schema';
 import { simulate } from './simulation';
@@ -57,6 +57,8 @@ export function applyCommand(
       return renameCat(world, command.catId, command.name);
     case 'NEUTER_CAT':
       return neuterCat(world, command.catId);
+    case 'BREED_CATS':
+      return breedCats(world, command.motherId, command.fatherId, command.name);
     case 'RESTYLE_CAT':
       return restyleCat(world, command.catId, command.appearance);
     case 'PET_CAT':

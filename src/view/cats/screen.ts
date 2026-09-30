@@ -1,5 +1,5 @@
 import { CAT_BREEDS } from '../../content/breeds';
-import { CAT_DEFINITIONS } from '../../content/cats';
+import { personalityLabel } from '../../content/cats';
 import { fishById, SPOTS } from '../../content/fishing';
 import {
   MAX_STAT,
@@ -160,7 +160,7 @@ export function detailScreen(
     about: [
       CAT_BREEDS[cat.breedId].name,
       CATS_COPY.generation(cat.generation),
-      CAT_DEFINITIONS[cat.definitionId].personalityLabel,
+      personalityLabel(cat.personality),
     ].join(' · '),
     sections: CATS_SECTIONS.map((id) => ({
       id,
