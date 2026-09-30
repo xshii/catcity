@@ -4,21 +4,21 @@
 
 ## 测试金字塔与命令
 
-| 命令                       | 覆盖边界                                                   |
-| -------------------------- | ---------------------------------------------------------- |
-| `npm run typecheck`        | strict TypeScript 与纯 Core 编译边界                       |
-| `npm run lint:code`        | 类型感知 ESLint、异步处理、联合类型穷尽与架构依赖边界      |
-| `npm run lint:unused`      | Knip 检查无用文件、导出和依赖                              |
-| `npm run lint`             | 上述静态检查与 Prettier 格式                               |
-| `npm test`                 | 经济、建设、地图、移动、猫咪、时间、RNG、钓鱼、原子拒绝    |
-| `npm run test:simulation`  | 30 游戏日不变量、有限状态、时间分块等价                    |
-| `npm run test:integration` | 保存/续玩、Provider 回退、事实回忆、回放、进程与发布失败   |
-| `npm run test:view`        | View 测试台：真实页面面板、按钮与体感流程、设备设置记忆    |
-| `npm run test:coverage`    | 一次运行单元/模拟/集成与 View 测试台并检查 V8 覆盖率门槛   |
-| `npm run test:e2e`         | 画布/触摸输入、刷新续玩、单屏布局、生产隔离及 Pages 子路径 |
-| `npm run build`            | HTML5 生产构建                                             |
-| `npm run check`            | 类型 → 静态检查/格式 → Headless 测试与覆盖率 → 构建 → E2E  |
-| `npm run harness`          | 完整 Gate，再启动验收浏览器、采集证据并验证回放            |
+| 命令                       | 覆盖边界                                                             |
+| -------------------------- | -------------------------------------------------------------------- |
+| `npm run typecheck`        | strict TypeScript 与纯 Core 编译边界                                 |
+| `npm run lint:code`        | 类型感知 ESLint、异步处理、联合类型穷尽与架构依赖边界                |
+| `npm run lint:unused`      | Knip 检查无用文件、导出和依赖                                        |
+| `npm run lint`             | 上述静态检查与 Prettier 格式                                         |
+| `npm test`                 | 经济、建设、地图、移动、猫咪、时间、RNG、钓鱼、原子拒绝              |
+| `npm run test:simulation`  | 30 游戏日不变量、有限状态、时间分块等价                              |
+| `npm run test:integration` | 保存/续玩、Provider 回退、事实回忆、回放、进程与发布失败             |
+| `npm run test:view`        | View 测试台：真实页面面板、按钮与体感流程、设备设置记忆              |
+| `npm run test:coverage`    | 一次运行单元/模拟/集成与 View 测试台并检查 V8 覆盖率门槛             |
+| `npm run test:e2e`         | 画布/触摸输入、刷新续玩、单屏布局、生产隔离及 Pages 子路径           |
+| `npm run build`            | HTML5 生产构建                                                       |
+| `npm run check`            | 类型 → 静态检查/格式 → Headless 测试与覆盖率 → 构建 → E2E            |
+| `npm run harness`          | Gate（E2E 按改动挑选，见下节），再启动验收浏览器、采集证据并验证回放 |
 
 Core 行为先写测试，绝大多数规则在 Headless 层验证。E2E 用真实格子点击、按钮、键盘和触摸，不能注入获胜结果。测试构建（`--mode test`）把纯等待（等咬钩、传感器启动期限）按 `src/view/fishing/time-scale.ts` 加速，提竿、遛鱼和甩竿窗口保持真实速度；Debug Bridge 的 `stepFishing` 可逐 tick 推进钓鱼以消除短窗口竞态，输入仍是真实按键。生产构建始终 1×。截图是观察证据，当前没有强制像素基线；不得自动接受新快照来通过测试。
 
@@ -37,6 +37,24 @@ V8 覆盖 Core、Application、Content、Minigames、Providers 和 Harness runne
 | Application | 85%  | 90% | 80%  | 75%  |
 
 报告保存在 `coverage/index.html`、`coverage/coverage-summary.json` 和 `coverage/lcov.info`。CI 与测试证据一同上传，覆盖率不足保持失败，不通过删除用例或排除未覆盖业务来过关。
+
+## 推送前检查：按模块挑 E2E，每天全量兜底
+
+用户 2026-09-30 决定：E2E 按改动的模块挑选，每天全量兜底，取代此前"推送前跑全部 E2E"的规则。`.githooks/pre-push` 运行 `npm run harness`：类型、Lint/格式/Knip、带覆盖率的 Headless 测试与 View 测试台、生产构建和游戏验收每次都跑，只有 E2E 按下面的规则挑选；`npm run harness -- publish`（正式发布）始终跑全部 E2E，`npm run check` 也照旧跑全部。
+
+- **每天全量**：本机当天还没有一次**通过**的全量检查时，跑全部 E2E。记录在主检出的 `artifacts/full-checks.jsonl`（经 git 的 common dir 找到，所有 worktree 共用同一份），每次跑了全部 E2E 的检查（不论因为什么）追加一行 `{"date":"2026-09-30","commit":"<sha>","ok":true}`，失败的也记，只有 `ok` 为真的算数。
+- **按改动挑选**：当天已有通过的全量后，取与 `origin/main` 的 merge-base 以来改动的文件（已提交、暂存、未暂存与未跟踪；移动的文件两头都算），逐个判断后取并集：
+
+| 改动的文件                                                                                                                                              | 跑哪些 E2E                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `docs/`、`specs/`、任何 `*.md`                                                                                                                          | 不跑                         |
+| `tests/unit/`、`tests/view/`                                                                                                                            | 不跑（vitest 照跑）          |
+| 登记过的 `tests/e2e/x.spec.ts`                                                                                                                          | 它自己与两个冒烟             |
+| 功能模块（city、fishing 含 `fishing/motion/`、cats、petting、companion）的代码                                                                          | 登记在该模块下的 spec 与冒烟 |
+| 功能模块的 `.css`                                                                                                                                       | 同上，再加全部布局类 spec    |
+| 其余：共享画面（common、art、styles）、装配（shell、`view/index.ts`）、规则层、应用层、`src/main.ts`、harness、测试辅助与夹具、依赖与配置、没列到的路径 | 全部                         |
+
+登记表是 [e2e.ts](../harness/adapters/catcity/e2e.ts) 的 `E2E_SPECS`：每个 spec 覆盖哪些功能模块；冒烟是 `game.spec.ts` 与 `city-input.spec.ts`，布局类是 main-page、notice-layer、pages、river-layout、settings-gear。模块沿用 [modules.ts](../harness/adapters/catcity/modules.ts) 的表。挑选是纯函数 `chooseE2E`，[e2e-choice.test.ts](../tests/unit/e2e-choice.test.ts) 覆盖每条规则，新 spec 没登记或登记了不存在的模块时失败。runner 只接收要跑的浏览器测试文件（`BrowserTestChoice`），模块到 spec 的映射与规则都在猫城适配器。每次运行的 `checks.log` 开头写 merge-base、改动文件、每个文件的理由与选中的 spec，`manifest.json` 的 `browserTests` 记下选择（`all` 或文件列表）；没有选中 E2E 时单独构建验收用的测试构建。
 
 ## 三层测试与 View 测试台
 
@@ -81,4 +99,4 @@ npm run replay -- artifacts/<run-id>/commands.json
 
 发布集成覆盖固定构建副本、进程归属、健康 marker、失败 Gate、启动/就绪/烟测失败、已验证旧版本恢复以及恢复失败。恢复使用必填保存的 `launch`，只恢复替换前正在运行且已通过验收的版本；本次仍失败。生产烟测成功/失败都尝试采集该测试会话的 save、Console 与截图，见[发布契约](local-publication.md)。
 
-每任务默认命令超时 5 分钟；组合 `check` 允许 15 分钟。超时仍是失败，不放宽验收。可玩循环、Bridge 或证据链改变必须通过 `check` 和 Harness，并检查截图、更新相关文档、报告证据路径与限制。某次通过只能由该次产物证明。
+每个命令默认超时 5 分钟；E2E 允许 15 分钟。超时仍是失败，不放宽验收。可玩循环、Bridge 或证据链改变必须通过 `check` 和 Harness，并检查截图、更新相关文档、报告证据路径与限制。某次通过只能由该次产物证明。
