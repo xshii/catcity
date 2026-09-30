@@ -3,13 +3,9 @@
   display: none;
 }
 /*
- * The list takes the roster's place and scrolls inside the panel (ui-design P2, 3.3); the
- * panel's title and tabs, and the list's way back, stay put.
+ * The list takes the roster's place in the cats panel's column (shell/layout.css) and
+ * scrolls by itself; the panel's title and tabs, and the list's way back, stay put.
  */
-#panel-cats:has(> .tool-page[data-view='invite']) {
-  display: flex;
-  flex-direction: column;
-}
 .tool-page[data-view='invite'],
 .cat-invite {
   display: flex;

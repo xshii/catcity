@@ -103,20 +103,18 @@ describe('the atlas rates each caught species by its record (R-54, ui-design 5.9
 });
 
 describe('a catch that adds to the atlas says so where the catch shows', () => {
-  it('the first perch is named new on the catch card and in the result line', () => {
-    const game = openAt(saves.atReeds);
-    expect(game.world().fishing.atlas.PERCH.count).toBe(0);
+  // A new game's first fish, a 0★ silver: new to the atlas, and a short fight.
+  it('the first silver is named new on the catch card and in the result line', () => {
+    const game = openGame();
+    expect(game.world().fishing.atlas.SILVER.count).toBe(0);
     enterRiver(game);
-    openGear(game);
-    choose('#fish-bait', 'WORM');
-    closeRiverPanel();
     click('#cast-start');
     catchFish(game);
     const result = game.world().fishing.lastResult!;
-    expect(result.speciesId).toBe('PERCH');
-    const stars = lengthStar('PERCH', result.lengthMm);
+    expect(result.speciesId).toBe('SILVER');
+    const stars = lengthStar('SILVER', result.lengthMm);
     const note = SCREEN_COPY.atlas.newSpecies(
-      fishById('PERCH').name,
+      fishById('SILVER').name,
       stars ? SCREEN_COPY.atlas.stars[stars - 1]! : null,
     );
     expect(visible('#catch-reveal')).toBe(true);

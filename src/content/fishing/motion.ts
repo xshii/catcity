@@ -34,6 +34,12 @@ export const MOTION = {
     holdTicks: [60, 70, 80, 90, 100, 120],
     /** Inside earns `insideGain` per tick, outside loses `outsideLoss`: drifting never pays. */
     hold: { insideGain: 1, outsideLoss: 2 },
+    /**
+     * Ticks in a row outside the ring, after settling in, before the fish breaks free, per
+     * star: 3 s at 0★ down to 1.5 s at 5★ (user, 2026-09-30). The ring is red all that time;
+     * back inside, the count starts again. `limitTicks` still ends any fight.
+     */
+    escapeOutsideTicks: [60, 54, 48, 42, 36, 30],
     /** The ring shrinks from `start` to `min` as the hold fills and grows back as it drains. */
     radius: [
       { start: 22, min: 15 },

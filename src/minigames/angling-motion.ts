@@ -7,8 +7,8 @@ import { shadowWait, type AnglingRun } from './angling';
  * Motion fishing (spec 030): nibbles and a bite after the cast, a timed lift, then a
  * fight where the player keeps the rod-tip point inside a moving, breathing fish ring
  * and pulls back against its dashes (spec 033). Numbers live in `content/fishing/motion.ts`.
- * Everything derives from the run's seed, stars and ticks; only the hold and the line
- * tension are saved.
+ * Everything derives from the run's seed, stars and ticks; only the hold, the line
+ * tension and the ticks in a row outside the ring are saved.
  */
 const M = FISHING.motion;
 const PLANE = 100;
@@ -215,6 +215,9 @@ const risePerTick = (run: AnglingRun) => pick(F.tug.risePerTick, run);
 /** The tension that snaps the line. */
 const SNAP = 100;
 
+/** Ticks in a row outside the ring that set the fish free (user, 2026-09-30). */
+const escapeOutside = (run: AnglingRun) => pick(F.escapeOutsideTicks, run);
+
 const holdTarget = (run: AnglingRun) =>
   pick(F.holdTicks, run) * F.hold.insideGain;
 /** A perfect strike pre-fills part of the hold. */
@@ -258,6 +261,11 @@ export function motionBounds(run: AnglingRun) {
       Math.max(0, run.phaseTick - F.graceTicks) * F.hold.insideGain,
     /** Slack while settling in, then at most one pull per tick. */
     maxTension: Math.max(0, run.phaseTick - F.graceTicks) * risePerTick(run),
+    /** None while settling in, then at most one per tick, and never enough to set it free. */
+    maxOutside: Math.min(
+      Math.max(0, run.phaseTick - F.graceTicks),
+      escapeOutside(run) - 1,
+    ),
   };
 }
 
@@ -298,6 +306,7 @@ export function stepMotionRun(
       run.hold = inside
         ? run.hold + F.hold.insideGain
         : Math.max(0, run.hold - F.hold.outsideLoss);
+      run.outside = inside ? 0 : run.outside + 1;
       // A dash pulls: the rod tip must be behind the fish (toward the player) to hold it.
       const behind = point !== null && point.y > fish.y + F.tug.marginUnits;
       if (!fish.dashing)
@@ -308,6 +317,9 @@ export function stepMotionRun(
       else if (run.tension >= SNAP) {
         run.phase = 'escaped';
         run.reason = 'line-break';
+      } else if (run.outside >= escapeOutside(run)) {
+        run.phase = 'escaped';
+        run.reason = 'out-of-ring';
       } else if (run.phaseTick >= F.graceTicks + F.limitTicks) {
         run.phase = 'escaped';
         run.reason = 'escaped';

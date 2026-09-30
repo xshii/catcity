@@ -5,3 +5,9 @@ export const KITTEN_MINUTES = 2 * 1440;
 
 /** Talent levels a cat can reach; first-generation cats have none (design 5.4). */
 export const MAX_TALENT = 4;
+
+/** Both parents must have reached this bond level with the player: 信任 (R-31). */
+export const BREED_BOND_LEVEL = 2;
+
+/** After a kitten, each parent rests three game days before it can have another (R-31). */
+export const BREED_COOLDOWN_MINUTES = 3 * 1440;
