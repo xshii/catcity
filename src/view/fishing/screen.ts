@@ -104,6 +104,8 @@ export const SCREEN_COPY = {
   },
   /** A caught species' record stars (R-54): which are collected, never the lengths. */
   atlas: {
+    /** A species never caught: named only once it is (user decision, 2026-09-30). */
+    unknown: '未发现的鱼影',
     stars: ['铜星', '银星', '金星'],
     names: ['铜', '银', '金'],
     glyph: { lit: '★', unlit: '☆' },
