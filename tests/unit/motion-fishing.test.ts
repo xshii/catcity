@@ -158,6 +158,84 @@ it('rejects saved fight progress the rules could not have reached', () => {
   expect(tamper({ tension: 100 })).toThrow();
 });
 
+/** Ticks with the rod tip off the fish and behind it (the near edge). */
+function away(world: ReturnType<typeof createWorld>, runId: string) {
+  const run = world.getSnapshot().fishing.active!;
+  const fish = fishPoint(run, run.phaseTick + 1);
+  return tick(world, runId, fish.x > 50 ? 0 : 100, 100);
+}
+
+it('resumes a saved fight with the fish outside the ring, which breaks free on time (user, 2026-09-30)', () => {
+  const F = FISHING.motion.fight;
+  const { world, runId } = toFight();
+  for (let i = 0; i < F.graceTicks + 10; i++)
+    expect(away(world, runId).ok).toBe(true);
+  const run = world.getSnapshot().fishing.active!;
+  expect(run.outside).toBe(10);
+  const restored = loadWorld(world.save());
+  expect(restored.getSnapshot()).toEqual(world.getSnapshot());
+  const limit = F.escapeOutsideTicks[fishById(run.speciesId!).stars];
+  for (let i = 10; i < limit; i++) {
+    away(world, runId);
+    away(restored, runId);
+  }
+  expect(restored.save()).toBe(world.save());
+  expect(world.getSnapshot().fishing.active).toBeNull();
+  expect(world.getSnapshot().fishing.lastResult).toMatchObject({
+    caught: false,
+    reason: 'out-of-ring',
+  });
+  expect(loadWorld(world.save()).save()).toBe(world.save());
+});
+
+it('rejects a saved time outside the ring the rules could not have reached', () => {
+  const F = FISHING.motion.fight;
+  const { world, runId } = toFight();
+  const tamper = (changes: object, game = world) => {
+    const save = JSON.parse(game.save());
+    Object.assign(save.world.fishing.active, changes);
+    return () => loadWorld(JSON.stringify(save));
+  };
+  // Nothing counts while settling in.
+  expect(tamper({ outside: 1 })).toThrow();
+  // After it, at most one tick outside per tick of fight.
+  for (let i = 0; i < F.graceTicks + 5; i++) away(world, runId);
+  expect(world.getSnapshot().fishing.active!.outside).toBe(5);
+  expect(tamper({})).not.toThrow();
+  expect(tamper({ outside: 6 })).toThrow();
+  // In and out by turns for longer than the limit: the count is below it, never at it.
+  const run = () => world.getSnapshot().fishing.active!;
+  const limit = F.escapeOutsideTicks[fishById(run().speciesId!).stars];
+  for (let i = 0; i < 2 * limit; i++) {
+    const fish = fishPoint(run(), run().phaseTick + 1);
+    if (i % 2) away(world, runId);
+    else tick(world, runId, fish.x, fish.y);
+  }
+  expect(run()).toMatchObject({ phase: 'fight', outside: 1 });
+  expect(tamper({ outside: limit - 1 })).not.toThrow();
+  expect(tamper({ outside: limit })).toThrow();
+  // Only a motion fight counts: not a wait, nor a button run.
+  const waiting = begin();
+  waiting.world.dispatch({
+    type: 'FISH_CAST',
+    runId: waiting.runId,
+    power: 60,
+  });
+  expect(tamper({}, waiting.world)).not.toThrow();
+  expect(tamper({ outside: 1 }, waiting.world)).toThrow();
+  const buttons = createWorld(42);
+  buttons.dispatch({
+    type: 'FISH_BEGIN',
+    catId: 'mochi',
+    spotId: 'POND',
+    baitId: 'WORM',
+    direction: 30,
+    aimDepth: 50,
+  });
+  expect(tamper({}, buttons)).not.toThrow();
+  expect(tamper({ outside: 1 }, buttons)).toThrow();
+});
+
 it('refuses a fish position before the fight starts', () => {
   const { world } = toFight();
   expect(() => fishPoint(world.getSnapshot().fishing.active!, -1)).toThrow();

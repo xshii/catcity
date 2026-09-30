@@ -223,9 +223,66 @@ describe('fish ring fight', () => {
     const held = run.hold;
     run = stepMotionRun(run, far(run), 1);
     expect(run.hold).toBe(held - F.hold.outsideLoss);
-    while (run.phase === 'fight') run = stepMotionRun(run, far(run), 1);
+    // In and out by turns: never outside for long, never landed, until the time is up.
+    for (let i = 0; run.phase === 'fight'; i++)
+      run = i % 2 ? stepMotionRun(run, far(run), 1) : follow(run);
     expect(run).toMatchObject({ phase: 'escaped', reason: 'escaped' });
     expect(run.phaseTick).toBe(F.graceTicks + F.limitTicks);
+  });
+
+  /** Off the fish and behind it (the near edge), so no dash tightens the line. */
+  const away = (run: AnglingRun) => {
+    const fish = fishPoint(run, run.phaseTick + 1);
+    return { x: fish.x > 50 ? 0 : 100, y: 100 };
+  };
+  /** Seconds outside the ring in a row before the fish breaks free (user, 2026-09-30). */
+  const OUTSIDE_SECONDS = [3, 2.7, 2.4, 2.1, 1.8, 1.5];
+
+  it('lets the fish break free after its stars time outside the ring in a row (user, 2026-09-30)', () => {
+    OUTSIDE_SECONDS.forEach((seconds, star) => {
+      const limit = Math.round(seconds * FISHING.ticksPerSecond);
+      // Settling in with no rod tip at all counts nothing.
+      let run = settle(ofStars(fight(11), star));
+      expect(run.outside).toBe(0);
+      for (let i = 1; i < limit; i++) run = stepMotionRun(run, away(run), 1);
+      expect(run).toMatchObject({ phase: 'fight', outside: limit - 1 });
+      run = stepMotionRun(run, away(run), 1);
+      expect(run).toMatchObject({
+        phase: 'escaped',
+        reason: 'out-of-ring',
+        outside: limit,
+      });
+      expect(run.phaseTick).toBe(F.graceTicks + limit);
+    });
+  });
+
+  it('counts afresh once the fish is back inside the ring', () => {
+    let run = settle(fight(11));
+    const limit = F.escapeOutsideTicks[stars(run)];
+    for (let i = 1; i < limit; i++) run = stepMotionRun(run, away(run), 1);
+    run = follow(run);
+    expect(run.outside).toBe(0);
+    for (let i = 1; i < limit; i++) run = stepMotionRun(run, away(run), 1);
+    expect(run).toMatchObject({ phase: 'fight', outside: limit - 1 });
+  });
+
+  it('gives the same state for chunked and single ticks as the fish strays, returns and breaks free', () => {
+    let single = settle(fight(11));
+    let chunked = single;
+    let back = false;
+    for (let chunk = 0; chunk < 60 && chunked.phase === 'fight'; chunk++) {
+      // Off the fish, then two chunks over it, then off it until it breaks free.
+      const over = chunk === 10 || chunk === 11;
+      const point = over
+        ? fishPoint(chunked, chunked.phaseTick + 1)
+        : away(chunked);
+      for (let i = 0; i < 4; i++) single = stepMotionRun(single, point, 1);
+      chunked = stepMotionRun(chunked, point, 4);
+      expect(chunked).toEqual(single);
+      if (over) back ||= chunked.outside === 0;
+    }
+    expect(back).toBe(true);
+    expect(chunked).toMatchObject({ phase: 'escaped', reason: 'out-of-ring' });
   });
 
   it('never lands a fish that drifts in and out of the ring half the time', () => {
@@ -256,7 +313,10 @@ describe('fish ring fight', () => {
     const at = path.findIndex(
       (fish, tick) => tick > run.phaseTick && fish.dashing,
     );
-    while (run.phaseTick < at - 1) run = stepMotionRun(run, null, 1);
+    // Over the fish every other tick: it never breaks free, and the hold never fills.
+    while (run.phaseTick < at - 1)
+      run = run.phaseTick % 2 ? follow(run) : stepMotionRun(run, null, 1);
+    expect(run.phase).toBe('fight');
     return { run: { ...run, tension: 50 }, fish: path[at]! };
   }
 
@@ -315,12 +375,17 @@ describe('fish ring fight', () => {
     let chunked = start;
     let tightest = 0;
     for (let i = 0; i < 120; i++) {
-      const point = { x: 50, y: 20 + (i % 60) };
+      // Over the fish every fifth step, so it never breaks free.
+      const point =
+        i % 5
+          ? { x: 50, y: 20 + (i % 60) }
+          : fishPoint(single, single.phaseTick + 1);
       single = stepMotionRun(stepMotionRun(single, point, 1), point, 1);
       chunked = stepMotionRun(chunked, point, 2);
       tightest = Math.max(tightest, single.tension);
     }
     expect(tightest).toBeGreaterThan(0);
+    expect(single.reason).not.toBe('out-of-ring');
     expect(chunked).toEqual(single);
   });
 

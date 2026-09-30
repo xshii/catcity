@@ -72,6 +72,26 @@ describe('motion fishing', () => {
     backToCity();
   });
 
+  it('says the fish broke free when the ring stayed off it too long (user, 2026-09-30)', () => {
+    const game = openGame({ storage: SEASONED });
+    inMotionRiver(game);
+    swing();
+    toBite(game);
+    game.wait(G.liftCooldownMs);
+    lift();
+    expect(game.world().fishing.active!.phase).toBe('fight');
+    // The rod tip in the near corner: behind the fish's dashes, never over the fish.
+    for (let reading = 0; reading < 20; reading++)
+      orient(G.tiltRangeDeg, G.tiltRangeDeg);
+    const { graceTicks, limitTicks } = FISHING.motion.fight;
+    game.until(() => !game.world().fishing.active, graceTicks + limitTicks);
+    expect(game.world().fishing.lastResult).toMatchObject({
+      caught: false,
+      reason: 'out-of-ring',
+    });
+    expect(text('#fish-result')).toContain('鱼在圈外太久，挣脱跑了');
+  });
+
   it('the hooked fish looks nearer as the hold fills (spec 033 F1)', () => {
     const game = openGame({ storage: SEASONED });
     inMotionRiver(game);

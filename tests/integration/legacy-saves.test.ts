@@ -46,6 +46,9 @@ import v20Content10 from '../fixtures/save-v20-content10.json';
 import v20Content11 from '../fixtures/save-v20-content11.json';
 // Eight cats, the companion limit of content 12; content 13 lets ten live in the city.
 import v21Content12 from '../fixtures/save-v21-content12.json';
+// A motion fight with the fish off the ring, from before runs counted the time it spent
+// outside in a row (save 21, content 13).
+import v21Content13 from '../fixtures/save-v21-content13.json';
 
 const future = {
   ...JSON.parse(createWorld(42).save()),
@@ -79,6 +82,7 @@ const incompatible = {
   v20Content10,
   v20Content11,
   v21Content12,
+  v21Content13,
   future,
 };
 
