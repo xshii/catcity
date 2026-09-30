@@ -211,8 +211,9 @@
 
 ---
 
-### [ ] T-14 捏猫：外观五项与流浪猫开局（R-17）
+### [x] T-14 捏猫：外观五项与流浪猫开局（R-17）
 
+- **完成**：PR #75（`c0486ef`，画法与对照图）、#76（`27d2c7a`，捏猫画面）、#79（`99c11df`，田园猫、外观五项入档、开局捡流浪猫），存档 23、内容 15，测试版 `test-20260930-1737-99c11dfa-a796f3`。证据：`tests/unit/cat-appearance.test.ts`（每项只随自己变化、810 种组合对比度 ≥ 3:1、T-13 回归）、`tests/view/cat-maker.test.ts`、开局流程的画面测试台（关掉流程时 6 条失败）；三种开局品种下节奏、平衡、经济模拟都达标；推送前完整检查通过（PR #79：单元与画面 1160 条、E2E 78 条、验收 15 步），产物 `artifacts/2026-09-30T09-28-42-733Z-80508/`（`catcity-wt39`）；截图 `artifacts/T-14/{looks,maker*,stray*}.png`。
 - **分支**：`feat/cat-looks`（两个 PR）
 - **依赖**：T-13。存档 +1，内容 +1。
 - **先读这些文件**：[cat-looks.md](cat-looks.md)（全文）、ui-design.md 2.2 与 6.1、`src/view/art/cat-look.ts`、`src/view/art/cat.ts`、`src/view/art/illustrations.ts`、`src/content/cats.ts`、`src/content/breeds.ts`、`src/core/schema.ts`（`appearance`、`assertTemplate`）、`src/core/world.ts`（新世界怎么建）。
