@@ -1,0 +1,99 @@
+/*
+ * The cat maker (spec 041 cat-looks.md 4): a full screen (ui-design 3.1, layer 40) with the
+ * cat drawn big at the top, a row of choices per item that scrolls inside the screen on a
+ * short phone, and the actions at the bottom, in the thumb's reach.
+ */
+.cat-maker {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: calc(max(8px, env(safe-area-inset-top)) + 8px) 16px
+    calc(max(8px, env(safe-area-inset-bottom)) + 12px);
+  color: var(--text);
+  background: var(--paper);
+}
+.cat-maker > * {
+  width: 100%;
+  max-width: 440px;
+}
+/* The settings gear floats at the right of the heading on every page. */
+.cat-maker h2 {
+  margin: 0;
+  padding-right: var(--gear-room, 0px);
+  font-size: 20px;
+}
+.cat-maker-preview {
+  flex: none;
+  display: flex;
+  justify-content: center;
+}
+.cat-maker-preview svg {
+  width: 100%;
+  max-width: 320px;
+  height: 24vh;
+}
+.cat-maker-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.cat-maker-row {
+  display: grid;
+  grid-template-columns: 2.6em 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.cat-maker-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+/* Every option of a row shares its width, so a row never scrolls sideways. */
+.cat-maker-options {
+  display: flex;
+  gap: 4px;
+}
+.cat-maker button:not(.primary) {
+  min-height: 44px;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  color: var(--text);
+}
+.cat-maker-options button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 2px;
+  font-size: 13px;
+}
+.cat-maker-options button[aria-checked='true'] {
+  border-color: var(--selected-line);
+  background: var(--selected-bg);
+  box-shadow: var(--glow-good);
+  font-weight: 600;
+}
+.cat-maker-options small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.cat-maker-actions {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 8px;
+}
+.cat-maker-actions button {
+  min-height: 44px;
+  padding: 0 14px;
+}
+.cat-maker-actions .primary {
+  margin: 0;
+}

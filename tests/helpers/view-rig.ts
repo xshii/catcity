@@ -336,7 +336,15 @@ export function choose(selector: string, value: string) {
  */
 export function key(
   type: 'keydown' | 'keyup',
-  code: 'Space' | 'Escape' | 'Tab' | 'Enter',
+  code:
+    | 'Space'
+    | 'Escape'
+    | 'Tab'
+    | 'Enter'
+    | 'ArrowLeft'
+    | 'ArrowRight'
+    | 'ArrowUp'
+    | 'ArrowDown',
   shiftKey = false,
 ) {
   const target = document.activeElement ?? document.body;
