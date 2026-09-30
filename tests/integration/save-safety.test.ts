@@ -3,7 +3,10 @@ import { createWorld, loadWorld } from '../../src/core';
 import { CAT_BREED_IDS } from '../../src/content/breeds';
 import { CAT_DEFINITIONS } from '../../src/content/cats';
 import { CITY_START } from '../../src/content/city';
-import { MAX_TALENT } from '../../src/content/family';
+import { MAX_TALENT, NO_TALENT, TALENT_NAMES } from '../../src/content/family';
+import { BOND_LEVELS } from '../../src/content/care';
+import type { CatEntity } from '../../src/core';
+import { PEPPER_ID, withKitten } from '../helpers/family';
 import { fishById } from '../../src/content/fishing';
 import { createTestSession, memoryRepository } from '../helpers/session';
 import { holdTicks } from '../unit/fishing-fixture';
@@ -120,7 +123,8 @@ describe('a cat carries its own identity (spec 041 R-10, R-11)', () => {
       generation: 1,
       parents: null,
       neutered: false,
-      talent: 0,
+      talent: NO_TALENT,
+      heritage: 0,
       lastBredMinute: null,
     };
     expect(mochi).toMatchObject({
@@ -157,14 +161,35 @@ describe('a cat carries its own identity (spec 041 R-10, R-11)', () => {
       { bornMinute: CITY_START.minute },
       /template/,
     ],
-    ['a first-generation cat with talent', 0, { talent: 1 }, /template/],
+    [
+      'a first-generation cat with talent',
+      0,
+      { talent: { ...NO_TALENT, feel: 1 } },
+      /template/,
+    ],
+    [
+      'a first-generation cat with family marks',
+      0,
+      { heritage: 1 },
+      /template/,
+    ],
     ['Mochi as a tom', 0, { sex: 'M' }, /template/],
     ['Pepper as a queen', 1, { sex: 'F' }, /template/],
-    // No command makes a cat without a template until breeding exists (T-22).
-    ['a cat without a template', 1, { definitionId: null }, /definitionId/],
+    // A cat without a template is one born in the city: it needs its parents (T-22).
+    [
+      'a cat without a template or parents',
+      1,
+      { definitionId: null },
+      /parents/,
+    ],
     ['an unknown sex', 0, { sex: 'X' }, /sex/],
     ['generation 0', 0, { generation: 0 }, /generation/],
-    ['a talent past the limit', 0, { talent: MAX_TALENT + 1 }, /talent/],
+    [
+      'a talent past the limit',
+      0,
+      { talent: { ...NO_TALENT, stamina: MAX_TALENT + 1 } },
+      /talent/,
+    ],
     ['neutering that is not yes or no', 0, { neutered: 'yes' }, /neutered/],
     ['parents without a father', 0, { parents: { mother: 'mochi' } }, /father/],
   ])('rejects %s', (_, index, change, reason) => {
@@ -189,6 +214,7 @@ describe('a cat carries its own identity (spec 041 R-10, R-11)', () => {
     'parents',
     'neutered',
     'talent',
+    'heritage',
     'lastBredMinute',
   ])('rejects a cat without %s', (field) => {
     const save = JSON.parse(twoCats().save());
@@ -284,5 +310,126 @@ describe('a cat wears five choices; Mochi is the stray the player picked (spec 0
     expect(save.world.cats[1].definitionId).toBe('MOCHI');
     save.world.cats[1].breedId = 'DOMESTIC';
     expect(() => loadWorld(JSON.stringify(save))).toThrow(/template/);
+  });
+});
+
+describe('a cat born in the city answers to its parents (spec 041 R-11, T-22)', () => {
+  /** Mochi, Pepper and their kitten, as a save. */
+  const born = () => JSON.parse(withKitten().save());
+  const kittenOf = (save: { world: { cats: Record<string, unknown>[] } }) =>
+    save.world.cats[2]!;
+
+  it('saves the kitten and restores it exactly', () => {
+    const saved = withKitten().save();
+    expect(kittenOf(JSON.parse(saved))).toMatchObject({
+      definitionId: null,
+      generation: 2,
+      parents: { mother: 'mochi', father: PEPPER_ID },
+    });
+    expect(loadWorld(saved).save()).toBe(saved);
+  });
+
+  it('takes the kitten restyled, and its parents too: a look is anyone’s (T-15)', () => {
+    const save = born();
+    for (const cat of save.world.cats)
+      cat.appearance = {
+        colour: 'brown',
+        pattern: 'tabby',
+        white: 'cow',
+        eyes: 'green',
+        face: 'long',
+      };
+    expect(() => loadWorld(JSON.stringify(save))).not.toThrow();
+  });
+
+  /** The other of two choices. */
+  const other = <T>(value: T, [a, b]: [T, T]) => (value === a ? b : a);
+  it.each<[string, (kitten: CatEntity, parents: CatEntity[]) => void, RegExp]>([
+    [
+      'the other parent’s breed',
+      (kitten, [mother, father]) =>
+        (kitten.breedId = other(kitten.breedId, [
+          mother!.breedId,
+          father!.breedId,
+        ])),
+      /inheritance/,
+    ],
+    [
+      'a breed of neither',
+      (kitten) => (kitten.breedId = 'DOMESTIC'),
+      /inheritance/,
+    ],
+    [
+      'another personality',
+      (kitten) => (kitten.personality = ['brave']),
+      /inheritance/,
+    ],
+    ['another trait', (kitten) => (kitten.traits = ['calm']), /inheritance/],
+    [
+      'another like',
+      (kitten) => (kitten.preferences.likes = ['boxes']),
+      /inheritance/,
+    ],
+    [
+      'another dislike',
+      (kitten) => (kitten.preferences.dislikes = ['rain']),
+      /inheritance/,
+    ],
+    [
+      'another favourite fish',
+      (kitten) => (kitten.favoriteFish = ['KOI']),
+      /inheritance/,
+    ],
+    ...TALENT_NAMES.map(
+      (name) =>
+        [
+          `more ${name}`,
+          (kitten: CatEntity) => kitten.talent[name]++,
+          /inheritance/,
+        ] as [string, (kitten: CatEntity) => void, RegExp],
+    ),
+    [
+      'family marks its parents never earned',
+      (kitten) => kitten.heritage++,
+      /marks/,
+    ],
+    ['a template', (kitten) => (kitten.definitionId = 'MOCHI'), /template/],
+    ['another generation', (kitten) => kitten.generation++, /parents/],
+    [
+      'its parents the wrong way round',
+      (kitten) => (kitten.parents = { mother: PEPPER_ID, father: 'mochi' }),
+      /parents/,
+    ],
+    [
+      'a parent not in the city',
+      (kitten) => (kitten.parents = { mother: 'mochi', father: 'cat-99' }),
+      /parents/,
+    ],
+    ['no parents', (kitten) => (kitten.parents = null), /parents/],
+    ['no birth', (kitten) => (kitten.bornMinute = null), /parents/],
+  ])('rejects a kitten with %s', (_, tamper, reason) => {
+    const save = born();
+    const [mother, father, kitten] = save.world.cats as CatEntity[];
+    tamper(kitten!, [mother!, father!]);
+    expect(() => loadWorld(JSON.stringify(save))).toThrow(reason);
+  });
+
+  it('takes a kitten of either sex: the player chose it (user 2026-09-30)', () => {
+    const save = born();
+    kittenOf(save).sex = kittenOf(save).sex === 'F' ? 'M' : 'F';
+    expect(() => loadWorld(JSON.stringify(save))).not.toThrow();
+  });
+
+  it('rejects a kitten born later than now', () => {
+    const save = born();
+    kittenOf(save).bornMinute = save.world.minute + 1;
+    expect(() => loadWorld(JSON.stringify(save))).toThrow();
+  });
+
+  it('keeps the marks a kitten was born with when its parents earn more', () => {
+    const save = born();
+    for (const parent of save.world.cats.slice(0, 2))
+      parent.playerBond = BOND_LEVELS.at(-1)!.bond;
+    expect(() => loadWorld(JSON.stringify(save))).not.toThrow();
   });
 });

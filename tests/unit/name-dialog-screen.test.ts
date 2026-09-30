@@ -92,6 +92,40 @@ describe('the name box (ui-design 5.4)', () => {
   });
 });
 
+describe('a kitten’s sex in the name box (T-22, user 2026-09-30)', () => {
+  const KITTEN: NameDialogInput = {
+    title: '给小猫起个名字',
+    confirm: '就叫这个',
+    initial: first,
+    salt: 0,
+    askSex: true,
+  };
+  const kitten = (sex: 'F' | 'M' | null) =>
+    nameDialogScreen(pair, KITTEN, first, 0, sex);
+
+  it('offers 公 and 母 with neither chosen, and confirms only once one is', () => {
+    expect(kitten(null).sex).toEqual({
+      choices: [
+        { value: 'M', text: '♂ 公', label: '公猫', checked: false },
+        { value: 'F', text: '♀ 母', label: '母猫', checked: false },
+      ],
+      note: '先选：公猫还是母猫',
+    });
+    expect(kitten(null).ready).toBe(false);
+    expect(kitten('F').sex!.choices.map((choice) => choice.checked)).toEqual([
+      false,
+      true,
+    ]);
+    expect(kitten('F').sex!.note).toBe('');
+    expect(kitten('F').ready).toBe(true);
+  });
+
+  it('is not asked in a rename, which confirms at once', () => {
+    expect(screen('Mochi').sex).toBeNull();
+    expect(screen('Mochi').ready).toBe(true);
+  });
+});
+
 describe('what the box keeps of typed text', () => {
   it('drops line breaks and other control characters, and keeps 12 characters', () => {
     expect(typedName('团\n子\t')).toBe('团子');

@@ -51,6 +51,32 @@ const INVITE = { basePrice: 200, growth: [2, 1] } as const;
 export const invitePrice = (invited: number): number =>
   growingPrice(INVITE.basePrice, INVITE.growth, invited);
 
+/**
+ * Every personality word a cat can have, and how the player reads it (R-10): the
+ * templates' words, which kittens take from their parents (R-33).
+ */
+const PERSONALITY_WORDS = {
+  shy: '胆小',
+  'food-loving': '贪吃',
+  'slow-to-warm': '慢热',
+  curious: '好奇',
+  playful: '活泼',
+  adventurous: '爱冒险',
+  gentle: '温柔',
+  sleepy: '爱睡',
+  clingy: '黏人',
+  brave: '勇敢',
+  steady: '沉稳',
+  sweet: '爱撒娇',
+  chatty: '话多',
+  easygoing: '随和',
+  lazy: '懒洋洋',
+} as const;
+export type Personality = keyof typeof PERSONALITY_WORDS;
+/** A cat's personality as the player reads it: its words, in order. */
+export const personalityLabel = (personality: readonly string[]): string =>
+  personality.map((word) => PERSONALITY_WORDS[word as Personality]).join(' · ');
+
 /** Resident templates: identity, tastes and starting needs. Instances live in Core. */
 export const CAT_DEFINITIONS: Record<
   CatDefinitionId,
@@ -60,9 +86,7 @@ export const CAT_DEFINITIONS: Record<
     sex: 'F' | 'M';
     /** How it looks when it arrives; Mochi's is the stray's until the player picks one. */
     appearance: CatAppearance;
-    personality: readonly string[];
-    /** Player-facing summary of `personality`. */
-    personalityLabel: string;
+    personality: readonly Personality[];
     traits: readonly string[];
     likes: readonly string[];
     dislikes: readonly string[];
@@ -77,7 +101,6 @@ export const CAT_DEFINITIONS: Record<
     sex: 'F',
     appearance: plainLook('cream', 'blue'),
     personality: ['shy', 'food-loving', 'slow-to-warm'],
-    personalityLabel: '胆小 · 贪吃 · 慢热',
     traits: ['gentle'],
     likes: ['fish', 'quiet', 'windows'],
     dislikes: ['noise', 'crowds'],
@@ -89,8 +112,7 @@ export const CAT_DEFINITIONS: Record<
     name: 'Pepper',
     sex: 'M',
     appearance: plainLook('gray', 'copper'),
-    personality: ['curious', 'playful'],
-    personalityLabel: '好奇 · 活泼 · 爱冒险',
+    personality: ['curious', 'playful', 'adventurous'],
     traits: ['adventurous'],
     likes: ['fish', 'exploring'],
     dislikes: ['waiting'],
@@ -104,7 +126,6 @@ export const CAT_DEFINITIONS: Record<
     sex: 'F',
     appearance: plainLook('gray', 'copper'),
     personality: ['gentle', 'sleepy', 'clingy'],
-    personalityLabel: '温柔 · 爱睡 · 黏人',
     traits: ['calm'],
     likes: ['fish', 'naps', 'laps'],
     dislikes: ['cold'],
@@ -118,7 +139,6 @@ export const CAT_DEFINITIONS: Record<
     // Black sesame on white.
     appearance: plainLook('black', 'green', 'bicolour'),
     personality: ['brave', 'steady'],
-    personalityLabel: '勇敢 · 沉稳',
     traits: ['steady'],
     likes: ['fish', 'high-places'],
     dislikes: ['rain'],
@@ -131,7 +151,6 @@ export const CAT_DEFINITIONS: Record<
     sex: 'F',
     appearance: plainLook('cream', 'blue'),
     personality: ['sweet', 'chatty'],
-    personalityLabel: '爱撒娇 · 话多',
     traits: ['cheerful'],
     likes: ['fish', 'sunshine'],
     dislikes: ['baths'],
@@ -144,7 +163,6 @@ export const CAT_DEFINITIONS: Record<
     sex: 'M',
     appearance: plainLook('orange', 'green'),
     personality: ['easygoing', 'lazy'],
-    personalityLabel: '随和 · 懒洋洋',
     traits: ['easygoing'],
     likes: ['fish', 'boxes'],
     dislikes: ['hurry'],

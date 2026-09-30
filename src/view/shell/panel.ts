@@ -182,12 +182,13 @@ export function mountPanel(
   // The roster heads the cats panel's first page, before petting, kittens and invites;
   // a cat's detail takes its place. The detail listens first: it shows the roster again
   // before the roster takes the focus back.
+  // Over every layer (ui-design 3.1): one confirmation for the page.
+  const confirm = mountConfirm(document.querySelector<HTMLElement>('.shell')!);
   mountDetail({
     session,
     place,
     view: cats,
-    // Over every layer (ui-design 3.1): one confirmation for the page.
-    confirm: mountConfirm(document.querySelector<HTMLElement>('.shell')!),
+    confirm,
     notify,
     card: document.querySelector<HTMLElement>('.cat-card')!,
     page: get('cats-page-roster'),
@@ -203,7 +204,13 @@ export function mountPanel(
     layer: document.querySelector<HTMLElement>('.shell')!,
     settings,
   });
-  mountBreeding({ session, roster: get('cats-page-roster') });
+  mountBreeding({
+    session,
+    roster: get('cats-page-roster'),
+    confirm,
+    layer: document.querySelector<HTMLElement>('.shell')!,
+    notify,
+  });
   // The way to invite a new companion ends the roster, after petting and the kitten list.
   mountInvite({ session, notify, roster: get('cats-page-roster') });
   // The scene switch and the map card follow the place.

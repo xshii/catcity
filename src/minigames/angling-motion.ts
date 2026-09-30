@@ -1,3 +1,4 @@
+import { TALENT_EFFECTS } from '../content/family';
 import { FISHING, fishById } from '../content/fishing';
 import { MOOD } from '../content/mood';
 import { RandomService, streamSeed } from '../core/random';
@@ -54,7 +55,8 @@ export function motionSchedule(run: AnglingRun): {
 const strikeWindow = (run: AnglingRun) =>
   pick(M.strikeWindowTicks, run) -
   (run.spooked ? M.spook.windowPenaltyTicks : 0) +
-  (run.happy ? MOOD.bonus.strikeWindowTicks : 0);
+  (run.happy ? MOOD.bonus.strikeWindowTicks : 0) +
+  run.feel * TALENT_EFFECTS.feel.strikeTicks;
 
 const F = M.fight;
 /** The longest a fight lasts. */

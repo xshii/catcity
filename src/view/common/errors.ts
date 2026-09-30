@@ -52,4 +52,11 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   CAT_TOO_YOUNG: '它还小，长大后才可以。',
   NO_SALON: '先建一座猫咪美容院，才能给猫改造外观。',
   APPEARANCE_UNCHANGED: '样子和原来一样，没有改造，也没有收费。',
+  SAME_CAT: '不能和自己生小猫。',
+  NEED_PAIR: '需要一公一母。',
+  CAT_NEUTERED: '它已经绝育了，不能生小猫。',
+  NOT_HAPPY: '它现在不够开心：摸摸它，或者送它喜欢的鱼。',
+  BOND_TOO_LOW: '和它的亲密还没到「信任」：一起钓鱼、聊天、摸摸它。',
+  RELATED: '它们是一家人，不能生小猫。',
+  COOLING_DOWN: '它刚生过小猫，还在休息。',
 };

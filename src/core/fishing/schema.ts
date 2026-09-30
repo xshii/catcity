@@ -1,6 +1,7 @@
 import { WORLD_LIMIT } from '../limits';
 import { z } from 'zod';
 import { CAT_BREED_IDS } from '../../content/breeds';
+import { MAX_TALENT } from '../../content/family';
 import { BAIT_IDS, FISH_IDS, FISHING, SPOT_IDS } from '../../content/fishing';
 
 const count = z.number().int().min(0).max(WORLD_LIMIT);
@@ -64,6 +65,7 @@ const anglingSchema = z.strictObject({
   hold: count,
   outside: count,
   happy: z.boolean(),
+  feel: z.number().int().min(0).max(MAX_TALENT),
   shadow: fishIdSchema.nullable(),
 });
 export const fishingSchema = z.strictObject({

@@ -1,4 +1,5 @@
 import { bondLevel } from './care';
+import { TALENT_EFFECTS } from './family';
 
 /**
  * Mood tuning (specs 032, 038): every change a cat's mood (0–100) takes, and the small bonus a
@@ -53,10 +54,19 @@ export function moodGain(mood: number, amount: number): number {
 /**
  * A mood an hour's drift down later: faster from the happy line up, but never to below
  * where a cat just under the line lands, so a happier cat is never left the sadder one.
+ * A cat's 亲人 (spec 041 R-35) makes the fall from the happy line up one point less on
+ * some game hours (`hour`, counted from the start of the game clock).
  */
-export function moodAfterDrift(mood: number): number {
+export function moodAfterDrift(
+  mood: number,
+  affection: number,
+  hour: number,
+): number {
+  const { everyHours, gentleHours } = TALENT_EFFECTS.affection;
+  const fall =
+    MOOD.highDrift - (hour % everyHours < gentleHours[affection]! ? 1 : 0);
   return mood >= MOOD.happy
-    ? Math.max(mood - MOOD.highDrift, MOOD.happy - 1 - MOOD.drift)
+    ? Math.max(mood - fall, MOOD.happy - 1 - MOOD.drift)
     : mood - MOOD.drift;
 }
 

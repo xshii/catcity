@@ -102,6 +102,14 @@ export const commandSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('NEUTER_CAT'), catId: id }),
   z.strictObject({
+    type: z.literal('BREED_CATS'),
+    motherId: id,
+    fatherId: id,
+    /** The kitten's name and sex, both the player's as it confirms (R-32, user 2026-09-30). */
+    name: catNameSchema,
+    sex: z.enum(['F', 'M']),
+  }),
+  z.strictObject({
     type: z.literal('RENAME_CAT'),
     catId: id,
     name: catNameSchema,
@@ -189,6 +197,13 @@ export type GameEvent =
   | { type: 'CatInvited'; minute: number; entityId: string; cost: number }
   | { type: 'CatRenamed'; minute: number; entityId: string }
   | { type: 'CatNeutered'; minute: number; entityId: string; cost: number }
+  | {
+      type: 'CatBorn';
+      minute: number;
+      entityId: string;
+      motherId: string;
+      fatherId: string;
+    }
   | { type: 'CatRestyled'; minute: number; entityId: string; cost: number }
   | {
       type: 'CatPetted';
@@ -258,7 +273,14 @@ export type ErrorCode =
   | 'ALREADY_NEUTERED'
   | 'CAT_TOO_YOUNG'
   | 'NO_SALON'
-  | 'APPEARANCE_UNCHANGED';
+  | 'APPEARANCE_UNCHANGED'
+  | 'SAME_CAT'
+  | 'NEED_PAIR'
+  | 'CAT_NEUTERED'
+  | 'NOT_HAPPY'
+  | 'BOND_TOO_LOW'
+  | 'RELATED'
+  | 'COOLING_DOWN';
 export type CommandResult =
   { ok: true; events: GameEvent[] } | { ok: false; error: ErrorCode };
 /** A dry run: whether Core would accept the command now. */
