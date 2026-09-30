@@ -1,7 +1,7 @@
 import type { Aim, AimControl, PlaceState, Tools } from '../shell/place';
 import { CAT_BREEDS } from '../../content/breeds';
 import type { GameSession } from '../../application';
-import type { GameCommand } from '../../core';
+import type { GameCommand, WorldState } from '../../core';
 import {
   discoveredSpecies,
   FISHING,
@@ -23,6 +23,7 @@ import { mountFishingFeedback } from './feedback';
 import { mountFishingSound } from './sound';
 import { mountFishingStage, type FishingShell } from './stage';
 import { mountFishBag, renderFishingCatalog } from './catalog';
+import { mountCatTap } from './cat-tap';
 import { mountFishingLayout } from '../shell/layout';
 import { mountFishingCollections } from './collections';
 import { motionStartup, mountMotionFishing } from '../motion/motion-fishing';
@@ -31,6 +32,7 @@ import { mountFishingControls } from './controls';
 import { mountFishingSettings } from './settings';
 import { motionAim } from '../art/water-view';
 import {
+  atlasNote,
   castNotice,
   CATCH_CARD_MS,
   catchCountdown,
@@ -133,7 +135,8 @@ export function mountAngling(
   let detailsKey = '';
   let aimKey = '';
   let aimPower = REST_POWER;
-  // How the run that just ended changed its cat's mood band; read from the change itself.
+  // How the run that just ended changed its cat's mood band and the atlas; read from the
+  // change itself.
   let previousWorld = session.getSnapshot();
   let resultMood = { runId: '', note: '' };
   const aimListeners = new Set<() => void>();
@@ -152,6 +155,18 @@ export function mountAngling(
   });
   const feedback = mountFishingFeedback(session, stage.stage, settings.haptics);
   mountFishingSound(session, view, settings.sound);
+  /** The cat fishing with the player: the run's, else the selected one. */
+  const companionOf = (world: WorldState) =>
+    world.cats.find(
+      (cat) =>
+        cat.id === (world.fishing.active?.catId ?? session.selectedEntity),
+    ) ?? world.cats[0]!;
+  const catTap = mountCatTap({
+    session,
+    view,
+    plane: shell.game,
+    companion: () => companionOf(session.getSnapshot()),
+  });
   const report = (
     result: ReturnType<GameSession['execute']>,
     success: string,
@@ -199,10 +214,7 @@ export function mountAngling(
     const active = !!run;
     const resultNote =
       f.lastResult?.runId === resultMood.runId ? resultMood.note : '';
-    const selectedCat =
-      world.cats.find(
-        (cat) => cat.id === (run?.catId ?? session.selectedEntity),
-      ) ?? world.cats[0]!;
+    const selectedCat = companionOf(world);
     const energy = selectedCat.needs.energy;
     ready.hidden = !screen.readyToCast;
     for (const field of [location, companion, bait, direction, depth])
@@ -331,6 +343,7 @@ export function mountAngling(
       : 'hidden';
     layout.refresh();
     settings.apply(screen.settings);
+    catTap.apply(state.place === 'river', selectedCat);
     motion.apply(screen, run ?? null);
     collections.refresh();
     const atDestination = atShore(destination, selectedCat.id);
@@ -578,7 +591,12 @@ export function mountAngling(
     )
       resultMood = {
         runId: ended.runId,
-        note: outcomeNote(previousWorld, world, ended.catId),
+        note: [
+          outcomeNote(previousWorld, world, ended.catId),
+          atlasNote(previousWorld.fishing.atlas, world.fishing.atlas),
+        ]
+          .filter(Boolean)
+          .join('。'),
       };
     const held = ringHeld(previousWorld.fishing.active, world.fishing.active);
     const cast = castNotice(previousWorld.fishing.active, world.fishing.active);
@@ -613,6 +631,8 @@ export function mountAngling(
     said: () => view.dispatch({ type: 'said' }),
     aim,
     fishingClock: controls.clock,
+    /** The river cat's moves as it answers a tap, for the art to play. */
+    catMoves: catTap.moves,
   };
 }
 

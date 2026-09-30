@@ -1,6 +1,9 @@
-import { FISHING } from '../../content/fishing';
+import { FISH, FISHING, lengthStar, type FishId } from '../../content/fishing';
+import type { WorldState } from '../../core';
 import type { AnglingRun } from '../../minigames/angling';
 import { fishPoint, motionSchedule } from '../../minigames/angling-motion';
+import type { MoodBand } from '../../content/mood';
+import type { CatMotion } from '../art/cat-look';
 import {
   aimHintShown,
   canPlay,
@@ -9,6 +12,29 @@ import {
   type FishingView,
   type GuideStep,
 } from './view-state';
+
+/**
+ * What the cat beside the player says to a tap at the river (R-03), two lines for each
+ * moment, taken in turns: aiming or between casts it speaks its mood; it whispers while
+ * the float waits, cheers a bite and a fight on, is glad of a catch and kind about a fish
+ * that got away. At most 14 characters: a line and a half of its bubble.
+ */
+export const CAT_LINES = {
+  label: (name: string) => `摸摸 ${name}`,
+  idle: {
+    happy: ['今天的风好舒服喵～', '和你钓鱼最开心了！'],
+    calm: ['喵？要抛到哪里呀', '水面好安静呢'],
+    glum: ['嗯……有点闷闷的', '坐近一点好不好'],
+    low: ['喵……没什么精神', '靠着你坐一会儿'],
+  },
+  waiting: ['嘘……鱼快来了', '（小声）别出声哦'],
+  cheer: ['加油！拉住它！', '喵！稳住稳住！'],
+  caught: ['喵～钓到啦！', '你真厉害喵！'],
+  escaped: ['没关系，下次一定！', '鱼儿回家啦，再来～'],
+} as const;
+
+/** How long the cat's bubble stays, and how soon after a tap the next one counts (R-03). */
+export const CAT_TAP_MS = { bubble: 1500, repeat: 500 } as const;
 
 /** Player-facing words of the fishing screen's switchable controls. */
 export const SCREEN_COPY = {
@@ -76,7 +102,56 @@ export const SCREEN_COPY = {
   permission: {
     denied: '体感未获授权，已改用按钮；可在设置里重试',
   },
+  /** A caught species' record stars (R-54): which are collected, never the lengths. */
+  atlas: {
+    stars: ['铜星', '银星', '金星'],
+    names: ['铜', '银', '金'],
+    glyph: { lit: '★', unlit: '☆' },
+    label: (collected: readonly string[]) =>
+      `体长评星：${collected.length ? `已收集${collected.join('、')}` : '还没有星'}`,
+    newSpecies: (name: string, star: string | null) =>
+      `图鉴新添：${name}${star ? `，评上${star}` : ''}`,
+    reached: (name: string, star: string) => `${name}的纪录评上${star}`,
+  },
 } as const;
+
+type Atlas = WorldState['fishing']['atlas'];
+type AtlasRecord = Atlas[FishId];
+
+/**
+ * An atlas entry's bronze, silver and gold, each lit once the record earns it, and the
+ * words read for them; none for a fish never caught.
+ */
+export function atlasStars(id: FishId, record: AtlasRecord) {
+  if (!record.count) return null;
+  const lit = lengthStar(id, record.bestLengthMm);
+  const words = SCREEN_COPY.atlas;
+  return {
+    lit,
+    marks: words.names.map((name, index) => ({ name, lit: index < lit })),
+    label: words.label(words.stars.slice(0, lit)),
+  };
+}
+
+/**
+ * What one catch added to the atlas, told from the snapshots before and after it: a
+ * species caught for the first time, or the highest star a record newly reached; '' if
+ * neither.
+ */
+export function atlasNote(before: Atlas, after: Atlas): string {
+  const words = SCREEN_COPY.atlas;
+  return FISH.flatMap((fish) => {
+    const was = before[fish.id];
+    const now = after[fish.id];
+    const stars = lengthStar(fish.id, now.bestLengthMm);
+    const star =
+      stars > lengthStar(fish.id, was.bestLengthMm)
+        ? words.stars[stars - 1]!
+        : null;
+    if (!was.count && now.count) return [words.newSpecies(fish.name, star)];
+    return star ? [words.reached(fish.name, star)] : [];
+  }).join('。');
+}
 
 /**
  * How long the catch card stays before it closes by itself (R-02): it floats over the
@@ -342,4 +417,45 @@ function hint(view: FishingView, motionRun: AnglingRun | null): string {
     return fish.warning || fish.dashing ? words.pull : words.fight;
   }
   return '';
+}
+
+/** The catch on the card now (`resultShown`), for the cat to talk about: none without it. */
+export const shownCatch = (
+  view: FishingView,
+  run: AnglingRun | null,
+  result: { runId: string; caught: boolean } | null,
+): 'caught' | 'escaped' | null =>
+  result && resultShown(view, run, result)
+    ? result.caught
+      ? 'caught'
+      : 'escaped'
+    : null;
+
+/**
+ * The cat's answer to the player's `count`th tap at the river (R-03): a line from
+ * `CAT_LINES` for the moment and a small move. `phase` is the run's, or null between
+ * runs; `result` the catch on the card (`shownCatch`). Only words and a move: a tap
+ * changes nothing in the world.
+ */
+export function catReaction({
+  band,
+  phase,
+  result,
+  count,
+}: {
+  band: MoodBand;
+  phase: AnglingRun['phase'] | null;
+  result: 'caught' | 'escaped' | null;
+  count: number;
+}): { motion: CatMotion; line: string } {
+  const say = (lines: readonly string[], motion: CatMotion) => ({
+    motion,
+    line: lines[count % lines.length]!,
+  });
+  if (phase === 'waiting') return say(CAT_LINES.waiting, 'none');
+  if (phase === 'hook' || phase === 'fight')
+    return say(CAT_LINES.cheer, 'tilt');
+  if (result === 'caught') return say(CAT_LINES.caught, 'hop');
+  if (result === 'escaped') return say(CAT_LINES.escaped, 'tilt');
+  return say(CAT_LINES.idle[band], 'tilt');
 }

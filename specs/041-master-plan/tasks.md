@@ -99,8 +99,9 @@
 - **测试**（先写，单元）：河畔、体力 50、没有进行中的一竿 → 不蜷睡；河畔、刚出结果 → 不蜷睡；城市、空闲、体力 50 → 蜷睡（保持现状）；城市、体力 100 → 不蜷睡。画面测试台：在河畔抛一竿之后名册头像的读屏文字不含"在休息"。
 - **验收**：同上三条命令；完整检查通过；截图 390×844"抛过一竿后在瞄准"，猫是坐着的。
 
-### [ ] T-03 收获卡倒计时关闭（R-02）
+### [x] T-03 收获卡倒计时关闭（R-02）
 
+- **完成**：PR #59（`3838dc9`），测试版 `test-20260930-0940-3838dc9e-32a933`。证据：`tests/unit/fishing-screen.test.ts` 的 `dismissed`/`catchCountdown` 用例与 `tests/view/catch-card.test.ts`（假定时器：3.9 秒还在、4 秒消失、点击关闭、面板或后台暂停 10 秒后续走、卡片消失不留计时器）在旧代码上失败、新代码上通过；推送前完整检查通过（单元与画面 721 条、E2E 53 条、验收 15 步），产物 `artifacts/2026-09-30T01-34-56-653Z-40579/`（`catcity-wt03`）；截图 `catch-countdown-390x844.png`、`catch-countdown-360x640.png` 为倒计时一半的收获卡。已知：360×640 上卡片压住设置齿轮一角（原有布局）；卡片不能用键盘关闭。
 - **分支**：`feat/catch-card-countdown`
 - **依赖**：无。
 - **先读这些文件**：`src/view/fishing/view-state.ts`（事件 `said`、字段 `watched`）、`src/view/fishing/screen.ts`（`resultShown`、`noticeShown`）、`src/view/fishing/stage.ts`（`.catch-reveal`）、`src/view/fishing/panel.ts`、`tests/unit/fishing-screen.test.ts` 的"the catch card"一组、`tests/view/fishing-buttons.test.ts`。
@@ -128,8 +129,9 @@
 - **验收**：三条命令；完整检查；截图"猫头上有气泡"。
 - **不做**：不加心情和亲密；不从这里打开撸猫（T-05 之后再接）。
 
-### [ ] T-05 撸猫上线（R-05、R-20 – R-24）
+### [x] T-05 撸猫上线（R-05、R-20 – R-24）
 
+- **完成**：PR #61（`fa3ba45`），存档 19，测试版 `test-20260930-1001-fa3ba454-3f0563`。用户 2026-09-30 决定：心情效果改为任意 8 游戏小时内最多 3 局（`CARE.pettingLifts`），R-23 两个目标都用完美玩家量（开心的竿 75% / 75%，60→80 需 3 局），实测表见 039 的"节奏"。证据：`tests/unit/petting.test.ts`、`tests/simulation/pacing.test.ts` 的撸猫玩家两条断言；推送前完整检查通过（单元与画面 851 条、E2E 57 条、验收 15 步），产物 `artifacts/2026-09-30T01-52-22-898Z-58714/`（`catcity-wt49`）；截图 `artifacts/T-05/{round,pull-away,result}-{390x844,360x640}.png`，按钮不挡脸。
 - **分支**：已有 `feat/petting`，worktree `/Users/gakki/dev/catcity-wt49`，最后提交 `eca1273`。
 - **依赖**：无（成长数值已在 main）。存档版本 19。
 - **先读这些文件**：该分支的 `specs/039-petting/requirements.md`（全文）、design.md 第 8 节、`src/core/bond.ts`、`src/core/mood.ts`、`src/content/care.ts`、`src/view/shell/clock-speed.ts`、`tests/simulation/pacing.test.ts`。
@@ -309,7 +311,8 @@
 ### [ ] T-42 图鉴评星（R-54）
 
 - **分支**：`feat/atlas-stars`。存档不变。
-- **做什么**：纯函数 `lengthStar(speciesId, bestLengthMm)`：达到体长范围的 50% / 75% / 95% 为铜 / 银 / 金；图鉴显示；首次达到时的提示由前后快照比较得出。
+- **做什么**（用户 2026-09-30 决定，取代原来的"体长范围的 50% / 75% / 95%"）：几种典型的铜 / 银 / 金概率（`STAR_ODDS`）按鱼的星级套用，星级越高金星越难、铜星不是钓到过就有；每种鱼的毫米门槛由体长公式推导；纯函数 `lengthStar(speciesId, bestLengthMm)`。图鉴只显示钓到过的鱼三颗星各自有没有，不显示门槛和还差多少；三颗都有的插画围金色细线。新鱼种和首次达到某颗星时，收获卡附注说一句，由前后快照比较得出。见 [ui-design.md](ui-design.md) 5.9。
+- **测试**：逐个枚举重量、用实际体长公式核对每种鱼三颗星的概率和目标差不超过 1 个百分点；分布的单调性；`lengthStar` 边界；图鉴只给钓到过的鱼显示星；新鱼种的附注（画面测试台）。
 
 ---
 

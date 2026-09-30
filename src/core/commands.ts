@@ -3,6 +3,7 @@ import { BUILDING_IDS } from '../content/city';
 import { baitIdSchema, spotIdSchema } from './fishing/schema';
 import { positionSchema } from './schema';
 import { FISHING, type SpotId } from '../content/fishing';
+import { PETTING, PET_SPOTS, type PetSpot } from '../content/petting';
 import { MAX_TEXT } from './limits';
 
 const id = z.string().min(1).max(100);
@@ -104,6 +105,29 @@ export const commandSchema = z.discriminatedUnion('type', [
     reply: z.string().trim().min(1).max(MAX_TEXT),
   }),
   z.strictObject({
+    type: z.literal('PET_CAT'),
+    catId: id,
+    /** The round's input, in the order of its ticks; Core replays it to judge (spec 039). */
+    strokes: z
+      .array(
+        z.strictObject({
+          tick: z
+            .number()
+            .int()
+            .min(0)
+            .max(PETTING.roundTicks - 1),
+          spot: z.enum(PET_SPOTS),
+        }),
+      )
+      .min(1)
+      .max(PETTING.roundTicks)
+      .refine((strokes) =>
+        strokes.every(
+          (stroke, index) => !index || stroke.tick >= strokes[index - 1]!.tick,
+        ),
+      ),
+  }),
+  z.strictObject({
     type: z.literal('DEBUG_SPAWN_CAT'),
     position: positionSchema,
   }),
@@ -144,6 +168,18 @@ export type GameEvent =
       reason: 'walking';
     }
   | { type: 'ConversationRecorded'; minute: number; entityId: string }
+  | {
+      type: 'CatPetted';
+      minute: number;
+      entityId: string;
+      /** The spot stroked most. */
+      spot: PetSpot;
+      meter: number;
+      /** The mood the round gave or took: after the allowance, a happy cat's half and the 0–100 range. */
+      mood: number;
+      /** The round counted in full: an unkind one always, a kind one while the allowance had a lift. */
+      full: boolean;
+    }
   | { type: 'DebugChanged'; minute: number };
 
 export type ErrorCode =

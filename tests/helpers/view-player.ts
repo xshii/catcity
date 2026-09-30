@@ -1,8 +1,9 @@
 import { expect } from 'vitest';
-import { FISHING, type SpotId } from '../../src/content/fishing';
+import { FISHING, type FishId, type SpotId } from '../../src/content/fishing';
 import { DEFAULT_TUNING } from '../../src/view/motion/rod';
 import {
   $,
+  choose,
   click,
   key,
   orient,
@@ -57,7 +58,7 @@ export function enterRiver(game: Game) {
   expect(scene()).toBe('river');
 }
 
-function openRiverPanel(game: Game, panel: 'gear' | 'bag') {
+function openRiverPanel(game: Game, panel: 'gear' | 'bag' | 'atlas') {
   if (scene() !== 'river') {
     closeRiverPanel();
     enterRiver(game);
@@ -82,6 +83,13 @@ export function showBagFish(game: Game, fishId: string) {
   while (enabled('#bag-prev')) click('#bag-prev');
   while (!visible(fish) && enabled('#bag-next')) click('#bag-next');
   expect(visible(fish)).toBe(true);
+}
+
+/** The atlas page of this fish, chosen from the species list. */
+export function showFish(game: Game, species: FishId) {
+  openRiverPanel(game, 'atlas');
+  choose('#atlas-species', species);
+  expect(visible(`[data-species="${species}"]`)).toBe(true);
 }
 
 /** The cats panel of whichever scene shows, on one of its pages. */

@@ -24,6 +24,7 @@ export function mountGameView(session: GameSession, trace: Trace) {
     panel.city,
     panel.aim,
     panel.clockSpeed,
+    panel.catMoves,
   );
   new Phaser.Game({
     type: Phaser.AUTO,
@@ -43,6 +44,7 @@ export function mountGameView(session: GameSession, trace: Trace) {
     tileScreenPosition: (position: Position) =>
       scene.getTileScreenPosition(position),
     fishingClock: panel.fishingClock,
+    pettingClock: panel.pettingClock,
     /** Game minutes per real second chosen at the city clock. */
     clockSpeed: panel.clockSpeed,
   };

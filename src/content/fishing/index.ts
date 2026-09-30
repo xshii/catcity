@@ -13,12 +13,15 @@ export {
 export type { BaitId, CatchKind, FishId, SpotId } from './catalog';
 export {
   canCatchFish,
+  catchLengthMm,
   catchXp,
   discoveredSpecies,
   fishById,
   fishHabitats,
+  lengthStar,
   skillLevel,
   skillXp,
   spotOpen,
   spotUnlocked,
+  starOdds,
 } from './rules';

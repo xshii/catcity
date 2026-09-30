@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { SpotId } from '../../content/fishing';
 import { fishShadows, type FishShadow, type WorldState } from '../../core';
 import { CatArt } from './cat';
-import { catPose } from './cat-look';
+import { catPose, type CatMotion } from './cat-look';
 import { rodPose, rodShape, rodStance, type RodStance } from './rod-pose';
 import {
   castPreview,
@@ -38,7 +38,7 @@ const V = WATER_VIEW;
 /** Where the rod leaves the bottom of the view, and the cat beside the player. */
 const ROD_BASE = { x: 430, y: V.size };
 const ROD_TIP = { x: 372, y: 330 };
-const COMPANION = { x: 196, y: 560, scale: 1.7 };
+const COMPANION = V.companion;
 /** Fish shadow body length by size class, at the dock's scale. */
 const SHADOW_LENGTH = { small: 46, medium: 64, large: 88 } as const;
 /** Bands the sky and water gradients are drawn in. */
@@ -622,6 +622,11 @@ export class RiverView {
         }
       : null;
     this.drawRod(now);
+  }
+
+  /** The cat beside the player answers a tap with a small move (R-03). */
+  react(motion: CatMotion) {
+    if (this.root.visible) this.companion.react(motion);
   }
 
   private rodPose(time: number) {
