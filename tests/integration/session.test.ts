@@ -167,6 +167,28 @@ it('never shows a replaced world from an old snapshot', () => {
   expect(session.getSnapshot()).toEqual(createWorld(7).getSnapshot());
 });
 
+it('starts a new game with the stray the player picked, from the same seed (T-14)', () => {
+  const storage = repository();
+  const session = createTestSession({ repository: storage, seed: 7 });
+  session.execute({ type: 'ADVANCE_TIME', minutes: 5 });
+  const stray = {
+    breed: 'DOMESTIC',
+    appearance: {
+      colour: 'black',
+      pattern: 'solid',
+      white: 'mittens',
+      eyes: 'green',
+      face: 'pointed',
+    },
+  } as const;
+  session.resetDemo(stray);
+  expect(session.getSnapshot()).toEqual(createWorld(7, stray).getSnapshot());
+  expect(session.lastCommand()).toBeNull();
+  // The choice is in the replay's starting save, so a replay makes the same cat.
+  expect(session.getReplay().initialSave).toBe(createWorld(7, stray).save());
+  expect(createTestSession({ repository: storage }).resumed).toBe(true);
+});
+
 it('tells a resumed save from a new game', () => {
   const storage = repository();
   expect(createTestSession({ repository: storage }).resumed).toBe(false);

@@ -5,7 +5,11 @@ import {
   clickTile,
   settle,
 } from '../../harness/adapters/catcity/city-input';
-import { readWorld, ready } from '../../harness/adapters/catcity/browser';
+import {
+  readWorld,
+  ready,
+  savedNewGame,
+} from '../../harness/adapters/catcity/browser';
 import { BUILDINGS, CITY_START } from '../../src/content/city';
 import type { Position } from '../../src/core';
 import { MAP_VIEW } from '../../src/view/art/city-geometry';
@@ -222,6 +226,7 @@ test('a new game guides the next step above the map and keeps one clock control'
 });
 
 test('a production clock advances faster at 4×', async ({ page }) => {
+  await savedNewGame(page);
   await page.goto(`${localOrigin(testPorts().production)}/`);
   await expect(page.locator('canvas')).toBeVisible();
   const minute = () =>

@@ -1,13 +1,8 @@
-import { CAT_BREEDS } from '../../content/breeds';
+import { CAT_BREED_IDS, CAT_BREEDS, type CatBreed } from '../../content/breeds';
 import { APPEARANCE_OPTIONS, type CatAppearance } from '../../content/cats';
-import {
-  ART_BREEDS,
-  catLook,
-  type ArtBreed,
-  type CatPose,
-} from '../art/cat-look';
+import { catLook, type CatPose } from '../art/cat-look';
 
-/** Words of the cat maker (spec 041 cat-looks.md 4); the domestic cat's until PR 2. */
+/** Words of the cat maker (spec 041 cat-looks.md 4). */
 export const CAT_MAKER_COPY = {
   title: '它长什么样？',
   items: {
@@ -41,10 +36,7 @@ export const CAT_MAKER_COPY = {
     [Item in keyof CatAppearance]: Record<CatAppearance[Item], string>;
   },
   /** Each breed and what it brings to fishing. */
-  breeds: {
-    ...CAT_BREEDS,
-    DOMESTIC: { name: '田园猫', fishingHint: '什么鱼都愿意陪你钓' },
-  } satisfies Record<ArtBreed, { name: string; fishingHint: string }>,
+  breeds: CAT_BREEDS,
   random: '🎲 随机',
   randomLabel: '随机换一只',
   cancel: '取消',
@@ -52,7 +44,7 @@ export const CAT_MAKER_COPY = {
 
 /** What the maker makes: a breed and the five choices. */
 export interface CatChoice {
-  breed: ArtBreed;
+  breed: CatBreed;
   appearance: CatAppearance;
 }
 /**
@@ -75,10 +67,10 @@ const ITEMS = Object.keys(APPEARANCE_OPTIONS) as (keyof CatAppearance)[];
 const rowsOf = (pickBreed: boolean): MakerItem[] =>
   pickBreed ? ['breed', ...ITEMS] : ITEMS;
 const optionsOf = (item: MakerItem): readonly string[] =>
-  item === 'breed' ? ART_BREEDS : APPEARANCE_OPTIONS[item];
+  item === 'breed' ? CAT_BREED_IDS : APPEARANCE_OPTIONS[item];
 const nameOf = (item: MakerItem, option: string) =>
   item === 'breed'
-    ? CAT_MAKER_COPY.breeds[option as ArtBreed].name
+    ? CAT_MAKER_COPY.breeds[option as CatBreed].name
     : (CAT_MAKER_COPY.options[item] as Record<string, string>)[option]!;
 
 /** The choice with one row's option picked; an option the row lacks changes nothing. */
@@ -89,7 +81,7 @@ export function choose(
 ): CatChoice {
   if (!optionsOf(item).includes(option)) return choice;
   return item === 'breed'
-    ? { ...choice, breed: option as ArtBreed }
+    ? { ...choice, breed: option as CatBreed }
     : { ...choice, appearance: { ...choice.appearance, [item]: option } };
 }
 
@@ -124,7 +116,7 @@ export function catMakerScreen(pickBreed: boolean, choice: CatChoice) {
         name: nameOf(item, option),
         hint:
           item === 'breed'
-            ? CAT_MAKER_COPY.breeds[option as ArtBreed].fishingHint
+            ? CAT_MAKER_COPY.breeds[option as CatBreed].fishingHint
             : null,
         checked: chosen[item] === option,
       })),

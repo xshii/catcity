@@ -12,6 +12,7 @@ import {
   landPrice,
 } from '../../../src/content/city';
 import { closeRiverPanel, openBag, openChat, showFish } from './navigation';
+import { savedNewGame } from './browser';
 
 export async function productionSmoke(publication: LocalPublication) {
   const browser = await chromium.launch();
@@ -30,6 +31,7 @@ export async function productionSmoke(publication: LocalPublication) {
   let primaryError: unknown;
   let evidenceError: Error | undefined;
   try {
+    await savedNewGame(page);
     await page.goto(publication.url);
     await expect(page.locator('canvas')).toBeVisible();
     expect(await page.evaluate(() => 'CAT_CITY_DEBUG' in window)).toBe(false);

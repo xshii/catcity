@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest';
+import { CAT_BREED_IDS, type CatBreed } from '../../src/content/breeds';
 import { BOND, BOND_LEVELS, bondLevel, CARE } from '../../src/content/care';
+import { CAT_DEFINITIONS } from '../../src/content/cats';
 import {
   BAITS,
   FISHING,
@@ -43,7 +45,10 @@ import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
  *   real play is nearer 30–45. Every target must hold at every rhythm, so that growth
  *   does not depend on how fast the player casts.
  * - The player fishes the newest open water with a fixed aim: the skilled one for its best
- *   fish Mochi can land, the novice for a fish of at most 2★.
+ *   fish Mochi can land, the novice for a fish of at most 2★. Mochi is the stray the game
+ *   starts with (spec 041 T-14), of each breed in turn: at the moon lake a ragdoll lands
+ *   koi, a shorthair moon carp, and a domestic cat perch, as the other two wait for
+ *   invited cats of those breeds.
  * - The gifting player has the skilled hands. While a gift still counts that game day and
  *   the water holds one of Mochi's favourites, it casts bread for that fish and gives it
  *   at once; otherwise it fishes like the skilled player.
@@ -56,7 +61,12 @@ import { PLAYERS, rodTip, type Player } from '../helpers/motion-player';
 /** Game minutes from one cast to the next. */
 const RHYTHMS = [20, 30, 45, 60] as const;
 const CAST_LIMIT = 3000;
-type Aim = { spotId: SpotId; baitId: BaitId; direction: number };
+type Aim = {
+  spotId: SpotId;
+  baitId: BaitId;
+  direction: number;
+  power?: number;
+};
 const POND: Aim = { spotId: 'POND', baitId: 'BREAD', direction: 30 };
 const AIMS: Record<'novice' | 'skilled', Aim[]> = {
   // Newest water first: perch, mackerel, perch.
@@ -66,7 +76,7 @@ const AIMS: Record<'novice' | 'skilled', Aim[]> = {
     { spotId: 'REEDS', baitId: 'WORM', direction: 30 },
     POND,
   ],
-  // Koi, sea bream, catfish.
+  // The moon lake's best for the breed (MOON_BEST), sea bream, catfish.
   skilled: [
     { spotId: 'MOON', baitId: 'WORM', direction: -30 },
     { spotId: 'COAST', baitId: 'SHRIMP', direction: 30 },
@@ -74,7 +84,18 @@ const AIMS: Record<'novice' | 'skilled', Aim[]> = {
     POND,
   ],
 };
-/** Strong enough for every aimed fish; too strong for bread to hook supplies. */
+/** The skilled player's aim at the moon lake: the best fish Mochi of each breed can land. */
+const MOON_BEST: Record<CatBreed, Aim> = {
+  RAGDOLL: { spotId: 'MOON', baitId: 'WORM', direction: -30 },
+  BRITISH_SHORTHAIR: {
+    spotId: 'MOON',
+    baitId: 'SHRIMP',
+    direction: 30,
+    power: FISHING.encounter.moonCarpPower,
+  },
+  DOMESTIC: { spotId: 'MOON', baitId: 'WORM', direction: 30 },
+};
+/** Strong enough for every other aimed fish; too strong for bread to hook supplies. */
 const POWER = 60;
 /**
  * The best petting there is (design.md 12): the cat's favourite spot, twice in every purr,
@@ -107,12 +128,20 @@ interface Pace {
 
 type Style = 'fishing' | 'always happy' | 'gifting' | 'petting';
 
+/** A new game whose stray is Mochi of `breed`, in its template's look. */
+const newGame = (breed: CatBreed) =>
+  createWorld(42, { breed, appearance: CAT_DEFINITIONS.MOCHI.appearance });
+
 function play(
   player: 'novice' | 'skilled',
   minutes: number,
   style: Style,
+  breed: CatBreed,
 ): Pace {
-  const state = createWorld(42).getSnapshot();
+  const state = newGame(breed).getSnapshot();
+  const aims = AIMS[player].map((aim) =>
+    player === 'skilled' && aim.spotId === 'MOON' ? MOON_BEST[breed] : aim,
+  );
   const mochi = state.cats[0]!;
   const { favourite } = pettingTastes(state.seed, mochi.id);
   const hand = new RandomService(104729);
@@ -135,9 +164,7 @@ function play(
   const done = () =>
     pace.fullSkill > 0 && pace.bond.length === BOND_LEVELS.length;
   while (!done() && pace.casts < CAST_LIMIT) {
-    const water = AIMS[player].find((aim) =>
-      spotOpen(aim.spotId, state.fishing),
-    )!;
+    const water = aims.find((aim) => spotOpen(aim.spotId, state.fishing))!;
     const giftCounts =
       style === 'gifting' &&
       spendDaily(mochi.giftBond, state.minute, BOND.giftsPerDay) !== null;
@@ -194,7 +221,7 @@ function play(
     const runId = state.fishing.active!.id;
     pace.casts++;
     if (state.fishing.active!.happy) pace.happyCasts++;
-    run({ type: 'FISH_CAST', runId, power: POWER });
+    run({ type: 'FISH_CAST', runId, power: aim.power ?? POWER });
     const still = { type: 'FISH_MOTION_CONTROL', runId, x: 50, y: 50 } as const;
     // Nothing to decide while waiting: the ticks go in batches, which give the same
     // state as single ticks (tests/simulation/angling).
@@ -247,12 +274,13 @@ function play(
 
 const paces = new Map<string, Pace>();
 function paceOf(
+  breed: CatBreed,
   player: 'novice' | 'skilled',
   minutes: number,
   style: Style = 'fishing',
 ): Pace {
-  const key = `${player} ${minutes} ${style}`;
-  if (!paces.has(key)) paces.set(key, play(player, minutes, style));
+  const key = `${breed} ${player} ${minutes} ${style}`;
+  if (!paces.has(key)) paces.set(key, play(player, minutes, style, breed));
   return paces.get(key)!;
 }
 const levelNamed = (name: string) =>
@@ -263,6 +291,8 @@ const levelNamed = (name: string) =>
  * Measured 2026-09-30, the same at every rhythm (novice / skilled): reeds 5 / 5, moon
  * lake 56 / 46, full skill 448 / 307, 信任 75 / 75, 家人 750 / 750. The moon lake and
  * full skill figures sit on the edges of their ranges; no other coefficient fits both.
+ * By the stray's breed (T-14) only the skilled full skill moves: ragdoll 307, shorthair
+ * 308–309 (moon carp), domestic 437–438 (perch, near the top of its range).
  */
 const TARGETS: [string, (pace: Pace) => number, number, number][] = [
   ['fish to open the reeds', (pace) => pace.opened.REEDS!, 4, 8],
@@ -273,17 +303,18 @@ const TARGETS: [string, (pace: Pace) => number, number, number][] = [
 ];
 const PLAYER_TYPES = ['novice', 'skilled'] as const satisfies Player[];
 
-// One case per player and rhythm, so each stays small (paces are cached across cases).
-it.each(
+// One case per breed, player and rhythm, so each stays small (paces are cached across cases).
+const CASES = CAT_BREED_IDS.flatMap((breed) =>
   PLAYER_TYPES.flatMap((player) =>
-    RHYTHMS.map((minutes) => [player, minutes] as const),
+    RHYTHMS.map((minutes) => [breed, player, minutes] as const),
   ),
-)(
-  '%s players casting every %i game minutes reach each milestone within its target',
-  (player, minutes) => {
+);
+it.each(CASES)(
+  'with a %s stray, %s players casting every %i game minutes reach each milestone within its target',
+  (breed, player, minutes) => {
     for (const [what, measure, min, max] of TARGETS) {
-      const measured = measure(paceOf(player, minutes));
-      const message = `${player} at ${minutes}: ${measured} ${what}, target ${min}–${max}`;
+      const measured = measure(paceOf(breed, player, minutes));
+      const message = `${breed} ${player} at ${minutes}: ${measured} ${what}, target ${min}–${max}`;
       expect(measured, message).toBeGreaterThanOrEqual(min);
       expect(measured, message).toBeLessThanOrEqual(max);
     }
@@ -292,14 +323,10 @@ it.each(
 
 // A catch never lifts mood into the happy band (spec 038), so fishing alone earns no
 // happy cast at any rhythm: happiness takes a gift or petting.
-it.each(
-  PLAYER_TYPES.flatMap((player) =>
-    RHYTHMS.map((minutes) => [player, minutes] as const),
-  ),
-)(
-  '%s players who only fish, casting every %i game minutes, never begin a cast with a happy cat',
-  (player, minutes) => {
-    const { casts, happyCasts } = paceOf(player, minutes);
+it.each(CASES)(
+  'with a %s stray, %s players who only fish, casting every %i game minutes, never begin a cast with a happy cat',
+  (breed, player, minutes) => {
+    const { casts, happyCasts } = paceOf(breed, player, minutes);
     expect(casts).toBeGreaterThan(0);
     expect(happyCasts).toBe(0);
   },
@@ -313,10 +340,14 @@ it.each(
  */
 const FASTEST = { moonLake: 30, fullSkill: 190 };
 
-it.each(PLAYER_TYPES)(
-  'an always happy cat still takes a %s player the floor number of fish',
-  (player) => {
-    const pace = paceOf(player, 30, 'always happy');
+it.each(
+  CAT_BREED_IDS.flatMap((breed) =>
+    PLAYER_TYPES.map((player) => [breed, player] as const),
+  ),
+)(
+  'an always happy %s stray still takes a %s player the floor number of fish',
+  (breed, player) => {
+    const pace = paceOf(breed, player, 30, 'always happy');
     expect(pace.happyCasts).toBe(pace.casts);
     expect(pace.opened.MOON, 'moon lake').toBeGreaterThanOrEqual(
       FASTEST.moonLake,
@@ -333,6 +364,7 @@ it.each(PLAYER_TYPES)(
  * cat: the gifting player is faster than the fishing one.
  * Measured 2026-09-30 at 20 / 30 / 45 / 60: 家人 643 / 626 / 601 / 583 fish, happy casts
  * 16% / 15% / 13% / 12%, moon lake 43 / 44 / 45 / 45, full skill 291 / 297 / 306 / 313.
+ * With a domestic stray (T-14) full skill takes 412 / 417 / 424 / 429 fish.
  */
 const GIFTING = {
   family: 500,
@@ -341,12 +373,16 @@ const GIFTING = {
   fullSkill: 250,
 };
 
-it.each(RHYTHMS)(
-  'a player who gives every favourite that counts, casting every %i game minutes, cannot rush',
-  (minutes) => {
-    const pace = paceOf('skilled', minutes, 'gifting');
+it.each(
+  CAT_BREED_IDS.flatMap((breed) =>
+    RHYTHMS.map((minutes) => [breed, minutes] as const),
+  ),
+)(
+  'with a %s stray, a player who gives every favourite that counts, casting every %i game minutes, cannot rush',
+  (breed, minutes) => {
+    const pace = paceOf(breed, 'skilled', minutes, 'gifting');
     const share = Math.round((pace.happyCasts / pace.casts) * 100);
-    const at = `at ${minutes}`;
+    const at = `${breed} at ${minutes}`;
     expect(pace.gifts, `gifts ${at}`).toBeGreaterThan(0);
     expect(pace.bond[levelNamed('家人')], `家人 ${at}`).toBeGreaterThanOrEqual(
       GIFTING.family,
@@ -372,39 +408,44 @@ it.each(RHYTHMS)(
  * simulation's, +6 to +7 a round) needs 3 rounds only about a third of the time; the
  * rest wait for the window.
  */
-it('a perfect petting player makes a calm cat happy in 2–3 rounds, from any minute of the hour', () => {
-  const ROUND_MINUTES = PETTING.roundTicks / PETTING.ticksPerSecond;
-  const base = createWorld(42).getSnapshot();
-  const { favourite } = pettingTastes(base.seed, base.cats[0]!.id);
-  const needed = new Set<number>();
-  for (let start = 0; start < 60; start++) {
-    const state = structuredClone(base);
-    const mochi = state.cats[0]!;
-    applyCommand(state, {
-      type: 'ADVANCE_TIME',
-      minutes: 60 - (state.minute % 60) + start,
-    });
-    mochi.mood = 60;
-    let rounds = 0;
-    while (mochi.mood < MOOD.happy && rounds < 10) {
-      if (rounds)
-        applyCommand(state, { type: 'ADVANCE_TIME', minutes: ROUND_MINUTES });
-      applyCommand(
-        state,
-        commandSchema.parse({
-          type: 'PET_CAT',
-          catId: mochi.id,
-          strokes: PERFECT(favourite),
-        }),
-      );
-      rounds++;
+it.each(CAT_BREED_IDS)(
+  'a perfect petting player makes a calm %s stray happy in 2–3 rounds, from any minute of the hour',
+  (breed) => {
+    const ROUND_MINUTES = PETTING.roundTicks / PETTING.ticksPerSecond;
+    const base = newGame(breed).getSnapshot();
+    const { favourite } = pettingTastes(base.seed, base.cats[0]!.id);
+    const needed = new Set<number>();
+    for (let start = 0; start < 60; start++) {
+      const state = structuredClone(base);
+      const mochi = state.cats[0]!;
+      applyCommand(state, {
+        type: 'ADVANCE_TIME',
+        minutes: 60 - (state.minute % 60) + start,
+      });
+      mochi.mood = 60;
+      let rounds = 0;
+      while (mochi.mood < MOOD.happy && rounds < 10) {
+        if (rounds)
+          applyCommand(state, { type: 'ADVANCE_TIME', minutes: ROUND_MINUTES });
+        applyCommand(
+          state,
+          commandSchema.parse({
+            type: 'PET_CAT',
+            catId: mochi.id,
+            strokes: PERFECT(favourite),
+          }),
+        );
+        rounds++;
+      }
+      needed.add(rounds);
     }
-    needed.add(rounds);
-  }
-  expect(Math.min(...needed)).toBeGreaterThanOrEqual(2);
-  expect(Math.max(...needed)).toBeLessThanOrEqual(3);
-  expect(CARE.pettingLifts.rounds).toBeGreaterThanOrEqual(Math.max(...needed));
-});
+    expect(Math.min(...needed)).toBeGreaterThanOrEqual(2);
+    expect(Math.max(...needed)).toBeLessThanOrEqual(3);
+    expect(CARE.pettingLifts.rounds).toBeGreaterThanOrEqual(
+      Math.max(...needed),
+    );
+  },
+);
 
 /**
  * R-23 (spec 041): a player who pets between casts has a happy cat on 70–85% of its casts.
@@ -415,16 +456,20 @@ it('a perfect petting player makes a calm cat happy in 2–3 rounds, from any mi
  */
 const PETTING_HAPPY = { min: 70, max: 85 };
 
-it.each([30, 60])(
-  'a player who pets between casts, casting every %i game minutes, has a happy cat on 70–85% of casts',
-  (minutes) => {
-    const pace = paceOf('skilled', minutes, 'petting');
+it.each(
+  CAT_BREED_IDS.flatMap((breed) =>
+    [30, 60].map((minutes) => [breed, minutes] as const),
+  ),
+)(
+  'with a %s stray, a player who pets between casts, casting every %i game minutes, has a happy cat on 70–85% of casts',
+  (breed, minutes) => {
+    const pace = paceOf(breed, 'skilled', minutes, 'petting');
     const share = Math.round((pace.happyCasts / pace.casts) * 100);
     expect(pace.pets).toBeGreaterThan(0);
-    expect(share, `happy share at ${minutes}`).toBeGreaterThanOrEqual(
+    expect(share, `${breed} happy share at ${minutes}`).toBeGreaterThanOrEqual(
       PETTING_HAPPY.min,
     );
-    expect(share, `happy share at ${minutes}`).toBeLessThanOrEqual(
+    expect(share, `${breed} happy share at ${minutes}`).toBeLessThanOrEqual(
       PETTING_HAPPY.max,
     );
   },

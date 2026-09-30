@@ -34,6 +34,8 @@ export interface Device {
   audio?: boolean;
   /** localStorage before the first load: a save or per-device choices. */
   storage?: Record<string, string>;
+  /** A new game starts with the stray, as outside test builds (spec 041 T-14). */
+  strayStart?: boolean;
 }
 type Vibration = number | number[];
 const TICK_MS = 1000 / FISHING.ticksPerSecond;
@@ -102,6 +104,8 @@ export function openGame(device: Device = {}) {
     wait: (ms: number) => vi.advanceTimersByTime(ms),
     /** Game minutes the city clock takes each real second, as src/main.ts reads it. */
     clockSpeed: () => page.clockSpeed(),
+    /** Whether src/main.ts would hold the city clock for a new game's stray. */
+    starting: () => page.starting(),
     /**
      * Fishing ticks through the view's own clock, each after its 50 ms of real time;
      * returns how many applied (none while paused).
@@ -148,13 +152,16 @@ function load(device: Device) {
     seed: 42,
   });
   session.select(STARTER_CAT_ID);
-  const view = mountGameView(session, () => {});
+  const view = mountGameView(session, () => {}, {
+    strayStart: device.strayStart ?? false,
+  });
   // Like the bridge's manual clock: fishing ticks only when a test steps it.
   view.fishingClock.setManual(true);
   return {
     session,
     clock: view.fishingClock,
     clockSpeed: view.clockSpeed,
+    starting: view.starting,
     vibrations,
     audio,
     unload() {

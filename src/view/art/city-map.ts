@@ -157,7 +157,7 @@ export function drawCityMap(
   for (const cat of world.cats) {
     if (!cat.walk) continue;
     let previous = tileCenter(cat.position.x, cat.position.y);
-    g.lineStyle(3, C.route[cat.appearance.coat], 0.75);
+    g.lineStyle(3, C.route[cat.appearance.colour], 0.75);
     for (const tile of cat.walk.route) {
       const next = tileCenter(tile.x, tile.y);
       g.lineBetween(previous.x, previous.y, next.x, next.y);

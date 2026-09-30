@@ -11,6 +11,7 @@ import { createCatsView } from '../cats/view-state';
 import { mountDetail } from '../cats/detail';
 import { mountInvite } from '../cats/invite';
 import { mountRoster } from '../cats/roster';
+import { mountStrayStart } from '../cats/stray';
 import { toViewModel } from '../common/model';
 import { bondNote } from '../common/bond';
 import { withMoodNote } from '../common/mood';
@@ -24,6 +25,8 @@ export function mountPanel(
   session: GameSession,
   place: PlaceState,
   trace: Trace,
+  /** A new game starts with the stray (spec 041 T-14); test builds may leave it out. */
+  { strayStart }: { strayStart: boolean },
 ) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <main class="shell">
@@ -69,6 +72,7 @@ export function mountPanel(
   };
   session.subscribe(render);
   get('reset-demo').addEventListener('click', () => {
+    if (strayStart) return stray.open();
     session.resetDemo();
     notify('已开始新版试玩。');
   });
@@ -121,6 +125,13 @@ export function mountPanel(
   mountCompanionship(session);
   // One gear on every page, right after the scene bar (2026-09-30).
   const settings = mountSettings({ place, after: get('map-heading') });
+  const stray = mountStrayStart({
+    session,
+    layer: document.querySelector<HTMLElement>('.shell')!,
+    gear: settings.gear,
+    random: Math.random,
+    notify,
+  });
   const angling = mountAngling(
     session,
     place,
@@ -193,8 +204,12 @@ export function mountPanel(
       ? '欢迎回来。小城一直在等你。'
       : '欢迎来到小城。这里有一只猫，正在慢慢认识你。',
   );
+  // A rejected save waits for its explicit reset, which starts with the stray too.
+  if (strayStart && !session.resumed && !session.saveRejected) stray.open();
   render();
   return {
+    /** A new game's stray is on screen: the city clock waits for it. */
+    starting: stray.shown,
     clockSpeed,
     notify,
     city,

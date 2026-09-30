@@ -4,6 +4,7 @@ import {
   createWorld,
   loadWorld,
   MAX_TEXT,
+  type Stray,
   type World,
   type WorldState,
   type CheckResult,
@@ -151,8 +152,12 @@ export class GameSession {
     }
   }
 
-  resetDemo() {
-    this.world = createWorld(this.world.getSnapshot().seed);
+  /**
+   * A new game from the same seed, replacing the world and any rejected save: Mochi is the
+   * stray the player picked (T-14), or its template without a pick.
+   */
+  resetDemo(stray?: Stray) {
+    this.world = createWorld(this.world.getSnapshot().seed, stray);
     this.snapshot = null;
     this.epoch++;
     this.initialSave = this.world.save();

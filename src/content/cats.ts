@@ -14,11 +14,9 @@ export const CAT_DEFINITION_IDS = [
   'DOUBAO',
 ] as const;
 export type CatDefinitionId = (typeof CAT_DEFINITION_IDS)[number];
-/** The coats a cat can wear (ui-design 6.1); the art gives each its colours. */
-export const CAT_COATS = ['cream', 'gray', 'orange', 'tuxedo'] as const;
 /**
  * A cat's look: five choices, each from a fixed list (spec 041 cat-looks.md 1), in the
- * order the cat maker shows them. The art draws each; T-14 PR 2 saves them on the cat.
+ * order the cat maker shows them. Saved on the cat; the art draws each.
  */
 export const APPEARANCE_OPTIONS = {
   colour: ['black', 'gray', 'orange', 'cream', 'white', 'brown'],
@@ -32,6 +30,12 @@ export type CatAppearance = {
     Item in keyof typeof APPEARANCE_OPTIONS
   ]: (typeof APPEARANCE_OPTIONS)[Item][number];
 };
+/** A solid round-faced look: T-13's coats, each cat's own until the salon (T-15). */
+const plainLook = (
+  colour: CatAppearance['colour'],
+  eyes: CatAppearance['eyes'],
+  white: CatAppearance['white'] = 'none',
+): CatAppearance => ({ colour, pattern: 'solid', white, eyes, face: 'round' });
 /** The first-generation cats a player can invite, in the order the list shows them; Mochi starts in the city. */
 export const INVITABLE_CATS: readonly CatDefinitionId[] =
   CAT_DEFINITION_IDS.filter((id) => id !== 'MOCHI');
@@ -54,7 +58,8 @@ export const CAT_DEFINITIONS: Record<
     breedId: CatBreed;
     name: string;
     sex: 'F' | 'M';
-    coat: (typeof CAT_COATS)[number];
+    /** How it looks when it arrives; Mochi's is the stray's until the player picks one. */
+    appearance: CatAppearance;
     personality: readonly string[];
     /** Player-facing summary of `personality`. */
     personalityLabel: string;
@@ -70,7 +75,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'RAGDOLL',
     name: 'Mochi',
     sex: 'F',
-    coat: 'cream',
+    appearance: plainLook('cream', 'blue'),
     personality: ['shy', 'food-loving', 'slow-to-warm'],
     personalityLabel: '胆小 · 贪吃 · 慢热',
     traits: ['gentle'],
@@ -83,7 +88,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'BRITISH_SHORTHAIR',
     name: 'Pepper',
     sex: 'M',
-    coat: 'gray',
+    appearance: plainLook('gray', 'copper'),
     personality: ['curious', 'playful'],
     personalityLabel: '好奇 · 活泼 · 爱冒险',
     traits: ['adventurous'],
@@ -97,7 +102,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'RAGDOLL',
     name: '年糕',
     sex: 'F',
-    coat: 'gray',
+    appearance: plainLook('gray', 'copper'),
     personality: ['gentle', 'sleepy', 'clingy'],
     personalityLabel: '温柔 · 爱睡 · 黏人',
     traits: ['calm'],
@@ -111,7 +116,7 @@ export const CAT_DEFINITIONS: Record<
     name: '芝麻',
     sex: 'M',
     // Black sesame on white.
-    coat: 'tuxedo',
+    appearance: plainLook('black', 'green', 'bicolour'),
     personality: ['brave', 'steady'],
     personalityLabel: '勇敢 · 沉稳',
     traits: ['steady'],
@@ -124,7 +129,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'BRITISH_SHORTHAIR',
     name: '布丁',
     sex: 'F',
-    coat: 'cream',
+    appearance: plainLook('cream', 'blue'),
     personality: ['sweet', 'chatty'],
     personalityLabel: '爱撒娇 · 话多',
     traits: ['cheerful'],
@@ -137,7 +142,7 @@ export const CAT_DEFINITIONS: Record<
     breedId: 'BRITISH_SHORTHAIR',
     name: '豆包',
     sex: 'M',
-    coat: 'orange',
+    appearance: plainLook('orange', 'green'),
     personality: ['easygoing', 'lazy'],
     personalityLabel: '随和 · 懒洋洋',
     traits: ['easygoing'],

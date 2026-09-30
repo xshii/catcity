@@ -1,3 +1,5 @@
+import type { CatBreed } from '../content/breeds';
+import type { CatAppearance } from '../content/cats';
 import { CITY_START } from '../content/city';
 import { WORLD_LIMIT } from './limits';
 import { generateCityMap, gridDistance, shoreTiles, tileAt } from './city/map';
@@ -74,7 +76,17 @@ export class World {
   }
 }
 
-export function createWorld(seed: number): World {
+/** The stray a new game starts with: the breed and look the player picked (T-14). */
+export interface Stray {
+  breed: CatBreed;
+  appearance: CatAppearance;
+}
+
+/**
+ * A new game from its seed. Mochi is the stray the player picked, the one time a breed is
+ * chosen; without a pick it is its template (tests, and the test build's new game).
+ */
+export function createWorld(seed: number, stray?: Stray): World {
   const map = generateCityMap(seed);
   const { crossroads } = CITY_START;
   const distanceFromStarterRoad = (position: Position) =>
@@ -90,6 +102,10 @@ export function createWorld(seed: number): World {
   if (!start) throw new Error('Missing unowned pond shore');
   const mochi = instantiateCat('MOCHI', STARTER_CAT_ID, start);
   mochi.fishingSpotId = 'POND';
+  if (stray) {
+    mochi.breedId = stray.breed;
+    mochi.appearance = { ...stray.appearance };
+  }
   return new World({
     seed,
     minute: CITY_START.minute,

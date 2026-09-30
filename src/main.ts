@@ -45,7 +45,12 @@ if (trace) {
     if (data) trace('command', data);
   });
 }
-const view = mountGameView(session, trace ?? (() => {}));
+// A new game begins with the stray and the cat maker (spec 041 T-14). Test builds start
+// with the template's Mochi, as their suites expect, unless the page asks for the stray.
+const strayStart =
+  import.meta.env.MODE !== 'test' ||
+  new URLSearchParams(location.search).has('stray-start');
+const view = mountGameView(session, trace ?? (() => {}), { strayStart });
 
 if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
   void import('./debug/bridge').then(({ installDebugBridge }) =>
@@ -57,7 +62,7 @@ if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
 // speed. Test builds advance game time explicitly.
 if (import.meta.env.MODE !== 'test') {
   window.setInterval(() => {
-    if (!document.hidden)
+    if (!document.hidden && !view.starting())
       session.execute({ type: 'ADVANCE_TIME', minutes: view.clockSpeed() });
   }, 1000);
 }

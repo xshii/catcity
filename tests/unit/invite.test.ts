@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CAT_COATS,
   CAT_DEFINITIONS,
   CAT_DEFINITION_IDS,
   INVITABLE_CATS,
@@ -10,6 +9,7 @@ import {
 import { BUILDINGS } from '../../src/content/city';
 import { SPOTS, SPOT_IDS, type FishId } from '../../src/content/fishing';
 import { createWorld, World, type Position } from '../../src/core';
+import { T13_COATS } from '../helpers/cat-shapes';
 import { instantiateCat } from '../../src/core/cats';
 import { gridDistance } from '../../src/core/city';
 import { isWalkable } from '../../src/core/city/path';
@@ -97,14 +97,23 @@ describe('the first-generation cats (R-12)', () => {
     expect(lists.size).toBe(4);
   });
 
-  it('each looks like no other: its own coat and breed, all four coats worn (R-15)', () => {
-    const looks = CAT_DEFINITION_IDS.map(
-      (id) => `${CAT_DEFINITIONS[id].coat}/${CAT_DEFINITIONS[id].breedId}`,
+  it('each looks like no other: its own look and breed, T-13’s four coats all worn (R-15)', () => {
+    const looks = CAT_DEFINITION_IDS.map((id) =>
+      JSON.stringify([
+        CAT_DEFINITIONS[id].appearance,
+        CAT_DEFINITIONS[id].breedId,
+      ]),
     );
     expect(new Set(looks).size).toBe(looks.length);
     expect(
-      new Set(CAT_DEFINITION_IDS.map((id) => CAT_DEFINITIONS[id].coat)),
-    ).toEqual(new Set(CAT_COATS));
+      new Set(
+        CAT_DEFINITION_IDS.map((id) =>
+          JSON.stringify(CAT_DEFINITIONS[id].appearance),
+        ),
+      ),
+    ).toEqual(
+      new Set(Object.values(T13_COATS).map((look) => JSON.stringify(look))),
+    );
   });
 });
 

@@ -32,6 +32,8 @@ export function mountCatMaker(deps: {
   /** A number in [0, 1) at each call, for 🎲: the view's own randomness, fixed in tests. */
   random: () => number;
   done: (choice: CatChoice | null) => void;
+  /** The settings gear, floating over the screen: the first stop of its Tab round. */
+  gear?: HTMLElement;
 }): HTMLElement {
   const { input } = deps;
   let choice: CatChoice = { breed: input.breed, appearance: input.appearance };
@@ -95,6 +97,7 @@ export function mountCatMaker(deps: {
   };
   const close = (made: CatChoice | null) => {
     screen.remove();
+    deps.gear?.removeEventListener('keydown', onKey);
     deps.done(made);
   };
   for (const radio of radios)
@@ -105,18 +108,19 @@ export function mountCatMaker(deps: {
   });
   $('cat-maker-cancel').addEventListener('click', () => close(null));
   $('cat-maker-confirm').addEventListener('click', () => close(choice));
-  screen.addEventListener('keydown', (event) => {
+  function onKey(event: KeyboardEvent) {
     const target = event.target as HTMLButtonElement;
     if (event.key === 'Escape') {
       event.preventDefault();
       close(null);
     } else if (event.key === 'Tab') {
       // The screen is modal: Tab goes round its stops, from the last to the first.
-      const stops = Array.from(
-        screen.querySelectorAll<HTMLButtonElement>(
-          'button:not([tabindex="-1"])',
+      const stops = [
+        ...(deps.gear ? [deps.gear] : []),
+        ...Array.from(
+          screen.querySelectorAll<HTMLElement>('button:not([tabindex="-1"])'),
         ),
-      );
+      ];
       const at = stops.indexOf(target);
       const next = at + (event.shiftKey ? -1 : 1) + stops.length;
       event.preventDefault();
@@ -128,7 +132,10 @@ export function mountCatMaker(deps: {
       pick(row[next % row.length]!);
       row[next % row.length]!.focus();
     }
-  });
+  }
+  screen.addEventListener('keydown', onKey);
+  // The gear is outside the screen's markup: its Tab and Escape are the screen's too.
+  deps.gear?.addEventListener('keydown', onKey);
   render();
   radios.find((radio) => radio.tabIndex === 0)!.focus();
   return screen;

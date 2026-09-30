@@ -1,5 +1,5 @@
 /** Public world API. Systems and state validators remain inside Core. */
-export { createWorld, loadWorld, World } from './world';
+export { createWorld, loadWorld, World, type Stray } from './world';
 export { commandSchema } from './commands';
 export { MAX_BOND, MAX_STAT, MAX_TEXT } from './limits';
 export { catIdle, freeBeds, nextInvitePrice } from './cats';

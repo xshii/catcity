@@ -198,7 +198,7 @@ export function talkCard(
     },
     cat: cat && {
       talk: `和 ${cat.name} 说句话`,
-      gray: cat.appearance.coat === 'gray',
+      gray: cat.appearance.colour === 'gray',
       traits: cat.personalityLabel,
       bond: cat.bondBadge,
       news: view.news.catId === cat.id ? view.news.note : '',

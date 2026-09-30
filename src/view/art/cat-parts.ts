@@ -1,5 +1,6 @@
+import type { CatBreed } from '../../content/breeds';
 import type { CatAppearance } from '../../content/cats';
-import type { ArtBreed, CatEars, CatShape, Colour } from './cat-look';
+import type { CatEars, CatShape, Colour } from './cat-look';
 
 /**
  * A cat's parts in the style board's 72×64 portrait space, each bottom to top (spec 041
@@ -128,7 +129,7 @@ interface BreedArt {
  * plumed tail; a shorthair's rounder face, smaller rounded ears and short tail; a domestic
  * cat's face narrowing to its chin like a triangle, big upright ears and thin long tail.
  */
-const BREEDS: Record<ArtBreed, BreedArt> = {
+const BREEDS: Record<CatBreed, BreedArt> = {
   RAGDOLL: {
     head: {
       half: 24,
@@ -269,7 +270,7 @@ function fur(
 }
 
 export function catParts(
-  breed: ArtBreed,
+  breed: CatBreed,
   { pattern, white: patch, face }: CatAppearance,
 ): CatParts {
   const art = BREEDS[breed];
