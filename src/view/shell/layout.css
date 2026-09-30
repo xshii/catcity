@@ -167,33 +167,6 @@ body {
   z-index: 45;
   box-shadow: var(--shadow-sheet);
 }
-.game-screen .cat-energy-cards {
-  gap: 6px;
-  padding: 2px;
-  overflow: visible;
-}
-.game-screen .energy-cat {
-  flex: 1;
-  min-width: 0;
-  max-width: none;
-  gap: 7px;
-  padding: 5px 9px;
-  border-radius: var(--radius-md);
-}
-.game-screen .energy-cat svg {
-  width: 30px;
-}
-.game-screen .energy-cat strong {
-  font-size: 12px;
-}
-.game-screen .energy-cat small {
-  font-size: 9px;
-  margin-top: 1px;
-}
-.game-screen .energy-cat progress {
-  height: 5px;
-  margin-top: 3px;
-}
 .game-screen #fishing-stage {
   position: absolute;
   inset: 0;
@@ -712,12 +685,6 @@ body {
   }
 }
 @media (max-height: 700px) {
-  .game-screen .energy-cat svg {
-    width: 26px;
-  }
-  .game-screen .energy-cat small {
-    font-size: 8px;
-  }
   .game-screen .scene-console .bar-heading {
     font-size: 10px;
   }
@@ -774,9 +741,6 @@ body {
   overflow-y: auto;
   margin-inline: -6px;
   padding: 0 6px 6px;
-}
-.game-screen #cats-page-roster #river-roster {
-  padding: 4px 0;
 }
 
 .game-screen #clock-speed {
