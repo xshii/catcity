@@ -99,8 +99,9 @@
 - **测试**（先写，单元）：河畔、体力 50、没有进行中的一竿 → 不蜷睡；河畔、刚出结果 → 不蜷睡；城市、空闲、体力 50 → 蜷睡（保持现状）；城市、体力 100 → 不蜷睡。画面测试台：在河畔抛一竿之后名册头像的读屏文字不含"在休息"。
 - **验收**：同上三条命令；完整检查通过；截图 390×844"抛过一竿后在瞄准"，猫是坐着的。
 
-### [ ] T-03 收获卡倒计时关闭（R-02）
+### [x] T-03 收获卡倒计时关闭（R-02）
 
+- **完成**：PR #59（`3838dc9`），测试版 `test-20260930-0940-3838dc9e-32a933`。证据：`tests/unit/fishing-screen.test.ts` 的 `dismissed`/`catchCountdown` 用例与 `tests/view/catch-card.test.ts`（假定时器：3.9 秒还在、4 秒消失、点击关闭、面板或后台暂停 10 秒后续走、卡片消失不留计时器）在旧代码上失败、新代码上通过；推送前完整检查通过（单元与画面 721 条、E2E 53 条、验收 15 步），产物 `artifacts/2026-09-30T01-34-56-653Z-40579/`（`catcity-wt03`）；截图 `catch-countdown-390x844.png`、`catch-countdown-360x640.png` 为倒计时一半的收获卡。已知：360×640 上卡片压住设置齿轮一角（原有布局）；卡片不能用键盘关闭。
 - **分支**：`feat/catch-card-countdown`
 - **依赖**：无。
 - **先读这些文件**：`src/view/fishing/view-state.ts`（事件 `said`、字段 `watched`）、`src/view/fishing/screen.ts`（`resultShown`、`noticeShown`）、`src/view/fishing/stage.ts`（`.catch-reveal`）、`src/view/fishing/panel.ts`、`tests/unit/fishing-screen.test.ts` 的"the catch card"一组、`tests/view/fishing-buttons.test.ts`。
