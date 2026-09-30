@@ -1,0 +1,79 @@
+/*
+ * The roster (spec 041 T-12, ui-design 5.1): one row per cat in a single column; ten of
+ * them scroll with the roster page inside the cats panel (shell/layout.css), never
+ * sideways. Scoped by id: the fishing panel's button rules would win otherwise.
+ */
+#river-roster {
+  padding: 4px 0;
+}
+#river-roster .cat-energy-cards {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#river-roster .energy-cat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  text-align: left;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+#river-roster .energy-cat[aria-pressed='true'] {
+  border-color: var(--selected-line);
+  box-shadow: var(--glow-good);
+}
+#river-roster .energy-cat svg {
+  flex: none;
+  width: 48px;
+}
+.roster-text {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+.roster-title,
+.roster-status,
+.roster-energy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+}
+.roster-title strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.roster-sex {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.gen-badge {
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--gen-bg);
+  color: var(--gen-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.roster-text small {
+  font-size: 12px;
+}
+#river-roster .roster-energy progress {
+  flex: 1;
+  min-width: 60px;
+  height: 6px;
+}
+.energy-line {
+  color: var(--text-muted);
+}

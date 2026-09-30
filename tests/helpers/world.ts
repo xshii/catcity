@@ -1,6 +1,16 @@
-import type { CatDefinitionId } from '../../src/content/cats';
+import {
+  INVITABLE_CATS,
+  MAX_COMPANIONS,
+  type CatDefinitionId,
+} from '../../src/content/cats';
 import { BUILDINGS, CITY_START } from '../../src/content/city';
-import type { CatEntity, CommandResult, Position, World } from '../../src/core';
+import {
+  createWorld,
+  World,
+  type CatEntity,
+  type CommandResult,
+  type Position,
+} from '../../src/core';
 
 /** Test shorthands over World.dispatch; production code dispatches commands directly. */
 export const advance = (world: World, minutes: number): CommandResult =>
@@ -52,4 +62,27 @@ export function invite(
   const result = world.dispatch(command);
   if (!result.ok) throw new Error(`Invitation rejected: ${result.error}`);
   return world.getSnapshot().cats.at(-1)!;
+}
+
+/**
+ * A city at the companion limit (R-13), built by commands on seed 42: Mochi, every cat
+ * on the invite list, then debug copies of Mochi on grass away from the city. Coins are
+ * set first so that every invitation and its apartment is paid for.
+ */
+export function fullCity(): World {
+  const world = new World({
+    ...createWorld(42).getSnapshot(),
+    coins: 100_000,
+  });
+  for (const id of INVITABLE_CATS) invite(world, id);
+  for (const position of [
+    { x: 2, y: 7 },
+    { x: 2, y: 8 },
+    { x: 3, y: 7 },
+    { x: 3, y: 8 },
+  ].slice(0, MAX_COMPANIONS - world.getSnapshot().cats.length)) {
+    const spawned = world.dispatch({ type: 'DEBUG_SPAWN_CAT', position });
+    if (!spawned.ok) throw new Error(`Spawn rejected: ${spawned.error}`);
+  }
+  return world;
 }

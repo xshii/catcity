@@ -30,6 +30,9 @@
   --accent: var(--apricot);
   --accent-soft: #fdebd8;
   --mood-bg: #fce3e1;
+  /* The generation badge: lilac, apart from mood pink and bond red (5.2:1). */
+  --gen-bg: #eee4f3;
+  --gen-text: #6d5580;
   --selected-bg: #e9f0e1;
   --selected-line: var(--sage);
   --line: #e9dcc8;
